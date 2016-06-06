@@ -1,6 +1,9 @@
 package org.lmdbjava.core.lli;
 
+import java.util.Objects;
 import java.util.Set;
+
+import static java.util.Objects.requireNonNull;
 import static jnr.ffi.Memory.allocateDirect;
 import static jnr.ffi.NativeType.ADDRESS;
 import jnr.ffi.Pointer;
@@ -10,7 +13,6 @@ import static org.lmdbjava.core.lli.TransactionFlags.MDB_RDONLY;
 import static org.lmdbjava.core.lli.Utils.mask;
 import org.lmdbjava.core.lli.exceptions.LmdbNativeException;
 import static org.lmdbjava.core.lli.exceptions.ResultCodeMapper.checkRc;
-import static org.lmdbjava.core.support.Validate.notNull;
 
 /**
  * LMDB transaction.
@@ -25,8 +27,8 @@ public final class Transaction {
   Transaction(final Env env, final Transaction parent,
               final Set<TransactionFlags> flags) throws NotOpenException,
                                                         LmdbNativeException {
-    notNull(env);
-    notNull(flags);
+    requireNonNull(env);
+    requireNonNull(flags);
     if (!env.isOpen()) {
       throw new NotOpenException(Transaction.class.getSimpleName());
     }

@@ -1,7 +1,8 @@
 package org.lmdbjava.core.lli;
 
 import java.util.Set;
-import static org.lmdbjava.core.support.Validate.notNull;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Utility methods used internally by this package.
@@ -15,7 +16,7 @@ final class Utils {
    * @return the integer mask for use in C
    */
   static int mask(Set<? extends MaskedFlag> flags) {
-    notNull(flags);
+    requireNonNull(flags);
     int result = 0;
     for (MaskedFlag flag : flags) {
       result |= flag.getMask();
