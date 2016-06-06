@@ -15,17 +15,14 @@ import static org.lmdbjava.core.lli.exceptions.ResultCodeMapper.checkRc;
 
 
 public class Cursor {
+  private ByteBuffer buffer;
   private final Pointer ptr;
-  private final boolean isReadOnly;
+  private final Transaction tx;
   private boolean closed;
 
-  Cursor(Pointer ptr, boolean isReadOnly) {
+  Cursor(Pointer ptr, Transaction tx) {
     this.ptr = ptr;
-    this.isReadOnly = isReadOnly;
-  }
-
-  public boolean isReadOnly() {
-    return isReadOnly;
+    this.tx = tx;
   }
 
   public void put(ByteBuffer key, ByteBuffer val)
@@ -38,6 +35,12 @@ public class Cursor {
     requireNonNull(key);
     requireNonNull(val);
     requireNonNull(op);
+    if (tx.isCommitted()) {
+      throw new IllegalArgumentException("transaction already committed");
+    }
+    if (closed) {
+      throw new IllegalArgumentException("cursor closed");
+    }
     final MDB_val k = createVal(key);
     final MDB_val v = createVal(val);
     checkRc(lib.mdb_cursor_put(ptr, k, v, op.getMask()));
@@ -48,6 +51,9 @@ public class Cursor {
     requireNonNull(key);
     requireNonNull(val);
     requireNonNull(op);
+    if (tx.isCommitted()) {
+      throw new IllegalArgumentException("transaction already committed");
+    }
     if (closed) {
       throw new IllegalArgumentException("Cursor closed");
     }

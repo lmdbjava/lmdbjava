@@ -91,6 +91,6 @@ public final class Database {
   public Cursor openCursor(Transaction tx) throws LmdbNativeException {
     PointerByReference ptr = new PointerByReference();
     checkRc(lib.mdb_cursor_open(tx.ptr, dbi, ptr));
-    return new Cursor(ptr.getValue(), tx.isReadOnly());
+    return new Cursor(ptr.getValue(), tx);
   }
 }

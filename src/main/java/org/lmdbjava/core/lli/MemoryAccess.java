@@ -45,7 +45,6 @@ abstract class MemoryAccess {
     return val;
   }
 
-
   private static java.lang.reflect.Field getDeclaredField(Class<?> root,
                                                           String fieldName)
       throws NoSuchFieldException {

@@ -6,8 +6,10 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.lmdbjava.core.lli.exceptions.LmdbNativeException;
 
+import javax.xml.crypto.Data;
 import java.io.File;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -25,6 +27,7 @@ public class CursorTest {
   public final TemporaryFolder tmp = new TemporaryFolder();
   private Env env;
   private Transaction tx;
+  private Database db;
 
   @Before
   public void before() throws Exception {
@@ -38,16 +41,14 @@ public class CursorTest {
     env.setMaxDbs(1);
     env.setMaxReaders(1);
     env.open(path, envFlags, POSIX_MODE);
-
     tx = env.txnBeginReadWrite();
+    Set<DatabaseFlags> dbFlags = new HashSet<>();
+    dbFlags.add(MDB_CREATE);
+    db = tx.databaseOpen(DB_1, dbFlags);
   }
 
   @Test
   public void testCursorGet() throws Exception {
-    Set<DatabaseFlags> dbFlags = new HashSet<>();
-    dbFlags.add(MDB_CREATE);
-    Database db = tx.databaseOpen(DB_1, dbFlags);
-
     Cursor cursor = db.openCursor(tx);
     cursor.put(createBb(1), createBb(2), PutFlags.MDB_NOOVERWRITE);
     cursor.put(createBb(3), createBb(4));
@@ -76,9 +77,6 @@ public class CursorTest {
 
   @Test
   public void testCursorSet() throws Exception {
-    Set<DatabaseFlags> dbFlags = new HashSet<>();
-    dbFlags.add(MDB_CREATE);
-    Database db = tx.databaseOpen(DB_1, dbFlags);
     Cursor cursor = db.openCursor(tx);
     cursor.put(createBb(1), createBb(2));
     cursor.put(createBb(3), createBb(4));
