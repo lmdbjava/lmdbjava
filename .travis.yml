@@ -3,3 +3,6 @@ jdk:
   - oraclejdk8
 after_success:
   - mvn clean test jacoco:report coveralls:report
+notifications:
+  email:
+    - ben.alex@acegi.com.au
