@@ -9,6 +9,7 @@ import static java.nio.ByteOrder.LITTLE_ENDIAN;
 import static java.util.Objects.requireNonNull;
 import static org.lmdbjava.core.lli.Library.lib;
 
+import jnr.ffi.byref.PointerByReference;
 import jnr.ffi.provider.jffi.ByteBufferMemoryIO;
 import org.lmdbjava.core.lli.Library.MDB_val;
 import org.lmdbjava.core.lli.exceptions.LmdbNativeException;
@@ -94,4 +95,9 @@ public final class Database {
     return bb;
   }
 
+  public Cursor openCursor(Transaction tx) throws LmdbNativeException {
+    PointerByReference ptr = new PointerByReference();
+    checkRc(lib.mdb_cursor_open(tx.ptr, dbi, ptr));
+    return new Cursor(ptr.getValue(), tx.isReadOnly());
+  }
 }

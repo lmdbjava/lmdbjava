@@ -266,7 +266,7 @@ final class Library {
     /**
      * Retrieve by cursor.
      */
-    int mdb_cursor_get(@In Pointer cursor, @In MDB_val k, @Out MDB_val v, int cursorOp);
+    int mdb_cursor_get(@In Pointer cursor, MDB_val k, @Out MDB_val v, int cursorOp);
 
     /**
      * Store by cursor.

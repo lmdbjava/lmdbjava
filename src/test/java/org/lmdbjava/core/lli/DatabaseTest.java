@@ -21,6 +21,7 @@ import static org.lmdbjava.core.lli.DatabaseFlags.MDB_CREATE;
 import static org.lmdbjava.core.lli.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.core.lli.TestUtils.DB_1;
 import static org.lmdbjava.core.lli.TestUtils.POSIX_MODE;
+import static org.lmdbjava.core.lli.TestUtils.createBb;
 
 public class DatabaseTest {
 
@@ -104,12 +105,4 @@ public class DatabaseTest {
     }
     tx.abort();
   }
-
-  private ByteBuffer createBb(int value) {
-    ByteBuffer bb = ByteBuffer.allocateDirect(Integer.BYTES);
-    bb.order(ByteOrder.LITTLE_ENDIAN);
-    bb.putInt(value).flip();
-    return bb;
-  }
-
 }
