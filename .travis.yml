@@ -1,4 +1,10 @@
+sudo: required
+dist: trusty
 language: java
+before_install:
+  - sudo apt-get update -qq -y
+  - apt-cache search lmdb
+  - sudo apt-get install -qq liblmdb-dev
 jdk:
   - oraclejdk8
 after_success:

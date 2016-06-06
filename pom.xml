@@ -130,23 +130,6 @@
           <goals>deploy site-deploy</goals>
         </configuration>
       </plugin>
-      <plugin>
-        <groupId>au.com.acegi</groupId>
-        <artifactId>xml-format-maven-plugin</artifactId>
-        <version>3.0.0</version>
-        <executions>
-          <execution>
-            <id>xml-format</id>
-            <phase>package</phase>
-            <goals>
-              <goal>xml-format</goal>
-            </goals>
-            <configuration>
-              <indentSize>2</indentSize>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
     </plugins>
   </build>
   <profiles>
