@@ -31,14 +31,14 @@ public class TransactionTest {
 
   @Test(expected = AlreadyCommittedException.class)
   public void txCannotCommitTwice() throws Exception {
-    final Transaction tx = env.tnxBeginReadWrite();
+    final Transaction tx = env.txnBeginReadWrite();
     tx.commit();
     tx.commit(); // error
   }
 
   @Test
   public void txReadOnly() throws Exception {
-    final Transaction tx = env.tnxBeginReadOnly();
+    final Transaction tx = env.txnBeginReadOnly();
     assertThat(tx.isCommitted(), is(false));
     assertThat(tx.isReadOnly(), is(true));
     tx.commit();
@@ -47,7 +47,7 @@ public class TransactionTest {
 
   @Test
   public void txReadWrite() throws Exception {
-    final Transaction tx = env.tnxBeginReadWrite();
+    final Transaction tx = env.txnBeginReadWrite();
     assertThat(tx.isCommitted(), is(false));
     assertThat(tx.isReadOnly(), is(false));
     tx.commit();

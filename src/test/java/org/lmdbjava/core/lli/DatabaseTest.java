@@ -42,7 +42,7 @@ public class DatabaseTest {
     env.setMaxReaders(1);
     env.open(path, envFlags, POSIX_MODE);
 
-    tx = env.tnxBeginReadWrite();
+    tx = env.txnBeginReadWrite();
   }
 
   @Test
@@ -62,7 +62,7 @@ public class DatabaseTest {
     db.put(tx, createBb(5), createBb(5));
     tx.commit();
 
-    tx = env.tnxBeginReadWrite();
+    tx = env.txnBeginReadWrite();
 
     ByteBuffer result = db.get(tx, createBb(5));
     assertThat(result.getInt(0), is(5));
@@ -78,7 +78,7 @@ public class DatabaseTest {
     db.put(tx, createBb(5), createBb(5));
     tx.abort();
 
-    tx = env.tnxBeginReadWrite();
+    tx = env.txnBeginReadWrite();
     try {
       db.get(tx, createBb(5));
       fail("key does not exist");

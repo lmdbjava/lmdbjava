@@ -122,7 +122,7 @@ public final class Env {
    * @throws NotOpenException    if the environment is not yet opened
    * @throws LmdbNativeException if a native C error occurred
    */
-  public Transaction tnxBeginReadOnly() throws NotOpenException,
+  public Transaction txnBeginReadOnly() throws NotOpenException,
                                                LmdbNativeException {
     return new Transaction(this, null, TX_FLAGS_RO);
   }
@@ -134,7 +134,7 @@ public final class Env {
    * @throws NotOpenException    if the environment is not yet opened
    * @throws LmdbNativeException if a native C error occurred
    */
-  public Transaction tnxBeginReadWrite() throws NotOpenException,
+  public Transaction txnBeginReadWrite() throws NotOpenException,
                                                 LmdbNativeException {
     return new Transaction(this, null, TX_FLAGS_RW);
   }
