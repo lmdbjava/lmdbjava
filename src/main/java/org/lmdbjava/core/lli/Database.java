@@ -10,11 +10,12 @@ import static java.util.Objects.requireNonNull;
 import static org.lmdbjava.core.lli.Library.lib;
 
 import jnr.ffi.byref.PointerByReference;
-import jnr.ffi.provider.jffi.ByteBufferMemoryIO;
 import org.lmdbjava.core.lli.Library.MDB_val;
 import org.lmdbjava.core.lli.exceptions.LmdbNativeException;
 
 import static org.lmdbjava.core.lli.Library.runtime;
+import static org.lmdbjava.core.lli.MemoryAccess.createVal;
+import static org.lmdbjava.core.lli.MemoryAccess.wrap;
 import static org.lmdbjava.core.lli.exceptions.ResultCodeMapper.checkRc;
 
 /**
@@ -58,22 +59,17 @@ public final class Database {
   public void put(Transaction tx, ByteBuffer key, ByteBuffer val) throws
     AlreadyCommittedException, LmdbNativeException {
 
-    final MDB_val k = new MDB_val(runtime);
-    k.size.set(key.limit());
-    k.data.set(new ByteBufferMemoryIO(runtime, key));
-
-    final MDB_val v = new MDB_val(runtime);
-    v.size.set(val.limit());
-    v.data.set(new ByteBufferMemoryIO(runtime, val));
+    final MDB_val k = createVal(key);
+    final MDB_val v = createVal(val);
 
     checkRc(lib.mdb_put(tx.ptr, dbi, k, v, 0));
   }
 
   public void delete(Transaction tx, ByteBuffer key) throws
     AlreadyCommittedException, LmdbNativeException {
-    final MDB_val k = new MDB_val(runtime);
-    k.size.set(key.limit());
-    k.data.set(new ByteBufferMemoryIO(runtime, key));
+
+    final MDB_val k = createVal(key);
+
     checkRc(lib.mdb_del(tx.ptr, dbi, k, null));
   }
 
@@ -81,17 +77,14 @@ public final class Database {
     AlreadyCommittedException, LmdbNativeException {
     assert key.isDirect();
 
-    final MDB_val k = new MDB_val(runtime);
-    k.size.set(key.limit());
-    k.data.set(new ByteBufferMemoryIO(runtime, key));
-
+    final MDB_val k = createVal(key);
     final MDB_val v = new MDB_val(runtime);
+
     checkRc(lib.mdb_get(tx.ptr, dbi, k, v));
 
-    final long size = v.size.get();
     // inefficient as we create a BB
     ByteBuffer bb = ByteBuffer.allocateDirect(1).order(LITTLE_ENDIAN);
-    MemoryAccess.wrap(bb, v.data.get().address(), (int) size);
+    wrap(bb, v);
     return bb;
   }
 

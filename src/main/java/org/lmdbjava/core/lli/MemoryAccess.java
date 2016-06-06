@@ -4,7 +4,12 @@
  */
 package org.lmdbjava.core.lli;
 
+import jnr.ffi.provider.jffi.ByteBufferMemoryIO;
+import org.lmdbjava.core.lli.Library.MDB_val;
+
 import java.nio.*;
+
+import static org.lmdbjava.core.lli.Library.runtime;
 
 abstract class MemoryAccess {
 
@@ -24,11 +29,22 @@ abstract class MemoryAccess {
     }
   }
 
-  public static void wrap(final ByteBuffer buffer, final long address, final int capacity) {
-    UNSAFE.putLong(buffer, ADDRESS, address);
-    UNSAFE.putInt(buffer, CAPACITY, capacity);
+  static void wrap(final ByteBuffer buffer, MDB_val val) {
+    UNSAFE.putLong(buffer, ADDRESS, val.data.get().address());
+    UNSAFE.putInt(buffer, CAPACITY, (int) val.size.get());
     buffer.clear();
   }
+
+  static MDB_val createVal(ByteBuffer bb) {
+    if (!bb.isDirect()) {
+      throw new IllegalArgumentException("ByteBuffer is not direct");
+    }
+    MDB_val val = new MDB_val(runtime);
+    val.size.set(bb.limit());
+    val.data.set(new ByteBufferMemoryIO(runtime, bb));
+    return val;
+  }
+
 
   private static java.lang.reflect.Field getDeclaredField(Class<?> root,
                                                           String fieldName)

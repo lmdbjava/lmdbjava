@@ -47,10 +47,10 @@ public class CursorTest {
     Set<DatabaseFlags> dbFlags = new HashSet<>();
     dbFlags.add(MDB_CREATE);
     Database db = tx.databaseOpen(DB_1, dbFlags);
-    db.put(tx, createBb(1), createBb(2));
-    db.put(tx, createBb(3), createBb(4));
 
     Cursor cursor = db.openCursor(tx);
+    cursor.put(createBb(1), createBb(2), PutFlags.MDB_NOOVERWRITE);
+    cursor.put(createBb(3), createBb(4));
 
     ByteBuffer k = createBb();
     ByteBuffer v = createBb();
@@ -75,32 +75,36 @@ public class CursorTest {
   }
 
   @Test
-  public void testCursorSeek() throws Exception {
+  public void testCursorSet() throws Exception {
     Set<DatabaseFlags> dbFlags = new HashSet<>();
     dbFlags.add(MDB_CREATE);
     Database db = tx.databaseOpen(DB_1, dbFlags);
-    db.put(tx, createBb(1), createBb(2));
-    db.put(tx, createBb(3), createBb(4));
-    db.put(tx, createBb(5), createBb(6));
-
     Cursor cursor = db.openCursor(tx);
+    cursor.put(createBb(1), createBb(2));
+    cursor.put(createBb(3), createBb(4));
+    cursor.put(createBb(5), createBb(6));
 
     ByteBuffer k = createBb(1);
     ByteBuffer v = createBb();
 
-    cursor.seekKey(k, v);
+    cursor.get(k, v, CursorOp.MDB_SET);
     assertThat(k.getInt(), is(1));
     assertThat(v.getInt(), is(2));
 
     k = createBb(3);
-    cursor.seekKey(k, v);
+    cursor.get(k, v, CursorOp.MDB_SET_KEY);
     assertThat(k.getInt(), is(3));
     assertThat(v.getInt(), is(4));
 
     k = createBb(5);
-    cursor.seekKey(k, v);
+    cursor.get(k, v, CursorOp.MDB_SET_RANGE);
     assertThat(k.getInt(), is(5));
     assertThat(v.getInt(), is(6));
+
+    k = createBb(0);
+    cursor.get(k, v, CursorOp.MDB_SET_RANGE);
+    assertThat(k.getInt(), is(1));
+    assertThat(v.getInt(), is(2));
 
     tx.commit();
   }
