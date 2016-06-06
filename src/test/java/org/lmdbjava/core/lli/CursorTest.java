@@ -4,6 +4,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.lmdbjava.core.lli.exceptions.LmdbNativeException;
 
 import java.io.File;
 import java.nio.ByteBuffer;
@@ -102,5 +103,17 @@ public class CursorTest {
     assertThat(v.getInt(), is(6));
 
     tx.commit();
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void closeCursor() throws LmdbNativeException, AlreadyCommittedException {
+    Set<DatabaseFlags> dbFlags = new HashSet<>();
+    dbFlags.add(MDB_CREATE);
+    Database db = tx.databaseOpen(DB_1, dbFlags);
+    Cursor cursor = db.openCursor(tx);
+    cursor.close();
+    ByteBuffer k = createBb(1);
+    ByteBuffer v = createBb(1);
+    cursor.get(k, v, CursorOp.MDB_FIRST);
   }
 }

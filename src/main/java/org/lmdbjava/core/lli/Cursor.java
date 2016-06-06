@@ -28,6 +28,9 @@ public class Cursor {
   }
 
   public void get(ByteBuffer key, ByteBuffer val, CursorOp op) throws LmdbNativeException {
+    if (closed) {
+      throw new IllegalArgumentException("Cursor closed");
+    }
     final MDB_val k = new MDB_val(runtime);
     final MDB_val v = new MDB_val(runtime);
 
@@ -37,6 +40,9 @@ public class Cursor {
   }
 
   public void seekKey(ByteBuffer key, ByteBuffer val) throws LmdbNativeException {
+    if (closed) {
+      throw new IllegalArgumentException("Cursor closed");
+    }
     final MDB_val k = new MDB_val(runtime);
     k.size.set(key.limit());
     k.data.set(new ByteBufferMemoryIO(runtime, key));
