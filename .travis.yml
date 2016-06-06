@@ -10,10 +10,12 @@ before_install:
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt-get install -qq liblmdb-dev; fi
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then export JAVA_HOME=$(/usr/libexec/java_home); fi
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew install lmdb; fi
-  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then "wget --no-cookies --no-check-certificate --header \"Cookie: gpw_e24=http%3A%2F%2Fwww.oracle.com%2F; oraclelicense=accept-securebackup-cookie\" http://download.oracle.com/otn-pub/java/jdk/8u66-b17/jdk-8u66-macosx-x64.dmg"; fi
-  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then hdiutil mount jdk-8u66-macosx-x64.dmg; fi
-  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then sudo installer -pkg /Volumes/JDK\ 8\ Update\ 66/JDK\ 8\ Update\ 66.pkg -target LocalSystem; fi
-jdk: oraclejdk8
+
+matrix:
+  include:
+    - os: linux
+      jdk: oraclejdk8
+
 after_success:
   - mvn clean test jacoco:report coveralls:report
 notifications:
