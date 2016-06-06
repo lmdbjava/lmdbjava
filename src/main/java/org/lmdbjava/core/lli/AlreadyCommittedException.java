@@ -11,6 +11,6 @@ public final class AlreadyCommittedException extends LmdbException {
    * Creates a new instance.
    */
   public AlreadyCommittedException() {
-    super("Transaction has already been opened");
+    super("Transaction has already been commited");
   }
 }

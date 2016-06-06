@@ -27,7 +27,8 @@ final class Library {
   private Library() {
   }
   public interface Lmdb {
-    
+    Pointer mdb_strerror(int rc);
+
     int mdb_env_create(PointerByReference envPtr);
 
     int mdb_env_set_maxreaders(@In Pointer env, int readers);

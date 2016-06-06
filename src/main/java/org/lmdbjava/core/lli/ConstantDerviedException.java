@@ -1,4 +1,4 @@
-package org.lmdbjava.core.lli.exceptions;
+package org.lmdbjava.core.lli;
 
 /**
  * Exception raised from a system constant table lookup.
