@@ -1,5 +1,9 @@
 package org.lmdbjava.core.lli;
 
+import java.util.Set;
+
+import static java.util.Objects.requireNonNull;
+
 /**
  * Indicates an enum that can provide integers for each of its values,
  * <p>
@@ -14,4 +18,18 @@ public interface MaskedFlag {
    */
   int getMask();
 
+  /**
+   * Fetch the integer mask for all presented flags.
+   *
+   * @param flags to mask
+   * @return the integer mask for use in C
+   */
+  static int mask(Set<? extends MaskedFlag> flags) {
+    requireNonNull(flags);
+    int result = 0;
+    for (MaskedFlag flag : flags) {
+      result |= flag.getMask();
+    }
+    return result;
+  }
 }

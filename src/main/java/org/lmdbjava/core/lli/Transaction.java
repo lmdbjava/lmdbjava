@@ -1,6 +1,5 @@
 package org.lmdbjava.core.lli;
 
-import java.util.Objects;
 import java.util.Set;
 
 import static java.util.Objects.requireNonNull;
@@ -10,7 +9,6 @@ import jnr.ffi.Pointer;
 import static org.lmdbjava.core.lli.Library.lib;
 import static org.lmdbjava.core.lli.Library.runtime;
 import static org.lmdbjava.core.lli.TransactionFlags.MDB_RDONLY;
-import static org.lmdbjava.core.lli.Utils.mask;
 import org.lmdbjava.core.lli.exceptions.LmdbNativeException;
 import static org.lmdbjava.core.lli.exceptions.ResultCodeMapper.checkRc;
 
@@ -34,7 +32,7 @@ public final class Transaction {
     }
     this.env = env;
     this.readOnly = flags.contains(MDB_RDONLY);
-    final int flagsMask = mask(flags);
+    final int flagsMask = MaskedFlag.mask(flags);
     final Pointer txnPtr = allocateDirect(runtime, ADDRESS);
     final Pointer txnParentPtr = parent == null ? null : parent.ptr;
     checkRc(lib.mdb_txn_begin(env.ptr, txnParentPtr, flagsMask, txnPtr));
