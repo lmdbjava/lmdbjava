@@ -8,9 +8,15 @@ before_install:
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt-get update -qq -y; fi
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then apt-cache search lmdb; fi
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt-get install -qq liblmdb-dev; fi
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then export JAVA_HOME=$(/usr/libexec/java_home); fi
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew install lmdb; fi
-jdk:
-  - oraclejdk8
+matrix:
+  exclude:
+     # On OSX, run with default JDK only.
+     - os: osx
+       env: CUSTOM_JDK="oraclejdk8"
+     - os: linux
+       env: CUSTOM_JDK="oraclejdk8"
 after_success:
   - mvn clean test jacoco:report coveralls:report
 notifications:
