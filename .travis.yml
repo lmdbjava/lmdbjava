@@ -5,10 +5,10 @@ os:
   - osx
 language: java
 before_install:
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; sudo apt-get update -qq -y
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; apt-cache search lmdb
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; sudo apt-get install -qq liblmdb-dev
-  - if [ "$TRAVIS_OS_NAME" == "osx" ]; brew install lmdb
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; sudo apt-get update -qq -y; fi
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; apt-cache search lmdb; fi
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; sudo apt-get install -qq liblmdb-dev; fi
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; brew install lmdb; fi
 jdk:
   - oraclejdk8
 after_success:
