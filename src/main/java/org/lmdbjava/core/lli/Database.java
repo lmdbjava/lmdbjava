@@ -1,11 +1,19 @@
 package org.lmdbjava.core.lli;
 
+import java.nio.ByteBuffer;
 import java.util.Set;
+
 import jnr.ffi.byref.IntByReference;
 
+import static java.nio.ByteOrder.LITTLE_ENDIAN;
 import static java.util.Objects.requireNonNull;
 import static org.lmdbjava.core.lli.Library.lib;
+
+import jnr.ffi.provider.jffi.ByteBufferMemoryIO;
+import org.lmdbjava.core.lli.Library.MDB_val;
 import org.lmdbjava.core.lli.exceptions.LmdbNativeException;
+
+import static org.lmdbjava.core.lli.Library.runtime;
 import static org.lmdbjava.core.lli.exceptions.ResultCodeMapper.checkRc;
 
 /**
@@ -15,9 +23,11 @@ public final class Database {
 
   private final String name;
   final int dbi;
+  final Env env;
 
-  Database(Transaction tx, String name, Set<DatabaseFlags> flags) throws
-      AlreadyCommittedException, LmdbNativeException {
+  Database(Env env, Transaction tx, String name, Set<DatabaseFlags> flags) throws
+    AlreadyCommittedException, LmdbNativeException {
+    requireNonNull(env);
     requireNonNull(tx);
     requireNonNull(flags);
     requireNonNull(name);
@@ -27,6 +37,7 @@ public final class Database {
     if (tx.isCommitted()) {
       throw new AlreadyCommittedException();
     }
+    this.env = env;
     this.name = name;
     final int flagsMask = MaskedFlag.mask(flags);
     final IntByReference dbiPtr = new IntByReference();
@@ -41,6 +52,46 @@ public final class Database {
    */
   public String getName() {
     return name;
+  }
+
+  public void put(Transaction tx, ByteBuffer key, ByteBuffer val) throws
+    AlreadyCommittedException, LmdbNativeException {
+
+    final MDB_val k = new MDB_val(runtime);
+    k.size.set(key.limit());
+    k.data.set(new ByteBufferMemoryIO(runtime, key));
+
+    final MDB_val v = new MDB_val(runtime);
+    v.size.set(val.limit());
+    v.data.set(new ByteBufferMemoryIO(runtime, val));
+
+    checkRc(lib.mdb_put(tx.ptr, dbi, k, v, 0));
+  }
+
+  public void delete(Transaction tx, ByteBuffer key) throws
+    AlreadyCommittedException, LmdbNativeException {
+    final MDB_val k = new MDB_val(runtime);
+    k.size.set(key.limit());
+    k.data.set(new ByteBufferMemoryIO(runtime, key));
+    checkRc(lib.mdb_del(tx.ptr, dbi, k, null));
+  }
+
+  public ByteBuffer get(Transaction tx, ByteBuffer key) throws
+    AlreadyCommittedException, LmdbNativeException {
+    assert key.isDirect();
+
+    final MDB_val k = new MDB_val(runtime);
+    k.size.set(key.limit());
+    k.data.set(new ByteBufferMemoryIO(runtime, key));
+
+    final MDB_val v = new MDB_val(runtime);
+    checkRc(lib.mdb_get(tx.ptr, dbi, k, v));
+
+    final long size = v.size.get();
+    // inefficient as we create a BB
+    ByteBuffer bb = ByteBuffer.allocateDirect(1).order(LITTLE_ENDIAN);
+    MemoryAccess.wrap(bb, v.data.get().address(), (int) size);
+    return bb;
   }
 
 }

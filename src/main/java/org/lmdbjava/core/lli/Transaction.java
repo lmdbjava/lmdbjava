@@ -54,6 +54,20 @@ public final class Transaction {
   }
 
   /**
+   * Aborts this transaction.
+   *
+   * @throws AlreadyCommittedException if already committed
+   * @throws LmdbNativeException       if a native C error occurred
+   */
+  public void abort() throws AlreadyCommittedException, LmdbNativeException {
+    if (committed) {
+      throw new AlreadyCommittedException();
+    }
+    lib.mdb_txn_abort(ptr);
+    this.committed = true;
+  }
+
+  /**
    * Opens a new database
    *
    * @param name  the name of the database (required)
@@ -64,7 +78,7 @@ public final class Transaction {
    */
   public Database databaseOpen(final String name, final Set<DatabaseFlags> flags)
       throws AlreadyCommittedException, LmdbNativeException {
-    return new Database(this, name, flags);
+    return new Database(env, this, name, flags);
   }
 
   /**
