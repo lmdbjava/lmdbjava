@@ -3,9 +3,13 @@ package org.lmdbjava.core.lli;
 /**
  * Superclass for all LmdbJava custom exceptions.
  */
-public class LmdbException extends Exception {
+public class LmdbException extends RuntimeException {
 
   private static final long serialVersionUID = 1L;
+
+  public LmdbException() {
+    super();
+  }
 
   /**
    * Constructs an instance with the provided detailed message.

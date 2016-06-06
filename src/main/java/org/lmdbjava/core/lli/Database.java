@@ -1,14 +1,12 @@
 package org.lmdbjava.core.lli;
 
-import java.util.Objects;
 import java.util.Set;
 import jnr.ffi.byref.IntByReference;
 
 import static java.util.Objects.requireNonNull;
 import static org.lmdbjava.core.lli.Library.lib;
+import static org.lmdbjava.core.lli.ReturnCodes.checkRc;
 import static org.lmdbjava.core.lli.Utils.mask;
-import org.lmdbjava.core.lli.exceptions.LmdbNativeException;
-import static org.lmdbjava.core.lli.exceptions.ResultCodeMapper.checkRc;
 
 /**
  * LMDB Database.
