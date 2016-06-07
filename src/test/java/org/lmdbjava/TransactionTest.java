@@ -67,27 +67,27 @@ public class TransactionTest {
     assertThat(tx.isCommitted(), is(true));
   }
 
-  @Test
-  public void testGetId() throws Exception {
-    Set<DatabaseFlags> dbFlags = new HashSet<>();
-    dbFlags.add(MDB_CREATE);
-    Transaction tx = env.txnBeginReadWrite();
-    Database db = tx.databaseOpen(DB_1, dbFlags);
-    tx.commit();
-
-    final AtomicLong txId1 = new AtomicLong();
-    final AtomicLong txId2 = new AtomicLong();
-
-    try (Transaction tx1 = env.txnBeginReadOnly()) {
-      txId1.set(tx1.getId());
-    }
-
-    db.put(createBb(1), createBb(2));
-
-    try (Transaction tx2 = env.txnBeginReadOnly()) {
-      txId2.set(tx2.getId());
-    }
-    // should not see the same snapshot
-    Assert.assertThat(txId1.get(), Is.is(not(txId2.get())));
-  }
+//  @Test
+//  public void testGetId() throws Exception {
+//    Set<DatabaseFlags> dbFlags = new HashSet<>();
+//    dbFlags.add(MDB_CREATE);
+//    Transaction tx = env.txnBeginReadWrite();
+//    Database db = tx.databaseOpen(DB_1, dbFlags);
+//    tx.commit();
+//
+//    final AtomicLong txId1 = new AtomicLong();
+//    final AtomicLong txId2 = new AtomicLong();
+//
+//    try (Transaction tx1 = env.txnBeginReadOnly()) {
+//      txId1.set(tx1.getId());
+//    }
+//
+//    db.put(createBb(1), createBb(2));
+//
+//    try (Transaction tx2 = env.txnBeginReadOnly()) {
+//      txId2.set(tx2.getId());
+//    }
+//    // should not see the same snapshot
+//    Assert.assertThat(txId1.get(), Is.is(not(txId2.get())));
+//  }
 }
