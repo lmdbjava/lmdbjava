@@ -2,14 +2,14 @@ package org.lmdbjava;
 
 import java.io.File;
 import java.util.HashSet;
+import static java.util.Objects.requireNonNull;
 import java.util.Set;
 import jnr.ffi.Pointer;
 import jnr.ffi.byref.PointerByReference;
-
-import static java.util.Objects.requireNonNull;
 import static org.lmdbjava.Library.lib;
-import static org.lmdbjava.TransactionFlags.MDB_RDONLY;
+import static org.lmdbjava.MaskedFlag.mask;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
+import static org.lmdbjava.TransactionFlags.MDB_RDONLY;
 
 /**
  * LMDB environment.
@@ -109,7 +109,7 @@ public final class Env {
     if (open) {
       throw new AlreadyOpenException(Env.class.getSimpleName());
     }
-    final int flagsMask = MaskedFlag.mask(flags);
+    final int flagsMask = mask(flags);
     checkRc(lib.mdb_env_open(ptr, path.getAbsolutePath(), flagsMask, mode));
     this.open = true;
   }

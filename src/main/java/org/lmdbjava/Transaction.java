@@ -1,15 +1,15 @@
 package org.lmdbjava;
 
-import java.util.Set;
-
 import static java.util.Objects.requireNonNull;
+import java.util.Set;
 import static jnr.ffi.Memory.allocateDirect;
 import static jnr.ffi.NativeType.ADDRESS;
 import jnr.ffi.Pointer;
 import static org.lmdbjava.Library.lib;
 import static org.lmdbjava.Library.runtime;
-import static org.lmdbjava.TransactionFlags.MDB_RDONLY;
+import static org.lmdbjava.MaskedFlag.mask;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
+import static org.lmdbjava.TransactionFlags.MDB_RDONLY;
 
 /**
  * LMDB transaction.
@@ -31,25 +31,11 @@ public final class Transaction {
     }
     this.env = env;
     this.readOnly = flags.contains(MDB_RDONLY);
-    final int flagsMask = MaskedFlag.mask(flags);
+    final int flagsMask = mask(flags);
     final Pointer txnPtr = allocateDirect(runtime, ADDRESS);
     final Pointer txnParentPtr = parent == null ? null : parent.ptr;
     checkRc(lib.mdb_txn_begin(env.ptr, txnParentPtr, flagsMask, txnPtr));
     ptr = txnPtr.getPointer(0);
-  }
-
-  /**
-   * Commits this transaction.
-   *
-   * @throws AlreadyCommittedException if already committed
-   * @throws LmdbNativeException       if a native C error occurred
-   */
-  public void commit() throws AlreadyCommittedException, LmdbNativeException {
-    if (committed) {
-      throw new AlreadyCommittedException();
-    }
-    checkRc(lib.mdb_txn_commit(ptr));
-    this.committed = true;
   }
 
   /**
@@ -67,13 +53,27 @@ public final class Transaction {
   }
 
   /**
+   * Commits this transaction.
+   *
+   * @throws AlreadyCommittedException if already committed
+   * @throws LmdbNativeException       if a native C error occurred
+   */
+  public void commit() throws AlreadyCommittedException, LmdbNativeException {
+    if (committed) {
+      throw new AlreadyCommittedException();
+    }
+    checkRc(lib.mdb_txn_commit(ptr));
+    this.committed = true;
+  }
+
+  /**
    * Opens a new database
    *
    * @param name  the name of the database (required)
    * @param flags applicable flags (required)
    * @return the database (never null)
    * @throws AlreadyCommittedException if already committed
-   * @throws LmdbNativeException if a native C error occurred
+   * @throws LmdbNativeException       if a native C error occurred
    */
   public Database databaseOpen(final String name, final Set<DatabaseFlags> flags)
       throws AlreadyCommittedException, LmdbNativeException {

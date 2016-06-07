@@ -49,22 +49,6 @@ public class DatabaseTest {
   }
 
   @Test
-  public void putCommitGet() throws Exception {
-    Set<DatabaseFlags> dbFlags = new HashSet<>();
-    dbFlags.add(MDB_CREATE);
-    Database db = tx.databaseOpen(DB_1, dbFlags);
-
-    db.put(tx, createBb(5), createBb(5));
-    tx.commit();
-
-    tx = env.txnBeginReadWrite();
-
-    ByteBuffer result = db.get(tx, createBb(5));
-    assertThat(result.getInt(0), is(5));
-    tx.abort();
-  }
-
-  @Test
   public void putAbortGet() throws Exception {
     Set<DatabaseFlags> dbFlags = new HashSet<>();
     dbFlags.add(MDB_CREATE);
@@ -80,6 +64,22 @@ public class DatabaseTest {
     } catch (ConstantDerviedException e) {
       assertThat(e.getResultCode(), is(22));
     }
+    tx.abort();
+  }
+
+  @Test
+  public void putCommitGet() throws Exception {
+    Set<DatabaseFlags> dbFlags = new HashSet<>();
+    dbFlags.add(MDB_CREATE);
+    Database db = tx.databaseOpen(DB_1, dbFlags);
+
+    db.put(tx, createBb(5), createBb(5));
+    tx.commit();
+
+    tx = env.txnBeginReadWrite();
+
+    ByteBuffer result = db.get(tx, createBb(5));
+    assertThat(result.getInt(0), is(5));
     tx.abort();
   }
 

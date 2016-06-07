@@ -1,8 +1,7 @@
 package org.lmdbjava;
 
-import java.util.Set;
-
 import static java.util.Objects.requireNonNull;
+import java.util.Set;
 
 /**
  * Indicates an enum that can provide integers for each of its values,
