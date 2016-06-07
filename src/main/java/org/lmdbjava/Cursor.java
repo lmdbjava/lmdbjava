@@ -58,9 +58,19 @@ public class Cursor {
     wrap(val, v);
   }
 
+  /**
+   * <p>
+   *   Delete current key/data pair.
+   * </p>
+   *
+   * This function deletes the key/data pair to which the cursor refers.
+   */
+  public void delete() throws LmdbNativeException {
+    checkRc(lib.mdb_cursor_del(ptr, 0));
+  }
+
   public void put(ByteBuffer key, ByteBuffer val) throws LmdbNativeException {
     put(key, val, ZERO);
-
   }
 
   public void put(ByteBuffer key, ByteBuffer val, PutFlags op)

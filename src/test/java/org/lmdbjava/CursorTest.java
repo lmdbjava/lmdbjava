@@ -4,6 +4,8 @@ import java.io.File;
 import java.nio.ByteBuffer;
 import java.util.HashSet;
 import java.util.Set;
+
+import static junit.framework.TestCase.fail;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import org.junit.Before;
@@ -99,6 +101,33 @@ public class CursorTest {
     assertThat(k.getInt(), is(1));
     assertThat(v.getInt(), is(2));
 
+    tx.commit();
+  }
+
+  @Test
+  public void testCursorDelete() throws Exception {
+    Cursor cursor = db.openCursor(tx);
+    cursor.put(createBb(1), createBb(2), PutFlags.MDB_NOOVERWRITE);
+    cursor.put(createBb(3), createBb(4));
+
+    ByteBuffer k = createBb(1);
+    ByteBuffer v = createBb();
+
+    cursor.get(k, v, CursorOp.MDB_FIRST);
+    assertThat(k.getInt(), is(1));
+    assertThat(v.getInt(), is(2));
+    cursor.delete();
+
+    cursor.get(k, v, CursorOp.MDB_FIRST);
+    assertThat(k.getInt(), is(3));
+    assertThat(v.getInt(), is(4));
+    cursor.delete();
+
+    try {
+      cursor.get(k, v, CursorOp.MDB_FIRST);
+      fail("should fail");
+    } catch (NotFoundException e) {
+    }
     tx.commit();
   }
 
