@@ -23,6 +23,7 @@ public class DatabaseTest {
   public final TemporaryFolder tmp = new TemporaryFolder();
   private Env env;
   private Transaction tx;
+  private Database db;
 
   @Before
   public void before() throws Exception {
@@ -38,14 +39,33 @@ public class DatabaseTest {
     env.open(path, envFlags, POSIX_MODE);
 
     tx = env.txnBeginReadWrite();
+    Set<DatabaseFlags> dbFlags = new HashSet<>();
+    dbFlags.add(MDB_CREATE);
+    db = tx.databaseOpen(DB_1, dbFlags);
+  }
+
+  @Test(expected = DatabasesFullException.class)
+  public void dbOpenMaxDatabases() throws Exception {
+    Set<DatabaseFlags> dbFlags = new HashSet<>();
+    dbFlags.add(MDB_CREATE);
+    tx.databaseOpen("another", dbFlags);
   }
 
   @Test
-  public void dbOpen() throws Exception {
+  public void putAndGetAndDeleteWithInternalTx() throws Exception {
     Set<DatabaseFlags> dbFlags = new HashSet<>();
     dbFlags.add(MDB_CREATE);
     Database db = tx.databaseOpen(DB_1, dbFlags);
-    assertThat(db.getName(), is(DB_1));
+    tx.commit();
+    db.put(createBb(5), createBb(5));
+    ByteBuffer val = db.get(createBb(5));
+    assertThat(val.getInt(), is(5));
+    db.delete(createBb(5));
+    try {
+      db.get(createBb(5));
+      fail("should have been deleted");
+    } catch (NotFoundException e) {
+    }
   }
 
   @Test

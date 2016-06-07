@@ -45,12 +45,27 @@ public final class Database {
     dbi = dbiPtr.intValue();
   }
 
+  public void delete(ByteBuffer key) throws
+    AlreadyCommittedException, LmdbNativeException, NotOpenException {
+    try (Transaction tx = env.txnBeginReadWrite()) {
+      delete(tx, key);
+      tx.commit();
+    }
+  }
+
   public void delete(Transaction tx, ByteBuffer key) throws
       AlreadyCommittedException, LmdbNativeException {
 
     final MDB_val k = createVal(key);
 
     checkRc(lib.mdb_del(tx.ptr, dbi, k, null));
+  }
+
+  public ByteBuffer get(ByteBuffer key) throws
+    AlreadyCommittedException, LmdbNativeException, NotOpenException {
+    try (Transaction tx = env.txnBeginReadOnly()) {
+      return get(tx, key);
+    }
   }
 
   public ByteBuffer get(Transaction tx, ByteBuffer key) throws
