@@ -7,6 +7,7 @@ import jnr.ffi.Struct;
 import jnr.ffi.annotations.In;
 import jnr.ffi.annotations.Out;
 import jnr.ffi.byref.IntByReference;
+import jnr.ffi.byref.NativeLongByReference;
 import jnr.ffi.byref.PointerByReference;
 
 /**
@@ -252,7 +253,7 @@ final class Library {
     /**
      * Return count of duplicates for current key.
      */
-    // int mdb_cursor_count(@In Pointer cursor, size_t *countp);
+    int mdb_cursor_count(@In Pointer cursor, NativeLongByReference countp);
     /**
      * Compare two data items according to a particular database.
      */

@@ -13,6 +13,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import static org.lmdbjava.DatabaseFlags.MDB_CREATE;
+import static org.lmdbjava.DatabaseFlags.MDB_DUPSORT;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.POSIX_MODE;
@@ -41,6 +42,7 @@ public class CursorTest {
     tx = env.txnBeginReadWrite();
     Set<DatabaseFlags> dbFlags = new HashSet<>();
     dbFlags.add(MDB_CREATE);
+    dbFlags.add(MDB_DUPSORT);
     db = tx.databaseOpen(DB_1, dbFlags);
   }
 
@@ -69,6 +71,18 @@ public class CursorTest {
     assertThat(k.getInt(), is(3));
     assertThat(v.getInt(), is(4));
 
+    tx.commit();
+  }
+
+  @Test
+  public void testCursorCount() throws Exception {
+    Cursor cursor = db.openCursor(tx);
+
+    cursor.put(createBb(1), createBb(2), PutFlags.MDB_APPENDDUP);
+    assertThat(cursor.count(), is(1L));
+
+    cursor.put(createBb(1), createBb(4), PutFlags.MDB_APPENDDUP);
+    assertThat(cursor.count(), is(2L));
     tx.commit();
   }
 

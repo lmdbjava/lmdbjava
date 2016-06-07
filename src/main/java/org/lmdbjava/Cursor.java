@@ -3,6 +3,7 @@ package org.lmdbjava;
 import java.nio.ByteBuffer;
 import static java.util.Objects.requireNonNull;
 import jnr.ffi.Pointer;
+import jnr.ffi.byref.NativeLongByReference;
 import org.lmdbjava.Library.MDB_val;
 import static org.lmdbjava.Library.lib;
 import static org.lmdbjava.Library.runtime;
@@ -30,8 +31,20 @@ public class Cursor {
     }
   }
 
-  public void count() {
-
+  /**
+   * <p>
+   *  Return count of duplicates for current key.
+   * </p>
+   *
+   * This call is only valid on databases that support sorted duplicate
+   * data items {@link org.lmdbjava.DatabaseFlags#MDB_DUPSORT}.
+   *
+   * @return count of duplicates for current key
+   */
+  public long count() throws LmdbNativeException {
+    NativeLongByReference longByReference = new NativeLongByReference();
+    checkRc(lib.mdb_cursor_count(ptr, longByReference));
+    return longByReference.longValue();
   }
 
   public void get(ByteBuffer key, ByteBuffer val, CursorOp op)
