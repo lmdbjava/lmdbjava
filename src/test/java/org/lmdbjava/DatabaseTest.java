@@ -2,15 +2,21 @@ package org.lmdbjava;
 
 import java.io.File;
 import java.nio.ByteBuffer;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.Random;
 import java.util.Set;
+import java.util.function.Consumer;
+
 import static junit.framework.TestCase.fail;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+
 import static org.lmdbjava.DatabaseFlags.MDB_CREATE;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.TestUtils.DB_1;
@@ -33,7 +39,7 @@ public class DatabaseTest {
     final Set<EnvFlags> envFlags = new HashSet<>();
     envFlags.add(MDB_NOSUBDIR);
 
-    env.setMapSize(1_024 * 1_024);
+    env.setMapSize(1_024 * 1_024 * 1_024);
     env.setMaxDbs(1);
     env.setMaxReaders(1);
     env.open(path, envFlags, POSIX_MODE);
@@ -119,5 +125,21 @@ public class DatabaseTest {
     } catch (NotFoundException e) {
     }
     tx.abort();
+  }
+
+  @Test
+  public void testParallelWritesStress() throws Exception {
+    tx.commit();
+    Collections.nCopies(8, null).parallelStream()
+      .forEach(ignored -> {
+        Random random = new Random();
+        for (int i = 0; i < 15000; i++) {
+          try {
+            db.put(createBb(random.nextInt()), createBb(random.nextInt()));
+          } catch (Exception e) {
+            throw new RuntimeException(e);
+          }
+        }
+      });
   }
 }
