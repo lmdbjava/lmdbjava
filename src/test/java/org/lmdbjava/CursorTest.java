@@ -87,6 +87,29 @@ public class CursorTest {
   }
 
   @Test
+  public void testCursorRenew() throws Exception {
+    tx.commit();
+    tx = env.txnBeginReadOnly();
+    Cursor cursor = db.openCursor(tx);
+    tx.commit();
+    tx = env.txnBeginReadOnly();
+    cursor.renew(tx);
+    tx.commit();
+  }
+
+  @Test
+  public void testCursorRenewWriteTx() throws Exception {
+    Cursor cursor = db.openCursor(tx);
+    try {
+      cursor.renew(tx);
+      fail("should fail");
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), is("cannot renew write transactions"));
+    }
+    tx.commit();
+  }
+
+  @Test
   public void testCursorSet() throws Exception {
     Cursor cursor = db.openCursor(tx);
     cursor.put(createBb(1), createBb(2));

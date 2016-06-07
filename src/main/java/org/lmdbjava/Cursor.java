@@ -103,6 +103,9 @@ public class Cursor {
   }
 
   public void renew(Transaction tx) throws LmdbNativeException {
+    if (!tx.isReadOnly()) {
+      throw new IllegalArgumentException("cannot renew write transactions");
+    }
     checkRc(lib.mdb_cursor_renew(tx.ptr, ptr));
   }
 
