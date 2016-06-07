@@ -226,12 +226,12 @@ final class Library {
     /**
      * Return the cursor's transaction handle.
      */
-    Pointer mdb_cursor_txn(@In Pointer cursor);
+    // Pointer mdb_cursor_txn(@In Pointer cursor);
 
     /**
      * Return the cursor's database handle.
      */
-    Pointer mdb_cursor_dbi(@In Pointer cursor);
+     // Pointer mdb_cursor_dbi(@In Pointer cursor);
 
     /**
      * Retrieve by cursor.

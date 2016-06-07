@@ -1,10 +1,16 @@
 package org.lmdbjava;
 
 import static java.util.Objects.requireNonNull;
+
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.Set;
+
 import static jnr.ffi.Memory.allocateDirect;
 import static jnr.ffi.NativeType.ADDRESS;
+
 import jnr.ffi.Pointer;
+
 import static org.lmdbjava.Library.lib;
 import static org.lmdbjava.Library.runtime;
 import static org.lmdbjava.MaskedFlag.mask;
@@ -14,7 +20,7 @@ import static org.lmdbjava.TransactionFlags.MDB_RDONLY;
 /**
  * LMDB transaction.
  */
-public final class Transaction {
+public final class Transaction implements Closeable {
 
   private boolean committed;
   private final Env env;
@@ -23,7 +29,7 @@ public final class Transaction {
 
   Transaction(final Env env, final Transaction parent,
               final Set<TransactionFlags> flags) throws NotOpenException,
-                                                        LmdbNativeException {
+    LmdbNativeException {
     requireNonNull(env);
     requireNonNull(flags);
     if (!env.isOpen()) {
@@ -44,7 +50,7 @@ public final class Transaction {
    * @throws AlreadyCommittedException if already committed
    * @throws LmdbNativeException       if a native C error occurred
    */
-  public void abort() throws AlreadyCommittedException, LmdbNativeException {
+  public void abort() throws AlreadyCommittedException {
     if (committed) {
       throw new AlreadyCommittedException();
     }
@@ -76,7 +82,7 @@ public final class Transaction {
    * @throws LmdbNativeException       if a native C error occurred
    */
   public Database databaseOpen(final String name, final Set<DatabaseFlags> flags)
-      throws AlreadyCommittedException, LmdbNativeException {
+    throws AlreadyCommittedException, LmdbNativeException {
     return new Database(env, this, name, flags);
   }
 
@@ -98,4 +104,24 @@ public final class Transaction {
     return readOnly;
   }
 
+  /**
+   * <p>
+   * Return the transaction's ID.
+   * </p>
+   *
+   * @return A transaction ID, valid if input is an active transaction.
+   */
+  public long getId() {
+    return lib.mdb_txn_id(ptr);
+  }
+
+  @Override
+  public void close() {
+    if (!isCommitted()) {
+      try {
+        abort();
+      } catch (AlreadyCommittedException e) {
+      }
+    }
+  }
 }

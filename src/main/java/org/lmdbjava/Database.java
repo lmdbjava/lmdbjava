@@ -83,6 +83,14 @@ public final class Database {
     return new Cursor(ptr.getValue(), tx);
   }
 
+  public void put(ByteBuffer key, ByteBuffer val) throws
+    AlreadyCommittedException, LmdbNativeException, NotOpenException {
+    try (Transaction tx = env.txnBeginReadWrite()) {
+      put(tx, key, val);
+      tx.commit();
+    }
+  }
+
   public void put(Transaction tx, ByteBuffer key, ByteBuffer val) throws
       AlreadyCommittedException, LmdbNativeException {
 

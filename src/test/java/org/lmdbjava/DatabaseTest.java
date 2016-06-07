@@ -86,6 +86,7 @@ public class DatabaseTest {
   @Test
   public void putDelete() throws Exception {
     Set<DatabaseFlags> dbFlags = new HashSet<>();
+
     dbFlags.add(MDB_CREATE);
     Database db = tx.databaseOpen(DB_1, dbFlags);
 
