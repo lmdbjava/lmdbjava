@@ -22,7 +22,7 @@ public class ResultCodeMapperTest {
   static {
     // separate collection instances used to simplify duplicate RC detection
     EXCEPTIONS.add(new DatabaseBadException());
-    EXCEPTIONS.add(new BadReaderLockTableSlotException());
+    EXCEPTIONS.add(new TxnBadReaderLockTableSlotException());
     EXCEPTIONS.add(new TxnBadException());
     EXCEPTIONS.add(new DatabaseBadValueSizeException());
     EXCEPTIONS.add(new PageCorruptedException());

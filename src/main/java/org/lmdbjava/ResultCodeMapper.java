@@ -4,7 +4,7 @@ import jnr.constants.Constant;
 import jnr.constants.ConstantSet;
 import static jnr.constants.ConstantSet.getConstantSet;
 import static org.lmdbjava.DatabaseBadException.MDB_BAD_DBI;
-import static org.lmdbjava.BadReaderLockTableSlotException.MDB_BAD_RSLOT;
+import static org.lmdbjava.TxnBadReaderLockTableSlotException.MDB_BAD_RSLOT;
 import static org.lmdbjava.TxnBadException.MDB_BAD_TXN;
 import static org.lmdbjava.DatabaseBadValueSizeException.MDB_BAD_VALSIZE;
 import static org.lmdbjava.PageCorruptedException.MDB_CORRUPTED;
@@ -86,7 +86,7 @@ public final class ResultCodeMapper {
       case MDB_BAD_DBI:
         return new DatabaseBadException();
       case MDB_BAD_RSLOT:
-        return new BadReaderLockTableSlotException();
+        return new TxnBadReaderLockTableSlotException();
       case MDB_BAD_TXN:
         return new TxnBadException();
       case MDB_BAD_VALSIZE:
