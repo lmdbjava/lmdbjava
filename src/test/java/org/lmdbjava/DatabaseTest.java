@@ -40,7 +40,7 @@ public class DatabaseTest {
     env.setMaxReaders(1);
     env.open(path, POSIX_MODE, MDB_NOSUBDIR);
 
-    tx = new Txn(env, null);
+    tx = new Txn(env);
     db = new Database(tx, DB_1, MDB_CREATE);
   }
 
