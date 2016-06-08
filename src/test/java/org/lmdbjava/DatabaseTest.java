@@ -2,15 +2,20 @@ package org.lmdbjava;
 
 import java.io.File;
 import java.nio.ByteBuffer;
+
 import static java.util.Collections.nCopies;
+
 import java.util.Random;
+
 import static junit.framework.TestCase.fail;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+
 import static org.lmdbjava.DatabaseFlags.MDB_CREATE;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.TestUtils.DB_1;
@@ -51,14 +56,12 @@ public class DatabaseTest {
     db.put(tx, createBb(5), createBb(5));
     tx.abort();
 
-    tx = new Txn(env);
-    try {
+    try (Txn tx = new Txn(env)) {
       db.get(tx, createBb(5));
       fail("key does not exist");
     } catch (ConstantDerviedException e) {
       assertThat(e.getResultCode(), is(22));
     }
-    tx.abort();
   }
 
   @Test
@@ -83,11 +86,10 @@ public class DatabaseTest {
     db.put(tx, createBb(5), createBb(5));
     tx.commit();
 
-    tx = new Txn(env, null);
-
-    ByteBuffer result = db.get(tx, createBb(5));
-    assertThat(result.getInt(0), is(5));
-    tx.abort();
+    try (Txn tx = new Txn(env)) {
+      ByteBuffer result = db.get(tx, createBb(5));
+      assertThat(result.getInt(), is(5));
+    }
   }
 
   @Test
