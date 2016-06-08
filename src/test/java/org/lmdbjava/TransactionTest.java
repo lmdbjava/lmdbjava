@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.concurrent.atomic.AtomicLong;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -68,6 +69,7 @@ public class TransactionTest {
   @Test
   public void txReadOnly() throws Exception {
     final Transaction tx = new Transaction(env, null, MDB_RDONLY);
+    assertThat(tx.getParent(), is(nullValue()));
     assertThat(tx.isCommitted(), is(false));
     assertThat(tx.isReadOnly(), is(true));
     assertThat(tx.isReset(), is(false));
@@ -80,8 +82,17 @@ public class TransactionTest {
   }
 
   @Test
+  public void txParent() throws Exception {
+    final Transaction txRoot = new Transaction(env, null);
+    final Transaction txChild = new Transaction(env, txRoot);
+    assertThat(txRoot.getParent(), is(nullValue()));
+    assertThat(txChild.getParent(), is(txRoot));
+  }
+
+  @Test
   public void txReadWrite() throws Exception {
     final Transaction tx = new Transaction(env, null);
+    assertThat(tx.getParent(), is(nullValue()));
     assertThat(tx.isCommitted(), is(false));
     assertThat(tx.isReadOnly(), is(false));
     tx.commit();
