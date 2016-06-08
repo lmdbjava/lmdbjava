@@ -1,16 +1,16 @@
 package org.lmdbjava;
 
 import java.nio.ByteBuffer;
+import static java.util.Objects.requireNonNull;
 import jnr.ffi.Pointer;
 import jnr.ffi.byref.NativeLongByReference;
 import org.lmdbjava.Library.MDB_val;
 import static org.lmdbjava.Library.lib;
 import static org.lmdbjava.Library.runtime;
+import static org.lmdbjava.MaskedFlag.mask;
+import static org.lmdbjava.ResultCodeMapper.checkRc;
 import static org.lmdbjava.ValueBuffers.createVal;
 import static org.lmdbjava.ValueBuffers.wrap;
-import static org.lmdbjava.ResultCodeMapper.checkRc;
-import static java.util.Objects.requireNonNull;
-import static org.lmdbjava.MaskedFlag.mask;
 
 public class Cursor {
 
@@ -32,19 +32,30 @@ public class Cursor {
   }
 
   /**
-   * <p>
-   *  Return count of duplicates for current key.
+   * Return count of duplicates for current key.
    * </p>
-   *
-   * This call is only valid on databases that support sorted duplicate
-   * data items {@link org.lmdbjava.DatabaseFlags#MDB_DUPSORT}.
+   * <p>
+   * This call is only valid on databases that support sorted duplicate data
+   * items {@link org.lmdbjava.DatabaseFlags#MDB_DUPSORT}.
    *
    * @return count of duplicates for current key
+   * @throws LmdbNativeException if a native C error occurred
    */
   public long count() throws LmdbNativeException {
     NativeLongByReference longByReference = new NativeLongByReference();
     checkRc(lib.mdb_cursor_count(ptr, longByReference));
     return longByReference.longValue();
+  }
+
+  /**
+   * Delete current key/data pair.
+   * </p>
+   * This function deletes the key/data pair to which the cursor refers.
+   *
+   * @throws LmdbNativeException if a native C error occurred
+   */
+  public void delete() throws LmdbNativeException {
+    checkRc(lib.mdb_cursor_del(ptr, 0));
   }
 
   public void get(ByteBuffer key, ByteBuffer val, CursorOp op)
@@ -69,17 +80,6 @@ public class Cursor {
     checkRc(lib.mdb_cursor_get(ptr, k, v, op.getCode()));
     wrap(key, k);
     wrap(val, v);
-  }
-
-  /**
-   * <p>
-   *   Delete current key/data pair.
-   * </p>
-   *
-   * This function deletes the key/data pair to which the cursor refers.
-   */
-  public void delete() throws LmdbNativeException {
-    checkRc(lib.mdb_cursor_del(ptr, 0));
   }
 
   public void put(ByteBuffer key, ByteBuffer val, PutFlags... op)

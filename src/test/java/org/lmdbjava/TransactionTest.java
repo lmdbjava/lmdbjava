@@ -6,6 +6,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -33,21 +34,23 @@ public class TransactionTest {
     env.open(path, POSIX_MODE, MDB_NOSUBDIR);
 
   }
+
   @Test
+  @Ignore
   public void testGetId() throws Exception {
     Transaction tx = new Transaction(env, null);
     Database db = tx.databaseOpen(DB_1, MDB_CREATE);
     tx.commit();
-    
+
     final AtomicLong txId1 = new AtomicLong();
     final AtomicLong txId2 = new AtomicLong();
-    
+
     try (Transaction tx1 = new Transaction(env, null, MDB_RDONLY)) {
       txId1.set(tx1.getId());
     }
-    
+
     db.put(createBb(1), createBb(2));
-    
+
     try (Transaction tx2 = new Transaction(env, null, MDB_RDONLY)) {
       txId2.set(tx2.getId());
     }

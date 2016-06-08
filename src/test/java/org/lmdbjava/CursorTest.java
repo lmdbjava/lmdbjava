@@ -10,9 +10,18 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import static org.lmdbjava.CursorOp.MDB_FIRST;
+import static org.lmdbjava.CursorOp.MDB_LAST;
+import static org.lmdbjava.CursorOp.MDB_NEXT;
+import static org.lmdbjava.CursorOp.MDB_PREV;
+import static org.lmdbjava.CursorOp.MDB_SET;
+import static org.lmdbjava.CursorOp.MDB_SET_KEY;
+import static org.lmdbjava.CursorOp.MDB_SET_RANGE;
 import static org.lmdbjava.DatabaseFlags.MDB_CREATE;
 import static org.lmdbjava.DatabaseFlags.MDB_DUPSORT;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
+import static org.lmdbjava.PutFlags.MDB_APPENDDUP;
+import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
 import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.POSIX_MODE;
 import static org.lmdbjava.TestUtils.createBb;
@@ -21,9 +30,9 @@ public class CursorTest {
 
   @Rule
   public final TemporaryFolder tmp = new TemporaryFolder();
+  private Database db;
   private Env env;
   private Transaction tx;
-  private Database db;
 
   @Before
   public void before() throws Exception {
@@ -37,43 +46,71 @@ public class CursorTest {
     db = tx.databaseOpen(DB_1, MDB_CREATE, MDB_DUPSORT);
   }
 
-  @Test
-  public void testCursorGet() throws Exception {
+  @Test(expected = IllegalArgumentException.class)
+  public void closeCursor() throws LmdbNativeException,
+                                   AlreadyCommittedException {
+    Database db = tx.databaseOpen(DB_1, MDB_CREATE);
     Cursor cursor = db.openCursor(tx);
-    cursor.put(createBb(1), createBb(2), PutFlags.MDB_NOOVERWRITE);
-    cursor.put(createBb(3), createBb(4));
-
-    ByteBuffer k = createBb();
-    ByteBuffer v = createBb();
-
-    cursor.get(k, v, CursorOp.MDB_FIRST);
-    assertThat(k.getInt(), is(1));
-    assertThat(v.getInt(), is(2));
-
-    cursor.get(k, v, CursorOp.MDB_NEXT);
-    assertThat(k.getInt(), is(3));
-    assertThat(v.getInt(), is(4));
-
-    cursor.get(k, v, CursorOp.MDB_PREV);
-    assertThat(k.getInt(), is(1));
-    assertThat(v.getInt(), is(2));
-
-    cursor.get(k, v, CursorOp.MDB_LAST);
-    assertThat(k.getInt(), is(3));
-    assertThat(v.getInt(), is(4));
-
-    tx.commit();
+    cursor.close();
+    ByteBuffer k = createBb(1);
+    ByteBuffer v = createBb(1);
+    cursor.get(k, v, MDB_FIRST);
   }
 
   @Test
   public void testCursorCount() throws Exception {
     Cursor cursor = db.openCursor(tx);
 
-    cursor.put(createBb(1), createBb(2), PutFlags.MDB_APPENDDUP);
+    cursor.put(createBb(1), createBb(2), MDB_APPENDDUP);
     assertThat(cursor.count(), is(1L));
 
-    cursor.put(createBb(1), createBb(4), PutFlags.MDB_APPENDDUP);
+    cursor.put(createBb(1), createBb(4), MDB_APPENDDUP);
     assertThat(cursor.count(), is(2L));
+    tx.commit();
+  }
+
+  @Test
+  public void testCursorDelete() throws Exception {
+    Cursor cursor = db.openCursor(tx);
+    cursor.put(createBb(1), createBb(2), MDB_NOOVERWRITE);
+    cursor.put(createBb(3), createBb(4));
+    ByteBuffer k = createBb(1);
+    ByteBuffer v = createBb();
+    cursor.get(k, v, MDB_FIRST);
+    assertThat(k.getInt(), is(1));
+    assertThat(v.getInt(), is(2));
+    cursor.delete();
+    cursor.get(k, v, MDB_FIRST);
+    assertThat(k.getInt(), is(3));
+    assertThat(v.getInt(), is(4));
+    cursor.delete();
+    try {
+      cursor.get(k, v, MDB_FIRST);
+      fail("should fail");
+    } catch (NotFoundException e) {
+    }
+    tx.commit();
+  }
+
+  @Test
+  public void testCursorGet() throws Exception {
+    Cursor cursor = db.openCursor(tx);
+    cursor.put(createBb(1), createBb(2), MDB_NOOVERWRITE);
+    cursor.put(createBb(3), createBb(4));
+    ByteBuffer k = createBb();
+    ByteBuffer v = createBb();
+    cursor.get(k, v, MDB_FIRST);
+    assertThat(k.getInt(), is(1));
+    assertThat(v.getInt(), is(2));
+    cursor.get(k, v, MDB_NEXT);
+    assertThat(k.getInt(), is(3));
+    assertThat(v.getInt(), is(4));
+    cursor.get(k, v, MDB_PREV);
+    assertThat(k.getInt(), is(1));
+    assertThat(v.getInt(), is(2));
+    cursor.get(k, v, MDB_LAST);
+    assertThat(k.getInt(), is(3));
+    assertThat(v.getInt(), is(4));
     tx.commit();
   }
 
@@ -110,62 +147,26 @@ public class CursorTest {
     ByteBuffer k = createBb(1);
     ByteBuffer v = createBb();
 
-    cursor.get(k, v, CursorOp.MDB_SET);
+    cursor.get(k, v, MDB_SET);
     assertThat(k.getInt(), is(1));
     assertThat(v.getInt(), is(2));
 
     k = createBb(3);
-    cursor.get(k, v, CursorOp.MDB_SET_KEY);
+    cursor.get(k, v, MDB_SET_KEY);
     assertThat(k.getInt(), is(3));
     assertThat(v.getInt(), is(4));
 
     k = createBb(5);
-    cursor.get(k, v, CursorOp.MDB_SET_RANGE);
+    cursor.get(k, v, MDB_SET_RANGE);
     assertThat(k.getInt(), is(5));
     assertThat(v.getInt(), is(6));
 
     k = createBb(0);
-    cursor.get(k, v, CursorOp.MDB_SET_RANGE);
+    cursor.get(k, v, MDB_SET_RANGE);
     assertThat(k.getInt(), is(1));
     assertThat(v.getInt(), is(2));
 
     tx.commit();
   }
 
-  @Test
-  public void testCursorDelete() throws Exception {
-    Cursor cursor = db.openCursor(tx);
-    cursor.put(createBb(1), createBb(2), PutFlags.MDB_NOOVERWRITE);
-    cursor.put(createBb(3), createBb(4));
-
-    ByteBuffer k = createBb(1);
-    ByteBuffer v = createBb();
-
-    cursor.get(k, v, CursorOp.MDB_FIRST);
-    assertThat(k.getInt(), is(1));
-    assertThat(v.getInt(), is(2));
-    cursor.delete();
-
-    cursor.get(k, v, CursorOp.MDB_FIRST);
-    assertThat(k.getInt(), is(3));
-    assertThat(v.getInt(), is(4));
-    cursor.delete();
-
-    try {
-      cursor.get(k, v, CursorOp.MDB_FIRST);
-      fail("should fail");
-    } catch (NotFoundException e) {
-    }
-    tx.commit();
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void closeCursor() throws LmdbNativeException, AlreadyCommittedException {
-    Database db = tx.databaseOpen(DB_1, MDB_CREATE);
-    Cursor cursor = db.openCursor(tx);
-    cursor.close();
-    ByteBuffer k = createBb(1);
-    ByteBuffer v = createBb(1);
-    cursor.get(k, v, CursorOp.MDB_FIRST);
-  }
 }

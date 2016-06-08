@@ -1,19 +1,19 @@
 package org.lmdbjava;
 
+import static java.lang.Class.forName;
 import java.lang.reflect.Field;
 import java.nio.Buffer;
 import sun.misc.Unsafe;
-import static java.lang.Class.forName;
 
 /**
  * Provides the optimal {@link BufferMutator} for this JVM.
  */
 final class BufferMutators {
 
-  static final String FIELD_NAME_ADDRESS = "address";
   private static final String FIELD_NAME_CAPACITY = "capacity";
 
   private static final String OUTER = BufferMutators.class.getName();
+  static final String FIELD_NAME_ADDRESS = "address";
   static final BufferMutator MUTATOR;
   static final String NAME_REFLECTIVE = OUTER + "$ReflectiveBufferMutator";
   static final String NAME_UNSAFE = OUTER + "$UnsafeBufferMutator";
@@ -44,6 +44,11 @@ final class BufferMutators {
     SUPPORTS_UNSAFE = supportsUnsafe;
   }
 
+
+  private static BufferMutator load(final String className) throws
+      ClassNotFoundException, IllegalAccessException, InstantiationException {
+    return (BufferMutator) forName(className).newInstance();
+  }
   static Field findField(final Class<?> c, final String name) throws
       NoSuchFieldException {
     Class<?> clazz = c;
@@ -59,11 +64,6 @@ final class BufferMutators {
     } while (clazz != null);
 
     throw new NoSuchFieldException(name + " not found");
-  }
-
-  private static BufferMutator load(final String className) throws
-      ClassNotFoundException, IllegalAccessException, InstantiationException {
-    return (BufferMutator) forName(className).newInstance();
   }
 
   private BufferMutators() {

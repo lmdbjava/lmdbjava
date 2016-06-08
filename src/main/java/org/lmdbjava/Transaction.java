@@ -1,12 +1,9 @@
 package org.lmdbjava;
 
 import static java.util.Objects.requireNonNull;
-
 import static jnr.ffi.Memory.allocateDirect;
 import static jnr.ffi.NativeType.ADDRESS;
-
 import jnr.ffi.Pointer;
-
 import static org.lmdbjava.Library.lib;
 import static org.lmdbjava.Library.runtime;
 import static org.lmdbjava.MaskedFlag.isSet;

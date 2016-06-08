@@ -2,10 +2,8 @@ package org.lmdbjava;
 
 import java.nio.ByteBuffer;
 import jnr.ffi.provider.jffi.ByteBufferMemoryIO;
-import org.lmdbjava.Library.MDB_val;
-
 import static org.lmdbjava.BufferMutators.MUTATOR;
-
+import org.lmdbjava.Library.MDB_val;
 import static org.lmdbjava.Library.runtime;
 
 final class ValueBuffers {

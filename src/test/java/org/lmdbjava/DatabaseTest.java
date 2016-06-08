@@ -2,7 +2,7 @@ package org.lmdbjava;
 
 import java.io.File;
 import java.nio.ByteBuffer;
-import java.util.Collections;
+import static java.util.Collections.nCopies;
 import java.util.Random;
 
 import static junit.framework.TestCase.fail;
@@ -24,9 +24,9 @@ public class DatabaseTest {
 
   @Rule
   public final TemporaryFolder tmp = new TemporaryFolder();
+  private Database db;
   private Env env;
   private Transaction tx;
-  private Database db;
 
   @Before
   public void before() throws Exception {
@@ -48,21 +48,6 @@ public class DatabaseTest {
   }
 
   @Test
-  public void putAndGetAndDeleteWithInternalTx() throws Exception {
-    Database db = tx.databaseOpen(DB_1, MDB_CREATE);
-    tx.commit();
-    db.put(createBb(5), createBb(5));
-    ByteBuffer val = db.get(createBb(5));
-    assertThat(val.getInt(), is(5));
-    db.delete(createBb(5));
-    try {
-      db.get(createBb(5));
-      fail("should have been deleted");
-    } catch (NotFoundException e) {
-    }
-  }
-
-  @Test
   public void putAbortGet() throws Exception {
     Database db = tx.databaseOpen(DB_1, MDB_CREATE);
 
@@ -77,6 +62,21 @@ public class DatabaseTest {
       assertThat(e.getResultCode(), is(22));
     }
     tx.abort();
+  }
+
+  @Test
+  public void putAndGetAndDeleteWithInternalTx() throws Exception {
+    Database db = tx.databaseOpen(DB_1, MDB_CREATE);
+    tx.commit();
+    db.put(createBb(5), createBb(5));
+    ByteBuffer val = db.get(createBb(5));
+    assertThat(val.getInt(), is(5));
+    db.delete(createBb(5));
+    try {
+      db.get(createBb(5));
+      fail("should have been deleted");
+    } catch (NotFoundException e) {
+    }
   }
 
   @Test
@@ -111,16 +111,17 @@ public class DatabaseTest {
   @Test
   public void testParallelWritesStress() throws Exception {
     tx.commit();
-    Collections.nCopies(8, null).parallelStream()
-      .forEach(ignored -> {
-        Random random = new Random();
-        for (int i = 0; i < 15000; i++) {
-          try {
-            db.put(createBb(random.nextInt()), createBb(random.nextInt()));
-          } catch (Exception e) {
-            throw new RuntimeException(e);
+    nCopies(8, null).parallelStream()
+        .forEach(ignored -> {
+          Random random = new Random();
+          for (int i = 0; i < 15_000; i++) {
+            try {
+              db.put(createBb(random.nextInt()), createBb(random.nextInt()));
+            } catch (AlreadyCommittedException | LmdbNativeException |
+                     NotOpenException e) {
+              throw new RuntimeException(e);
+            }
           }
-        }
-      });
+        });
   }
 }
