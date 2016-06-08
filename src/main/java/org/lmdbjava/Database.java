@@ -11,6 +11,7 @@ import static org.lmdbjava.Library.lib;
 import static org.lmdbjava.Library.runtime;
 import static org.lmdbjava.MaskedFlag.mask;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
+import static org.lmdbjava.TransactionFlags.MDB_RDONLY;
 import static org.lmdbjava.ValueBuffers.createVal;
 import static org.lmdbjava.ValueBuffers.wrap;
 
@@ -45,7 +46,7 @@ public final class Database {
 
   public void delete(ByteBuffer key) throws
     AlreadyCommittedException, LmdbNativeException, NotOpenException {
-    try (Transaction tx = env.txnBeginReadWrite()) {
+    try (Transaction tx = new Transaction(env, null)) {
       delete(tx, key);
       tx.commit();
     }
@@ -61,7 +62,7 @@ public final class Database {
 
   public ByteBuffer get(ByteBuffer key) throws
     AlreadyCommittedException, LmdbNativeException, NotOpenException {
-    try (Transaction tx = env.txnBeginReadOnly()) {
+    try (Transaction tx = new Transaction(env, null, MDB_RDONLY)) {
       return get(tx, key);
     }
   }
@@ -98,7 +99,7 @@ public final class Database {
 
   public void put(ByteBuffer key, ByteBuffer val) throws
     AlreadyCommittedException, LmdbNativeException, NotOpenException {
-    try (Transaction tx = env.txnBeginReadWrite()) {
+    try (Transaction tx = new Transaction(env, null)) {
       put(tx, key, val);
       tx.commit();
     }

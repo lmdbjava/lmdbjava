@@ -61,7 +61,7 @@ public class TransactionTest {
 
   @Test(expected = AlreadyCommittedException.class)
   public void txCannotCommitTwice() throws Exception {
-    final Transaction tx = env.txnBeginReadWrite();
+    final Transaction tx = new Transaction(env, null);
     tx.commit();
     tx.commit(); // error
   }

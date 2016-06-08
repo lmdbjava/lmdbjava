@@ -7,7 +7,6 @@ import jnr.ffi.byref.PointerByReference;
 import static org.lmdbjava.Library.lib;
 import static org.lmdbjava.MaskedFlag.mask;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
-import static org.lmdbjava.TransactionFlags.MDB_RDONLY;
 
 /**
  * LMDB environment.
@@ -147,29 +146,4 @@ public final class Env implements AutoCloseable {
     checkRc(lib.mdb_env_open(ptr, path.getAbsolutePath(), flagsMask, mode));
     this.open = true;
   }
-
-  /**
-   * Begins a read-only transaction.
-   *
-   * @return the transaction (never null)
-   * @throws NotOpenException    if the environment is not yet opened
-   * @throws LmdbNativeException if a native C error occurred
-   */
-  public Transaction txnBeginReadOnly() throws NotOpenException,
-                                               LmdbNativeException {
-    return new Transaction(this, null, MDB_RDONLY);
-  }
-
-  /**
-   * Begins a read-write transaction.
-   *
-   * @return the transaction (never null)
-   * @throws NotOpenException    if the environment is not yet opened
-   * @throws LmdbNativeException if a native C error occurred
-   */
-  public Transaction txnBeginReadWrite() throws NotOpenException,
-                                                LmdbNativeException {
-    return new Transaction(this, null);
-  }
-
 }

@@ -25,6 +25,7 @@ import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
 import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.POSIX_MODE;
 import static org.lmdbjava.TestUtils.createBb;
+import static org.lmdbjava.TransactionFlags.MDB_RDONLY;
 
 public class CursorTest {
 
@@ -42,7 +43,7 @@ public class CursorTest {
     env.setMaxDbs(1);
     env.setMaxReaders(1);
     env.open(path, POSIX_MODE, MDB_NOSUBDIR);
-    tx = env.txnBeginReadWrite();
+    tx = new Transaction(env, null);
     db = tx.databaseOpen(DB_1, MDB_CREATE, MDB_DUPSORT);
   }
 
@@ -117,10 +118,10 @@ public class CursorTest {
   @Test
   public void testCursorRenew() throws Exception {
     tx.commit();
-    tx = env.txnBeginReadOnly();
+    tx = new Transaction(env, null, MDB_RDONLY);
     Cursor cursor = db.openCursor(tx);
     tx.commit();
-    tx = env.txnBeginReadOnly();
+    tx = new Transaction(env, null, MDB_RDONLY);
     cursor.renew(tx);
     tx.commit();
   }

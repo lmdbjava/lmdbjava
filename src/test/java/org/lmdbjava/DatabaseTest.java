@@ -19,6 +19,7 @@ import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.POSIX_MODE;
 import static org.lmdbjava.TestUtils.createBb;
+import static org.lmdbjava.TransactionFlags.MDB_RDONLY;
 
 public class DatabaseTest {
 
@@ -38,7 +39,7 @@ public class DatabaseTest {
     env.setMaxReaders(1);
     env.open(path, POSIX_MODE, MDB_NOSUBDIR);
 
-    tx = env.txnBeginReadWrite();
+    tx = new Transaction(env, null);
     db = tx.databaseOpen(DB_1, MDB_CREATE);
   }
 
@@ -54,7 +55,7 @@ public class DatabaseTest {
     db.put(tx, createBb(5), createBb(5));
     tx.abort();
 
-    tx = env.txnBeginReadWrite();
+    tx = new Transaction(env, null);
     try {
       db.get(tx, createBb(5));
       fail("key does not exist");
@@ -86,7 +87,7 @@ public class DatabaseTest {
     db.put(tx, createBb(5), createBb(5));
     tx.commit();
 
-    tx = env.txnBeginReadWrite();
+    tx = new Transaction(env, null);
 
     ByteBuffer result = db.get(tx, createBb(5));
     assertThat(result.getInt(0), is(5));
