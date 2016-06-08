@@ -106,4 +106,19 @@ public class EnvTest {
     }
   }
 
+  @Test
+  public void stats() throws Exception {
+    final Env env = new Env();
+    final File path = tmp.newFile();
+    env.open(path, POSIX_MODE, MDB_NOSUBDIR);
+    EnvStat stat = env.stat();
+    assertThat(stat, is(notNullValue()));
+    assertThat(stat.branchPages, is(0L));
+    assertThat(stat.depth, is(0));
+    assertThat(stat.entries, is(4_096L));
+    assertThat(stat.leafPages, is(0L));
+    assertThat(stat.overflowPages, is(0L));
+    assertThat(stat.pageSize, is(4_096));
+  }
+
 }

@@ -4,6 +4,7 @@ import static jnr.ffi.LibraryLoader.create;
 import jnr.ffi.Pointer;
 import static jnr.ffi.Runtime.getRuntime;
 import jnr.ffi.Struct;
+import jnr.ffi.Struct.size_t;
 import jnr.ffi.annotations.In;
 import jnr.ffi.annotations.Out;
 import jnr.ffi.byref.IntByReference;
@@ -37,6 +38,20 @@ final class Library {
       super(runtime);
     }
   }
+  
+  public static final class MDB_stat extends Struct {
+
+    public final u_int32_t ms_psize = new u_int32_t();
+    public final u_int32_t ms_depth = new u_int32_t();
+    public final size_t ms_branch_pages = new size_t();
+    public final size_t ms_leaf_pages = new size_t();
+    public final size_t ms_overflow_pages = new size_t();
+    public final size_t ms_entries = new size_t();
+
+    public MDB_stat(jnr.ffi.Runtime runtime) {
+      super(runtime);
+    }
+  }
 
   public interface Lmdb {
 
@@ -52,6 +67,11 @@ final class Library {
      */
     int mdb_env_open(@In Pointer env, @In String path, int flags, int mode);
 
+    /**
+     * Return statistics about the LMDB environment. 
+     */
+    int mdb_env_stat(@In Pointer env, @Out MDB_stat stat);
+    
     /**
      * Close the environment and release the memory map.
      */

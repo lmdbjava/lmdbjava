@@ -4,7 +4,9 @@ import java.io.File;
 import static java.util.Objects.requireNonNull;
 import jnr.ffi.Pointer;
 import jnr.ffi.byref.PointerByReference;
+import org.lmdbjava.Library.MDB_stat;
 import static org.lmdbjava.Library.lib;
+import static org.lmdbjava.Library.runtime;
 import static org.lmdbjava.MaskedFlag.mask;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
 
@@ -145,5 +147,27 @@ public final class Env implements AutoCloseable {
     final int flagsMask = mask(flags);
     checkRc(lib.mdb_env_open(ptr, path.getAbsolutePath(), flagsMask, mode));
     this.open = true;
+  }
+
+  /**
+   * Return statistics about this environment.
+   *
+   * @return an immutable statistics object.
+   * @throws NotOpenException    if the env has not been opened
+   * @throws LmdbNativeException if a native C error occurred
+   */
+  public EnvStat stat() throws NotOpenException, LmdbNativeException {
+    if (!open) {
+      throw new NotOpenException(Env.class.getSimpleName());
+    }
+    final MDB_stat stat = new MDB_stat(runtime);
+    checkRc(lib.mdb_env_stat(ptr, stat));
+    return new EnvStat(
+        stat.ms_psize.intValue(),
+        stat.ms_depth.intValue(),
+        stat.ms_branch_pages.longValue(),
+        stat.ms_leaf_pages.longValue(),
+        stat.ms_overflow_pages.longValue(),
+        stat.ms_psize.longValue());
   }
 }
