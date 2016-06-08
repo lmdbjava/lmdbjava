@@ -1,7 +1,6 @@
 package org.lmdbjava;
 
 import java.nio.ByteBuffer;
-import static java.util.Objects.requireNonNull;
 import jnr.ffi.Pointer;
 import jnr.ffi.byref.NativeLongByReference;
 import org.lmdbjava.Library.MDB_val;
@@ -9,9 +8,9 @@ import static org.lmdbjava.Library.lib;
 import static org.lmdbjava.Library.runtime;
 import static org.lmdbjava.ValueBuffers.createVal;
 import static org.lmdbjava.ValueBuffers.wrap;
-import static org.lmdbjava.PutFlags.ZERO;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
 import static java.util.Objects.requireNonNull;
+import static org.lmdbjava.MaskedFlag.mask;
 
 public class Cursor {
 
@@ -83,15 +82,10 @@ public class Cursor {
     checkRc(lib.mdb_cursor_del(ptr, 0));
   }
 
-  public void put(ByteBuffer key, ByteBuffer val) throws LmdbNativeException {
-    put(key, val, ZERO);
-  }
-
-  public void put(ByteBuffer key, ByteBuffer val, PutFlags op)
+  public void put(ByteBuffer key, ByteBuffer val, PutFlags... op)
       throws LmdbNativeException {
     requireNonNull(key);
     requireNonNull(val);
-    requireNonNull(op);
     if (tx.isCommitted()) {
       throw new IllegalArgumentException("transaction already committed");
     }
@@ -100,7 +94,8 @@ public class Cursor {
     }
     final MDB_val k = createVal(key);
     final MDB_val v = createVal(val);
-    checkRc(lib.mdb_cursor_put(ptr, k, v, op.getMask()));
+    final int flags = mask(op);
+    checkRc(lib.mdb_cursor_put(ptr, k, v, flags));
   }
 
   public void renew(Transaction tx) throws LmdbNativeException {

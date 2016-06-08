@@ -5,7 +5,6 @@ package org.lmdbjava;
  */
 public enum PutFlags implements MaskedFlag {
 
-  ZERO(0x0),
   /**
    * For put: Don't write if the key already exists.
    */
