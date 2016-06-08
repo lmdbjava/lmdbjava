@@ -50,6 +50,9 @@ public final class Database {
     dbi = dbiPtr.intValue();
   }
 
+  /**
+   * @see org.lmdbjava.Database#delete(Transaction, ByteBuffer, ByteBuffer)
+   */
   public void delete(ByteBuffer key) throws
       AlreadyCommittedException, LmdbNativeException, NotOpenException {
     try (Transaction tx = new Transaction(env, null)) {
@@ -58,14 +61,45 @@ public final class Database {
     }
   }
 
+  /**
+   * @see org.lmdbjava.Database#delete(Transaction, ByteBuffer, ByteBuffer)
+   */
   public void delete(Transaction tx, ByteBuffer key) throws
       AlreadyCommittedException, LmdbNativeException {
-
-    final MDB_val k = createVal(key);
-
-    checkRc(lib.mdb_del(tx.ptr, dbi, k, null));
+    delete(tx, key, null);
   }
 
+  /**
+   * <p>
+   * Removes key/data pairs from the database.
+   * </p>
+   * If the database does not support sorted duplicate data items
+   * ({@link org.lmdbjava.DatabaseFlags#MDB_DUPSORT}) the value
+   * parameter is ignored.
+   * If the database supports sorted duplicates and the data parameter
+   * is NULL, all of the duplicate data items for the key will be
+   * deleted. Otherwise, if the data parameter is non-NULL
+   * only the matching data item will be deleted.
+   * This function will return false if the specified key/data
+   * pair is not in the database.
+   *
+   * @param tx Transaction handle.
+   * @param key The key to delete from the database.
+   * @param val The value to delete from the database
+   * @return true if the key/value was deleted.
+   */
+  public void delete(Transaction tx, ByteBuffer key, ByteBuffer val) throws
+    AlreadyCommittedException, LmdbNativeException {
+
+    final MDB_val k = createVal(key);
+    final MDB_val v = val == null ? null : createVal(key);
+
+    checkRc(lib.mdb_del(tx.ptr, dbi, k, v));
+  }
+
+  /**
+   * @see org.lmdbjava.Database#get(Transaction, ByteBuffer)
+   */
   public ByteBuffer get(ByteBuffer key) throws
       AlreadyCommittedException, LmdbNativeException, NotOpenException {
     try (Transaction tx = new Transaction(env, null, MDB_RDONLY)) {
@@ -73,6 +107,22 @@ public final class Database {
     }
   }
 
+  /**
+   * <p>
+   *   Get items from a database.
+   * </p>
+   *
+   * This function retrieves key/data pairs from the database. The address
+   * and length of the data associated with the specified \b key are returned
+   * in the structure to which \b data refers.
+   * If the database supports duplicate keys ({@link org.lmdbjava.DatabaseFlags#MDB_DUPSORT})
+   * then the first data item for the key will be returned. Retrieval of other
+   * items requires the use of #mdb_cursor_get().
+   *
+   * @param tx transaction handle
+   * @param key The key to search for in the database
+   * @return A value placeholder for the memory address to be wrapped if found by key.
+   */
   public ByteBuffer get(Transaction tx, ByteBuffer key) throws
       AlreadyCommittedException, LmdbNativeException {
     assert key.isDirect();
@@ -97,12 +147,36 @@ public final class Database {
     return name;
   }
 
+
+  /**
+   * <p>
+   *  Create a cursor handle.
+   * </p>
+   *
+   * A cursor is associated with a specific transaction and database.
+   * A cursor cannot be used when its database handle is closed.  Nor
+   * when its transaction has ended, except with #mdb_cursor_renew().
+   * It can be discarded with #mdb_cursor_close().
+   * A cursor in a write-transaction can be closed before its transaction
+   * ends, and will otherwise be closed when its transaction ends.
+   * A cursor in a read-only transaction must be closed explicitly, before
+   * or after its transaction ends. It can be reused with
+   * #mdb_cursor_renew() before finally closing it.
+   * @note Earlier documentation said that cursors in every transaction
+   * were closed when the transaction committed or aborted.
+   *
+   * @param tx transaction handle
+   * @return cursor handle
+   */
   public Cursor openCursor(Transaction tx) throws LmdbNativeException {
     PointerByReference ptr = new PointerByReference();
     checkRc(lib.mdb_cursor_open(tx.ptr, dbi, ptr));
     return new Cursor(ptr.getValue(), tx);
   }
 
+  /**
+   * @see org.lmdbjava.Database#put(Transaction, ByteBuffer, ByteBuffer, DatabaseFlags...)
+   */
   public void put(ByteBuffer key, ByteBuffer val) throws
       AlreadyCommittedException, LmdbNativeException, NotOpenException {
     try (Transaction tx = new Transaction(env, null)) {
@@ -111,12 +185,29 @@ public final class Database {
     }
   }
 
-  public void put(Transaction tx, ByteBuffer key, ByteBuffer val) throws
+  /**
+   * <p>
+   * Store items into a database.
+   * </p>
+   *
+   * This function stores key/data pairs in the database. The default behavior
+   * is to enter the new key/data pair, replacing any previously existing key
+   * if duplicates are disallowed, or adding a duplicate data item if
+   * duplicates are allowed ({@link org.lmdbjava.DatabaseFlags#MDB_DUPSORT}).
+   *
+   * @param tx transaction handle
+   * @param key The key to store in the database
+   * @param val The value to store in the database
+   * @param flags Special options for this operation.
+   *
+   * @return the existing value if it was a dup insert attempt.
+   */
+  public void put(Transaction tx, ByteBuffer key, ByteBuffer val, DatabaseFlags... flags) throws
       AlreadyCommittedException, LmdbNativeException {
 
     final MDB_val k = createVal(key);
     final MDB_val v = createVal(val);
-
-    checkRc(lib.mdb_put(tx.ptr, dbi, k, v, 0));
+    int mask = MaskedFlag.mask(flags);
+    checkRc(lib.mdb_put(tx.ptr, dbi, k, v, mask));
   }
 }
