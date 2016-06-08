@@ -7,10 +7,11 @@ import jnr.ffi.byref.NativeLongByReference;
 import org.lmdbjava.Library.MDB_val;
 import static org.lmdbjava.Library.lib;
 import static org.lmdbjava.Library.runtime;
-import static org.lmdbjava.MemoryAccess.createVal;
-import static org.lmdbjava.MemoryAccess.wrap;
+import static org.lmdbjava.ValueBuffers.createVal;
+import static org.lmdbjava.ValueBuffers.wrap;
 import static org.lmdbjava.PutFlags.ZERO;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
+import static java.util.Objects.requireNonNull;
 
 public class Cursor {
 

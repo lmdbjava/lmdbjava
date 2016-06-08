@@ -11,9 +11,9 @@ import org.lmdbjava.Library.MDB_val;
 import static org.lmdbjava.Library.lib;
 import static org.lmdbjava.Library.runtime;
 import static org.lmdbjava.MaskedFlag.mask;
-import static org.lmdbjava.MemoryAccess.createVal;
-import static org.lmdbjava.MemoryAccess.wrap;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
+import static org.lmdbjava.ValueBuffers.createVal;
+import static org.lmdbjava.ValueBuffers.wrap;
 
 /**
  * LMDB Database.
