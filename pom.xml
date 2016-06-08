@@ -113,6 +113,11 @@
             </goals>
           </execution>
         </executions>
+        <configuration>
+          <excludes>
+            <exclude>**/Exception*</exclude>
+          </excludes>
+        </configuration>
       </plugin>
       <plugin>
         <groupId>org.eluder.coveralls</groupId>
