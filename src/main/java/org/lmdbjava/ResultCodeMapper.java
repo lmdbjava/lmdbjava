@@ -5,7 +5,7 @@ import jnr.constants.ConstantSet;
 import static jnr.constants.ConstantSet.getConstantSet;
 import static org.lmdbjava.BadDatabaseIdException.MDB_BAD_DBI;
 import static org.lmdbjava.BadReaderLockTableSlotException.MDB_BAD_RSLOT;
-import static org.lmdbjava.BadTransactionException.MDB_BAD_TXN;
+import static org.lmdbjava.TxnBadException.MDB_BAD_TXN;
 import static org.lmdbjava.BadValueSizeException.MDB_BAD_VALSIZE;
 import static org.lmdbjava.CorruptedException.MDB_CORRUPTED;
 import static org.lmdbjava.CursorFullException.MDB_CURSOR_FULL;
@@ -21,7 +21,7 @@ import static org.lmdbjava.PageNotFoundException.MDB_PAGE_NOTFOUND;
 import static org.lmdbjava.PanicException.MDB_PANIC;
 import static org.lmdbjava.ReadersFullException.MDB_READERS_FULL;
 import static org.lmdbjava.TlsFullException.MDB_TLS_FULL;
-import static org.lmdbjava.TransactionFullException.MDB_TXN_FULL;
+import static org.lmdbjava.TxnFullException.MDB_TXN_FULL;
 import static org.lmdbjava.VersionMismatchException.MDB_VERSION_MISMATCH;
 
 /**
@@ -88,7 +88,7 @@ public final class ResultCodeMapper {
       case MDB_BAD_RSLOT:
         return new BadReaderLockTableSlotException();
       case MDB_BAD_TXN:
-        return new BadTransactionException();
+        return new TxnBadException();
       case MDB_BAD_VALSIZE:
         return new BadValueSizeException();
       case MDB_CORRUPTED:
@@ -120,7 +120,7 @@ public final class ResultCodeMapper {
       case MDB_TLS_FULL:
         return new TlsFullException();
       case MDB_TXN_FULL:
-        return new TransactionFullException();
+        return new TxnFullException();
       case MDB_VERSION_MISMATCH:
         return new VersionMismatchException();
     }

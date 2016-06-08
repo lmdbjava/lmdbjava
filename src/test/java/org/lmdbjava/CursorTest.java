@@ -24,7 +24,7 @@ import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
 import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.POSIX_MODE;
 import static org.lmdbjava.TestUtils.createBb;
-import static org.lmdbjava.TransactionFlags.MDB_RDONLY;
+import static org.lmdbjava.TxnFlags.MDB_RDONLY;
 
 public class CursorTest {
 
@@ -32,7 +32,7 @@ public class CursorTest {
   public final TemporaryFolder tmp = new TemporaryFolder();
   private Database db;
   private Env env;
-  private Transaction tx;
+  private Txn tx;
 
   @Before
   public void before() throws Exception {
@@ -42,13 +42,13 @@ public class CursorTest {
     env.setMaxDbs(1);
     env.setMaxReaders(1);
     env.open(path, POSIX_MODE, MDB_NOSUBDIR);
-    tx = new Transaction(env, null);
+    tx = new Txn(env, null);
     db = new Database(tx, DB_1, MDB_CREATE, MDB_DUPSORT);
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void closeCursor() throws LmdbNativeException,
-                                   AlreadyCommittedException {
+    TxnAlreadyCommittedException {
     db = new Database(tx, DB_1, MDB_CREATE);
     Cursor cursor = db.openCursor(tx);
     cursor.close();
@@ -117,10 +117,10 @@ public class CursorTest {
   @Test
   public void testCursorRenew() throws Exception {
     tx.commit();
-    tx = new Transaction(env, null, MDB_RDONLY);
+    tx = new Txn(env, MDB_RDONLY);
     Cursor cursor = db.openCursor(tx);
     tx.commit();
-    tx = new Transaction(env, null, MDB_RDONLY);
+    tx = new Txn(env, MDB_RDONLY);
     cursor.renew(tx);
     tx.commit();
   }

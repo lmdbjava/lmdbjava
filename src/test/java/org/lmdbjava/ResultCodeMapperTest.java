@@ -23,7 +23,7 @@ public class ResultCodeMapperTest {
     // separate collection instances used to simplify duplicate RC detection
     EXCEPTIONS.add(new BadDatabaseIdException());
     EXCEPTIONS.add(new BadReaderLockTableSlotException());
-    EXCEPTIONS.add(new BadTransactionException());
+    EXCEPTIONS.add(new TxnBadException());
     EXCEPTIONS.add(new BadValueSizeException());
     EXCEPTIONS.add(new CorruptedException());
     EXCEPTIONS.add(new CursorFullException());
@@ -39,7 +39,7 @@ public class ResultCodeMapperTest {
     EXCEPTIONS.add(new PanicException());
     EXCEPTIONS.add(new ReadersFullException());
     EXCEPTIONS.add(new TlsFullException());
-    EXCEPTIONS.add(new TransactionFullException());
+    EXCEPTIONS.add(new TxnFullException());
     EXCEPTIONS.add(new VersionMismatchException());
 
     for (LmdbNativeException e : EXCEPTIONS) {

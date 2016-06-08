@@ -3,7 +3,7 @@ package org.lmdbjava;
 /**
  * The current transaction has not been reset.
  */
-public class TransactionHasNotBeenResetException extends LmdbException {
+public class TxnHasNotBeenResetException extends LmdbException {
 
   private static final long serialVersionUID = 1L;
 
@@ -11,7 +11,7 @@ public class TransactionHasNotBeenResetException extends LmdbException {
    * Creates a new instance.
    *
    */
-  public TransactionHasNotBeenResetException() {
+  public TxnHasNotBeenResetException() {
     super("Transaction has not been reset");
   }
 

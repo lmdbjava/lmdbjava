@@ -1,9 +1,9 @@
 package org.lmdbjava;
 
 /**
- * Flags for use when creating a {@link Transaction}.
+ * Flags for use when creating a {@link Txn}.
  */
-public enum TransactionFlags implements MaskedFlag {
+public enum TxnFlags implements MaskedFlag {
   /**
    * Read only
    */
@@ -11,7 +11,7 @@ public enum TransactionFlags implements MaskedFlag {
 
   private final int mask;
 
-  TransactionFlags(final int mask) {
+  TxnFlags(final int mask) {
     this.mask = mask;
   }
 

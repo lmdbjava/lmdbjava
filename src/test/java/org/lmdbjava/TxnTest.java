@@ -16,9 +16,9 @@ import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.POSIX_MODE;
 import static org.lmdbjava.TestUtils.createBb;
-import static org.lmdbjava.TransactionFlags.MDB_RDONLY;
+import static org.lmdbjava.TxnFlags.MDB_RDONLY;
 
-public class TransactionTest {
+public class TxnTest {
 
   @Rule
   public final TemporaryFolder tmp = new TemporaryFolder();
@@ -39,20 +39,20 @@ public class TransactionTest {
   @Test
   @Ignore
   public void testGetId() throws Exception {
-    Transaction tx = new Transaction(env, null);
+    Txn tx = new Txn(env);
     Database db = new Database(tx, DB_1, MDB_CREATE);
     tx.commit();
 
     final AtomicLong txId1 = new AtomicLong();
     final AtomicLong txId2 = new AtomicLong();
 
-    try (Transaction tx1 = new Transaction(env, null, MDB_RDONLY)) {
+    try (Txn tx1 = new Txn(env, MDB_RDONLY)) {
       txId1.set(tx1.getId());
     }
 
     db.put(createBb(1), createBb(2));
 
-    try (Transaction tx2 = new Transaction(env, null, MDB_RDONLY)) {
+    try (Txn tx2 = new Txn(env, MDB_RDONLY)) {
       txId2.set(tx2.getId());
     }
     // should not see the same snapshot
@@ -61,16 +61,16 @@ public class TransactionTest {
 
   @Test
   public void txCanCommitThenCloseWithoutError() throws Exception {
-    try (Transaction tx = new Transaction(env, null, MDB_RDONLY)) {
+    try (Txn tx = new Txn(env, MDB_RDONLY)) {
       assertThat(tx.isCommitted(), is(false));
       tx.commit();
       assertThat(tx.isCommitted(), is(true));
     }
   }
 
-  @Test(expected = AlreadyCommittedException.class)
+  @Test(expected = TxnAlreadyCommittedException.class)
   public void txCannotAbortIfAlreadyCommitted() throws Exception {
-    try (Transaction tx = new Transaction(env, null, MDB_RDONLY)) {
+    try (Txn tx = new Txn(env, MDB_RDONLY)) {
       assertThat(tx.isCommitted(), is(false));
       tx.commit();
       assertThat(tx.isCommitted(), is(true));
@@ -78,9 +78,9 @@ public class TransactionTest {
     }
   }
 
-  @Test(expected = AlreadyCommittedException.class)
+  @Test(expected = TxnAlreadyCommittedException.class)
   public void txCannotCommitTwice() throws Exception {
-    final Transaction tx = new Transaction(env, null);
+    final Txn tx = new Txn(env);
     tx.commit();
     tx.commit(); // error
   }
@@ -89,20 +89,20 @@ public class TransactionTest {
   @SuppressWarnings("ResultOfObjectAllocationIgnored")
   public void txConstructionDeniedIfEnvClosed() throws Exception {
     env.close();
-    new Transaction(env, null);
+    new Txn(env);
   }
 
   @Test
   public void txParent() throws Exception {
-    final Transaction txRoot = new Transaction(env, null);
-    final Transaction txChild = new Transaction(env, txRoot);
+    final Txn txRoot = new Txn(env);
+    final Txn txChild = new Txn(env, txRoot);
     assertThat(txRoot.getParent(), is(nullValue()));
     assertThat(txChild.getParent(), is(txRoot));
   }
 
   @Test
   public void txReadOnly() throws Exception {
-    final Transaction tx = new Transaction(env, null, MDB_RDONLY);
+    final Txn tx = new Txn(env, MDB_RDONLY);
     assertThat(tx.getParent(), is(nullValue()));
     assertThat(tx.isCommitted(), is(false));
     assertThat(tx.isReadOnly(), is(true));
@@ -117,7 +117,7 @@ public class TransactionTest {
 
   @Test
   public void txReadWrite() throws Exception {
-    final Transaction tx = new Transaction(env, null);
+    final Txn tx = new Txn(env);
     assertThat(tx.getParent(), is(nullValue()));
     assertThat(tx.isCommitted(), is(false));
     assertThat(tx.isReadOnly(), is(false));
@@ -125,15 +125,15 @@ public class TransactionTest {
     assertThat(tx.isCommitted(), is(true));
   }
 
-  @Test(expected = TransactionHasNotBeenResetException.class)
+  @Test(expected = TxnHasNotBeenResetException.class)
   public void txRenewDeniedWithoutPriorReset() throws Exception {
-    final Transaction tx = new Transaction(env, null, MDB_RDONLY);
+    final Txn tx = new Txn(env, MDB_RDONLY);
     tx.renew();
   }
 
-  @Test(expected = TransactionAlreadyResetException.class)
+  @Test(expected = TxnAlreadyResetException.class)
   public void txResetDeniedForAlreadyResetTransaction() throws Exception {
-    final Transaction tx = new Transaction(env, null, MDB_RDONLY);
+    final Txn tx = new Txn(env, MDB_RDONLY);
     tx.reset();
     tx.renew();
     tx.reset();
@@ -142,7 +142,7 @@ public class TransactionTest {
 
   @Test(expected = ReadOnlyTransactionRequiredException.class)
   public void txResetDeniedForReadWriteTransaction() throws Exception {
-    final Transaction tx = new Transaction(env, null);
+    final Txn tx = new Txn(env);
     tx.reset();
   }
 }

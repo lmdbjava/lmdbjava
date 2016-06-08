@@ -20,9 +20,9 @@ public class Cursor {
   private ByteBuffer buffer;
   private boolean closed;
   private final Pointer ptr;
-  private final Transaction tx;
+  private final Txn tx;
 
-  Cursor(Pointer ptr, Transaction tx) {
+  Cursor(Pointer ptr, Txn tx) {
     this.ptr = ptr;
     this.tx = tx;
   }
@@ -145,7 +145,7 @@ public class Cursor {
    *
    * @param tx transaction handle
    */
-  public void renew(Transaction tx) throws LmdbNativeException {
+  public void renew(Txn tx) throws LmdbNativeException {
     if (!tx.isReadOnly()) {
       throw new IllegalArgumentException("cannot renew write transactions");
     }

@@ -11,7 +11,7 @@ import static org.lmdbjava.Library.lib;
 import static org.lmdbjava.Library.runtime;
 import static org.lmdbjava.MaskedFlag.mask;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
-import static org.lmdbjava.TransactionFlags.MDB_RDONLY;
+import static org.lmdbjava.TxnFlags.MDB_RDONLY;
 import static org.lmdbjava.ValueBuffers.createVal;
 import static org.lmdbjava.ValueBuffers.wrap;
 
@@ -33,14 +33,14 @@ public final class Database {
    * @param tx    transaction to open and commit this database within (required)
    * @param name  name of the database (or null if no name is required)
    * @param flags to open the database with
-   * @throws AlreadyCommittedException if already committed
+   * @throws TxnAlreadyCommittedException if already committed
    * @throws LmdbNativeException       if a native C error occurred
    */
-  public Database(Transaction tx, String name, DatabaseFlags... flags)
-      throws AlreadyCommittedException, LmdbNativeException {
+  public Database(Txn tx, String name, DatabaseFlags... flags)
+      throws TxnAlreadyCommittedException, LmdbNativeException {
     requireNonNull(tx);
     if (tx.isCommitted()) {
-      throw new AlreadyCommittedException();
+      throw new TxnAlreadyCommittedException();
     }
     this.env = tx.env;
     this.name = name;
@@ -51,21 +51,21 @@ public final class Database {
   }
 
   /**
-   * @see org.lmdbjava.Database#delete(Transaction, ByteBuffer, ByteBuffer)
+   * @see org.lmdbjava.Database#delete(Txn, ByteBuffer, ByteBuffer)
    */
   public void delete(ByteBuffer key) throws
-      AlreadyCommittedException, LmdbNativeException, NotOpenException {
-    try (Transaction tx = new Transaction(env, null)) {
+    TxnAlreadyCommittedException, LmdbNativeException, NotOpenException {
+    try (Txn tx = new Txn(env, null)) {
       delete(tx, key);
       tx.commit();
     }
   }
 
   /**
-   * @see org.lmdbjava.Database#delete(Transaction, ByteBuffer, ByteBuffer)
+   * @see org.lmdbjava.Database#delete(Txn, ByteBuffer, ByteBuffer)
    */
-  public void delete(Transaction tx, ByteBuffer key) throws
-      AlreadyCommittedException, LmdbNativeException {
+  public void delete(Txn tx, ByteBuffer key) throws
+    TxnAlreadyCommittedException, LmdbNativeException {
     delete(tx, key, null);
   }
 
@@ -88,8 +88,8 @@ public final class Database {
    * @param val The value to delete from the database
    * @return true if the key/value was deleted.
    */
-  public void delete(Transaction tx, ByteBuffer key, ByteBuffer val) throws
-    AlreadyCommittedException, LmdbNativeException {
+  public void delete(Txn tx, ByteBuffer key, ByteBuffer val) throws
+    TxnAlreadyCommittedException, LmdbNativeException {
 
     final MDB_val k = createVal(key);
     final MDB_val v = val == null ? null : createVal(key);
@@ -98,11 +98,11 @@ public final class Database {
   }
 
   /**
-   * @see org.lmdbjava.Database#get(Transaction, ByteBuffer)
+   * @see org.lmdbjava.Database#get(Txn, ByteBuffer)
    */
   public ByteBuffer get(ByteBuffer key) throws
-      AlreadyCommittedException, LmdbNativeException, NotOpenException {
-    try (Transaction tx = new Transaction(env, null, MDB_RDONLY)) {
+    TxnAlreadyCommittedException, LmdbNativeException, NotOpenException {
+    try (Txn tx = new Txn(env, MDB_RDONLY)) {
       return get(tx, key);
     }
   }
@@ -123,8 +123,8 @@ public final class Database {
    * @param key The key to search for in the database
    * @return A value placeholder for the memory address to be wrapped if found by key.
    */
-  public ByteBuffer get(Transaction tx, ByteBuffer key) throws
-      AlreadyCommittedException, LmdbNativeException {
+  public ByteBuffer get(Txn tx, ByteBuffer key) throws
+    TxnAlreadyCommittedException, LmdbNativeException {
     assert key.isDirect();
 
     final MDB_val k = createVal(key);
@@ -168,18 +168,18 @@ public final class Database {
    * @param tx transaction handle
    * @return cursor handle
    */
-  public Cursor openCursor(Transaction tx) throws LmdbNativeException {
+  public Cursor openCursor(Txn tx) throws LmdbNativeException {
     PointerByReference ptr = new PointerByReference();
     checkRc(lib.mdb_cursor_open(tx.ptr, dbi, ptr));
     return new Cursor(ptr.getValue(), tx);
   }
 
   /**
-   * @see org.lmdbjava.Database#put(Transaction, ByteBuffer, ByteBuffer, DatabaseFlags...)
+   * @see org.lmdbjava.Database#put(Txn, ByteBuffer, ByteBuffer, DatabaseFlags...)
    */
   public void put(ByteBuffer key, ByteBuffer val) throws
-      AlreadyCommittedException, LmdbNativeException, NotOpenException {
-    try (Transaction tx = new Transaction(env, null)) {
+    TxnAlreadyCommittedException, LmdbNativeException, NotOpenException {
+    try (Txn tx = new Txn(env, null)) {
       put(tx, key, val);
       tx.commit();
     }
@@ -202,8 +202,8 @@ public final class Database {
    *
    * @return the existing value if it was a dup insert attempt.
    */
-  public void put(Transaction tx, ByteBuffer key, ByteBuffer val, DatabaseFlags... flags) throws
-      AlreadyCommittedException, LmdbNativeException {
+  public void put(Txn tx, ByteBuffer key, ByteBuffer val, DatabaseFlags... flags) throws
+    TxnAlreadyCommittedException, LmdbNativeException {
 
     final MDB_val k = createVal(key);
     final MDB_val v = createVal(val);

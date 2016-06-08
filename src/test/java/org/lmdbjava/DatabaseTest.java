@@ -23,7 +23,7 @@ public class DatabaseTest {
   public final TemporaryFolder tmp = new TemporaryFolder();
   private Database db;
   private Env env;
-  private Transaction tx;
+  private Txn tx;
 
   @Before
   public void before() throws Exception {
@@ -35,7 +35,7 @@ public class DatabaseTest {
     env.setMaxReaders(1);
     env.open(path, POSIX_MODE, MDB_NOSUBDIR);
 
-    tx = new Transaction(env, null);
+    tx = new Txn(env, null);
     db = new Database(tx, DB_1, MDB_CREATE);
   }
 
@@ -51,7 +51,7 @@ public class DatabaseTest {
     db.put(tx, createBb(5), createBb(5));
     tx.abort();
 
-    tx = new Transaction(env, null);
+    tx = new Txn(env);
     try {
       db.get(tx, createBb(5));
       fail("key does not exist");
@@ -83,7 +83,7 @@ public class DatabaseTest {
     db.put(tx, createBb(5), createBb(5));
     tx.commit();
 
-    tx = new Transaction(env, null);
+    tx = new Txn(env, null);
 
     ByteBuffer result = db.get(tx, createBb(5));
     assertThat(result.getInt(0), is(5));
@@ -115,7 +115,7 @@ public class DatabaseTest {
           for (int i = 0; i < 15_000; i++) {
             try {
               db.put(createBb(random.nextInt()), createBb(random.nextInt()));
-            } catch (AlreadyCommittedException | LmdbNativeException |
+            } catch (TxnAlreadyCommittedException | LmdbNativeException |
                      NotOpenException e) {
               throw new RuntimeException(e);
             }
