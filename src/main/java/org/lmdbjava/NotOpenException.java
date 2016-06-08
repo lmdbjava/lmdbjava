@@ -1,7 +1,7 @@
 package org.lmdbjava;
 
 /**
- * Object has not been opened.
+ * Object has is not open (eg never opened, or since closed).
  */
 public class NotOpenException extends LmdbException {
 
@@ -13,7 +13,7 @@ public class NotOpenException extends LmdbException {
    * @param type that has not been opened
    */
   public NotOpenException(String type) {
-    super(type + " has not been opened");
+    super(type + " is not open");
   }
 
 }
