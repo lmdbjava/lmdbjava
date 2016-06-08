@@ -2,8 +2,6 @@ package org.lmdbjava;
 
 import java.io.File;
 import java.nio.ByteBuffer;
-import java.util.HashSet;
-import java.util.Set;
 
 import static junit.framework.TestCase.fail;
 import static org.hamcrest.CoreMatchers.is;
@@ -31,19 +29,12 @@ public class CursorTest {
   public void before() throws Exception {
     env = new Env();
     final File path = tmp.newFile();
-
-    final Set<EnvFlags> envFlags = new HashSet<>();
-    envFlags.add(MDB_NOSUBDIR);
-
     env.setMapSize(1_024 * 1_024);
     env.setMaxDbs(1);
     env.setMaxReaders(1);
-    env.open(path, envFlags, POSIX_MODE);
+    env.open(path, POSIX_MODE, MDB_NOSUBDIR);
     tx = env.txnBeginReadWrite();
-    Set<DatabaseFlags> dbFlags = new HashSet<>();
-    dbFlags.add(MDB_CREATE);
-    dbFlags.add(MDB_DUPSORT);
-    db = tx.databaseOpen(DB_1, dbFlags);
+    db = tx.databaseOpen(DB_1, MDB_CREATE, MDB_DUPSORT);
   }
 
   @Test
@@ -170,9 +161,7 @@ public class CursorTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void closeCursor() throws LmdbNativeException, AlreadyCommittedException {
-    Set<DatabaseFlags> dbFlags = new HashSet<>();
-    dbFlags.add(MDB_CREATE);
-    Database db = tx.databaseOpen(DB_1, dbFlags);
+    Database db = tx.databaseOpen(DB_1, MDB_CREATE);
     Cursor cursor = db.openCursor(tx);
     cursor.close();
     ByteBuffer k = createBb(1);

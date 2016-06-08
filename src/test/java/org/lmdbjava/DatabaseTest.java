@@ -3,10 +3,7 @@ package org.lmdbjava;
 import java.io.File;
 import java.nio.ByteBuffer;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Random;
-import java.util.Set;
-import java.util.function.Consumer;
 
 import static junit.framework.TestCase.fail;
 import static org.hamcrest.CoreMatchers.is;
@@ -36,32 +33,23 @@ public class DatabaseTest {
     env = new Env();
     final File path = tmp.newFile();
 
-    final Set<EnvFlags> envFlags = new HashSet<>();
-    envFlags.add(MDB_NOSUBDIR);
-
     env.setMapSize(1_024 * 1_024 * 1_024);
     env.setMaxDbs(1);
     env.setMaxReaders(1);
-    env.open(path, envFlags, POSIX_MODE);
+    env.open(path, POSIX_MODE, MDB_NOSUBDIR);
 
     tx = env.txnBeginReadWrite();
-    Set<DatabaseFlags> dbFlags = new HashSet<>();
-    dbFlags.add(MDB_CREATE);
-    db = tx.databaseOpen(DB_1, dbFlags);
+    db = tx.databaseOpen(DB_1, MDB_CREATE);
   }
 
   @Test(expected = DatabasesFullException.class)
   public void dbOpenMaxDatabases() throws Exception {
-    Set<DatabaseFlags> dbFlags = new HashSet<>();
-    dbFlags.add(MDB_CREATE);
-    tx.databaseOpen("another", dbFlags);
+    tx.databaseOpen("another", MDB_CREATE);
   }
 
   @Test
   public void putAndGetAndDeleteWithInternalTx() throws Exception {
-    Set<DatabaseFlags> dbFlags = new HashSet<>();
-    dbFlags.add(MDB_CREATE);
-    Database db = tx.databaseOpen(DB_1, dbFlags);
+    Database db = tx.databaseOpen(DB_1, MDB_CREATE);
     tx.commit();
     db.put(createBb(5), createBb(5));
     ByteBuffer val = db.get(createBb(5));
@@ -76,9 +64,7 @@ public class DatabaseTest {
 
   @Test
   public void putAbortGet() throws Exception {
-    Set<DatabaseFlags> dbFlags = new HashSet<>();
-    dbFlags.add(MDB_CREATE);
-    Database db = tx.databaseOpen(DB_1, dbFlags);
+    Database db = tx.databaseOpen(DB_1, MDB_CREATE);
 
     db.put(tx, createBb(5), createBb(5));
     tx.abort();
@@ -95,9 +81,7 @@ public class DatabaseTest {
 
   @Test
   public void putCommitGet() throws Exception {
-    Set<DatabaseFlags> dbFlags = new HashSet<>();
-    dbFlags.add(MDB_CREATE);
-    Database db = tx.databaseOpen(DB_1, dbFlags);
+    Database db = tx.databaseOpen(DB_1, MDB_CREATE);
 
     db.put(tx, createBb(5), createBb(5));
     tx.commit();
@@ -111,10 +95,7 @@ public class DatabaseTest {
 
   @Test
   public void putDelete() throws Exception {
-    Set<DatabaseFlags> dbFlags = new HashSet<>();
-
-    dbFlags.add(MDB_CREATE);
-    Database db = tx.databaseOpen(DB_1, dbFlags);
+    Database db = tx.databaseOpen(DB_1, MDB_CREATE);
 
     db.put(tx, createBb(5), createBb(5));
     db.delete(tx, createBb(5));

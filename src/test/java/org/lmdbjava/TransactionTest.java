@@ -1,26 +1,14 @@
 package org.lmdbjava;
 
 import java.io.File;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicLong;
-
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-
-import org.hamcrest.core.Is;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-
-import static org.hamcrest.core.IsNot.not;
-import static org.lmdbjava.DatabaseFlags.MDB_CREATE;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
-import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.POSIX_MODE;
-import static org.lmdbjava.TestUtils.createBb;
 
 public class TransactionTest {
 
@@ -33,12 +21,10 @@ public class TransactionTest {
     env = new Env();
     final File path = tmp.newFile();
 
-    final Set<EnvFlags> flags = new HashSet<>();
-    flags.add(MDB_NOSUBDIR);
     env.setMapSize(1_024 * 1_024);
     env.setMaxDbs(1);
     env.setMaxReaders(1);
-    env.open(path, flags, POSIX_MODE);
+    env.open(path, POSIX_MODE, MDB_NOSUBDIR);
 
   }
 

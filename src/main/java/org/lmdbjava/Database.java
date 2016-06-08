@@ -4,7 +4,6 @@ import java.nio.ByteBuffer;
 import static java.nio.ByteBuffer.allocateDirect;
 import static java.nio.ByteOrder.LITTLE_ENDIAN;
 import static java.util.Objects.requireNonNull;
-import java.util.Set;
 import jnr.ffi.byref.IntByReference;
 import jnr.ffi.byref.PointerByReference;
 import org.lmdbjava.Library.MDB_val;
@@ -24,12 +23,11 @@ public final class Database {
   final int dbi;
   final Env env;
 
-  Database(Env env, Transaction tx, String name, Set<DatabaseFlags> flags)
+  Database(Env env, Transaction tx, String name, DatabaseFlags... flags)
       throws
       AlreadyCommittedException, LmdbNativeException {
     requireNonNull(env);
     requireNonNull(tx);
-    requireNonNull(flags);
     requireNonNull(name);
     if (name.isEmpty()) {
       throw new IllegalArgumentException("name is empty");

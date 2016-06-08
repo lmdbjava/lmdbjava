@@ -1,9 +1,7 @@
 package org.lmdbjava;
 
 import java.io.File;
-import java.util.HashSet;
 import static java.util.Objects.requireNonNull;
-import java.util.Set;
 import jnr.ffi.Pointer;
 import jnr.ffi.byref.PointerByReference;
 import static org.lmdbjava.Library.lib;
@@ -15,13 +13,6 @@ import static org.lmdbjava.TransactionFlags.MDB_RDONLY;
  * LMDB environment.
  */
 public final class Env {
-
-  private static final Set<TransactionFlags> TX_FLAGS_RO = new HashSet<>();
-  private static final Set<TransactionFlags> TX_FLAGS_RW = new HashSet<>();
-
-  static {
-    TX_FLAGS_RO.add(MDB_RDONLY);
-  }
 
   private boolean open;
   final Pointer ptr;
@@ -95,17 +86,14 @@ public final class Env {
    * Opens the environment.
    *
    * @param path  file system destination
-   * @param flags the flags for this new environment
    * @param mode  Unix permissions to set on created files and semaphores
+   * @param flags the flags for this new environment
    * @throws AlreadyOpenException if already open
    * @throws LmdbNativeException  if a native C error occurred
    */
-  public void open(final File path,
-                   final Set<EnvFlags> flags, final int mode) throws
-      AlreadyOpenException,
-      LmdbNativeException {
+  public void open(final File path, final int mode, final EnvFlags... flags)
+      throws AlreadyOpenException, LmdbNativeException {
     requireNonNull(path);
-    requireNonNull(flags);
     if (open) {
       throw new AlreadyOpenException(Env.class.getSimpleName());
     }
@@ -123,7 +111,7 @@ public final class Env {
    */
   public Transaction txnBeginReadOnly() throws NotOpenException,
                                                LmdbNativeException {
-    return new Transaction(this, null, TX_FLAGS_RO);
+    return new Transaction(this, null, MDB_RDONLY);
   }
 
   /**
@@ -135,7 +123,7 @@ public final class Env {
    */
   public Transaction txnBeginReadWrite() throws NotOpenException,
                                                 LmdbNativeException {
-    return new Transaction(this, null, TX_FLAGS_RW);
+    return new Transaction(this, null);
   }
 
 }

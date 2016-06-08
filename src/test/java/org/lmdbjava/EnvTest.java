@@ -1,8 +1,6 @@
 package org.lmdbjava;
 
 import java.io.File;
-import java.util.HashSet;
-import java.util.Set;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -21,10 +19,8 @@ public class EnvTest {
   public void cannotOpenTwice() throws Exception {
     final Env e = new Env();
     final File path = tmp.newFile();
-    final Set<EnvFlags> flags = new HashSet<>();
-    flags.add(MDB_NOSUBDIR);
-    e.open(path, flags, POSIX_MODE);
-    e.open(path, flags, POSIX_MODE); // error
+    e.open(path, POSIX_MODE, MDB_NOSUBDIR);
+    e.open(path, POSIX_MODE, MDB_NOSUBDIR); // error
   }
 
   @Test
@@ -34,9 +30,7 @@ public class EnvTest {
     assertThat(env.isOpen(), is(false));
 
     final File path = tmp.newFolder();
-    final Set<EnvFlags> flags = new HashSet<>();
-
-    env.open(path, flags, POSIX_MODE);
+    env.open(path, POSIX_MODE);
     assertThat(env.isOpen(), is(true));
     assertThat(path.isDirectory(), is(true));
   }
@@ -47,12 +41,10 @@ public class EnvTest {
     assertThat(env, is(notNullValue()));
     assertThat(env.isOpen(), is(false));
     final File path = tmp.newFile();
-    final Set<EnvFlags> flags = new HashSet<>();
-    flags.add(MDB_NOSUBDIR);
     env.setMapSize(1_024 * 1_024);
     env.setMaxDbs(1);
     env.setMaxReaders(1);
-    env.open(path, flags, POSIX_MODE);
+    env.open(path, POSIX_MODE, MDB_NOSUBDIR);
     assertThat(env.isOpen(), is(true));
     assertThat(path.isFile(), is(true));
   }
