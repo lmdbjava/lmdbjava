@@ -17,9 +17,9 @@ import static org.lmdbjava.TransactionFlags.MDB_RDONLY;
 public final class Transaction implements AutoCloseable {
 
   private boolean committed;
-  private final Env env;
   private final boolean readOnly;
   private boolean reset = false;
+  final Env env;
   final Transaction parent;
   final Pointer ptr;
 
@@ -97,21 +97,6 @@ public final class Transaction implements AutoCloseable {
     this.committed = true;
   }
 
-
-  /**
-   * Opens a new database
-   *
-   * @param name  the name of the database (required)
-   * @param flags applicable flags (required)
-   * @return the database (never null)
-   * @throws AlreadyCommittedException if already committed
-   * @throws LmdbNativeException       if a native C error occurred
-   */
-  public Database databaseOpen(final String name, final DatabaseFlags... flags)
-      throws AlreadyCommittedException, LmdbNativeException {
-    return new Database(env, this, name, flags);
-  }
-
   /**
    * Return the transaction's ID.
    *
@@ -147,16 +132,16 @@ public final class Transaction implements AutoCloseable {
   public boolean isReadOnly() {
     return readOnly;
   }
-  
+
   /**
    * Whether this transaction has been {@link #reset()}.
-   * 
+   *
    * @return if reset
    */
   public boolean isReset() {
     return reset;
   }
-  
+
   /**
    * Renews a read-only transaction previously released by {@link #reset()}.
    *
@@ -171,15 +156,16 @@ public final class Transaction implements AutoCloseable {
     reset = false;
     checkRc(lib.mdb_txn_renew(ptr));
   }
-  
+
   /**
    * Aborts this read-only transaction and resets the transaction handle so it
    * can be reused upon calling {@link #renew()}.
    *
    * @throws ReadOnlyTransactionRequiredException if a read-write transaction
-   * @throws TransactionAlreadyResetException if reset already performed
+   * @throws TransactionAlreadyResetException     if reset already performed
    */
-  public void reset() throws ReadOnlyTransactionRequiredException, TransactionAlreadyResetException {
+  public void reset() throws ReadOnlyTransactionRequiredException,
+                             TransactionAlreadyResetException {
     if (!isReadOnly()) {
       throw new ReadOnlyTransactionRequiredException();
     }

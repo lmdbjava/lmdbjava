@@ -2,7 +2,6 @@ package org.lmdbjava;
 
 import java.io.File;
 import java.nio.ByteBuffer;
-
 import static junit.framework.TestCase.fail;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -44,13 +43,13 @@ public class CursorTest {
     env.setMaxReaders(1);
     env.open(path, POSIX_MODE, MDB_NOSUBDIR);
     tx = new Transaction(env, null);
-    db = tx.databaseOpen(DB_1, MDB_CREATE, MDB_DUPSORT);
+    db = new Database(tx, DB_1, MDB_CREATE, MDB_DUPSORT);
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void closeCursor() throws LmdbNativeException,
                                    AlreadyCommittedException {
-    Database db = tx.databaseOpen(DB_1, MDB_CREATE);
+    db = new Database(tx, DB_1, MDB_CREATE);
     Cursor cursor = db.openCursor(tx);
     cursor.close();
     ByteBuffer k = createBb(1);

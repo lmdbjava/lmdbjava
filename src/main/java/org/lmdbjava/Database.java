@@ -24,19 +24,25 @@ public final class Database {
   final int dbi;
   final Env env;
 
-  Database(Env env, Transaction tx, String name, DatabaseFlags... flags)
-      throws
-      AlreadyCommittedException, LmdbNativeException {
-    requireNonNull(env);
+  /**
+   * Create and open an LMDB Database (dbi) handle.
+   * <p>
+   * The passed transaction will automatically commit and the database handle
+   * will become available to other transactions.
+   *
+   * @param tx    transaction to open and commit this database within (required)
+   * @param name  name of the database (or null if no name is required)
+   * @param flags to open the database with
+   * @throws AlreadyCommittedException if already committed
+   * @throws LmdbNativeException       if a native C error occurred
+   */
+  public Database(Transaction tx, String name, DatabaseFlags... flags)
+      throws AlreadyCommittedException, LmdbNativeException {
     requireNonNull(tx);
-    requireNonNull(name);
-    if (name.isEmpty()) {
-      throw new IllegalArgumentException("name is empty");
-    }
     if (tx.isCommitted()) {
       throw new AlreadyCommittedException();
     }
-    this.env = env;
+    this.env = tx.env;
     this.name = name;
     final int flagsMask = mask(flags);
     final IntByReference dbiPtr = new IntByReference();
@@ -45,7 +51,7 @@ public final class Database {
   }
 
   public void delete(ByteBuffer key) throws
-    AlreadyCommittedException, LmdbNativeException, NotOpenException {
+      AlreadyCommittedException, LmdbNativeException, NotOpenException {
     try (Transaction tx = new Transaction(env, null)) {
       delete(tx, key);
       tx.commit();
@@ -61,7 +67,7 @@ public final class Database {
   }
 
   public ByteBuffer get(ByteBuffer key) throws
-    AlreadyCommittedException, LmdbNativeException, NotOpenException {
+      AlreadyCommittedException, LmdbNativeException, NotOpenException {
     try (Transaction tx = new Transaction(env, null, MDB_RDONLY)) {
       return get(tx, key);
     }
@@ -85,7 +91,7 @@ public final class Database {
   /**
    * Obtains the name of this database.
    *
-   * @return the name (never null or empty)
+   * @return the name (may be null or empty)
    */
   public String getName() {
     return name;
@@ -98,7 +104,7 @@ public final class Database {
   }
 
   public void put(ByteBuffer key, ByteBuffer val) throws
-    AlreadyCommittedException, LmdbNativeException, NotOpenException {
+      AlreadyCommittedException, LmdbNativeException, NotOpenException {
     try (Transaction tx = new Transaction(env, null)) {
       put(tx, key, val);
       tx.commit();

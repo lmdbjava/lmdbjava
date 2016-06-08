@@ -40,7 +40,7 @@ public class TransactionTest {
   @Ignore
   public void testGetId() throws Exception {
     Transaction tx = new Transaction(env, null);
-    Database db = tx.databaseOpen(DB_1, MDB_CREATE);
+    Database db = new Database(tx, DB_1, MDB_CREATE);
     tx.commit();
 
     final AtomicLong txId1 = new AtomicLong();
@@ -67,6 +67,14 @@ public class TransactionTest {
   }
 
   @Test
+  public void txParent() throws Exception {
+    final Transaction txRoot = new Transaction(env, null);
+    final Transaction txChild = new Transaction(env, txRoot);
+    assertThat(txRoot.getParent(), is(nullValue()));
+    assertThat(txChild.getParent(), is(txRoot));
+  }
+
+  @Test
   public void txReadOnly() throws Exception {
     final Transaction tx = new Transaction(env, null, MDB_RDONLY);
     assertThat(tx.getParent(), is(nullValue()));
@@ -79,14 +87,6 @@ public class TransactionTest {
     assertThat(tx.isReset(), is(false));
     tx.commit();
     assertThat(tx.isCommitted(), is(true));
-  }
-
-  @Test
-  public void txParent() throws Exception {
-    final Transaction txRoot = new Transaction(env, null);
-    final Transaction txChild = new Transaction(env, txRoot);
-    assertThat(txRoot.getParent(), is(nullValue()));
-    assertThat(txChild.getParent(), is(txRoot));
   }
 
   @Test

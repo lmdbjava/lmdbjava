@@ -93,17 +93,17 @@ public class EnvTest {
 
   @Test
   public void createAsFile() throws Exception {
-    final Env env = new Env();
-    assertThat(env, is(notNullValue()));
-    assertThat(env.isOpen(), is(false));
-    final File path = tmp.newFile();
-    env.setMapSize(1_024 * 1_024);
-    env.setMaxDbs(1);
-    env.setMaxReaders(1);
-    env.open(path, POSIX_MODE, MDB_NOSUBDIR);
-    assertThat(env.isOpen(), is(true));
-    assertThat(path.isFile(), is(true));
-    env.close();
+    try (Env env = new Env()) {
+      assertThat(env, is(notNullValue()));
+      assertThat(env.isOpen(), is(false));
+      final File path = tmp.newFile();
+      env.setMapSize(1_024 * 1_024);
+      env.setMaxDbs(1);
+      env.setMaxReaders(1);
+      env.open(path, POSIX_MODE, MDB_NOSUBDIR);
+      assertThat(env.isOpen(), is(true));
+      assertThat(path.isFile(), is(true));
+    }
   }
 
 }

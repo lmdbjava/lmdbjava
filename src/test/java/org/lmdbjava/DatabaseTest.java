@@ -4,22 +4,18 @@ import java.io.File;
 import java.nio.ByteBuffer;
 import static java.util.Collections.nCopies;
 import java.util.Random;
-
 import static junit.framework.TestCase.fail;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-
 import static org.lmdbjava.DatabaseFlags.MDB_CREATE;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.POSIX_MODE;
 import static org.lmdbjava.TestUtils.createBb;
-import static org.lmdbjava.TransactionFlags.MDB_RDONLY;
 
 public class DatabaseTest {
 
@@ -40,17 +36,17 @@ public class DatabaseTest {
     env.open(path, POSIX_MODE, MDB_NOSUBDIR);
 
     tx = new Transaction(env, null);
-    db = tx.databaseOpen(DB_1, MDB_CREATE);
+    db = new Database(tx, DB_1, MDB_CREATE);
   }
 
   @Test(expected = DatabasesFullException.class)
   public void dbOpenMaxDatabases() throws Exception {
-    tx.databaseOpen("another", MDB_CREATE);
+    new Database(tx, "another", MDB_CREATE);
   }
 
   @Test
   public void putAbortGet() throws Exception {
-    Database db = tx.databaseOpen(DB_1, MDB_CREATE);
+    Database db = new Database(tx, DB_1, MDB_CREATE);
 
     db.put(tx, createBb(5), createBb(5));
     tx.abort();
@@ -67,7 +63,7 @@ public class DatabaseTest {
 
   @Test
   public void putAndGetAndDeleteWithInternalTx() throws Exception {
-    Database db = tx.databaseOpen(DB_1, MDB_CREATE);
+    Database db = new Database(tx, DB_1, MDB_CREATE);
     tx.commit();
     db.put(createBb(5), createBb(5));
     ByteBuffer val = db.get(createBb(5));
@@ -82,7 +78,7 @@ public class DatabaseTest {
 
   @Test
   public void putCommitGet() throws Exception {
-    Database db = tx.databaseOpen(DB_1, MDB_CREATE);
+    Database db = new Database(tx, DB_1, MDB_CREATE);
 
     db.put(tx, createBb(5), createBb(5));
     tx.commit();
@@ -96,7 +92,7 @@ public class DatabaseTest {
 
   @Test
   public void putDelete() throws Exception {
-    Database db = tx.databaseOpen(DB_1, MDB_CREATE);
+    Database db = new Database(tx, DB_1, MDB_CREATE);
 
     db.put(tx, createBb(5), createBb(5));
     db.delete(tx, createBb(5));
