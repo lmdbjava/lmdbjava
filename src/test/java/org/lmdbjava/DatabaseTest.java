@@ -75,7 +75,7 @@ public class DatabaseTest {
     try {
       db.get(createBb(5));
       fail("should have been deleted");
-    } catch (NotFoundException e) {
+    } catch (DatabaseNotFoundException e) {
     }
   }
 
@@ -102,7 +102,7 @@ public class DatabaseTest {
     try {
       db.get(tx, createBb(5));
       fail("key does not exist");
-    } catch (NotFoundException e) {
+    } catch (DatabaseNotFoundException e) {
     }
     tx.abort();
   }

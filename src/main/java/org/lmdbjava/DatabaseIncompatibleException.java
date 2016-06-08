@@ -12,12 +12,12 @@ package org.lmdbjava;
  * <li>The database was dropped and recreated with different flags.</li>
  * </ul>
  */
-public final class IncompatibleException extends LmdbNativeException {
+public final class DatabaseIncompatibleException extends LmdbNativeException {
 
   private static final long serialVersionUID = 1L;
   static final int MDB_INCOMPATIBLE = -30_784;
 
-  IncompatibleException() {
+  DatabaseIncompatibleException() {
     super(MDB_INCOMPATIBLE, "Operation and DB incompatible, or DB type changed");
   }
 }

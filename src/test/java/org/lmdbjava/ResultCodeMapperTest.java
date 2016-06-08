@@ -21,26 +21,26 @@ public class ResultCodeMapperTest {
 
   static {
     // separate collection instances used to simplify duplicate RC detection
-    EXCEPTIONS.add(new BadDatabaseIdException());
+    EXCEPTIONS.add(new DatabaseBadException());
     EXCEPTIONS.add(new BadReaderLockTableSlotException());
     EXCEPTIONS.add(new TxnBadException());
-    EXCEPTIONS.add(new BadValueSizeException());
-    EXCEPTIONS.add(new CorruptedException());
+    EXCEPTIONS.add(new DatabaseBadValueSizeException());
+    EXCEPTIONS.add(new PageCorruptedException());
     EXCEPTIONS.add(new CursorFullException());
     EXCEPTIONS.add(new DatabasesFullException());
-    EXCEPTIONS.add(new IncompatibleException());
-    EXCEPTIONS.add(new InvalidException());
-    EXCEPTIONS.add(new KeyExistsException());
-    EXCEPTIONS.add(new MapFullException());
-    EXCEPTIONS.add(new MapResizedException());
-    EXCEPTIONS.add(new NotFoundException());
+    EXCEPTIONS.add(new DatabaseIncompatibleException());
+    EXCEPTIONS.add(new FileInvalidException());
+    EXCEPTIONS.add(new DatabaseKeyExistsException());
+    EXCEPTIONS.add(new EnvMapFullException());
+    EXCEPTIONS.add(new DatabaseMapResizedException());
+    EXCEPTIONS.add(new DatabaseNotFoundException());
     EXCEPTIONS.add(new PageFullException());
     EXCEPTIONS.add(new PageNotFoundException());
     EXCEPTIONS.add(new PanicException());
-    EXCEPTIONS.add(new ReadersFullException());
+    EXCEPTIONS.add(new EnvReadersFullException());
     EXCEPTIONS.add(new TlsFullException());
     EXCEPTIONS.add(new TxnFullException());
-    EXCEPTIONS.add(new VersionMismatchException());
+    EXCEPTIONS.add(new EnvVersionMismatchException());
 
     for (LmdbNativeException e : EXCEPTIONS) {
       RESULT_CODES.add(e.getResultCode());

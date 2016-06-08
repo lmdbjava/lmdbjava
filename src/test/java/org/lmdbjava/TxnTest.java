@@ -140,7 +140,7 @@ public class TxnTest {
     tx.reset();
   }
 
-  @Test(expected = ReadOnlyTransactionRequiredException.class)
+  @Test(expected = TxnReadOnlyRequiredException.class)
   public void txResetDeniedForReadWriteTransaction() throws Exception {
     final Txn tx = new Txn(env);
     tx.reset();

@@ -3,12 +3,12 @@ package org.lmdbjava;
 /**
  * Key/data pair already exists.
  */
-public final class KeyExistsException extends LmdbNativeException {
+public final class DatabaseKeyExistsException extends LmdbNativeException {
 
   private static final long serialVersionUID = 1L;
   static final int MDB_KEYEXIST = -30_799;
 
-  KeyExistsException() {
+  DatabaseKeyExistsException() {
     super(MDB_KEYEXIST, "key/data pair already exists");
   }
 }

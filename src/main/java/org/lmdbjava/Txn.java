@@ -187,13 +187,13 @@ public final class Txn implements AutoCloseable {
    * Aborts this read-only transaction and resets the transaction handle so it
    * can be reused upon calling {@link #renew()}.
    *
-   * @throws ReadOnlyTransactionRequiredException if a read-write transaction
+   * @throws TxnReadOnlyRequiredException if a read-write transaction
    * @throws TxnAlreadyResetException     if reset already performed
    */
-  public void reset() throws ReadOnlyTransactionRequiredException,
+  public void reset() throws TxnReadOnlyRequiredException,
     TxnAlreadyResetException {
     if (!isReadOnly()) {
-      throw new ReadOnlyTransactionRequiredException();
+      throw new TxnReadOnlyRequiredException();
     }
     if (reset) {
       throw new TxnAlreadyResetException();

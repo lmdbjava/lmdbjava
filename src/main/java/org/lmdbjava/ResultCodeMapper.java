@@ -3,26 +3,26 @@ package org.lmdbjava;
 import jnr.constants.Constant;
 import jnr.constants.ConstantSet;
 import static jnr.constants.ConstantSet.getConstantSet;
-import static org.lmdbjava.BadDatabaseIdException.MDB_BAD_DBI;
+import static org.lmdbjava.DatabaseBadException.MDB_BAD_DBI;
 import static org.lmdbjava.BadReaderLockTableSlotException.MDB_BAD_RSLOT;
 import static org.lmdbjava.TxnBadException.MDB_BAD_TXN;
-import static org.lmdbjava.BadValueSizeException.MDB_BAD_VALSIZE;
-import static org.lmdbjava.CorruptedException.MDB_CORRUPTED;
+import static org.lmdbjava.DatabaseBadValueSizeException.MDB_BAD_VALSIZE;
+import static org.lmdbjava.PageCorruptedException.MDB_CORRUPTED;
 import static org.lmdbjava.CursorFullException.MDB_CURSOR_FULL;
 import static org.lmdbjava.DatabasesFullException.MDB_DBS_FULL;
-import static org.lmdbjava.IncompatibleException.MDB_INCOMPATIBLE;
-import static org.lmdbjava.InvalidException.MDB_INVALID;
-import static org.lmdbjava.KeyExistsException.MDB_KEYEXIST;
-import static org.lmdbjava.MapFullException.MDB_MAP_FULL;
-import static org.lmdbjava.MapResizedException.MDB_MAP_RESIZED;
-import static org.lmdbjava.NotFoundException.MDB_NOTFOUND;
+import static org.lmdbjava.DatabaseIncompatibleException.MDB_INCOMPATIBLE;
+import static org.lmdbjava.FileInvalidException.MDB_INVALID;
+import static org.lmdbjava.DatabaseKeyExistsException.MDB_KEYEXIST;
+import static org.lmdbjava.EnvMapFullException.MDB_MAP_FULL;
+import static org.lmdbjava.DatabaseMapResizedException.MDB_MAP_RESIZED;
+import static org.lmdbjava.DatabaseNotFoundException.MDB_NOTFOUND;
 import static org.lmdbjava.PageFullException.MDB_PAGE_FULL;
 import static org.lmdbjava.PageNotFoundException.MDB_PAGE_NOTFOUND;
 import static org.lmdbjava.PanicException.MDB_PANIC;
-import static org.lmdbjava.ReadersFullException.MDB_READERS_FULL;
+import static org.lmdbjava.EnvReadersFullException.MDB_READERS_FULL;
 import static org.lmdbjava.TlsFullException.MDB_TLS_FULL;
 import static org.lmdbjava.TxnFullException.MDB_TXN_FULL;
-import static org.lmdbjava.VersionMismatchException.MDB_VERSION_MISMATCH;
+import static org.lmdbjava.EnvVersionMismatchException.MDB_VERSION_MISMATCH;
 
 /**
  * Maps a LMDB C result code to the equivalent Java exception.
@@ -84,31 +84,31 @@ public final class ResultCodeMapper {
 
     switch (rc) {
       case MDB_BAD_DBI:
-        return new BadDatabaseIdException();
+        return new DatabaseBadException();
       case MDB_BAD_RSLOT:
         return new BadReaderLockTableSlotException();
       case MDB_BAD_TXN:
         return new TxnBadException();
       case MDB_BAD_VALSIZE:
-        return new BadValueSizeException();
+        return new DatabaseBadValueSizeException();
       case MDB_CORRUPTED:
-        return new CorruptedException();
+        return new PageCorruptedException();
       case MDB_CURSOR_FULL:
         return new CursorFullException();
       case MDB_DBS_FULL:
         return new DatabasesFullException();
       case MDB_INCOMPATIBLE:
-        return new IncompatibleException();
+        return new DatabaseIncompatibleException();
       case MDB_INVALID:
-        return new InvalidException();
+        return new FileInvalidException();
       case MDB_KEYEXIST:
-        return new KeyExistsException();
+        return new DatabaseKeyExistsException();
       case MDB_MAP_FULL:
-        return new MapFullException();
+        return new EnvMapFullException();
       case MDB_MAP_RESIZED:
-        return new MapResizedException();
+        return new DatabaseMapResizedException();
       case MDB_NOTFOUND:
-        return new NotFoundException();
+        return new DatabaseNotFoundException();
       case MDB_PAGE_FULL:
         return new PageFullException();
       case MDB_PAGE_NOTFOUND:
@@ -116,13 +116,13 @@ public final class ResultCodeMapper {
       case MDB_PANIC:
         return new PanicException();
       case MDB_READERS_FULL:
-        return new ReadersFullException();
+        return new EnvReadersFullException();
       case MDB_TLS_FULL:
         return new TlsFullException();
       case MDB_TXN_FULL:
         return new TxnFullException();
       case MDB_VERSION_MISMATCH:
-        return new VersionMismatchException();
+        return new EnvVersionMismatchException();
     }
     return null;
   }

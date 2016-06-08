@@ -87,7 +87,7 @@ public class CursorTest {
     try {
       cursor.get(k, v, MDB_FIRST);
       fail("should fail");
-    } catch (NotFoundException e) {
+    } catch (DatabaseNotFoundException e) {
     }
     tx.commit();
   }
