@@ -107,6 +107,15 @@ public class EnvTest {
   }
 
   @Test
+  public void info() throws Exception {
+    final Env env = new Env();
+    final File path = tmp.newFile();
+    env.open(path, POSIX_MODE, MDB_NOSUBDIR);
+    EnvInfo info = env.info();
+    assertThat(info, is(notNullValue()));
+  }
+
+  @Test
   public void stats() throws Exception {
     final Env env = new Env();
     final File path = tmp.newFile();
@@ -120,5 +129,4 @@ public class EnvTest {
     assertThat(stat.overflowPages, is(0L));
     assertThat(stat.pageSize, is(4_096));
   }
-
 }

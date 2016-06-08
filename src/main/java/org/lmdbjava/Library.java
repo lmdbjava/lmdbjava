@@ -5,6 +5,7 @@ import jnr.ffi.Pointer;
 import static jnr.ffi.Runtime.getRuntime;
 import jnr.ffi.Struct;
 import jnr.ffi.Struct.size_t;
+import jnr.ffi.Struct.u_int32_t;
 import jnr.ffi.annotations.In;
 import jnr.ffi.annotations.Out;
 import jnr.ffi.byref.IntByReference;
@@ -53,6 +54,20 @@ final class Library {
     }
   }
 
+  public static final class MDB_envinfo extends Struct {
+
+    public final Pointer me_mapaddr = new Pointer();
+    public final size_t me_mapsize = new size_t();
+    public final size_t me_last_pgno = new size_t();
+    public final size_t me_last_txnid = new size_t();
+    public final u_int32_t me_maxreaders = new u_int32_t();
+    public final u_int32_t me_numreaders = new u_int32_t();
+
+    public MDB_envinfo(jnr.ffi.Runtime runtime) {
+      super(runtime);
+    }
+  }
+
   public interface Lmdb {
 
     Pointer mdb_version(int major, int minor, int patch);
@@ -71,6 +86,11 @@ final class Library {
      * Return statistics about the LMDB environment. 
      */
     int mdb_env_stat(@In Pointer env, @Out MDB_stat stat);
+    
+    /**
+     * Return information about the LMDB environment. 
+     */
+    int mdb_env_info(@In Pointer env, @Out MDB_envinfo info);
     
     /**
      * Close the environment and release the memory map.

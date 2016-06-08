@@ -4,6 +4,7 @@ import java.io.File;
 import static java.util.Objects.requireNonNull;
 import jnr.ffi.Pointer;
 import jnr.ffi.byref.PointerByReference;
+import org.lmdbjava.Library.MDB_envinfo;
 import org.lmdbjava.Library.MDB_stat;
 import static org.lmdbjava.Library.lib;
 import static org.lmdbjava.Library.runtime;
@@ -105,6 +106,36 @@ public final class Env implements AutoCloseable {
       throw new AlreadyClosedException(Env.class.getSimpleName());
     }
     checkRc(lib.mdb_env_set_maxreaders(ptr, readers));
+  }
+
+  /**
+   * Return information about this environment.
+   *
+   * @return an immutable information object.
+   * @throws NotOpenException    if the env has not been opened
+   * @throws LmdbNativeException if a native C error occurred
+   */
+  public EnvInfo info() throws NotOpenException, LmdbNativeException {
+    if (!open) {
+      throw new NotOpenException(Env.class.getSimpleName());
+    }
+    final MDB_envinfo info = new MDB_envinfo(runtime);
+    checkRc(lib.mdb_env_info(ptr, info));
+
+    final long mapAddress;
+    if (info.me_mapaddr.get() == null) {
+      mapAddress = 0;
+    } else {
+      mapAddress = info.me_mapaddr.get().address();
+    }
+
+    return new EnvInfo(
+        mapAddress,
+        info.me_mapsize.longValue(),
+        info.me_last_pgno.longValue(),
+        info.me_last_txnid.longValue(),
+        info.me_maxreaders.intValue(),
+        info.me_numreaders.intValue());
   }
 
   /**
