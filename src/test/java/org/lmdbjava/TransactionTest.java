@@ -59,6 +59,25 @@ public class TransactionTest {
     assertThat(txId1.get(), is(not(txId2.get())));
   }
 
+  @Test
+  public void txCanCommitThenCloseWithoutError() throws Exception {
+    try (Transaction tx = new Transaction(env, null, MDB_RDONLY)) {
+      assertThat(tx.isCommitted(), is(false));
+      tx.commit();
+      assertThat(tx.isCommitted(), is(true));
+    }
+  }
+
+  @Test(expected = AlreadyCommittedException.class)
+  public void txCannotAbortIfAlreadyCommitted() throws Exception {
+    try (Transaction tx = new Transaction(env, null, MDB_RDONLY)) {
+      assertThat(tx.isCommitted(), is(false));
+      tx.commit();
+      assertThat(tx.isCommitted(), is(true));
+      tx.abort();
+    }
+  }
+
   @Test(expected = AlreadyCommittedException.class)
   public void txCannotCommitTwice() throws Exception {
     final Transaction tx = new Transaction(env, null);

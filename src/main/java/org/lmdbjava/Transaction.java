@@ -75,12 +75,11 @@ public final class Transaction implements AutoCloseable {
    */
   @Override
   public void close() {
-    if (!isCommitted()) {
-      try {
-        abort();
-      } catch (AlreadyCommittedException e) {
-      }
+    if (committed) {
+      return;
     }
+    lib.mdb_txn_abort(ptr);
+    this.committed = true;
   }
 
   /**

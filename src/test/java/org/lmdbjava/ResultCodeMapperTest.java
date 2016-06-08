@@ -9,8 +9,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.fail;
 import org.junit.Test;
 import static org.lmdbjava.CursorFullException.MDB_CURSOR_FULL;
+import static org.lmdbjava.ResultCodeMapper.MDB_SUCCESS;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
 import static org.lmdbjava.ResultCodeMapper.rcException;
+import static org.lmdbjava.TestUtils.invokePrivateConstructor;
 
 public class ResultCodeMapperTest {
 
@@ -70,6 +72,16 @@ public class ResultCodeMapperTest {
   @Test(expected = IllegalArgumentException.class)
   public void checkErrUnknownResultCode() throws Exception {
     checkRc(MAX_VALUE);
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void checkSuccessRaisesErrorIfPassedToRcException() throws Exception {
+    rcException(MDB_SUCCESS);
+  }
+
+  @Test
+  public void coverPrivateConstructors() throws Exception {
+    invokePrivateConstructor(ResultCodeMapper.class);
   }
 
   @Test
