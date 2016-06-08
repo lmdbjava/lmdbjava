@@ -12,9 +12,10 @@ import static org.lmdbjava.TransactionFlags.MDB_RDONLY;
 /**
  * LMDB environment.
  */
-public final class Env {
+public final class Env implements AutoCloseable {
 
-  private boolean open;
+  private boolean closed = false;
+  private boolean open = false;
   final Pointer ptr;
 
   /**
@@ -29,16 +30,38 @@ public final class Env {
   }
 
   /**
+   * Close the handle.
+   * <p>
+   * Will silently return if already closed or never opened.
+   */
+  @Override
+  public void close() {
+    if (closed) {
+      return;
+    }
+    closed = true;
+    if (!open) {
+      return;
+    }
+    lib.mdb_env_close(ptr);
+  }
+
+  /**
    * Sets the map size.
    *
    * @param mapSize new limit in bytes
-   * @throws AlreadyOpenException if the environment has already been opened
-   * @throws LmdbNativeException  if a native C error occurred
+   * @throws AlreadyOpenException   if the environment has already been opened
+   * @throws AlreadyClosedException if already closed
+   * @throws LmdbNativeException    if a native C error occurred
    */
   public void setMapSize(int mapSize) throws AlreadyOpenException,
+                                             AlreadyClosedException,
                                              LmdbNativeException {
     if (open) {
       throw new AlreadyOpenException(Env.class.getSimpleName());
+    }
+    if (closed) {
+      throw new AlreadyClosedException(Env.class.getSimpleName());
     }
     checkRc(lib.mdb_env_set_mapsize(ptr, mapSize));
   }
@@ -47,13 +70,18 @@ public final class Env {
    * Sets the maximum number of databases permitted.
    *
    * @param dbs new limit
-   * @throws AlreadyOpenException if the environment has already been opened
-   * @throws LmdbNativeException  if a native C error occurred
+   * @throws AlreadyOpenException   if the environment has already been opened
+   * @throws AlreadyClosedException if already closed
+   * @throws LmdbNativeException    if a native C error occurred
    */
   public void setMaxDbs(int dbs) throws AlreadyOpenException,
+                                        AlreadyClosedException,
                                         LmdbNativeException {
     if (open) {
       throw new AlreadyOpenException(Env.class.getSimpleName());
+    }
+    if (closed) {
+      throw new AlreadyClosedException(Env.class.getSimpleName());
     }
     checkRc(lib.mdb_env_set_maxdbs(ptr, dbs));
   }
@@ -62,15 +90,29 @@ public final class Env {
    * Sets the maximum number of databases permitted.
    *
    * @param readers new limit
-   * @throws AlreadyOpenException if the environment has already been opened
-   * @throws LmdbNativeException  if a native C error occurred
+   * @throws AlreadyOpenException   if the environment has already been opened
+   * @throws AlreadyClosedException if already closed
+   * @throws LmdbNativeException    if a native C error occurred
    */
   public void setMaxReaders(int readers) throws AlreadyOpenException,
+                                                AlreadyClosedException,
                                                 LmdbNativeException {
     if (open) {
       throw new AlreadyOpenException(Env.class.getSimpleName());
     }
+    if (closed) {
+      throw new AlreadyClosedException(Env.class.getSimpleName());
+    }
     checkRc(lib.mdb_env_set_maxreaders(ptr, readers));
+  }
+
+  /**
+   * Indicates whether this environment has been closed.
+   *
+   * @return true if closed
+   */
+  public boolean isClosed() {
+    return closed;
   }
 
   /**
@@ -88,14 +130,18 @@ public final class Env {
    * @param path  file system destination
    * @param mode  Unix permissions to set on created files and semaphores
    * @param flags the flags for this new environment
-   * @throws AlreadyOpenException if already open
-   * @throws LmdbNativeException  if a native C error occurred
+   * @throws AlreadyOpenException   if already open
+   * @throws AlreadyClosedException if already closed
+   * @throws LmdbNativeException    if a native C error occurred
    */
   public void open(final File path, final int mode, final EnvFlags... flags)
-      throws AlreadyOpenException, LmdbNativeException {
+      throws AlreadyOpenException, AlreadyClosedException, LmdbNativeException {
     requireNonNull(path);
     if (open) {
       throw new AlreadyOpenException(Env.class.getSimpleName());
+    }
+    if (closed) {
+      throw new AlreadyClosedException(Env.class.getSimpleName());
     }
     final int flagsMask = mask(flags);
     checkRc(lib.mdb_env_open(ptr, path.getAbsolutePath(), flagsMask, mode));

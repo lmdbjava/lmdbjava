@@ -15,6 +15,13 @@ public class EnvTest {
   @Rule
   public final TemporaryFolder tmp = new TemporaryFolder();
 
+  @Test
+  public void canCloseBeforeOpen() throws Exception {
+    final Env env = new Env();
+    env.close();
+    assertThat(env.isClosed(), is(true));
+  }
+
   @Test(expected = AlreadyOpenException.class)
   public void cannotOpenTwice() throws Exception {
     final Env e = new Env();
@@ -23,16 +30,65 @@ public class EnvTest {
     e.open(path, POSIX_MODE, MDB_NOSUBDIR); // error
   }
 
+  @Test(expected = AlreadyClosedException.class)
+  public void cannotSetMapSizeOnceClosed() throws Exception {
+    final Env env = new Env();
+    env.close();
+    env.setMapSize(1);
+  }
+
+  @Test(expected = AlreadyOpenException.class)
+  public void cannotSetMapSizeOnceOpen() throws Exception {
+    final Env env = new Env();
+    final File path = tmp.newFile();
+    env.open(path, POSIX_MODE, MDB_NOSUBDIR);
+    env.setMapSize(1);
+  }
+
+  @Test(expected = AlreadyClosedException.class)
+  public void cannotSetMaxDbsOnceClosed() throws Exception {
+    final Env env = new Env();
+    env.close();
+    env.setMaxDbs(1);
+  }
+
+  @Test(expected = AlreadyOpenException.class)
+  public void cannotSetMaxDbsOnceOpen() throws Exception {
+    final Env env = new Env();
+    final File path = tmp.newFile();
+    env.open(path, POSIX_MODE, MDB_NOSUBDIR);
+    env.setMaxDbs(1);
+  }
+
+  @Test(expected = AlreadyClosedException.class)
+  public void cannotSetMaxReadersOnceClosed() throws Exception {
+    final Env env = new Env();
+    env.close();
+    env.setMaxReaders(1);
+  }
+
+  @Test(expected = AlreadyOpenException.class)
+  public void cannotSetMaxReadersOnceOpen() throws Exception {
+    final Env env = new Env();
+    final File path = tmp.newFile();
+    env.open(path, POSIX_MODE, MDB_NOSUBDIR);
+    env.setMaxReaders(1);
+  }
+
   @Test
   public void createAsDirectory() throws Exception {
     final Env env = new Env();
     assertThat(env, is(notNullValue()));
     assertThat(env.isOpen(), is(false));
+    assertThat(env.isClosed(), is(false));
 
     final File path = tmp.newFolder();
     env.open(path, POSIX_MODE);
     assertThat(env.isOpen(), is(true));
     assertThat(path.isDirectory(), is(true));
+    env.close();
+    assertThat(env.isClosed(), is(true));
+    env.close(); // safe to repeat
   }
 
   @Test
@@ -47,6 +103,7 @@ public class EnvTest {
     env.open(path, POSIX_MODE, MDB_NOSUBDIR);
     assertThat(env.isOpen(), is(true));
     assertThat(path.isFile(), is(true));
+    env.close();
   }
 
 }
