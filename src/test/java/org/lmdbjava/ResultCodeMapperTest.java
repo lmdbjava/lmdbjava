@@ -33,7 +33,7 @@ public class ResultCodeMapperTest {
     EXCEPTIONS.add(new DatabaseKeyExistsException());
     EXCEPTIONS.add(new EnvMapFullException());
     EXCEPTIONS.add(new DatabaseMapResizedException());
-    EXCEPTIONS.add(new DatabaseNotFoundException());
+    EXCEPTIONS.add(new DatabaseKeyNotFoundException());
     EXCEPTIONS.add(new PageFullException());
     EXCEPTIONS.add(new PageNotFoundException());
     EXCEPTIONS.add(new PanicException());

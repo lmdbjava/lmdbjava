@@ -15,7 +15,7 @@ import static org.lmdbjava.FileInvalidException.MDB_INVALID;
 import static org.lmdbjava.DatabaseKeyExistsException.MDB_KEYEXIST;
 import static org.lmdbjava.EnvMapFullException.MDB_MAP_FULL;
 import static org.lmdbjava.DatabaseMapResizedException.MDB_MAP_RESIZED;
-import static org.lmdbjava.DatabaseNotFoundException.MDB_NOTFOUND;
+import static org.lmdbjava.DatabaseKeyNotFoundException.MDB_NOTFOUND;
 import static org.lmdbjava.PageFullException.MDB_PAGE_FULL;
 import static org.lmdbjava.PageNotFoundException.MDB_PAGE_NOTFOUND;
 import static org.lmdbjava.PanicException.MDB_PANIC;
@@ -108,7 +108,7 @@ public final class ResultCodeMapper {
       case MDB_MAP_RESIZED:
         return new DatabaseMapResizedException();
       case MDB_NOTFOUND:
-        return new DatabaseNotFoundException();
+        return new DatabaseKeyNotFoundException();
       case MDB_PAGE_FULL:
         return new PageFullException();
       case MDB_PAGE_NOTFOUND:
