@@ -111,7 +111,8 @@ public class DatabaseTest {
   @Test
   public void testParallelWritesStress() throws Exception {
     tx.commit();
-    nCopies(8, null).parallelStream()
+    // Travis CI has 1.5 cores for legacy builds
+    nCopies(2, null).parallelStream()
         .forEach(ignored -> {
           Random random = new Random();
           for (int i = 0; i < 15_000; i++) {
