@@ -21,6 +21,7 @@ import static org.lmdbjava.BufferMutators.NAME_REFLECTIVE;
 import static org.lmdbjava.BufferMutators.NAME_UNSAFE;
 import static org.lmdbjava.BufferMutators.SUPPORTS_UNSAFE;
 import static org.lmdbjava.BufferMutators.findField;
+import static org.lmdbjava.TestUtils.invokePrivateConstructor;
 
 public class BufferMutatorsTest {
 
@@ -50,6 +51,12 @@ public class BufferMutatorsTest {
 
     address1 = FIELD_ADDRESS.getLong(buffer1);
     address2 = FIELD_ADDRESS.getLong(buffer2);
+  }
+
+  @Test
+  public void coverPrivateConstructors() throws Exception {
+    invokePrivateConstructor(BufferMutators.class);
+    invokePrivateConstructor(ValueBuffers.class);
   }
 
   @Test

@@ -1,5 +1,6 @@
 package org.lmdbjava;
 
+import static java.lang.Integer.MAX_VALUE;
 import java.util.HashSet;
 import java.util.Set;
 import static org.hamcrest.CoreMatchers.is;
@@ -64,6 +65,11 @@ public class ResultCodeMapperTest {
   @Test(expected = CursorFullException.class)
   public void checkErrCursorFull() throws Exception {
     checkRc(MDB_CURSOR_FULL);
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void checkErrUnknownResultCode() throws Exception {
+    checkRc(MAX_VALUE);
   }
 
   @Test

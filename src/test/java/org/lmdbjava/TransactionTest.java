@@ -66,6 +66,13 @@ public class TransactionTest {
     tx.commit(); // error
   }
 
+  @Test(expected = NotOpenException.class)
+  @SuppressWarnings("ResultOfObjectAllocationIgnored")
+  public void txConstructionDeniedIfEnvClosed() throws Exception {
+    env.close();
+    new Transaction(env, null);
+  }
+
   @Test
   public void txParent() throws Exception {
     final Transaction txRoot = new Transaction(env, null);
@@ -99,4 +106,24 @@ public class TransactionTest {
     assertThat(tx.isCommitted(), is(true));
   }
 
+  @Test(expected = TransactionHasNotBeenResetException.class)
+  public void txRenewDeniedWithoutPriorReset() throws Exception {
+    final Transaction tx = new Transaction(env, null, MDB_RDONLY);
+    tx.renew();
+  }
+
+  @Test(expected = TransactionAlreadyResetException.class)
+  public void txResetDeniedForAlreadyResetTransaction() throws Exception {
+    final Transaction tx = new Transaction(env, null, MDB_RDONLY);
+    tx.reset();
+    tx.renew();
+    tx.reset();
+    tx.reset();
+  }
+
+  @Test(expected = ReadOnlyTransactionRequiredException.class)
+  public void txResetDeniedForReadWriteTransaction() throws Exception {
+    final Transaction tx = new Transaction(env, null);
+    tx.reset();
+  }
 }

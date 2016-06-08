@@ -15,15 +15,4 @@ public class LmdbException extends Exception {
   public LmdbException(final String message) {
     super(message);
   }
-
-  /**
-   * Constructs an instance with the provided detailed message and cause.
-   *
-   * @param message the detail message
-   * @param cause   the cause
-   */
-  public LmdbException(String message, Throwable cause) {
-    super(message, cause);
-  }
-
 }

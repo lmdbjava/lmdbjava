@@ -11,7 +11,7 @@ import sun.misc.Unsafe;
 final class BufferMutators {
 
   private static final String FIELD_NAME_CAPACITY = "capacity";
-
+  private static final String FIELD_NAME_THE_UNSAFE = "theUnsafe";
   private static final String OUTER = BufferMutators.class.getName();
   static final String FIELD_NAME_ADDRESS = "address";
   static final BufferMutator MUTATOR;
@@ -29,14 +29,12 @@ final class BufferMutators {
     try {
       mutator = load(NAME_UNSAFE);
       supportsUnsafe = true;
-    } catch (ClassNotFoundException cnf) {
-      throw new RuntimeException(NAME_UNSAFE + " class missing");
-    } catch (IllegalAccessException | InstantiationException ignore) {
+    } catch (ClassNotFoundException | IllegalAccessException |
+             InstantiationException ignore) {
       try {
         mutator = load(NAME_REFLECTIVE);
-      } catch (ClassNotFoundException cnf) {
-        throw new RuntimeException(NAME_REFLECTIVE + " class missing");
-      } catch (IllegalAccessException | InstantiationException ex) {
+      } catch (ClassNotFoundException | IllegalAccessException |
+               InstantiationException ex) {
         throw new RuntimeException(NAME_REFLECTIVE + " unavailable", ex);
       }
     }
@@ -44,11 +42,11 @@ final class BufferMutators {
     SUPPORTS_UNSAFE = supportsUnsafe;
   }
 
-
   private static BufferMutator load(final String className) throws
       ClassNotFoundException, IllegalAccessException, InstantiationException {
     return (BufferMutator) forName(className).newInstance();
   }
+
   static Field findField(final Class<?> c, final String name) throws
       NoSuchFieldException {
     Class<?> clazz = c;
@@ -107,11 +105,13 @@ final class BufferMutators {
 
     static {
       try {
-        final Field field = Unsafe.class.getDeclaredField("theUnsafe");
+        final Field field = Unsafe.class.getDeclaredField(FIELD_NAME_THE_UNSAFE);
         field.setAccessible(true);
         UNSAFE = (Unsafe) field.get(null);
-        ADDRESS = UNSAFE.objectFieldOffset(findField(Buffer.class, "address"));
-        CAPACITY = UNSAFE.objectFieldOffset(findField(Buffer.class, "capacity"));
+        final Field address = findField(Buffer.class, FIELD_NAME_ADDRESS);
+        final Field capacity = findField(Buffer.class, FIELD_NAME_CAPACITY);
+        ADDRESS = UNSAFE.objectFieldOffset(address);
+        CAPACITY = UNSAFE.objectFieldOffset(capacity);
       } catch (NoSuchFieldException | SecurityException |
                IllegalArgumentException | IllegalAccessException e) {
         throw new RuntimeException(e);

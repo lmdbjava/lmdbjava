@@ -1,6 +1,8 @@
 package org.lmdbjava;
 
 import static java.lang.Integer.BYTES;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
 import static java.nio.ByteBuffer.allocateDirect;
 import static java.nio.ByteOrder.LITTLE_ENDIAN;
@@ -25,6 +27,14 @@ public final class TestUtils {
     bb.order(LITTLE_ENDIAN);
     bb.putInt(value).flip();
     return bb;
+  }
+
+  static void invokePrivateConstructor(final Class<?> clazz) throws
+      InstantiationException, IllegalAccessException, IllegalArgumentException,
+      InvocationTargetException, NoSuchMethodException {
+    Constructor<?> c = clazz.getDeclaredConstructor();
+    c.setAccessible(true);
+    c.newInstance();
   }
 
   private TestUtils() {

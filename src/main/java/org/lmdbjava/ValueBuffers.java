@@ -9,9 +9,6 @@ import static org.lmdbjava.Library.runtime;
 final class ValueBuffers {
 
   static MDB_val createVal(final ByteBuffer bb) {
-    if (!bb.isDirect()) {
-      throw new IllegalArgumentException("ByteBuffer is not direct");
-    }
     final MDB_val val = new MDB_val(runtime);
     val.size.set(bb.limit());
     val.data.set(new ByteBufferMemoryIO(runtime, bb));
