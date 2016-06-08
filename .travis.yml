@@ -2,20 +2,14 @@ sudo: required
 dist: trusty
 os:
   - linux
-#  - osx
 language: java
+jdk: oraclejdk8
 before_install:
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt-get update -qq -y; fi
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then apt-cache search lmdb; fi
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt-get install -qq liblmdb-dev; fi
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then export JAVA_HOME=$(/usr/libexec/java_home); fi
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew install lmdb; fi
-
-matrix:
-  include:
-    - os: linux
-      jdk: oraclejdk8
-
 after_success:
   - mvn clean test jacoco:report coveralls:report
 notifications:
