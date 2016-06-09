@@ -84,6 +84,7 @@ public class ResultCodeMapperTest {
   }
 
   @Test(expected = IllegalArgumentException.class)
+  @SuppressWarnings("ThrowableResultIgnored")
   public void checkSuccessRaisesErrorIfPassedToRcException() throws Exception {
     rcException(MDB_SUCCESS);
   }
