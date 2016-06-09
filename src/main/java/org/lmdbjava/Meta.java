@@ -24,6 +24,22 @@ import static org.lmdbjava.Library.lib;
 public final class Meta {
 
   /**
+   * Fetches the LMDB error code description.
+   * <p>
+   * End users should not need this method, as LmdbJava converts all LMDB
+   * exceptions into a typed Java exception that incorporates the error code.
+   * However it is provided here for verification and troubleshooting (eg if the
+   * user wishes to see the original LMDB description of the error code, or
+   * there is a newer library version etc).
+   *
+   * @param err the error code returned from LMDB
+   * @return the description
+   */
+  public static String error(final int err) {
+    return lib.mdb_strerror(err);
+  }
+
+  /**
    * Obtains the LMDB C library version information.
    *
    * @return the version data

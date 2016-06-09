@@ -85,6 +85,11 @@ final class Library {
 
   public interface Lmdb {
 
+    /**
+     * Return the error description for this result code.
+     */
+    String mdb_strerror(int rc);
+    
     Pointer mdb_version(IntByReference major, IntByReference minor, IntByReference patch);
 
     /**
