@@ -16,7 +16,8 @@
 package org.lmdbjava;
 
 /**
- * Flags for use when performing a "put".
+ * Flags for use when performing a
+ * {@link Env#copy(java.io.File, org.lmdbjava.CopyFlags...)}.
  */
 public enum CopyFlags implements MaskedFlag {
 
