@@ -30,11 +30,11 @@ import static org.lmdbjava.Env.MapFullException.MDB_MAP_FULL;
 import static org.lmdbjava.Env.ReadersFullException.MDB_READERS_FULL;
 import static org.lmdbjava.Env.VersionMismatchException.MDB_VERSION_MISMATCH;
 import static org.lmdbjava.FileInvalidException.MDB_INVALID;
-import static org.lmdbjava.PageCorruptedException.MDB_CORRUPTED;
-import static org.lmdbjava.PageFullException.MDB_PAGE_FULL;
-import static org.lmdbjava.PageNotFoundException.MDB_PAGE_NOTFOUND;
-import static org.lmdbjava.PanicException.MDB_PANIC;
-import static org.lmdbjava.TlsFullException.MDB_TLS_FULL;
+import static org.lmdbjava.LmdbNativeException.PageCorruptedException.MDB_CORRUPTED;
+import static org.lmdbjava.LmdbNativeException.PageFullException.MDB_PAGE_FULL;
+import static org.lmdbjava.LmdbNativeException.PageNotFoundException.MDB_PAGE_NOTFOUND;
+import static org.lmdbjava.LmdbNativeException.PanicException.MDB_PANIC;
+import static org.lmdbjava.LmdbNativeException.TlsFullException.MDB_TLS_FULL;
 import org.lmdbjava.Txn.BadException;
 import static org.lmdbjava.Txn.BadException.MDB_BAD_TXN;
 import org.lmdbjava.Txn.BadReaderLockException;
@@ -79,7 +79,9 @@ public final class ResultCodeMapper {
     if (constant == null) {
       throw new IllegalArgumentException("Unknown result code " + rc);
     }
-    throw new ConstantDerviedException(rc, constant.name());
+    throw new org.lmdbjava.LmdbNativeException.ConstantDerviedException(rc,
+                                                                        constant.
+                                                                        name());
   }
 
   /**
@@ -110,7 +112,7 @@ public final class ResultCodeMapper {
       case MDB_BAD_VALSIZE:
         return new Database.BadValueSizeException();
       case MDB_CORRUPTED:
-        return new PageCorruptedException();
+        return new LmdbNativeException.PageCorruptedException();
       case MDB_CURSOR_FULL:
         return new CursorFullException();
       case MDB_DBS_FULL:
@@ -128,15 +130,15 @@ public final class ResultCodeMapper {
       case MDB_NOTFOUND:
         return new Database.KeyNotFoundException();
       case MDB_PAGE_FULL:
-        return new PageFullException();
+        return new LmdbNativeException.PageFullException();
       case MDB_PAGE_NOTFOUND:
-        return new PageNotFoundException();
+        return new LmdbNativeException.PageNotFoundException();
       case MDB_PANIC:
-        return new PanicException();
+        return new LmdbNativeException.PanicException();
       case MDB_READERS_FULL:
         return new Env.ReadersFullException();
       case MDB_TLS_FULL:
-        return new TlsFullException();
+        return new LmdbNativeException.TlsFullException();
       case MDB_TXN_FULL:
         return new FullException();
       case MDB_VERSION_MISMATCH:

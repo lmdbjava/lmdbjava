@@ -14,6 +14,7 @@ import org.junit.rules.TemporaryFolder;
 import org.lmdbjava.Database.KeyNotFoundException;
 import static org.lmdbjava.DatabaseFlags.MDB_CREATE;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
+import org.lmdbjava.LmdbNativeException.ConstantDerviedException;
 import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.POSIX_MODE;
 import org.lmdbjava.Txn.CommittedException;
