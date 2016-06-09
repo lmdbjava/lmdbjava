@@ -4,6 +4,7 @@ import java.io.File;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -80,6 +81,7 @@ public class EnvTest {
   }
 
   @Test
+  @Ignore
   public void copy() throws Exception {
     final File dest = tmp.newFolder();
     assertThat(dest.exists(), is(true));
