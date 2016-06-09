@@ -10,6 +10,7 @@ import org.lmdbjava.Env.NotOpenException;
 import org.lmdbjava.Library.MDB_val;
 import static org.lmdbjava.Library.lib;
 import static org.lmdbjava.Library.runtime;
+import org.lmdbjava.LmdbException.BufferNotDirectException;
 import static org.lmdbjava.MaskedFlag.mask;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
 import org.lmdbjava.Txn.CommittedException;
@@ -54,13 +55,15 @@ public final class Dbi {
 
   /**
    * @param key The key to delete from the database
-   * @throws CommittedException  if already committed
-   * @throws NotOpenException    if the environment is not currently open
-   * @throws LmdbNativeException if a native C error occurred
+   * @throws CommittedException       if already committed
+   * @throws BufferNotDirectException if a passed buffer is invalid
+   * @throws NotOpenException         if the environment is not currently open
+   * @throws LmdbNativeException      if a native C error occurred
    * @see #delete(Txn, ByteBuffer, ByteBuffer)
    */
   public void delete(final ByteBuffer key) throws
-      CommittedException, LmdbNativeException, NotOpenException {
+      CommittedException, BufferNotDirectException, LmdbNativeException,
+      NotOpenException {
     try (Txn tx = new Txn(env)) {
       delete(tx, key);
       tx.commit();
@@ -70,12 +73,13 @@ public final class Dbi {
   /**
    * @param tx  Transaction handle
    * @param key The key to delete from the database
-   * @throws CommittedException  if already committed
-   * @throws LmdbNativeException if a native C error occurred
+   * @throws CommittedException       if already committed
+   * @throws BufferNotDirectException if a passed buffer is invalid
+   * @throws LmdbNativeException      if a native C error occurred
    * @see #delete(Txn, ByteBuffer, ByteBuffer)
    */
   public void delete(final Txn tx, final ByteBuffer key) throws
-      CommittedException, LmdbNativeException {
+      CommittedException, BufferNotDirectException, LmdbNativeException {
     delete(tx, key, null);
   }
 
@@ -94,12 +98,13 @@ public final class Dbi {
    * @param tx  Transaction handle
    * @param key The key to delete from the database
    * @param val The value to delete from the database
-   * @throws CommittedException  if already committed
-   * @throws LmdbNativeException if a native C error occurred
+   * @throws CommittedException       if already committed
+   * @throws BufferNotDirectException if a passed buffer is invalid
+   * @throws LmdbNativeException      if a native C error occurred
    */
   public void delete(final Txn tx, final ByteBuffer key, final ByteBuffer val)
       throws
-      CommittedException, LmdbNativeException {
+      CommittedException, BufferNotDirectException, LmdbNativeException {
 
     final MDB_val k = createVal(key);
     final MDB_val v = val == null ? null : createVal(key);
@@ -111,13 +116,15 @@ public final class Dbi {
    * @param key The key to get from the database
    * @return A value placeholder for the memory address to be wrapped if found
    *         by key
-   * @throws CommittedException  if already committed
-   * @throws NotOpenException    if the environment is not currently open
-   * @throws LmdbNativeException if a native C error occurred
+   * @throws CommittedException       if already committed
+   * @throws BufferNotDirectException if a passed buffer is invalid
+   * @throws NotOpenException         if the environment is not currently open
+   * @throws LmdbNativeException      if a native C error occurred
    * @see #get(Txn, ByteBuffer)
    */
   public ByteBuffer get(final ByteBuffer key) throws
-      CommittedException, LmdbNativeException, NotOpenException {
+      CommittedException, BufferNotDirectException, LmdbNativeException,
+      NotOpenException {
     try (Txn tx = new Txn(env, MDB_RDONLY)) {
       return get(tx, key);
     }
@@ -139,11 +146,12 @@ public final class Dbi {
    * @param key The key to search for in the database
    * @return A value placeholder for the memory address to be wrapped if found
    *         by key
-   * @throws CommittedException  if already committed
-   * @throws LmdbNativeException if a native C error occurred
+   * @throws CommittedException       if already committed
+   * @throws BufferNotDirectException if a passed buffer is invalid
+   * @throws LmdbNativeException      if a native C error occurred
    */
   public ByteBuffer get(final Txn tx, final ByteBuffer key) throws
-      CommittedException, LmdbNativeException {
+      CommittedException, BufferNotDirectException, LmdbNativeException {
     assert key.isDirect();
 
     final MDB_val k = createVal(key);
@@ -196,13 +204,15 @@ public final class Dbi {
   /**
    * @param key The key to store in the database
    * @param val The value to store in the database
-   * @throws CommittedException  if already committed
-   * @throws NotOpenException    if the environment is not currently open
-   * @throws LmdbNativeException if a native C error occurred
+   * @throws CommittedException       if already committed
+   * @throws BufferNotDirectException if a passed buffer is invalid
+   * @throws NotOpenException         if the environment is not currently open
+   * @throws LmdbNativeException      if a native C error occurred
    * @see #put(Txn, ByteBuffer, ByteBuffer, DatabaseFlags...)
    */
   public void put(final ByteBuffer key, final ByteBuffer val) throws
-      CommittedException, LmdbNativeException, NotOpenException {
+      CommittedException, BufferNotDirectException, LmdbNativeException,
+      NotOpenException {
     try (Txn tx = new Txn(env)) {
       put(tx, key, val);
       tx.commit();
@@ -223,12 +233,13 @@ public final class Dbi {
    * @param key   The key to store in the database
    * @param val   The value to store in the database
    * @param flags Special options for this operation
-   * @throws CommittedException  if already committed
-   * @throws LmdbNativeException if a native C error occurred
+   * @throws CommittedException       if already committed
+   * @throws BufferNotDirectException if a passed buffer is invalid
+   * @throws LmdbNativeException      if a native C error occurred
    */
   public void put(final Txn tx, final ByteBuffer key, final ByteBuffer val,
                   final DbiFlags... flags)
-      throws CommittedException, LmdbNativeException {
+      throws CommittedException, BufferNotDirectException, LmdbNativeException {
 
     final MDB_val k = createVal(key);
     final MDB_val v = createVal(val);

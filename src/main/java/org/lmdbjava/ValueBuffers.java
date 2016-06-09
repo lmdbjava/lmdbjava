@@ -18,22 +18,27 @@ package org.lmdbjava;
 import java.nio.ByteBuffer;
 import jnr.ffi.provider.jffi.ByteBufferMemoryIO;
 import static org.lmdbjava.BufferMutators.MUTATOR;
+import static org.lmdbjava.BufferMutators.requireDirectBuffer;
 import org.lmdbjava.Library.MDB_val;
 import static org.lmdbjava.Library.runtime;
+import org.lmdbjava.LmdbException.BufferNotDirectException;
 
 final class ValueBuffers {
 
-  static MDB_val createVal(final ByteBuffer bb) {
+  static MDB_val createVal(final ByteBuffer bb) throws BufferNotDirectException {
+    requireDirectBuffer(bb);
     final MDB_val val = new MDB_val(runtime);
     val.size.set(bb.limit());
     val.data.set(new ByteBufferMemoryIO(runtime, bb));
     return val;
   }
 
-  static void wrap(final ByteBuffer buffer, final MDB_val val) {
+  static void wrap(final ByteBuffer bb, final MDB_val val) throws
+      BufferNotDirectException {
+    requireDirectBuffer(bb);
     final long address = val.data.get().address();
     final int capacity = (int) val.size.get();
-    MUTATOR.modify(buffer, address, capacity);
+    MUTATOR.modify(bb, address, capacity);
   }
 
   private ValueBuffers() {

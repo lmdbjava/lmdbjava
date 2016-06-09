@@ -16,6 +16,7 @@ import org.lmdbjava.Dbi.KeyNotFoundException;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import org.lmdbjava.Env.NotOpenException;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
+import org.lmdbjava.LmdbException.BufferNotDirectException;
 import org.lmdbjava.LmdbNativeException.ConstantDerviedException;
 import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.POSIX_MODE;
@@ -118,7 +119,8 @@ public class DbiTest {
           for (int i = 0; i < 15_000; i++) {
             try {
               dbi.put(createBb(random.nextInt()), createBb(random.nextInt()));
-            } catch (CommittedException | LmdbNativeException | NotOpenException e) {
+            } catch (CommittedException | LmdbNativeException | NotOpenException |
+                     BufferNotDirectException e) {
               throw new RuntimeException(e);
             }
           }

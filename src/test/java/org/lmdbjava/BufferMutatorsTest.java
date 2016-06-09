@@ -9,6 +9,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
+import static java.nio.ByteBuffer.allocate;
 import static java.nio.ByteBuffer.allocateDirect;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -21,6 +22,8 @@ import static org.lmdbjava.BufferMutators.NAME_REFLECTIVE;
 import static org.lmdbjava.BufferMutators.NAME_UNSAFE;
 import static org.lmdbjava.BufferMutators.SUPPORTS_UNSAFE;
 import static org.lmdbjava.BufferMutators.findField;
+import static org.lmdbjava.BufferMutators.requireDirectBuffer;
+import org.lmdbjava.LmdbException.BufferNotDirectException;
 import static org.lmdbjava.TestUtils.invokePrivateConstructor;
 
 public class BufferMutatorsTest {
@@ -60,10 +63,20 @@ public class BufferMutatorsTest {
   }
 
   @Test
+  public void directBufferAllowed() throws Exception {
+    requireDirectBuffer(allocateDirect(BYTES));
+  }
+
+  @Test
   public void instance() throws Exception {
     final BufferMutator bm = construct(NAME_REFLECTIVE);
     assertThat(bm, is(notNullValue()));
     swapTest(MUTATOR);
+  }
+
+  @Test(expected = BufferNotDirectException.class)
+  public void javaBufferRejected() throws Exception {
+    requireDirectBuffer(allocate(BYTES));
   }
 
   @Test

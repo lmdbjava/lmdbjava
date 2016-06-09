@@ -22,6 +22,7 @@ import jnr.ffi.byref.NativeLongByReference;
 import org.lmdbjava.Library.MDB_val;
 import static org.lmdbjava.Library.lib;
 import static org.lmdbjava.Library.runtime;
+import org.lmdbjava.LmdbException.BufferNotDirectException;
 import static org.lmdbjava.MaskedFlag.mask;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
 import static org.lmdbjava.ValueBuffers.createVal;
@@ -93,10 +94,11 @@ public class Cursor {
    * @param key Placeholder for the key memory address to be wrapped.
    * @param val Placeholder for the value memory address to be wrapped.
    * @param op  A cursor operation.
-   * @throws LmdbNativeException if a native C error occurred
+   * @throws BufferNotDirectException if a passed buffer is invalid
+   * @throws LmdbNativeException      if a native C error occurred
    */
   public void get(final ByteBuffer key, final ByteBuffer val, final CursorOp op)
-      throws LmdbNativeException {
+      throws BufferNotDirectException, LmdbNativeException {
     requireNonNull(key);
     requireNonNull(val);
     requireNonNull(op);
@@ -127,11 +129,12 @@ public class Cursor {
    * @param val The data operated on.
    *
    * @param op  Options for this operation.
-   * @throws LmdbNativeException if a native C error occurred
+   * @throws BufferNotDirectException if a passed buffer is invalid
+   * @throws LmdbNativeException      if a native C error occurred
    */
   public void put(final ByteBuffer key, final ByteBuffer val,
                   final PutFlags... op)
-      throws LmdbNativeException {
+      throws BufferNotDirectException, LmdbNativeException {
     requireNonNull(key);
     requireNonNull(val);
     if (tx.isCommitted()) {

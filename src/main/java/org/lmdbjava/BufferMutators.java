@@ -18,6 +18,7 @@ package org.lmdbjava;
 import static java.lang.Class.forName;
 import java.lang.reflect.Field;
 import java.nio.Buffer;
+import org.lmdbjava.LmdbException.BufferNotDirectException;
 import sun.misc.Unsafe;
 
 /**
@@ -77,6 +78,13 @@ final class BufferMutators {
     } while (clazz != null);
 
     throw new NoSuchFieldException(name + " not found");
+  }
+
+  static void requireDirectBuffer(final Buffer buffer) throws
+      BufferNotDirectException {
+    if (!buffer.isDirect()) {
+      throw new BufferNotDirectException();
+    }
   }
 
   private BufferMutators() {
