@@ -4,7 +4,7 @@
 [![License](https://img.shields.io/hexpm/l/plug.svg?maxAge=2592000)](http://www.apache.org/licenses/LICENSE-2.0.txt)
 ![Size](https://reposs.herokuapp.com/?path=lmdbjava/lmdbjava)
 
-# LmdbJva
+# LmdbJava
 
 LmdbJava provides an extremely low latency [JNR-FFI](https://github.com/jnr/jnr-ffi)-based
 binding to the [LMDB](http://symas.com/mdb/) native library. LMDB is an ultra-fast,
@@ -17,8 +17,8 @@ Zero-config tuning. LMDB is perfect for large, read-centric, single node workloa
 that require extremely low latency and strong operational robustness.
 
 Prospective users might also consider [LMDBJNI](https://github.com/deephacks/lmdbjni),
-which uses HawtJNI for its native library binding and is focused on supporting
-older JVMs. LmdbJava is instead focused on the latest available server JVMs.
+which uses HawtJNI for its native library binding and supports older JVMs.
+LmdbJava is instead focused on the latest available server-grade JVMs.
 
 ### License
 
