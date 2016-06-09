@@ -15,7 +15,7 @@
  */
 package org.lmdbjava;
 
-import static java.util.Objects.nonNull;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Indicates an enum that can provide integers for each of its values,
@@ -58,7 +58,7 @@ public interface MaskedFlag {
    * @return
    */
   static boolean isSet(final int flags, final MaskedFlag test) {
-    nonNull(test);
+    requireNonNull(test);
     return (flags & test.getMask()) == test.getMask();
   }
 }

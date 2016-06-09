@@ -71,9 +71,9 @@ public final class Env implements AutoCloseable {
    * @throws AlreadyClosedException if already closed
    * @throws LmdbNativeException    if a native C error occurred
    */
-  public void setMapSize(int mapSize) throws AlreadyOpenException,
-                                             AlreadyClosedException,
-                                             LmdbNativeException {
+  public void setMapSize(final int mapSize) throws AlreadyOpenException,
+                                                   AlreadyClosedException,
+                                                   LmdbNativeException {
     if (open) {
       throw new AlreadyOpenException();
     }
@@ -91,9 +91,9 @@ public final class Env implements AutoCloseable {
    * @throws AlreadyClosedException if already closed
    * @throws LmdbNativeException    if a native C error occurred
    */
-  public void setMaxDbs(int dbs) throws AlreadyOpenException,
-                                        AlreadyClosedException,
-                                        LmdbNativeException {
+  public void setMaxDbs(final int dbs) throws AlreadyOpenException,
+                                              AlreadyClosedException,
+                                              LmdbNativeException {
     if (open) {
       throw new AlreadyOpenException();
     }
@@ -111,9 +111,9 @@ public final class Env implements AutoCloseable {
    * @throws AlreadyClosedException if already closed
    * @throws LmdbNativeException    if a native C error occurred
    */
-  public void setMaxReaders(int readers) throws AlreadyOpenException,
-                                                AlreadyClosedException,
-                                                LmdbNativeException {
+  public void setMaxReaders(final int readers) throws AlreadyOpenException,
+                                                      AlreadyClosedException,
+                                                      LmdbNativeException {
     if (open) {
       throw new AlreadyOpenException();
     }

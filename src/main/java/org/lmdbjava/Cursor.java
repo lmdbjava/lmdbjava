@@ -37,7 +37,7 @@ public class Cursor {
   private final Pointer ptr;
   private final Txn tx;
 
-  Cursor(Pointer ptr, Txn tx) {
+  Cursor(final Pointer ptr, final Txn tx) {
     this.ptr = ptr;
     this.tx = tx;
   }
@@ -65,7 +65,7 @@ public class Cursor {
    * @throws LmdbNativeException if a native C error occurred
    */
   public long count() throws LmdbNativeException {
-    NativeLongByReference longByReference = new NativeLongByReference();
+    final NativeLongByReference longByReference = new NativeLongByReference();
     checkRc(lib.mdb_cursor_count(ptr, longByReference));
     return longByReference.longValue();
   }
@@ -95,7 +95,7 @@ public class Cursor {
    * @param op  A cursor operation.
    * @throws LmdbNativeException if a native C error occurred
    */
-  public void get(ByteBuffer key, ByteBuffer val, CursorOp op)
+  public void get(final ByteBuffer key, final ByteBuffer val, final CursorOp op)
       throws LmdbNativeException {
     requireNonNull(key);
     requireNonNull(val);
@@ -129,7 +129,8 @@ public class Cursor {
    * @param op  Options for this operation.
    * @throws LmdbNativeException if a native C error occurred
    */
-  public void put(ByteBuffer key, ByteBuffer val, PutFlags... op)
+  public void put(final ByteBuffer key, final ByteBuffer val,
+                  final PutFlags... op)
       throws LmdbNativeException {
     requireNonNull(key);
     requireNonNull(val);
@@ -158,7 +159,7 @@ public class Cursor {
    * @param tx transaction handle
    * @throws LmdbNativeException if a native C error occurred
    */
-  public void renew(Txn tx) throws LmdbNativeException {
+  public void renew(final Txn tx) throws LmdbNativeException {
     if (!tx.isReadOnly()) {
       throw new IllegalArgumentException("cannot renew write transactions");
     }

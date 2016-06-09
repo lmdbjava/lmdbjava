@@ -188,8 +188,7 @@ public final class Txn implements AutoCloseable {
    * @throws NotResetException   if reset not called
    * @throws LmdbNativeException if a native C error occurred
    */
-  public void renew() throws NotResetException,
-                             LmdbNativeException {
+  public void renew() throws NotResetException, LmdbNativeException {
     if (!reset) {
       throw new NotResetException();
     }
@@ -204,8 +203,7 @@ public final class Txn implements AutoCloseable {
    * @throws ReadOnlyRequiredException if a read-write transaction
    * @throws ResetException            if reset already performed
    */
-  public void reset() throws ReadOnlyRequiredException,
-                             ResetException {
+  public void reset() throws ReadOnlyRequiredException, ResetException {
     if (!isReadOnly()) {
       throw new ReadOnlyRequiredException();
     }

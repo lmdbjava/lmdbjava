@@ -1,4 +1,3 @@
-
 package org.lmdbjava;
 
 import java.nio.ByteBuffer;
@@ -39,7 +38,7 @@ public final class Dbi {
    * @throws CommittedException  if already committed
    * @throws LmdbNativeException if a native C error occurred
    */
-  public Dbi(Txn tx, String name, DbiFlags... flags)
+  public Dbi(final Txn tx, final String name, final DbiFlags... flags)
       throws CommittedException, LmdbNativeException {
     requireNonNull(tx);
     if (tx.isCommitted()) {
@@ -60,7 +59,7 @@ public final class Dbi {
    * @throws LmdbNativeException if a native C error occurred
    * @see #delete(Txn, ByteBuffer, ByteBuffer)
    */
-  public void delete(ByteBuffer key) throws
+  public void delete(final ByteBuffer key) throws
       CommittedException, LmdbNativeException, NotOpenException {
     try (Txn tx = new Txn(env)) {
       delete(tx, key);
@@ -75,7 +74,7 @@ public final class Dbi {
    * @throws LmdbNativeException if a native C error occurred
    * @see #delete(Txn, ByteBuffer, ByteBuffer)
    */
-  public void delete(Txn tx, ByteBuffer key) throws
+  public void delete(final Txn tx, final ByteBuffer key) throws
       CommittedException, LmdbNativeException {
     delete(tx, key, null);
   }
@@ -85,12 +84,12 @@ public final class Dbi {
    * Removes key/data pairs from the database.
    * </p>
    * If the database does not support sorted duplicate data items
-   * ({@link org.lmdbjava.DbiFlags#MDB_DUPSORT}) the value parameter is
-   * ignored. If the database supports sorted duplicates and the data parameter
-   * is NULL, all of the duplicate data items for the key will be deleted.
-   * Otherwise, if the data parameter is non-NULL only the matching data item
-   * will be deleted. This function will return false if the specified key/data
-   * pair is not in the database.
+   * ({@link org.lmdbjava.DbiFlags#MDB_DUPSORT}) the value parameter is ignored.
+   * If the database supports sorted duplicates and the data parameter is NULL,
+   * all of the duplicate data items for the key will be deleted. Otherwise, if
+   * the data parameter is non-NULL only the matching data item will be deleted.
+   * This function will return false if the specified key/data pair is not in
+   * the database.
    *
    * @param tx  Transaction handle
    * @param key The key to delete from the database
@@ -98,7 +97,8 @@ public final class Dbi {
    * @throws CommittedException  if already committed
    * @throws LmdbNativeException if a native C error occurred
    */
-  public void delete(Txn tx, ByteBuffer key, ByteBuffer val) throws
+  public void delete(final Txn tx, final ByteBuffer key, final ByteBuffer val)
+      throws
       CommittedException, LmdbNativeException {
 
     final MDB_val k = createVal(key);
@@ -116,7 +116,7 @@ public final class Dbi {
    * @throws LmdbNativeException if a native C error occurred
    * @see #get(Txn, ByteBuffer)
    */
-  public ByteBuffer get(ByteBuffer key) throws
+  public ByteBuffer get(final ByteBuffer key) throws
       CommittedException, LmdbNativeException, NotOpenException {
     try (Txn tx = new Txn(env, MDB_RDONLY)) {
       return get(tx, key);
@@ -131,8 +131,8 @@ public final class Dbi {
    * This function retrieves key/data pairs from the database. The address and
    * length of the data associated with the specified \b key are returned in the
    * structure to which \b data refers. If the database supports duplicate keys
-   * ({@link org.lmdbjava.DbiFlags#MDB_DUPSORT}) then the first data item
-   * for the key will be returned. Retrieval of other items requires the use of
+   * ({@link org.lmdbjava.DbiFlags#MDB_DUPSORT}) then the first data item for
+   * the key will be returned. Retrieval of other items requires the use of
    * #mdb_cursor_get().
    *
    * @param tx  transaction handle
@@ -142,7 +142,7 @@ public final class Dbi {
    * @throws CommittedException  if already committed
    * @throws LmdbNativeException if a native C error occurred
    */
-  public ByteBuffer get(Txn tx, ByteBuffer key) throws
+  public ByteBuffer get(final Txn tx, final ByteBuffer key) throws
       CommittedException, LmdbNativeException {
     assert key.isDirect();
 
@@ -152,7 +152,7 @@ public final class Dbi {
     checkRc(lib.mdb_get(tx.ptr, dbi, k, v));
 
     // inefficient as we create a BB
-    ByteBuffer bb = allocateDirect(1).order(LITTLE_ENDIAN);
+    final ByteBuffer bb = allocateDirect(1).order(LITTLE_ENDIAN);
     wrap(bb, v);
     return bb;
   }
@@ -187,7 +187,7 @@ public final class Dbi {
    * @param tx transaction handle
    * @return cursor handle
    */
-  public Cursor openCursor(Txn tx) throws LmdbNativeException {
+  public Cursor openCursor(final Txn tx) throws LmdbNativeException {
     PointerByReference ptr = new PointerByReference();
     checkRc(lib.mdb_cursor_open(tx.ptr, dbi, ptr));
     return new Cursor(ptr.getValue(), tx);
@@ -201,7 +201,7 @@ public final class Dbi {
    * @throws LmdbNativeException if a native C error occurred
    * @see #put(Txn, ByteBuffer, ByteBuffer, DatabaseFlags...)
    */
-  public void put(ByteBuffer key, ByteBuffer val) throws
+  public void put(final ByteBuffer key, final ByteBuffer val) throws
       CommittedException, LmdbNativeException, NotOpenException {
     try (Txn tx = new Txn(env)) {
       put(tx, key, val);
@@ -226,9 +226,9 @@ public final class Dbi {
    * @throws CommittedException  if already committed
    * @throws LmdbNativeException if a native C error occurred
    */
-  public void put(Txn tx, ByteBuffer key, ByteBuffer val, DbiFlags... flags)
-      throws
-      CommittedException, LmdbNativeException {
+  public void put(final Txn tx, final ByteBuffer key, final ByteBuffer val,
+                  final DbiFlags... flags)
+      throws CommittedException, LmdbNativeException {
 
     final MDB_val k = createVal(key);
     final MDB_val v = createVal(val);

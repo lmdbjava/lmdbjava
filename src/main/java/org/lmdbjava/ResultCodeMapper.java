@@ -45,15 +45,15 @@ import static org.lmdbjava.Txn.TxFullException.MDB_TXN_FULL;
 /**
  * Maps a LMDB C result code to the equivalent Java exception.
  */
-public final class ResultCodeMapper {
+final class ResultCodeMapper {
+
+  private static final ConstantSet CONSTANTS;
+  private static final String POSIX_ERR_NO = "Errno";
 
   /**
    * Successful result
    */
-  public static final int MDB_SUCCESS = 0;
-
-  private static final ConstantSet CONSTANTS;
-  private static final String POSIX_ERR_NO = "Errno";
+  static final int MDB_SUCCESS = 0;
 
   static {
     CONSTANTS = getConstantSet(POSIX_ERR_NO);
@@ -65,7 +65,7 @@ public final class ResultCodeMapper {
    * @param rc the LMDB result code
    * @throws org.lmdbjava.LmdbNativeException
    */
-  public static void checkRc(final int rc) throws LmdbNativeException {
+  static void checkRc(final int rc) throws LmdbNativeException {
     if (rc == MDB_SUCCESS) {
       return;
     }
