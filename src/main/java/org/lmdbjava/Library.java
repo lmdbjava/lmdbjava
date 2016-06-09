@@ -108,6 +108,11 @@ final class Library {
     int mdb_env_info(@In Pointer env, @Out MDB_envinfo info);
     
     /**
+     * Copy an LMDB environment to the specified path, with options.
+     */
+    int mdb_env_copy2(@In Pointer env, @In String path, int flags);
+    
+    /**
      * Close the environment and release the memory map.
      */
     void mdb_env_close(@In Pointer env);

@@ -7,8 +7,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import static org.lmdbjava.CopyFlags.MDB_CP_COMPACT;
 import org.lmdbjava.Env.AlreadyClosedException;
 import org.lmdbjava.Env.AlreadyOpenException;
+import org.lmdbjava.Env.InvalidCopyDestination;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.TestUtils.POSIX_MODE;
 
@@ -75,6 +77,53 @@ public class EnvTest {
     final File path = tmp.newFile();
     env.open(path, POSIX_MODE, MDB_NOSUBDIR);
     env.setMaxReaders(1);
+  }
+
+  @Test
+  public void copy() throws Exception {
+    final File dest = tmp.newFolder();
+    assertThat(dest.exists(), is(true));
+    assertThat(dest.isDirectory(), is(true));
+    assertThat(dest.list().length, is(0));
+    try (Env env = new Env()) {
+      final File src = tmp.newFolder();
+      env.open(src, POSIX_MODE);
+      env.copy(dest, MDB_CP_COMPACT);
+      assertThat(dest.list().length, is(1));
+    }
+  }
+
+  @Test(expected = InvalidCopyDestination.class)
+  public void copyRejectsFileDestination() throws Exception {
+    final File dest = tmp.newFile();
+    try (Env env = new Env()) {
+      final File src = tmp.newFolder();
+      env.open(src, POSIX_MODE);
+      env.copy(dest, MDB_CP_COMPACT);
+    }
+  }
+
+  @Test(expected = InvalidCopyDestination.class)
+  public void copyRejectsMissingDestination() throws Exception {
+    final File dest = tmp.newFolder();
+    dest.delete();
+    try (Env env = new Env()) {
+      final File src = tmp.newFolder();
+      env.open(src, POSIX_MODE);
+      env.copy(dest, MDB_CP_COMPACT);
+    }
+  }
+
+  @Test(expected = InvalidCopyDestination.class)
+  public void copyRejectsNonEmptyDestination() throws Exception {
+    final File dest = tmp.newFolder();
+    final File subDir = new File(dest, "hello");
+    subDir.mkdir();
+    try (Env env = new Env()) {
+      final File src = tmp.newFolder();
+      env.open(src, POSIX_MODE);
+      env.copy(dest, MDB_CP_COMPACT);
+    }
   }
 
   @Test

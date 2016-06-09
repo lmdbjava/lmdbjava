@@ -64,6 +64,37 @@ public final class Env implements AutoCloseable {
   }
 
   /**
+   * Copies an LMDB environment to the specified destination path.
+   * <p>
+   * This function may be used to make a backup of an existing environment. No
+   * lockfile is created, since it gets recreated at need.
+   * <p>
+   * Note: This call can trigger significant file size growth if run in parallel
+   * with write transactions, because it employs a read-only transaction. See
+   * long-lived transactions under "Caveats" in the LMDB native documentation.
+   *
+   * @param path  destination directory, which must exist, be writable and empty
+   * @param flags special options for this copy
+   * @throws InvalidCopyDestination if the destination path is unsuitable
+   * @throws LmdbNativeException    if a native C error occurred
+   */
+  public void copy(final File path, final CopyFlags... flags) throws
+      InvalidCopyDestination, LmdbNativeException {
+    requireNonNull(path);
+    if (!path.exists()) {
+      throw new InvalidCopyDestination("Path must exist");
+    }
+    if (!path.isDirectory()) {
+      throw new InvalidCopyDestination("Path must be a directory");
+    }
+    if (path.list().length > 0) {
+      throw new InvalidCopyDestination("Path must contain no files");
+    }
+    final int flagsMask = mask(flags);
+    checkRc(lib.mdb_env_copy2(ptr, path.getAbsolutePath(), flagsMask));
+  }
+
+  /**
    * Sets the map size.
    *
    * @param mapSize new limit in bytes
@@ -257,6 +288,23 @@ public final class Env implements AutoCloseable {
 
     FileInvalidException() {
       super(MDB_INVALID, "File is not a valid LMDB file");
+    }
+  }
+
+  /**
+   * The specified copy destination is invalid.
+   */
+  public static class InvalidCopyDestination extends LmdbException {
+
+    private static final long serialVersionUID = 1L;
+
+    /**
+     * Creates a new instance.
+     * <p>
+     * @param message the reason
+     */
+    public InvalidCopyDestination(final String message) {
+      super(message);
     }
   }
 
