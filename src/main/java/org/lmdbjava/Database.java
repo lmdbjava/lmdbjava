@@ -26,6 +26,7 @@ import static org.lmdbjava.Library.lib;
 import static org.lmdbjava.Library.runtime;
 import static org.lmdbjava.MaskedFlag.mask;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
+import org.lmdbjava.Txn.CommittedException;
 import static org.lmdbjava.TxnFlags.MDB_RDONLY;
 import static org.lmdbjava.ValueBuffers.createVal;
 import static org.lmdbjava.ValueBuffers.wrap;
@@ -48,14 +49,14 @@ public final class Database {
    * @param tx    transaction to open and commit this database within (required)
    * @param name  name of the database (or null if no name is required)
    * @param flags to open the database with
-   * @throws TxnAlreadyCommittedException if already committed
-   * @throws LmdbNativeException          if a native C error occurred
+   * @throws CommittedException  if already committed
+   * @throws LmdbNativeException if a native C error occurred
    */
   public Database(Txn tx, String name, DatabaseFlags... flags)
-      throws TxnAlreadyCommittedException, LmdbNativeException {
+      throws CommittedException, LmdbNativeException {
     requireNonNull(tx);
     if (tx.isCommitted()) {
-      throw new TxnAlreadyCommittedException();
+      throw new CommittedException();
     }
     this.env = tx.env;
     this.name = name;
@@ -67,14 +68,13 @@ public final class Database {
 
   /**
    * @param key The key to delete from the database
-   * @throws TxnAlreadyCommittedException if already committed
-   * @throws NotOpenException             if the environment is not currently
-   *                                      open
-   * @throws LmdbNativeException          if a native C error occurred
+   * @throws CommittedException  if already committed
+   * @throws NotOpenException    if the environment is not currently open
+   * @throws LmdbNativeException if a native C error occurred
    * @see #delete(Txn, ByteBuffer, ByteBuffer)
    */
   public void delete(ByteBuffer key) throws
-      TxnAlreadyCommittedException, LmdbNativeException, NotOpenException {
+      CommittedException, LmdbNativeException, NotOpenException {
     try (Txn tx = new Txn(env, null)) {
       delete(tx, key);
       tx.commit();
@@ -84,12 +84,12 @@ public final class Database {
   /**
    * @param tx  Transaction handle
    * @param key The key to delete from the database
-   * @throws TxnAlreadyCommittedException if already committed
-   * @throws LmdbNativeException          if a native C error occurred
+   * @throws CommittedException  if already committed
+   * @throws LmdbNativeException if a native C error occurred
    * @see #delete(Txn, ByteBuffer, ByteBuffer)
    */
   public void delete(Txn tx, ByteBuffer key) throws
-      TxnAlreadyCommittedException, LmdbNativeException {
+      CommittedException, LmdbNativeException {
     delete(tx, key, null);
   }
 
@@ -108,11 +108,11 @@ public final class Database {
    * @param tx  Transaction handle
    * @param key The key to delete from the database
    * @param val The value to delete from the database
-   * @throws TxnAlreadyCommittedException if already committed
-   * @throws LmdbNativeException          if a native C error occurred
+   * @throws CommittedException  if already committed
+   * @throws LmdbNativeException if a native C error occurred
    */
   public void delete(Txn tx, ByteBuffer key, ByteBuffer val) throws
-      TxnAlreadyCommittedException, LmdbNativeException {
+      CommittedException, LmdbNativeException {
 
     final MDB_val k = createVal(key);
     final MDB_val v = val == null ? null : createVal(key);
@@ -121,16 +121,16 @@ public final class Database {
   }
 
   /**
+   * @param key The key to get from the database
    * @return A value placeholder for the memory address to be wrapped if found
    *         by key
-   * @throws TxnAlreadyCommittedException if already committed
-   * @throws NotOpenException             if the environment is not currently
-   *                                      open
-   * @throws LmdbNativeException          if a native C error occurred
+   * @throws CommittedException  if already committed
+   * @throws NotOpenException    if the environment is not currently open
+   * @throws LmdbNativeException if a native C error occurred
    * @see #get(Txn, ByteBuffer)
    */
   public ByteBuffer get(ByteBuffer key) throws
-      TxnAlreadyCommittedException, LmdbNativeException, NotOpenException {
+      CommittedException, LmdbNativeException, NotOpenException {
     try (Txn tx = new Txn(env, MDB_RDONLY)) {
       return get(tx, key);
     }
@@ -152,11 +152,11 @@ public final class Database {
    * @param key The key to search for in the database
    * @return A value placeholder for the memory address to be wrapped if found
    *         by key
-   * @throws TxnAlreadyCommittedException if already committed
-   * @throws LmdbNativeException          if a native C error occurred
+   * @throws CommittedException  if already committed
+   * @throws LmdbNativeException if a native C error occurred
    */
   public ByteBuffer get(Txn tx, ByteBuffer key) throws
-      TxnAlreadyCommittedException, LmdbNativeException {
+      CommittedException, LmdbNativeException {
     assert key.isDirect();
 
     final MDB_val k = createVal(key);
@@ -207,16 +207,15 @@ public final class Database {
   }
 
   /**
-   * @param val
-   * @throws org.lmdbjava.TxnAlreadyCommittedException
-   * @throws NotOpenException                          if the environment is not
-   *                                                   currently open
-   * @throws LmdbNativeException                       if a native C error
-   *                                                   occurred
+   * @param key The key to store in the database
+   * @param val The value to store in the database
+   * @throws CommittedException  if already committed
+   * @throws NotOpenException    if the environment is not currently open
+   * @throws LmdbNativeException if a native C error occurred
    * @see #put(Txn, ByteBuffer, ByteBuffer, DatabaseFlags...)
    */
   public void put(ByteBuffer key, ByteBuffer val) throws
-      TxnAlreadyCommittedException, LmdbNativeException, NotOpenException {
+      CommittedException, LmdbNativeException, NotOpenException {
     try (Txn tx = new Txn(env, null)) {
       put(tx, key, val);
       tx.commit();
@@ -237,12 +236,12 @@ public final class Database {
    * @param key   The key to store in the database
    * @param val   The value to store in the database
    * @param flags Special options for this operation
-   * @throws TxnAlreadyCommittedException if already committed
-   * @throws LmdbNativeException          if a native C error occurred
+   * @throws CommittedException  if already committed
+   * @throws LmdbNativeException if a native C error occurred
    */
   public void put(Txn tx, ByteBuffer key, ByteBuffer val, DatabaseFlags... flags)
       throws
-      TxnAlreadyCommittedException, LmdbNativeException {
+      CommittedException, LmdbNativeException {
 
     final MDB_val k = createVal(key);
     final MDB_val v = createVal(val);

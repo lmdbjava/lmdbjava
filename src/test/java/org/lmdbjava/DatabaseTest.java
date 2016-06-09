@@ -16,6 +16,7 @@ import static org.lmdbjava.DatabaseFlags.MDB_CREATE;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.POSIX_MODE;
+import org.lmdbjava.Txn.CommittedException;
 import static org.lmdbjava.TestUtils.createBb;
 
 public class DatabaseTest {
@@ -113,7 +114,7 @@ public class DatabaseTest {
           for (int i = 0; i < 15_000; i++) {
             try {
               db.put(createBb(random.nextInt()), createBb(random.nextInt()));
-            } catch (TxnAlreadyCommittedException | LmdbNativeException |
+            } catch (CommittedException | LmdbNativeException |
                      NotOpenException e) {
               throw new RuntimeException(e);
             }

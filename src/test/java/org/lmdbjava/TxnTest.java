@@ -15,8 +15,12 @@ import static org.lmdbjava.DatabaseFlags.MDB_CREATE;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.POSIX_MODE;
-import static org.lmdbjava.TestUtils.createBb;
+import org.lmdbjava.Txn.CommittedException;
+import org.lmdbjava.Txn.ResetException;
+import org.lmdbjava.Txn.NotResetException;
+import org.lmdbjava.Txn.ReadOnlyRequiredException;
 import static org.lmdbjava.TxnFlags.MDB_RDONLY;
+import static org.lmdbjava.TestUtils.createBb;
 
 public class TxnTest {
 
@@ -68,7 +72,7 @@ public class TxnTest {
     }
   }
 
-  @Test(expected = TxnAlreadyCommittedException.class)
+  @Test(expected = CommittedException.class)
   public void txCannotAbortIfAlreadyCommitted() throws Exception {
     try (Txn tx = new Txn(env, MDB_RDONLY)) {
       assertThat(tx.isCommitted(), is(false));
@@ -78,7 +82,7 @@ public class TxnTest {
     }
   }
 
-  @Test(expected = TxnAlreadyCommittedException.class)
+  @Test(expected = CommittedException.class)
   public void txCannotCommitTwice() throws Exception {
     final Txn tx = new Txn(env);
     tx.commit();
@@ -125,13 +129,13 @@ public class TxnTest {
     assertThat(tx.isCommitted(), is(true));
   }
 
-  @Test(expected = TxnHasNotBeenResetException.class)
+  @Test(expected = NotResetException.class)
   public void txRenewDeniedWithoutPriorReset() throws Exception {
     final Txn tx = new Txn(env, MDB_RDONLY);
     tx.renew();
   }
 
-  @Test(expected = TxnAlreadyResetException.class)
+  @Test(expected = ResetException.class)
   public void txResetDeniedForAlreadyResetTransaction() throws Exception {
     final Txn tx = new Txn(env, MDB_RDONLY);
     tx.reset();
@@ -140,7 +144,7 @@ public class TxnTest {
     tx.reset();
   }
 
-  @Test(expected = TxnReadOnlyRequiredException.class)
+  @Test(expected = ReadOnlyRequiredException.class)
   public void txResetDeniedForReadWriteTransaction() throws Exception {
     final Txn tx = new Txn(env);
     tx.reset();

@@ -35,9 +35,12 @@ import static org.lmdbjava.PageFullException.MDB_PAGE_FULL;
 import static org.lmdbjava.PageNotFoundException.MDB_PAGE_NOTFOUND;
 import static org.lmdbjava.PanicException.MDB_PANIC;
 import static org.lmdbjava.TlsFullException.MDB_TLS_FULL;
-import static org.lmdbjava.TxnBadException.MDB_BAD_TXN;
-import static org.lmdbjava.TxnBadReaderLockTableSlotException.MDB_BAD_RSLOT;
-import static org.lmdbjava.TxnFullException.MDB_TXN_FULL;
+import org.lmdbjava.Txn.BadException;
+import static org.lmdbjava.Txn.BadException.MDB_BAD_TXN;
+import org.lmdbjava.Txn.BadReaderLockException;
+import static org.lmdbjava.Txn.BadReaderLockException.MDB_BAD_RSLOT;
+import org.lmdbjava.Txn.FullException;
+import static org.lmdbjava.Txn.FullException.MDB_TXN_FULL;
 
 /**
  * Maps a LMDB C result code to the equivalent Java exception.
@@ -99,13 +102,13 @@ public final class ResultCodeMapper {
 
     switch (rc) {
       case MDB_BAD_DBI:
-        return new org.lmdbjava.Database.BadDbiException();
+        return new Database.BadDbiException();
       case MDB_BAD_RSLOT:
-        return new TxnBadReaderLockTableSlotException();
+        return new BadReaderLockException();
       case MDB_BAD_TXN:
-        return new TxnBadException();
+        return new BadException();
       case MDB_BAD_VALSIZE:
-        return new org.lmdbjava.Database.BadValueSizeException();
+        return new Database.BadValueSizeException();
       case MDB_CORRUPTED:
         return new PageCorruptedException();
       case MDB_CURSOR_FULL:
@@ -135,7 +138,7 @@ public final class ResultCodeMapper {
       case MDB_TLS_FULL:
         return new TlsFullException();
       case MDB_TXN_FULL:
-        return new TxnFullException();
+        return new FullException();
       case MDB_VERSION_MISMATCH:
         return new Env.VersionMismatchException();
     }

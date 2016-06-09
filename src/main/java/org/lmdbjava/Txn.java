@@ -100,11 +100,11 @@ public final class Txn implements AutoCloseable {
   /**
    * Aborts this transaction.
    *
-   * @throws TxnAlreadyCommittedException if already committed
+   * @throws CommittedException if already committed
    */
-  public void abort() throws TxnAlreadyCommittedException {
+  public void abort() throws CommittedException {
     if (committed) {
-      throw new TxnAlreadyCommittedException();
+      throw new CommittedException();
     }
     lib.mdb_txn_abort(ptr);
     this.committed = true;
@@ -125,12 +125,12 @@ public final class Txn implements AutoCloseable {
   /**
    * Commits this transaction.
    *
-   * @throws TxnAlreadyCommittedException if already committed
-   * @throws LmdbNativeException          if a native C error occurred
+   * @throws CommittedException  if already committed
+   * @throws LmdbNativeException if a native C error occurred
    */
-  public void commit() throws TxnAlreadyCommittedException, LmdbNativeException {
+  public void commit() throws CommittedException, LmdbNativeException {
     if (committed) {
-      throw new TxnAlreadyCommittedException();
+      throw new CommittedException();
     }
     checkRc(lib.mdb_txn_commit(ptr));
     this.committed = true;
@@ -184,13 +184,13 @@ public final class Txn implements AutoCloseable {
   /**
    * Renews a read-only transaction previously released by {@link #reset()}.
    *
-   * @throws TxnHasNotBeenResetException if reset not called
-   * @throws LmdbNativeException         if a native C error occurred
+   * @throws NotResetException   if reset not called
+   * @throws LmdbNativeException if a native C error occurred
    */
-  public void renew() throws TxnHasNotBeenResetException,
+  public void renew() throws NotResetException,
                              LmdbNativeException {
     if (!reset) {
-      throw new TxnHasNotBeenResetException();
+      throw new NotResetException();
     }
     reset = false;
     checkRc(lib.mdb_txn_renew(ptr));
@@ -200,19 +200,119 @@ public final class Txn implements AutoCloseable {
    * Aborts this read-only transaction and resets the transaction handle so it
    * can be reused upon calling {@link #renew()}.
    *
-   * @throws TxnReadOnlyRequiredException if a read-write transaction
-   * @throws TxnAlreadyResetException     if reset already performed
+   * @throws ReadOnlyRequiredException if a read-write transaction
+   * @throws ResetException            if reset already performed
    */
-  public void reset() throws TxnReadOnlyRequiredException,
-                             TxnAlreadyResetException {
+  public void reset() throws ReadOnlyRequiredException,
+                             ResetException {
     if (!isReadOnly()) {
-      throw new TxnReadOnlyRequiredException();
+      throw new ReadOnlyRequiredException();
     }
     if (reset) {
-      throw new TxnAlreadyResetException();
+      throw new ResetException();
     }
     lib.mdb_txn_reset(ptr);
     reset = true;
+  }
+
+
+  /**
+   * Transaction must abort, has a child, or is invalid.
+   */
+  public static final class BadException extends LmdbNativeException {
+
+    private static final long serialVersionUID = 1L;
+    static final int MDB_BAD_TXN = -30_782;
+
+    BadException() {
+      super(MDB_BAD_TXN, "Transaction must abort, has a child, or is invalid");
+    }
+  }
+
+  /**
+   * Invalid reuse of reader locktable slot.
+   */
+  public static final class BadReaderLockException extends LmdbNativeException {
+
+    private static final long serialVersionUID = 1L;
+    static final int MDB_BAD_RSLOT = -30_783;
+
+    BadReaderLockException() {
+      super(MDB_BAD_RSLOT, "Invalid reuse of reader locktable slot");
+    }
+  }
+  /**
+   * Transaction has already been committed.
+   */
+  public static final class CommittedException extends LmdbException {
+    
+    private static final long serialVersionUID = 1L;
+    
+    /**
+     * Creates a new instance.
+     */
+    public CommittedException() {
+      super("Transaction has already been opened");
+    }
+  }
+
+  /**
+   * Transaction has too many dirty pages.
+   */
+  public static final class FullException extends LmdbNativeException {
+
+    private static final long serialVersionUID = 1L;
+    static final int MDB_TXN_FULL = -30_788;
+
+    FullException() {
+      super(MDB_TXN_FULL, "Transaction has too many dirty pages");
+    }
+  }
+
+  /**
+   * The current transaction has not been reset.
+   */
+  public static class NotResetException extends LmdbException {
+
+    private static final long serialVersionUID = 1L;
+
+    /**
+     * Creates a new instance.
+     */
+    public NotResetException() {
+      super("Transaction has not been reset");
+    }
+  }
+
+  /**
+   * The current transaction is not a read-only transaction.
+   */
+  public static class ReadOnlyRequiredException extends LmdbException {
+
+    private static final long serialVersionUID = 1L;
+
+    /**
+     * Creates a new instance.
+     * <p>
+     */
+    public ReadOnlyRequiredException() {
+      super("Not a read-only transaction");
+    }
+  }
+  /**
+   * The current transaction has already been reset.
+   */
+  public static class ResetException extends LmdbException {
+    
+    private static final long serialVersionUID = 1L;
+    
+    /**
+     * Creates a new instance.
+     * <p>
+     */
+    public ResetException() {
+      super("Transaction has already been reset");
+    }
   }
 
 }

@@ -22,6 +22,9 @@ import static org.lmdbjava.ResultCodeMapper.MDB_SUCCESS;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
 import static org.lmdbjava.ResultCodeMapper.rcException;
 import static org.lmdbjava.TestUtils.invokePrivateConstructor;
+import org.lmdbjava.Txn.BadException;
+import org.lmdbjava.Txn.BadReaderLockException;
+import org.lmdbjava.Txn.FullException;
 
 public class ResultCodeMapperTest {
 
@@ -31,8 +34,8 @@ public class ResultCodeMapperTest {
   static {
     // separate collection instances used to simplify duplicate RC detection
     EXCEPTIONS.add(new BadDbiException());
-    EXCEPTIONS.add(new TxnBadReaderLockTableSlotException());
-    EXCEPTIONS.add(new TxnBadException());
+    EXCEPTIONS.add(new BadReaderLockException());
+    EXCEPTIONS.add(new BadException());
     EXCEPTIONS.add(new BadValueSizeException());
     EXCEPTIONS.add(new PageCorruptedException());
     EXCEPTIONS.add(new CursorFullException());
@@ -48,7 +51,7 @@ public class ResultCodeMapperTest {
     EXCEPTIONS.add(new PanicException());
     EXCEPTIONS.add(new ReadersFullException());
     EXCEPTIONS.add(new TlsFullException());
-    EXCEPTIONS.add(new TxnFullException());
+    EXCEPTIONS.add(new FullException());
     EXCEPTIONS.add(new VersionMismatchException());
 
     for (LmdbNativeException e : EXCEPTIONS) {
