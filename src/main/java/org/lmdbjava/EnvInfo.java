@@ -16,7 +16,7 @@
 package org.lmdbjava;
 
 /**
- * Environment information.
+ * Environment information, as returned by {@link Env#info()}.
  */
 public class EnvInfo {
 

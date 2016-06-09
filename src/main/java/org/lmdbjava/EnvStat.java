@@ -16,7 +16,7 @@
 package org.lmdbjava;
 
 /**
- * Environment statistics.
+ * Environment statistics, as returned by {@link Env#stat()}.
  */
 public class EnvStat {
 
