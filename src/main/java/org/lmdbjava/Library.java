@@ -28,7 +28,7 @@ import jnr.ffi.byref.NativeLongByReference;
 import jnr.ffi.byref.PointerByReference;
 
 /**
- * JNF interface to LMDB.
+ * JNR-FFI interface to LMDB.
  * <p>
  * For performance reasons pointers are used rather than structs.
  */

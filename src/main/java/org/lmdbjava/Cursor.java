@@ -60,7 +60,7 @@ public class Cursor {
    * Return count of duplicates for current key.
    * <p>
    * This call is only valid on databases that support sorted duplicate data
-   * items {@link org.lmdbjava.DatabaseFlags#MDB_DUPSORT}.
+   * items {@link org.lmdbjava.DbiFlags#MDB_DUPSORT}.
    *
    * @return count of duplicates for current key
    * @throws LmdbNativeException if a native C error occurred
