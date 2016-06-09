@@ -18,7 +18,7 @@ package org.lmdbjava;
 /**
  * Flags for use when performing a cursor operation.
  * <p>
- * Unlike all other LMDB enums in the LLI package, this enum is not bit masked.
+ * Unlike all other LMDB enums, this enum is not bit masked.
  */
 public enum CursorOp {
 
