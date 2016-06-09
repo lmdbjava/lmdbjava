@@ -85,7 +85,7 @@ final class Library {
 
   public interface Lmdb {
 
-    Pointer mdb_version(int major, int minor, int patch);
+    Pointer mdb_version(IntByReference major, IntByReference minor, IntByReference patch);
 
     /**
      * Create an LMDB environment handle.
