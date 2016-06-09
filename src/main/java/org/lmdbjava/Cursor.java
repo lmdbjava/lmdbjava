@@ -43,10 +43,8 @@ public class Cursor {
   }
 
   /**
+   * Close a cursor handle.
    * <p>
-   *   Close a cursor handle.
-   * </p>
-   *
    * The cursor handle will be freed and must not be used again after this call.
    * Its transaction must still be live if it is a write-transaction.
    */
@@ -58,8 +56,7 @@ public class Cursor {
   }
 
   /**
-   * </p>
-   *   Return count of duplicates for current key.
+   * Return count of duplicates for current key.
    * <p>
    * This call is only valid on databases that support sorted duplicate data
    * items {@link org.lmdbjava.DatabaseFlags#MDB_DUPSORT}.
@@ -75,7 +72,7 @@ public class Cursor {
 
   /**
    * Delete current key/data pair.
-   * </p>
+   * <p>
    * This function deletes the key/data pair to which the cursor refers.
    *
    * @throws LmdbNativeException if a native C error occurred
@@ -83,18 +80,19 @@ public class Cursor {
   public void delete() throws LmdbNativeException {
     checkRc(lib.mdb_cursor_del(ptr, 0));
   }
+
   /**
+   * Retrieve by cursor.
    * <p>
-   *   Retrieve by cursor.
-   * </p>
-   * This function retrieves key/data pairs from the database. The address and length
-   * of the key are returned in the object to which \b key refers (except for the
-   * case of the #MDB_SET option, in which the \b key object is unchanged), and
-   * the address and length of the data are returned in the object to which \b data
+   * This function retrieves key/data pairs from the database. The address and
+   * length of the key are returned in the object to which \b key refers (except
+   * for the case of the #MDB_SET option, in which the \b key object is
+   * unchanged), and the address and length of the data are returned in the
+   * object to which \b data
    *
    * @param key Placeholder for the key memory address to be wrapped.
    * @param val Placeholder for the value memory address to be wrapped.
-   * @param op A cursor operation.
+   * @param op  A cursor operation.
    * @throws LmdbNativeException if a native C error occurred
    */
   public void get(ByteBuffer key, ByteBuffer val, CursorOp op)
@@ -122,14 +120,13 @@ public class Cursor {
   }
 
   /**
+   * Store by cursor.
    * <p>
-   *   Store by cursor.
-   * </p>
    *
    * @param key The key operated on.
    * @param val The data operated on.
    *
-   * @param op Options for this operation.
+   * @param op  Options for this operation.
    * @throws LmdbNativeException if a native C error occurred
    */
   public void put(ByteBuffer key, ByteBuffer val, PutFlags... op)
@@ -149,16 +146,14 @@ public class Cursor {
   }
 
   /**
+   * Renew a cursor handle.
    * <p>
-   *   Renew a cursor handle.
-   * </p>
-   *
-   * A cursor is associated with a specific transaction and database.
-   * Cursors that are only used in read-only
-   * transactions may be re-used, to avoid unnecessary malloc/free overhead.
-   * The cursor may be associated with a new read-only transaction, and
-   * referencing the same database handle as it was created with.
-   * This may be done whether the previous transaction is live or dead.
+   * A cursor is associated with a specific transaction and database. Cursors
+   * that are only used in read-only transactions may be re-used, to avoid
+   * unnecessary malloc/free overhead. The cursor may be associated with a new
+   * read-only transaction, and referencing the same database handle as it was
+   * created with. This may be done whether the previous transaction is live or
+   * dead.
    *
    * @param tx transaction handle
    * @throws LmdbNativeException if a native C error occurred
@@ -168,6 +163,19 @@ public class Cursor {
       throw new IllegalArgumentException("cannot renew write transactions");
     }
     checkRc(lib.mdb_cursor_renew(tx.ptr, ptr));
+  }
+
+  /**
+   * Cursor stack too deep - internal error.
+   */
+  public static final class FullException extends LmdbNativeException {
+
+    private static final long serialVersionUID = 1L;
+    static final int MDB_CURSOR_FULL = -30_787;
+
+    FullException() {
+      super(MDB_CURSOR_FULL, "Cursor stack too deep - internal error");
+    }
   }
 
 }

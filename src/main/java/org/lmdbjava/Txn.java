@@ -215,7 +215,6 @@ public final class Txn implements AutoCloseable {
     reset = true;
   }
 
-
   /**
    * Transaction must abort, has a child, or is invalid.
    */
@@ -241,31 +240,19 @@ public final class Txn implements AutoCloseable {
       super(MDB_BAD_RSLOT, "Invalid reuse of reader locktable slot");
     }
   }
+
   /**
    * Transaction has already been committed.
    */
   public static final class CommittedException extends LmdbException {
-    
+
     private static final long serialVersionUID = 1L;
-    
+
     /**
      * Creates a new instance.
      */
     public CommittedException() {
       super("Transaction has already been opened");
-    }
-  }
-
-  /**
-   * Transaction has too many dirty pages.
-   */
-  public static final class FullException extends LmdbNativeException {
-
-    private static final long serialVersionUID = 1L;
-    static final int MDB_TXN_FULL = -30_788;
-
-    FullException() {
-      super(MDB_TXN_FULL, "Transaction has too many dirty pages");
     }
   }
 
@@ -299,19 +286,33 @@ public final class Txn implements AutoCloseable {
       super("Not a read-only transaction");
     }
   }
+
   /**
    * The current transaction has already been reset.
    */
   public static class ResetException extends LmdbException {
-    
+
     private static final long serialVersionUID = 1L;
-    
+
     /**
      * Creates a new instance.
      * <p>
      */
     public ResetException() {
       super("Transaction has already been reset");
+    }
+  }
+
+  /**
+   * Transaction has too many dirty pages.
+   */
+  public static final class TxFullException extends LmdbNativeException {
+
+    private static final long serialVersionUID = 1L;
+    static final int MDB_TXN_FULL = -30_788;
+
+    TxFullException() {
+      super(MDB_TXN_FULL, "Transaction has too many dirty pages");
     }
   }
 

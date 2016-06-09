@@ -8,13 +8,16 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.fail;
 import org.junit.Test;
-import static org.lmdbjava.CursorFullException.MDB_CURSOR_FULL;
+import org.lmdbjava.Cursor.FullException;
+import static org.lmdbjava.Cursor.FullException.MDB_CURSOR_FULL;
 import org.lmdbjava.Database.BadDbiException;
 import org.lmdbjava.Database.BadValueSizeException;
+import org.lmdbjava.Database.DbFullException;
 import org.lmdbjava.Database.IncompatibleException;
 import org.lmdbjava.Database.KeyExistsException;
 import org.lmdbjava.Database.KeyNotFoundException;
 import org.lmdbjava.Database.MapResizedException;
+import org.lmdbjava.Env.FileInvalidException;
 import org.lmdbjava.Env.MapFullException;
 import org.lmdbjava.Env.ReadersFullException;
 import org.lmdbjava.Env.VersionMismatchException;
@@ -30,7 +33,7 @@ import static org.lmdbjava.ResultCodeMapper.rcException;
 import static org.lmdbjava.TestUtils.invokePrivateConstructor;
 import org.lmdbjava.Txn.BadException;
 import org.lmdbjava.Txn.BadReaderLockException;
-import org.lmdbjava.Txn.FullException;
+import org.lmdbjava.Txn.TxFullException;
 
 public class ResultCodeMapperTest {
 
@@ -44,8 +47,8 @@ public class ResultCodeMapperTest {
     EXCEPTIONS.add(new BadException());
     EXCEPTIONS.add(new BadValueSizeException());
     EXCEPTIONS.add(new PageCorruptedException());
-    EXCEPTIONS.add(new CursorFullException());
-    EXCEPTIONS.add(new DatabasesFullException());
+    EXCEPTIONS.add(new FullException());
+    EXCEPTIONS.add(new DbFullException());
     EXCEPTIONS.add(new IncompatibleException());
     EXCEPTIONS.add(new FileInvalidException());
     EXCEPTIONS.add(new KeyExistsException());
@@ -57,7 +60,7 @@ public class ResultCodeMapperTest {
     EXCEPTIONS.add(new PanicException());
     EXCEPTIONS.add(new ReadersFullException());
     EXCEPTIONS.add(new TlsFullException());
-    EXCEPTIONS.add(new FullException());
+    EXCEPTIONS.add(new TxFullException());
     EXCEPTIONS.add(new VersionMismatchException());
 
     for (LmdbNativeException e : EXCEPTIONS) {
@@ -82,7 +85,7 @@ public class ResultCodeMapperTest {
     checkRc(20);
   }
 
-  @Test(expected = CursorFullException.class)
+  @Test(expected = FullException.class)
   public void checkErrCursorFull() throws Exception {
     checkRc(MDB_CURSOR_FULL);
   }

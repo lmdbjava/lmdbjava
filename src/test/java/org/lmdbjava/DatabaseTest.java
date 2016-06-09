@@ -11,14 +11,15 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.lmdbjava.Database.DbFullException;
 import org.lmdbjava.Database.KeyNotFoundException;
 import static org.lmdbjava.DatabaseFlags.MDB_CREATE;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import org.lmdbjava.LmdbNativeException.ConstantDerviedException;
 import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.POSIX_MODE;
-import org.lmdbjava.Txn.CommittedException;
 import static org.lmdbjava.TestUtils.createBb;
+import org.lmdbjava.Txn.CommittedException;
 
 public class DatabaseTest {
 
@@ -42,7 +43,7 @@ public class DatabaseTest {
     db = new Database(tx, DB_1, MDB_CREATE);
   }
 
-  @Test(expected = DatabasesFullException.class)
+  @Test(expected = DbFullException.class)
   public void dbOpenMaxDatabases() throws Exception {
     new Database(tx, "another", MDB_CREATE);
   }

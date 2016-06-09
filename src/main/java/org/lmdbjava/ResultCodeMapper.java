@@ -18,18 +18,18 @@ package org.lmdbjava;
 import jnr.constants.Constant;
 import jnr.constants.ConstantSet;
 import static jnr.constants.ConstantSet.getConstantSet;
-import static org.lmdbjava.CursorFullException.MDB_CURSOR_FULL;
+import static org.lmdbjava.Cursor.FullException.MDB_CURSOR_FULL;
 import static org.lmdbjava.Database.BadDbiException.MDB_BAD_DBI;
 import static org.lmdbjava.Database.BadValueSizeException.MDB_BAD_VALSIZE;
+import static org.lmdbjava.Database.DbFullException.MDB_DBS_FULL;
 import static org.lmdbjava.Database.IncompatibleException.MDB_INCOMPATIBLE;
 import static org.lmdbjava.Database.KeyExistsException.MDB_KEYEXIST;
 import static org.lmdbjava.Database.KeyNotFoundException.MDB_NOTFOUND;
 import static org.lmdbjava.Database.MapResizedException.MDB_MAP_RESIZED;
-import static org.lmdbjava.DatabasesFullException.MDB_DBS_FULL;
+import static org.lmdbjava.Env.FileInvalidException.MDB_INVALID;
 import static org.lmdbjava.Env.MapFullException.MDB_MAP_FULL;
 import static org.lmdbjava.Env.ReadersFullException.MDB_READERS_FULL;
 import static org.lmdbjava.Env.VersionMismatchException.MDB_VERSION_MISMATCH;
-import static org.lmdbjava.FileInvalidException.MDB_INVALID;
 import static org.lmdbjava.LmdbNativeException.PageCorruptedException.MDB_CORRUPTED;
 import static org.lmdbjava.LmdbNativeException.PageFullException.MDB_PAGE_FULL;
 import static org.lmdbjava.LmdbNativeException.PageNotFoundException.MDB_PAGE_NOTFOUND;
@@ -39,8 +39,8 @@ import org.lmdbjava.Txn.BadException;
 import static org.lmdbjava.Txn.BadException.MDB_BAD_TXN;
 import org.lmdbjava.Txn.BadReaderLockException;
 import static org.lmdbjava.Txn.BadReaderLockException.MDB_BAD_RSLOT;
-import org.lmdbjava.Txn.FullException;
-import static org.lmdbjava.Txn.FullException.MDB_TXN_FULL;
+import org.lmdbjava.Txn.TxFullException;
+import static org.lmdbjava.Txn.TxFullException.MDB_TXN_FULL;
 
 /**
  * Maps a LMDB C result code to the equivalent Java exception.
@@ -114,13 +114,13 @@ public final class ResultCodeMapper {
       case MDB_CORRUPTED:
         return new LmdbNativeException.PageCorruptedException();
       case MDB_CURSOR_FULL:
-        return new CursorFullException();
+        return new Cursor.FullException();
       case MDB_DBS_FULL:
-        return new DatabasesFullException();
+        return new Database.DbFullException();
       case MDB_INCOMPATIBLE:
         return new Database.IncompatibleException();
       case MDB_INVALID:
-        return new FileInvalidException();
+        return new Env.FileInvalidException();
       case MDB_KEYEXIST:
         return new Database.KeyExistsException();
       case MDB_MAP_FULL:
@@ -140,7 +140,7 @@ public final class ResultCodeMapper {
       case MDB_TLS_FULL:
         return new LmdbNativeException.TlsFullException();
       case MDB_TXN_FULL:
-        return new FullException();
+        return new TxFullException();
       case MDB_VERSION_MISMATCH:
         return new Env.VersionMismatchException();
     }

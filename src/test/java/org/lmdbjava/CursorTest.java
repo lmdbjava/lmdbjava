@@ -24,9 +24,9 @@ import static org.lmdbjava.PutFlags.MDB_APPENDDUP;
 import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
 import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.POSIX_MODE;
+import static org.lmdbjava.TestUtils.createBb;
 import org.lmdbjava.Txn.CommittedException;
 import static org.lmdbjava.TxnFlags.MDB_RDONLY;
-import static org.lmdbjava.TestUtils.createBb;
 
 public class CursorTest {
 
