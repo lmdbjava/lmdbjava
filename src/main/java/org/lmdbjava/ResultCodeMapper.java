@@ -79,9 +79,7 @@ public final class ResultCodeMapper {
     if (constant == null) {
       throw new IllegalArgumentException("Unknown result code " + rc);
     }
-    throw new org.lmdbjava.LmdbNativeException.ConstantDerviedException(rc,
-                                                                        constant.
-                                                                        name());
+    throw new LmdbNativeException.ConstantDerviedException(rc, constant.name());
   }
 
   /**
