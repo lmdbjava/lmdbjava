@@ -187,7 +187,7 @@ public class EnvTest {
     assertThat(stat, is(notNullValue()));
     assertThat(stat.branchPages, is(0L));
     assertThat(stat.depth, is(0));
-    assertThat(stat.entries, is(4_096L));
+    assertThat(stat.entries, is(0L));
     assertThat(stat.leafPages, is(0L));
     assertThat(stat.overflowPages, is(0L));
     assertThat(stat.pageSize, is(4_096));

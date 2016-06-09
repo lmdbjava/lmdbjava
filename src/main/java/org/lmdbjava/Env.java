@@ -245,7 +245,7 @@ public final class Env implements AutoCloseable {
         stat.ms_branch_pages.longValue(),
         stat.ms_leaf_pages.longValue(),
         stat.ms_overflow_pages.longValue(),
-        stat.ms_psize.longValue());
+        stat.ms_entries.longValue());
   }
 
   /**
