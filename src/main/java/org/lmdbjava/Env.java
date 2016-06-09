@@ -36,7 +36,7 @@ public final class Env implements AutoCloseable {
   final Pointer ptr;
 
   /**
-   * Creates a new {@link MDB_env}.
+   * Creates a new environment handle.
    *
    * @throws LmdbNativeException if a native C error occurred
    */
