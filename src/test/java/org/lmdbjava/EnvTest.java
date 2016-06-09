@@ -7,6 +7,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.lmdbjava.Env.AlreadyClosedException;
+import org.lmdbjava.Env.AlreadyOpenException;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.TestUtils.POSIX_MODE;
 

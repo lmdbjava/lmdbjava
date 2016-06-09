@@ -19,6 +19,7 @@ import static java.util.Objects.requireNonNull;
 import static jnr.ffi.Memory.allocateDirect;
 import static jnr.ffi.NativeType.ADDRESS;
 import jnr.ffi.Pointer;
+import org.lmdbjava.Env.NotOpenException;
 import static org.lmdbjava.Library.lib;
 import static org.lmdbjava.Library.runtime;
 import static org.lmdbjava.MaskedFlag.isSet;
@@ -60,7 +61,7 @@ public final class Txn implements AutoCloseable {
                                              LmdbNativeException {
     requireNonNull(env);
     if (!env.isOpen() || env.isClosed()) {
-      throw new NotOpenException(Env.class.getSimpleName());
+      throw new NotOpenException();
     }
     this.env = env;
     final int flagsMask = mask(flags);

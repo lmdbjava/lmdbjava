@@ -7,6 +7,7 @@ import static java.nio.ByteOrder.LITTLE_ENDIAN;
 import static java.util.Objects.requireNonNull;
 import jnr.ffi.byref.IntByReference;
 import jnr.ffi.byref.PointerByReference;
+import org.lmdbjava.Env.NotOpenException;
 import org.lmdbjava.Library.MDB_val;
 import static org.lmdbjava.Library.lib;
 import static org.lmdbjava.Library.runtime;
@@ -61,7 +62,7 @@ public final class Database {
    */
   public void delete(ByteBuffer key) throws
       CommittedException, LmdbNativeException, NotOpenException {
-    try (Txn tx = new Txn(env, null)) {
+    try (Txn tx = new Txn(env)) {
       delete(tx, key);
       tx.commit();
     }
@@ -202,7 +203,7 @@ public final class Database {
    */
   public void put(ByteBuffer key, ByteBuffer val) throws
       CommittedException, LmdbNativeException, NotOpenException {
-    try (Txn tx = new Txn(env, null)) {
+    try (Txn tx = new Txn(env)) {
       put(tx, key, val);
       tx.commit();
     }

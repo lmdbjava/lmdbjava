@@ -75,10 +75,10 @@ public final class Env implements AutoCloseable {
                                              AlreadyClosedException,
                                              LmdbNativeException {
     if (open) {
-      throw new AlreadyOpenException(Env.class.getSimpleName());
+      throw new AlreadyOpenException();
     }
     if (closed) {
-      throw new AlreadyClosedException(Env.class.getSimpleName());
+      throw new AlreadyClosedException();
     }
     checkRc(lib.mdb_env_set_mapsize(ptr, mapSize));
   }
@@ -95,10 +95,10 @@ public final class Env implements AutoCloseable {
                                         AlreadyClosedException,
                                         LmdbNativeException {
     if (open) {
-      throw new AlreadyOpenException(Env.class.getSimpleName());
+      throw new AlreadyOpenException();
     }
     if (closed) {
-      throw new AlreadyClosedException(Env.class.getSimpleName());
+      throw new AlreadyClosedException();
     }
     checkRc(lib.mdb_env_set_maxdbs(ptr, dbs));
   }
@@ -115,10 +115,10 @@ public final class Env implements AutoCloseable {
                                                 AlreadyClosedException,
                                                 LmdbNativeException {
     if (open) {
-      throw new AlreadyOpenException(Env.class.getSimpleName());
+      throw new AlreadyOpenException();
     }
     if (closed) {
-      throw new AlreadyClosedException(Env.class.getSimpleName());
+      throw new AlreadyClosedException();
     }
     checkRc(lib.mdb_env_set_maxreaders(ptr, readers));
   }
@@ -132,7 +132,7 @@ public final class Env implements AutoCloseable {
    */
   public EnvInfo info() throws NotOpenException, LmdbNativeException {
     if (!open) {
-      throw new NotOpenException(Env.class.getSimpleName());
+      throw new NotOpenException();
     }
     final MDB_envinfo info = new MDB_envinfo(runtime);
     checkRc(lib.mdb_env_info(ptr, info));
@@ -185,10 +185,10 @@ public final class Env implements AutoCloseable {
       throws AlreadyOpenException, AlreadyClosedException, LmdbNativeException {
     requireNonNull(path);
     if (open) {
-      throw new AlreadyOpenException(Env.class.getSimpleName());
+      throw new AlreadyOpenException();
     }
     if (closed) {
-      throw new AlreadyClosedException(Env.class.getSimpleName());
+      throw new AlreadyClosedException();
     }
     final int flagsMask = mask(flags);
     checkRc(lib.mdb_env_open(ptr, path.getAbsolutePath(), flagsMask, mode));
@@ -204,7 +204,7 @@ public final class Env implements AutoCloseable {
    */
   public EnvStat stat() throws NotOpenException, LmdbNativeException {
     if (!open) {
-      throw new NotOpenException(Env.class.getSimpleName());
+      throw new NotOpenException();
     }
     final MDB_stat stat = new MDB_stat(runtime);
     checkRc(lib.mdb_env_stat(ptr, stat));
@@ -215,6 +215,36 @@ public final class Env implements AutoCloseable {
         stat.ms_leaf_pages.longValue(),
         stat.ms_overflow_pages.longValue(),
         stat.ms_psize.longValue());
+  }
+
+  /**
+   * Object has already been closed and the operation is therefore prohibited.
+   */
+  public static final class AlreadyClosedException extends LmdbException {
+
+    private static final long serialVersionUID = 1L;
+
+    /**
+     * Creates a new instance.
+     */
+    public AlreadyClosedException() {
+      super("Environment has already been closed");
+    }
+  }
+
+  /**
+   * Object has already been opened and the operation is therefore prohibited.
+   */
+  public static final class AlreadyOpenException extends LmdbException {
+
+    private static final long serialVersionUID = 1L;
+
+    /**
+     * Creates a new instance.
+     */
+    public AlreadyOpenException() {
+      super("Environment has already been opened");
+    }
   }
 
   /**
@@ -240,6 +270,21 @@ public final class Env implements AutoCloseable {
 
     MapFullException() {
       super(MDB_MAP_FULL, "Environment mapsize reached");
+    }
+  }
+
+  /**
+   * Object has is not open (eg never opened, or since closed).
+   */
+  public static class NotOpenException extends LmdbException {
+
+    private static final long serialVersionUID = 1L;
+
+    /**
+     * Creates a new instance.
+     */
+    public NotOpenException() {
+      super("Environment is not open");
     }
   }
 

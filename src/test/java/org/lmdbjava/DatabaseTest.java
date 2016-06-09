@@ -14,6 +14,7 @@ import org.junit.rules.TemporaryFolder;
 import org.lmdbjava.Database.DbFullException;
 import org.lmdbjava.Database.KeyNotFoundException;
 import static org.lmdbjava.DatabaseFlags.MDB_CREATE;
+import org.lmdbjava.Env.NotOpenException;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import org.lmdbjava.LmdbNativeException.ConstantDerviedException;
 import static org.lmdbjava.TestUtils.DB_1;
@@ -116,8 +117,7 @@ public class DatabaseTest {
           for (int i = 0; i < 15_000; i++) {
             try {
               db.put(createBb(random.nextInt()), createBb(random.nextInt()));
-            } catch (CommittedException | LmdbNativeException |
-                     NotOpenException e) {
+            } catch (CommittedException | LmdbNativeException | NotOpenException e) {
               throw new RuntimeException(e);
             }
           }
