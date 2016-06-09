@@ -2,21 +2,16 @@ package org.lmdbjava;
 
 import java.io.File;
 import java.nio.ByteBuffer;
-
 import static java.util.Collections.nCopies;
-
 import java.util.Random;
-
 import static junit.framework.TestCase.fail;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.lmdbjava.Database.KeyNotFoundException;
-
 import static org.lmdbjava.DatabaseFlags.MDB_CREATE;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.TestUtils.DB_1;

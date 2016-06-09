@@ -24,8 +24,8 @@ import static org.lmdbjava.PutFlags.MDB_APPENDDUP;
 import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
 import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.POSIX_MODE;
-import static org.lmdbjava.TxnFlags.MDB_RDONLY;
 import static org.lmdbjava.TestUtils.createBb;
+import static org.lmdbjava.TxnFlags.MDB_RDONLY;
 
 public class CursorTest {
 
@@ -49,7 +49,7 @@ public class CursorTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void closeCursor() throws LmdbNativeException,
-    TxnAlreadyCommittedException {
+                                   TxnAlreadyCommittedException {
     db = new Database(tx, DB_1, MDB_CREATE);
     Cursor cursor = db.openCursor(tx);
     cursor.close();

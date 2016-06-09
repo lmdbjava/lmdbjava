@@ -111,14 +111,14 @@ public class EnvTest {
     final Env env = new Env();
     final File path = tmp.newFile();
     env.setMaxReaders(4);
-    env.setMapSize(123456);
+    env.setMapSize(123_456);
     env.open(path, POSIX_MODE, MDB_NOSUBDIR);
     EnvInfo info = env.info();
     assertThat(info, is(notNullValue()));
     assertThat(info.lastPageNumber, is(1L));
     assertThat(info.lastTransactionId, is(0L));
     assertThat(info.mapAddress, is(0L));
-    assertThat(info.mapSize, is(123456L));
+    assertThat(info.mapSize, is(123_456L));
     assertThat(info.maxReaders, is(4));
     assertThat(info.numReaders, is(0));
   }

@@ -95,6 +95,7 @@ public class Cursor {
    * @param key Placeholder for the key memory address to be wrapped.
    * @param val Placeholder for the value memory address to be wrapped.
    * @param op A cursor operation.
+   * @throws LmdbNativeException if a native C error occurred
    */
   public void get(ByteBuffer key, ByteBuffer val, CursorOp op)
       throws LmdbNativeException {
@@ -129,6 +130,7 @@ public class Cursor {
    * @param val The data operated on.
    *
    * @param op Options for this operation.
+   * @throws LmdbNativeException if a native C error occurred
    */
   public void put(ByteBuffer key, ByteBuffer val, PutFlags... op)
       throws LmdbNativeException {
@@ -159,6 +161,7 @@ public class Cursor {
    * This may be done whether the previous transaction is live or dead.
    *
    * @param tx transaction handle
+   * @throws LmdbNativeException if a native C error occurred
    */
   public void renew(Txn tx) throws LmdbNativeException {
     if (!tx.isReadOnly()) {

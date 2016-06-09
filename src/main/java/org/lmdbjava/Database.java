@@ -18,6 +18,7 @@ package org.lmdbjava;
 import java.nio.ByteBuffer;
 import static java.nio.ByteBuffer.allocateDirect;
 import static java.nio.ByteOrder.LITTLE_ENDIAN;
+import static java.util.Objects.requireNonNull;
 import jnr.ffi.byref.IntByReference;
 import jnr.ffi.byref.PointerByReference;
 import org.lmdbjava.Library.MDB_val;
@@ -28,7 +29,6 @@ import static org.lmdbjava.ResultCodeMapper.checkRc;
 import static org.lmdbjava.TxnFlags.MDB_RDONLY;
 import static org.lmdbjava.ValueBuffers.createVal;
 import static org.lmdbjava.ValueBuffers.wrap;
-import static java.util.Objects.requireNonNull;
 
 /**
  * LMDB Database.
@@ -66,7 +66,12 @@ public final class Database {
   }
 
   /**
-   * @see org.lmdbjava.Database#delete(Txn, ByteBuffer, ByteBuffer)
+   * @param key The key to delete from the database
+   * @throws TxnAlreadyCommittedException if already committed
+   * @throws NotOpenException             if the environment is not currently
+   *                                      open
+   * @throws LmdbNativeException          if a native C error occurred
+   * @see #delete(Txn, ByteBuffer, ByteBuffer)
    */
   public void delete(ByteBuffer key) throws
       TxnAlreadyCommittedException, LmdbNativeException, NotOpenException {
@@ -77,7 +82,11 @@ public final class Database {
   }
 
   /**
-   * @see org.lmdbjava.Database#delete(Txn, ByteBuffer, ByteBuffer)
+   * @param tx  Transaction handle
+   * @param key The key to delete from the database
+   * @throws TxnAlreadyCommittedException if already committed
+   * @throws LmdbNativeException          if a native C error occurred
+   * @see #delete(Txn, ByteBuffer, ByteBuffer)
    */
   public void delete(Txn tx, ByteBuffer key) throws
       TxnAlreadyCommittedException, LmdbNativeException {
@@ -96,10 +105,11 @@ public final class Database {
    * will be deleted. This function will return false if the specified key/data
    * pair is not in the database.
    *
-   * @param tx  Transaction handle.
-   * @param key The key to delete from the database.
+   * @param tx  Transaction handle
+   * @param key The key to delete from the database
    * @param val The value to delete from the database
-   * @return true if the key/value was deleted.
+   * @throws TxnAlreadyCommittedException if already committed
+   * @throws LmdbNativeException          if a native C error occurred
    */
   public void delete(Txn tx, ByteBuffer key, ByteBuffer val) throws
       TxnAlreadyCommittedException, LmdbNativeException {
@@ -111,7 +121,13 @@ public final class Database {
   }
 
   /**
-   * @see org.lmdbjava.Database#get(Txn, ByteBuffer)
+   * @return A value placeholder for the memory address to be wrapped if found
+   *         by key
+   * @throws TxnAlreadyCommittedException if already committed
+   * @throws NotOpenException             if the environment is not currently
+   *                                      open
+   * @throws LmdbNativeException          if a native C error occurred
+   * @see #get(Txn, ByteBuffer)
    */
   public ByteBuffer get(ByteBuffer key) throws
       TxnAlreadyCommittedException, LmdbNativeException, NotOpenException {
@@ -135,7 +151,9 @@ public final class Database {
    * @param tx  transaction handle
    * @param key The key to search for in the database
    * @return A value placeholder for the memory address to be wrapped if found
-   *         by key.
+   *         by key
+   * @throws TxnAlreadyCommittedException if already committed
+   * @throws LmdbNativeException          if a native C error occurred
    */
   public ByteBuffer get(Txn tx, ByteBuffer key) throws
       TxnAlreadyCommittedException, LmdbNativeException {
@@ -175,6 +193,7 @@ public final class Database {
    * or after its transaction ends. It can be reused with #mdb_cursor_renew()
    * before finally closing it.
    *
+   * @throws LmdbNativeException if a native C error occurred
    * @note Earlier documentation said that cursors in every transaction were
    * closed when the transaction committed or aborted.
    *
@@ -188,8 +207,13 @@ public final class Database {
   }
 
   /**
-   * @see org.lmdbjava.Database#put(Txn, ByteBuffer, ByteBuffer,
-   * DatabaseFlags...)
+   * @param val
+   * @throws org.lmdbjava.TxnAlreadyCommittedException
+   * @throws NotOpenException                          if the environment is not
+   *                                                   currently open
+   * @throws LmdbNativeException                       if a native C error
+   *                                                   occurred
+   * @see #put(Txn, ByteBuffer, ByteBuffer, DatabaseFlags...)
    */
   public void put(ByteBuffer key, ByteBuffer val) throws
       TxnAlreadyCommittedException, LmdbNativeException, NotOpenException {
@@ -212,9 +236,9 @@ public final class Database {
    * @param tx    transaction handle
    * @param key   The key to store in the database
    * @param val   The value to store in the database
-   * @param flags Special options for this operation.
-   *
-   * @return the existing value if it was a dup insert attempt.
+   * @param flags Special options for this operation
+   * @throws TxnAlreadyCommittedException if already committed
+   * @throws LmdbNativeException          if a native C error occurred
    */
   public void put(Txn tx, ByteBuffer key, ByteBuffer val, DatabaseFlags... flags)
       throws
@@ -222,7 +246,7 @@ public final class Database {
 
     final MDB_val k = createVal(key);
     final MDB_val v = createVal(val);
-    int mask = MaskedFlag.mask(flags);
+    int mask = mask(flags);
     checkRc(lib.mdb_put(tx.ptr, dbi, k, v, mask));
   }
 
@@ -232,7 +256,7 @@ public final class Database {
   public static final class BadDbiException extends LmdbNativeException {
 
     private static final long serialVersionUID = 1L;
-    static final int MDB_BAD_DBI = -30780;
+    static final int MDB_BAD_DBI = -30_780;
 
     BadDbiException() {
       super(MDB_BAD_DBI, "The specified DBI was changed unexpectedly");
@@ -245,7 +269,7 @@ public final class Database {
   public static final class BadValueSizeException extends LmdbNativeException {
 
     private static final long serialVersionUID = 1L;
-    static final int MDB_BAD_VALSIZE = -30781;
+    static final int MDB_BAD_VALSIZE = -30_781;
 
     BadValueSizeException() {
       super(MDB_BAD_VALSIZE,
@@ -268,7 +292,7 @@ public final class Database {
   public static final class IncompatibleException extends LmdbNativeException {
 
     private static final long serialVersionUID = 1L;
-    static final int MDB_INCOMPATIBLE = -30784;
+    static final int MDB_INCOMPATIBLE = -30_784;
 
     IncompatibleException() {
       super(MDB_INCOMPATIBLE,
@@ -282,7 +306,7 @@ public final class Database {
   public static final class KeyExistsException extends LmdbNativeException {
 
     private static final long serialVersionUID = 1L;
-    static final int MDB_KEYEXIST = -30799;
+    static final int MDB_KEYEXIST = -30_799;
 
     KeyExistsException() {
       super(MDB_KEYEXIST, "key/data pair already exists");
@@ -295,7 +319,7 @@ public final class Database {
   public static final class KeyNotFoundException extends LmdbNativeException {
 
     private static final long serialVersionUID = 1L;
-    static final int MDB_NOTFOUND = -30798;
+    static final int MDB_NOTFOUND = -30_798;
 
     KeyNotFoundException() {
       super(MDB_NOTFOUND, "key/data pair not found (EOF)");
@@ -308,7 +332,7 @@ public final class Database {
   public static final class MapResizedException extends LmdbNativeException {
 
     private static final long serialVersionUID = 1L;
-    static final int MDB_MAP_RESIZED = -30785;
+    static final int MDB_MAP_RESIZED = -30_785;
 
     MapResizedException() {
       super(MDB_MAP_RESIZED, "Database contents grew beyond environment mapsize");

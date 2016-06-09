@@ -18,9 +18,7 @@ package org.lmdbjava;
 import static java.util.Objects.requireNonNull;
 import static jnr.ffi.Memory.allocateDirect;
 import static jnr.ffi.NativeType.ADDRESS;
-
 import jnr.ffi.Pointer;
-
 import static org.lmdbjava.Library.lib;
 import static org.lmdbjava.Library.runtime;
 import static org.lmdbjava.MaskedFlag.isSet;
@@ -59,7 +57,7 @@ public final class Txn implements AutoCloseable {
    */
   public Txn(final Env env, final Txn parent,
              final TxnFlags... flags) throws NotOpenException,
-    LmdbNativeException {
+                                             LmdbNativeException {
     requireNonNull(env);
     if (!env.isOpen() || env.isClosed()) {
       throw new NotOpenException(Env.class.getSimpleName());
@@ -82,20 +80,20 @@ public final class Txn implements AutoCloseable {
    * @throws LmdbNativeException if a native C error occurred
    */
   public Txn(final Env env)
-    throws NotOpenException, LmdbNativeException {
+      throws NotOpenException, LmdbNativeException {
     this(env, null, (TxnFlags[]) null);
   }
 
   /**
    * Create a read or write transaction handle without a parent transaction.
    *
-   * @param env the owning environment (required)
+   * @param env   the owning environment (required)
    * @param flags applicable flags (eg for a reusable, read-only transaction)
    * @throws NotOpenException    if the environment is not currently open
    * @throws LmdbNativeException if a native C error occurred
    */
   public Txn(final Env env, TxnFlags... flags)
-    throws NotOpenException, LmdbNativeException {
+      throws NotOpenException, LmdbNativeException {
     this(env, null, flags);
   }
 
@@ -113,7 +111,7 @@ public final class Txn implements AutoCloseable {
   }
 
   /**
-   * Closes this transaction by aborting if not already committed.
+   * Closes this transaction by aborting if not already committed
    */
   @Override
   public void close() {
@@ -128,7 +126,7 @@ public final class Txn implements AutoCloseable {
    * Commits this transaction.
    *
    * @throws TxnAlreadyCommittedException if already committed
-   * @throws LmdbNativeException       if a native C error occurred
+   * @throws LmdbNativeException          if a native C error occurred
    */
   public void commit() throws TxnAlreadyCommittedException, LmdbNativeException {
     if (committed) {
@@ -141,7 +139,7 @@ public final class Txn implements AutoCloseable {
   /**
    * Return the transaction's ID.
    *
-   * @return A transaction ID, valid if input is an active transaction.
+   * @return A transaction ID, valid if input is an active transaction
    */
   public long getId() {
     return lib.mdb_txn_id(ptr);
@@ -187,10 +185,10 @@ public final class Txn implements AutoCloseable {
    * Renews a read-only transaction previously released by {@link #reset()}.
    *
    * @throws TxnHasNotBeenResetException if reset not called
-   * @throws LmdbNativeException                 if a native C error occurred
+   * @throws LmdbNativeException         if a native C error occurred
    */
   public void renew() throws TxnHasNotBeenResetException,
-    LmdbNativeException {
+                             LmdbNativeException {
     if (!reset) {
       throw new TxnHasNotBeenResetException();
     }
@@ -206,7 +204,7 @@ public final class Txn implements AutoCloseable {
    * @throws TxnAlreadyResetException     if reset already performed
    */
   public void reset() throws TxnReadOnlyRequiredException,
-    TxnAlreadyResetException {
+                             TxnAlreadyResetException {
     if (!isReadOnly()) {
       throw new TxnReadOnlyRequiredException();
     }

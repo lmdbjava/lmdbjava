@@ -20,15 +20,38 @@ package org.lmdbjava;
  */
 public class EnvInfo {
 
+  /**
+   * ID of the last used page.
+   */
   public final long lastPageNumber;
+
+  /**
+   * ID of the last committed transaction.
+   */
   public final long lastTransactionId;
+
+  /**
+   * Address of map, if fixed.
+   */
   public final long mapAddress;
+
+  /**
+   * Size of the data memory map.
+   */
   public final long mapSize;
+
+  /**
+   * Max reader slots in the environment.
+   */
   public final int maxReaders;
+
+  /**
+   * Max reader slots used in the environment.
+   */
   public final int numReaders;
 
-  public EnvInfo(long mapAddress, long mapSize, long lastPageNumber,
-                 long lastTransactionId, int maxReaders, int numReaders) {
+  EnvInfo(long mapAddress, long mapSize, long lastPageNumber,
+          long lastTransactionId, int maxReaders, int numReaders) {
     this.mapAddress = mapAddress;
     this.mapSize = mapSize;
     this.lastPageNumber = lastPageNumber;

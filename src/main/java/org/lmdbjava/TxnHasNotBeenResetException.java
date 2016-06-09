@@ -24,7 +24,6 @@ public class TxnHasNotBeenResetException extends LmdbException {
 
   /**
    * Creates a new instance.
-   *
    */
   public TxnHasNotBeenResetException() {
     super("Transaction has not been reset");

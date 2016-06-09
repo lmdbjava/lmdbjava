@@ -20,11 +20,34 @@ package org.lmdbjava;
  */
 public class EnvStat {
 
+  /**
+   * Number of internal (non-leaf) pages.
+   */
   public final long branchPages;
+
+  /**
+   * Depth (height) of the B-tree.
+   */
   public final int depth;
+
+  /**
+   * Number of data items.
+   */
   public final long entries;
+
+  /**
+   * Number of leaf pages.
+   */
   public final long leafPages;
+
+  /**
+   * Number of overflow pages.
+   */
   public final long overflowPages;
+
+  /**
+   * Size of a database page. This is currently the same for all databases.
+   */
   public final int pageSize;
 
   EnvStat(int pageSize, int depth, long branchPages, long leafPages,
