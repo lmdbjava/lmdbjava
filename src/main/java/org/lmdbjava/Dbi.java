@@ -238,7 +238,7 @@ public final class Dbi {
    * @throws LmdbNativeException      if a native C error occurred
    */
   public void put(final Txn tx, final ByteBuffer key, final ByteBuffer val,
-                  final DbiFlags... flags)
+                  final PutFlags... flags)
       throws CommittedException, BufferNotDirectException, LmdbNativeException {
 
     final MDB_val k = createVal(key);

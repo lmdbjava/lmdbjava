@@ -12,9 +12,13 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.lmdbjava.Dbi.DbFullException;
+import org.lmdbjava.Dbi.KeyExistsException;
 import org.lmdbjava.Dbi.KeyNotFoundException;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
+
+import org.lmdbjava.Env.MapFullException;
 import org.lmdbjava.Env.NotOpenException;
+
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import org.lmdbjava.LmdbException.BufferNotDirectException;
 import org.lmdbjava.LmdbNativeException.ConstantDerviedException;
@@ -37,7 +41,7 @@ public class DbiTest {
     final File path = tmp.newFile();
 
     env.setMapSize(1_024 * 1_024 * 1_024);
-    env.setMaxDbs(1);
+    env.setMaxDbs(2);
     env.setMaxReaders(1);
     env.open(path, POSIX_MODE, MDB_NOSUBDIR);
 
@@ -49,6 +53,7 @@ public class DbiTest {
   @SuppressWarnings("ResultOfObjectAllocationIgnored")
   public void dbOpenMaxDatabases() throws Exception {
     new Dbi(tx, "another", MDB_CREATE);
+    new Dbi(tx, "fails", MDB_CREATE);
   }
 
   @Test(expected = CommittedException.class)
@@ -115,6 +120,20 @@ public class DbiTest {
     } catch (KeyNotFoundException e) {
     }
     tx.abort();
+  }
+
+  @Test(expected = MapFullException.class)
+  public void testMapFullException() throws Exception {
+    Dbi db = new Dbi(tx, DB_1, MDB_CREATE);
+    ByteBuffer v = ByteBuffer.allocateDirect(1024 * 1024 * 1024);
+    db.put(tx, createBb(1), v);
+  }
+
+  @Test(expected = KeyExistsException.class)
+  public void testKeyExistsException() throws Exception {
+    Dbi db = new Dbi(tx, DB_1, MDB_CREATE);
+    db.put(tx, createBb(5), createBb(5), PutFlags.MDB_NOOVERWRITE);
+    db.put(tx, createBb(5), createBb(5), PutFlags.MDB_NOOVERWRITE);
   }
 
   @Test
