@@ -11,9 +11,9 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import org.lmdbjava.Database.DbFullException;
-import org.lmdbjava.Database.KeyNotFoundException;
-import static org.lmdbjava.DatabaseFlags.MDB_CREATE;
+import org.lmdbjava.Dbi.DbFullException;
+import org.lmdbjava.Dbi.KeyNotFoundException;
+import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import org.lmdbjava.Env.NotOpenException;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import org.lmdbjava.LmdbNativeException.ConstantDerviedException;
@@ -22,11 +22,11 @@ import static org.lmdbjava.TestUtils.POSIX_MODE;
 import static org.lmdbjava.TestUtils.createBb;
 import org.lmdbjava.Txn.CommittedException;
 
-public class DatabaseTest {
+public class DbiTest {
 
   @Rule
   public final TemporaryFolder tmp = new TemporaryFolder();
-  private Database db;
+  private Dbi dbi;
   private Env env;
   private Txn tx;
 
@@ -41,23 +41,24 @@ public class DatabaseTest {
     env.open(path, POSIX_MODE, MDB_NOSUBDIR);
 
     tx = new Txn(env);
-    db = new Database(tx, DB_1, MDB_CREATE);
+    dbi = new Dbi(tx, DB_1, MDB_CREATE);
   }
 
   @Test(expected = DbFullException.class)
+  @SuppressWarnings("ResultOfObjectAllocationIgnored")
   public void dbOpenMaxDatabases() throws Exception {
-    new Database(tx, "another", MDB_CREATE);
+    new Dbi(tx, "another", MDB_CREATE);
   }
 
   @Test
   public void putAbortGet() throws Exception {
-    Database db = new Database(tx, DB_1, MDB_CREATE);
+    Dbi db = new Dbi(tx, DB_1, MDB_CREATE);
 
     db.put(tx, createBb(5), createBb(5));
     tx.abort();
 
-    try (Txn tx = new Txn(env)) {
-      db.get(tx, createBb(5));
+    try (Txn tx2 = new Txn(env)) {
+      db.get(tx2, createBb(5));
       fail("key does not exist");
     } catch (ConstantDerviedException e) {
       assertThat(e.getResultCode(), is(22));
@@ -66,7 +67,7 @@ public class DatabaseTest {
 
   @Test
   public void putAndGetAndDeleteWithInternalTx() throws Exception {
-    Database db = new Database(tx, DB_1, MDB_CREATE);
+    Dbi db = new Dbi(tx, DB_1, MDB_CREATE);
     tx.commit();
     db.put(createBb(5), createBb(5));
     ByteBuffer val = db.get(createBb(5));
@@ -81,20 +82,20 @@ public class DatabaseTest {
 
   @Test
   public void putCommitGet() throws Exception {
-    Database db = new Database(tx, DB_1, MDB_CREATE);
+    Dbi db = new Dbi(tx, DB_1, MDB_CREATE);
 
     db.put(tx, createBb(5), createBb(5));
     tx.commit();
 
-    try (Txn tx = new Txn(env)) {
-      ByteBuffer result = db.get(tx, createBb(5));
+    try (Txn tx2 = new Txn(env)) {
+      ByteBuffer result = db.get(tx2, createBb(5));
       assertThat(result.getInt(), is(5));
     }
   }
 
   @Test
   public void putDelete() throws Exception {
-    Database db = new Database(tx, DB_1, MDB_CREATE);
+    Dbi db = new Dbi(tx, DB_1, MDB_CREATE);
 
     db.put(tx, createBb(5), createBb(5));
     db.delete(tx, createBb(5));
@@ -116,7 +117,7 @@ public class DatabaseTest {
           Random random = new Random();
           for (int i = 0; i < 15_000; i++) {
             try {
-              db.put(createBb(random.nextInt()), createBb(random.nextInt()));
+              dbi.put(createBb(random.nextInt()), createBb(random.nextInt()));
             } catch (CommittedException | LmdbNativeException | NotOpenException e) {
               throw new RuntimeException(e);
             }

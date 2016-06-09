@@ -19,13 +19,13 @@ import jnr.constants.Constant;
 import jnr.constants.ConstantSet;
 import static jnr.constants.ConstantSet.getConstantSet;
 import static org.lmdbjava.Cursor.FullException.MDB_CURSOR_FULL;
-import static org.lmdbjava.Database.BadDbiException.MDB_BAD_DBI;
-import static org.lmdbjava.Database.BadValueSizeException.MDB_BAD_VALSIZE;
-import static org.lmdbjava.Database.DbFullException.MDB_DBS_FULL;
-import static org.lmdbjava.Database.IncompatibleException.MDB_INCOMPATIBLE;
-import static org.lmdbjava.Database.KeyExistsException.MDB_KEYEXIST;
-import static org.lmdbjava.Database.KeyNotFoundException.MDB_NOTFOUND;
-import static org.lmdbjava.Database.MapResizedException.MDB_MAP_RESIZED;
+import static org.lmdbjava.Dbi.BadDbiException.MDB_BAD_DBI;
+import static org.lmdbjava.Dbi.BadValueSizeException.MDB_BAD_VALSIZE;
+import static org.lmdbjava.Dbi.DbFullException.MDB_DBS_FULL;
+import static org.lmdbjava.Dbi.IncompatibleException.MDB_INCOMPATIBLE;
+import static org.lmdbjava.Dbi.KeyExistsException.MDB_KEYEXIST;
+import static org.lmdbjava.Dbi.KeyNotFoundException.MDB_NOTFOUND;
+import static org.lmdbjava.Dbi.MapResizedException.MDB_MAP_RESIZED;
 import static org.lmdbjava.Env.FileInvalidException.MDB_INVALID;
 import static org.lmdbjava.Env.MapFullException.MDB_MAP_FULL;
 import static org.lmdbjava.Env.ReadersFullException.MDB_READERS_FULL;
@@ -102,31 +102,31 @@ public final class ResultCodeMapper {
 
     switch (rc) {
       case MDB_BAD_DBI:
-        return new Database.BadDbiException();
+        return new Dbi.BadDbiException();
       case MDB_BAD_RSLOT:
         return new BadReaderLockException();
       case MDB_BAD_TXN:
         return new BadException();
       case MDB_BAD_VALSIZE:
-        return new Database.BadValueSizeException();
+        return new Dbi.BadValueSizeException();
       case MDB_CORRUPTED:
         return new LmdbNativeException.PageCorruptedException();
       case MDB_CURSOR_FULL:
         return new Cursor.FullException();
       case MDB_DBS_FULL:
-        return new Database.DbFullException();
+        return new Dbi.DbFullException();
       case MDB_INCOMPATIBLE:
-        return new Database.IncompatibleException();
+        return new Dbi.IncompatibleException();
       case MDB_INVALID:
         return new Env.FileInvalidException();
       case MDB_KEYEXIST:
-        return new Database.KeyExistsException();
+        return new Dbi.KeyExistsException();
       case MDB_MAP_FULL:
         return new Env.MapFullException();
       case MDB_MAP_RESIZED:
-        return new Database.MapResizedException();
+        return new Dbi.MapResizedException();
       case MDB_NOTFOUND:
-        return new Database.KeyNotFoundException();
+        return new Dbi.KeyNotFoundException();
       case MDB_PAGE_FULL:
         return new LmdbNativeException.PageFullException();
       case MDB_PAGE_NOTFOUND:

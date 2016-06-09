@@ -11,7 +11,7 @@ import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import static org.lmdbjava.DatabaseFlags.MDB_CREATE;
+import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import org.lmdbjava.Env.NotOpenException;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.TestUtils.DB_1;
@@ -45,7 +45,7 @@ public class TxnTest {
   @Ignore
   public void testGetId() throws Exception {
     Txn tx = new Txn(env);
-    Database db = new Database(tx, DB_1, MDB_CREATE);
+    Dbi db = new Dbi(tx, DB_1, MDB_CREATE);
     tx.commit();
 
     final AtomicLong txId1 = new AtomicLong();

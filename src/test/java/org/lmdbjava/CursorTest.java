@@ -16,9 +16,9 @@ import static org.lmdbjava.CursorOp.MDB_PREV;
 import static org.lmdbjava.CursorOp.MDB_SET;
 import static org.lmdbjava.CursorOp.MDB_SET_KEY;
 import static org.lmdbjava.CursorOp.MDB_SET_RANGE;
-import org.lmdbjava.Database.KeyNotFoundException;
-import static org.lmdbjava.DatabaseFlags.MDB_CREATE;
-import static org.lmdbjava.DatabaseFlags.MDB_DUPSORT;
+import org.lmdbjava.Dbi.KeyNotFoundException;
+import static org.lmdbjava.DbiFlags.MDB_CREATE;
+import static org.lmdbjava.DbiFlags.MDB_DUPSORT;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.PutFlags.MDB_APPENDDUP;
 import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
@@ -32,7 +32,7 @@ public class CursorTest {
 
   @Rule
   public final TemporaryFolder tmp = new TemporaryFolder();
-  private Database db;
+  private Dbi db;
   private Env env;
   private Txn tx;
 
@@ -45,13 +45,13 @@ public class CursorTest {
     env.setMaxReaders(1);
     env.open(path, POSIX_MODE, MDB_NOSUBDIR);
     tx = new Txn(env);
-    db = new Database(tx, DB_1, MDB_CREATE, MDB_DUPSORT);
+    db = new Dbi(tx, DB_1, MDB_CREATE, MDB_DUPSORT);
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void closeCursor() throws LmdbNativeException,
                                    CommittedException {
-    db = new Database(tx, DB_1, MDB_CREATE);
+    db = new Dbi(tx, DB_1, MDB_CREATE);
     Cursor cursor = db.openCursor(tx);
     cursor.close();
     ByteBuffer k = createBb(1);

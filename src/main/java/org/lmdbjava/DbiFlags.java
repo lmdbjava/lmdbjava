@@ -16,9 +16,9 @@
 package org.lmdbjava;
 
 /**
- * Flags for use when opening a {@link Database}.
+ * Flags for use when opening a {@link Dbi}.
  */
-public enum DatabaseFlags implements MaskedFlag {
+public enum DbiFlags implements MaskedFlag {
 
   /**
    * use reverse string keys
@@ -52,7 +52,7 @@ public enum DatabaseFlags implements MaskedFlag {
 
   private final int mask;
 
-  DatabaseFlags(final int mask) {
+  DbiFlags(final int mask) {
     this.mask = mask;
   }
 

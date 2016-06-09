@@ -21,7 +21,7 @@ import static org.lmdbjava.ValueBuffers.wrap;
 /**
  * LMDB Database.
  */
-public final class Database {
+public final class Dbi {
 
   private final String name;
   final int dbi;
@@ -39,7 +39,7 @@ public final class Database {
    * @throws CommittedException  if already committed
    * @throws LmdbNativeException if a native C error occurred
    */
-  public Database(Txn tx, String name, DatabaseFlags... flags)
+  public Dbi(Txn tx, String name, DbiFlags... flags)
       throws CommittedException, LmdbNativeException {
     requireNonNull(tx);
     if (tx.isCommitted()) {
@@ -85,7 +85,7 @@ public final class Database {
    * Removes key/data pairs from the database.
    * </p>
    * If the database does not support sorted duplicate data items
-   * ({@link org.lmdbjava.DatabaseFlags#MDB_DUPSORT}) the value parameter is
+   * ({@link org.lmdbjava.DbiFlags#MDB_DUPSORT}) the value parameter is
    * ignored. If the database supports sorted duplicates and the data parameter
    * is NULL, all of the duplicate data items for the key will be deleted.
    * Otherwise, if the data parameter is non-NULL only the matching data item
@@ -131,7 +131,7 @@ public final class Database {
    * This function retrieves key/data pairs from the database. The address and
    * length of the data associated with the specified \b key are returned in the
    * structure to which \b data refers. If the database supports duplicate keys
-   * ({@link org.lmdbjava.DatabaseFlags#MDB_DUPSORT}) then the first data item
+   * ({@link org.lmdbjava.DbiFlags#MDB_DUPSORT}) then the first data item
    * for the key will be returned. Retrieval of other items requires the use of
    * #mdb_cursor_get().
    *
@@ -217,7 +217,7 @@ public final class Database {
    * This function stores key/data pairs in the database. The default behavior
    * is to enter the new key/data pair, replacing any previously existing key if
    * duplicates are disallowed, or adding a duplicate data item if duplicates
-   * are allowed ({@link org.lmdbjava.DatabaseFlags#MDB_DUPSORT}).
+   * are allowed ({@link org.lmdbjava.DbiFlags#MDB_DUPSORT}).
    *
    * @param tx    transaction handle
    * @param key   The key to store in the database
@@ -226,7 +226,7 @@ public final class Database {
    * @throws CommittedException  if already committed
    * @throws LmdbNativeException if a native C error occurred
    */
-  public void put(Txn tx, ByteBuffer key, ByteBuffer val, DatabaseFlags... flags)
+  public void put(Txn tx, ByteBuffer key, ByteBuffer val, DbiFlags... flags)
       throws
       CommittedException, LmdbNativeException {
 
