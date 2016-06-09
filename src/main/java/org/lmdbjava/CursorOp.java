@@ -28,15 +28,15 @@ public enum CursorOp {
   MDB_FIRST(0),
   /**
    * Position at first data item of current key. Only for
-   * {@link DatabaseFlags#MDB_DUPSORT}.
+   * {@link DbiFlags#MDB_DUPSORT}.
    */
   MDB_FIRST_DUP(1),
   /**
-   * Position at key/data pair. Only for {@link DatabaseFlags#MDB_DUPSORT}.
+   * Position at key/data pair. Only for {@link DbiFlags#MDB_DUPSORT}.
    */
   MDB_GET_BOTH(2),
   /**
-   * position at key, nearest data. Only for {@link DatabaseFlags#MDB_DUPSORT}.
+   * position at key, nearest data. Only for {@link DbiFlags#MDB_DUPSORT}.
    */
   MDB_GET_BOTH_RANGE(3),
   /**
@@ -46,7 +46,7 @@ public enum CursorOp {
   /**
    * Return key and up to a page of duplicate data items from current cursor
    * position. Move cursor to prepare for {@link #MDB_NEXT_MULTIPLE}. Only for
-   * {@link DatabaseFlags#MDB_DUPSORT}.
+   * {@link DbiFlags#MDB_DUPSORT}.
    */
   MDB_GET_MULTIPLE(5),
   /**
@@ -55,7 +55,7 @@ public enum CursorOp {
   MDB_LAST(6),
   /**
    * Position at last data item of current key. Only for
-   * {@link DatabaseFlags#MDB_DUPSORT}.
+   * {@link DbiFlags#MDB_DUPSORT}.
    */
   MDB_LAST_DUP(7),
   /**
@@ -64,13 +64,13 @@ public enum CursorOp {
   MDB_NEXT(8),
   /**
    * Position at next data item of current key. Only for
-   * {@link DatabaseFlags#MDB_DUPSORT}.
+   * {@link DbiFlags#MDB_DUPSORT}.
    */
   MDB_NEXT_DUP(9),
   /**
    * Return key and up to a page of duplicate data items from next cursor
    * position. Move cursor to prepare for {@link #MDB_NEXT_MULTIPLE}. Only for
-   * {@link DatabaseFlags#MDB_DUPSORT}.
+   * {@link DbiFlags#MDB_DUPSORT}.
    */
   MDB_NEXT_MULTIPLE(10),
   /**
@@ -83,7 +83,7 @@ public enum CursorOp {
   MDB_PREV(12),
   /**
    * Position at previous data item of current key.
-   * {@link DatabaseFlags#MDB_DUPSORT}.
+   * {@link DbiFlags#MDB_DUPSORT}.
    */
   MDB_PREV_DUP(13),
   /**
