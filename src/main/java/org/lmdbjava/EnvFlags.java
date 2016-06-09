@@ -67,7 +67,7 @@ public enum EnvFlags implements MaskedFlag {
 
   private final int mask;
 
-  EnvFlags(final int mask) {
+  private EnvFlags(final int mask) {
     this.mask = mask;
   }
 

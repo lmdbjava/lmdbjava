@@ -54,7 +54,7 @@ public enum PutFlags implements MaskedFlag {
 
   private final int mask;
 
-  PutFlags(final int mask) {
+  private PutFlags(final int mask) {
     this.mask = mask;
   }
 

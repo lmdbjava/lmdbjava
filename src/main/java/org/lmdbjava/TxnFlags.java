@@ -26,7 +26,7 @@ public enum TxnFlags implements MaskedFlag {
 
   private final int mask;
 
-  TxnFlags(final int mask) {
+  private TxnFlags(final int mask) {
     this.mask = mask;
   }
 

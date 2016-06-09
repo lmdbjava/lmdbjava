@@ -28,7 +28,7 @@ public enum CopyFlags implements MaskedFlag {
 
   private final int mask;
 
-  CopyFlags(final int mask) {
+  private CopyFlags(final int mask) {
     this.mask = mask;
   }
 
