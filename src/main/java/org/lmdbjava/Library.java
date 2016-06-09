@@ -106,7 +106,12 @@ final class Library {
      * Return statistics about the LMDB environment. 
      */
     int mdb_env_stat(@In Pointer env, @Out MDB_stat stat);
-    
+
+    /**
+     * Forces a sync.
+     */
+    int mdb_env_sync(@In Pointer env, int f);
+
     /**
      * Return information about the LMDB environment. 
      */

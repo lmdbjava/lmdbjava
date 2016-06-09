@@ -139,6 +139,7 @@ public class EnvTest {
     env.open(path, POSIX_MODE);
     assertThat(env.isOpen(), is(true));
     assertThat(path.isDirectory(), is(true));
+    env.sync(false);
     env.close();
     assertThat(env.isClosed(), is(true));
     env.close(); // safe to repeat
@@ -154,6 +155,7 @@ public class EnvTest {
       env.setMaxDbs(1);
       env.setMaxReaders(1);
       env.open(path, POSIX_MODE, MDB_NOSUBDIR);
+      env.sync(true);
       assertThat(env.isOpen(), is(true));
       assertThat(path.isFile(), is(true));
     }

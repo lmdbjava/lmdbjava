@@ -249,6 +249,19 @@ public final class Env implements AutoCloseable {
   }
 
   /**
+   * Flushes the data buffers to disk.
+   *
+   * @param force force a synchronous flush (otherwise if the environment has
+   *              the MDB_NOSYNC flag set the flushes will be omitted, and with
+   *              MDB_MAPASYNC they will be asynchronous)
+   * @throws LmdbNativeException
+   */
+  public void sync(final boolean force) throws LmdbNativeException {
+    final int f = force ? 1 : 0;
+    checkRc(lib.mdb_env_sync(ptr, f));
+  }
+
+  /**
    * Object has already been closed and the operation is therefore prohibited.
    */
   public static final class AlreadyClosedException extends LmdbException {
