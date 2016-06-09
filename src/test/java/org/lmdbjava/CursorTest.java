@@ -16,6 +16,7 @@ import static org.lmdbjava.CursorOp.MDB_PREV;
 import static org.lmdbjava.CursorOp.MDB_SET;
 import static org.lmdbjava.CursorOp.MDB_SET_KEY;
 import static org.lmdbjava.CursorOp.MDB_SET_RANGE;
+import org.lmdbjava.Database.KeyNotFoundException;
 import static org.lmdbjava.DatabaseFlags.MDB_CREATE;
 import static org.lmdbjava.DatabaseFlags.MDB_DUPSORT;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
@@ -23,8 +24,8 @@ import static org.lmdbjava.PutFlags.MDB_APPENDDUP;
 import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
 import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.POSIX_MODE;
-import static org.lmdbjava.TestUtils.createBb;
 import static org.lmdbjava.TxnFlags.MDB_RDONLY;
+import static org.lmdbjava.TestUtils.createBb;
 
 public class CursorTest {
 
@@ -87,7 +88,7 @@ public class CursorTest {
     try {
       cursor.get(k, v, MDB_FIRST);
       fail("should fail");
-    } catch (DatabaseKeyNotFoundException e) {
+    } catch (KeyNotFoundException e) {
     }
     tx.commit();
   }

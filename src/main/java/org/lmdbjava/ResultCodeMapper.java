@@ -18,26 +18,26 @@ package org.lmdbjava;
 import jnr.constants.Constant;
 import jnr.constants.ConstantSet;
 import static jnr.constants.ConstantSet.getConstantSet;
-import static org.lmdbjava.DatabaseBadException.MDB_BAD_DBI;
-import static org.lmdbjava.TxnBadReaderLockTableSlotException.MDB_BAD_RSLOT;
-import static org.lmdbjava.TxnBadException.MDB_BAD_TXN;
-import static org.lmdbjava.DatabaseBadValueSizeException.MDB_BAD_VALSIZE;
-import static org.lmdbjava.PageCorruptedException.MDB_CORRUPTED;
 import static org.lmdbjava.CursorFullException.MDB_CURSOR_FULL;
+import static org.lmdbjava.Database.BadDbiException.MDB_BAD_DBI;
+import static org.lmdbjava.Database.BadValueSizeException.MDB_BAD_VALSIZE;
+import static org.lmdbjava.Database.IncompatibleException.MDB_INCOMPATIBLE;
+import static org.lmdbjava.Database.KeyExistsException.MDB_KEYEXIST;
+import static org.lmdbjava.Database.KeyNotFoundException.MDB_NOTFOUND;
+import static org.lmdbjava.Database.MapResizedException.MDB_MAP_RESIZED;
 import static org.lmdbjava.DatabasesFullException.MDB_DBS_FULL;
-import static org.lmdbjava.DatabaseIncompatibleException.MDB_INCOMPATIBLE;
-import static org.lmdbjava.FileInvalidException.MDB_INVALID;
-import static org.lmdbjava.DatabaseKeyExistsException.MDB_KEYEXIST;
 import static org.lmdbjava.EnvMapFullException.MDB_MAP_FULL;
-import static org.lmdbjava.DatabaseMapResizedException.MDB_MAP_RESIZED;
-import static org.lmdbjava.DatabaseKeyNotFoundException.MDB_NOTFOUND;
+import static org.lmdbjava.EnvReadersFullException.MDB_READERS_FULL;
+import static org.lmdbjava.EnvVersionMismatchException.MDB_VERSION_MISMATCH;
+import static org.lmdbjava.FileInvalidException.MDB_INVALID;
+import static org.lmdbjava.PageCorruptedException.MDB_CORRUPTED;
 import static org.lmdbjava.PageFullException.MDB_PAGE_FULL;
 import static org.lmdbjava.PageNotFoundException.MDB_PAGE_NOTFOUND;
 import static org.lmdbjava.PanicException.MDB_PANIC;
-import static org.lmdbjava.EnvReadersFullException.MDB_READERS_FULL;
 import static org.lmdbjava.TlsFullException.MDB_TLS_FULL;
+import static org.lmdbjava.TxnBadException.MDB_BAD_TXN;
+import static org.lmdbjava.TxnBadReaderLockTableSlotException.MDB_BAD_RSLOT;
 import static org.lmdbjava.TxnFullException.MDB_TXN_FULL;
-import static org.lmdbjava.EnvVersionMismatchException.MDB_VERSION_MISMATCH;
 
 /**
  * Maps a LMDB C result code to the equivalent Java exception.
@@ -99,13 +99,13 @@ public final class ResultCodeMapper {
 
     switch (rc) {
       case MDB_BAD_DBI:
-        return new DatabaseBadException();
+        return new org.lmdbjava.Database.BadDbiException();
       case MDB_BAD_RSLOT:
         return new TxnBadReaderLockTableSlotException();
       case MDB_BAD_TXN:
         return new TxnBadException();
       case MDB_BAD_VALSIZE:
-        return new DatabaseBadValueSizeException();
+        return new org.lmdbjava.Database.BadValueSizeException();
       case MDB_CORRUPTED:
         return new PageCorruptedException();
       case MDB_CURSOR_FULL:
@@ -113,17 +113,17 @@ public final class ResultCodeMapper {
       case MDB_DBS_FULL:
         return new DatabasesFullException();
       case MDB_INCOMPATIBLE:
-        return new DatabaseIncompatibleException();
+        return new Database.IncompatibleException();
       case MDB_INVALID:
         return new FileInvalidException();
       case MDB_KEYEXIST:
-        return new DatabaseKeyExistsException();
+        return new org.lmdbjava.Database.KeyExistsException();
       case MDB_MAP_FULL:
         return new EnvMapFullException();
       case MDB_MAP_RESIZED:
-        return new DatabaseMapResizedException();
+        return new org.lmdbjava.Database.MapResizedException();
       case MDB_NOTFOUND:
-        return new DatabaseKeyNotFoundException();
+        return new org.lmdbjava.Database.KeyNotFoundException();
       case MDB_PAGE_FULL:
         return new PageFullException();
       case MDB_PAGE_NOTFOUND:

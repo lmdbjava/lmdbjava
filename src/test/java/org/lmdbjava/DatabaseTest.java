@@ -15,6 +15,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.lmdbjava.Database.KeyNotFoundException;
 
 import static org.lmdbjava.DatabaseFlags.MDB_CREATE;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
@@ -75,7 +76,7 @@ public class DatabaseTest {
     try {
       db.get(createBb(5));
       fail("should have been deleted");
-    } catch (DatabaseKeyNotFoundException e) {
+    } catch (KeyNotFoundException e) {
     }
   }
 
@@ -102,7 +103,7 @@ public class DatabaseTest {
     try {
       db.get(tx, createBb(5));
       fail("key does not exist");
-    } catch (DatabaseKeyNotFoundException e) {
+    } catch (KeyNotFoundException e) {
     }
     tx.abort();
   }

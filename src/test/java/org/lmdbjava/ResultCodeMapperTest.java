@@ -9,6 +9,12 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.fail;
 import org.junit.Test;
 import static org.lmdbjava.CursorFullException.MDB_CURSOR_FULL;
+import org.lmdbjava.Database.BadDbiException;
+import org.lmdbjava.Database.BadValueSizeException;
+import org.lmdbjava.Database.IncompatibleException;
+import org.lmdbjava.Database.KeyExistsException;
+import org.lmdbjava.Database.KeyNotFoundException;
+import org.lmdbjava.Database.MapResizedException;
 import static org.lmdbjava.ResultCodeMapper.MDB_SUCCESS;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
 import static org.lmdbjava.ResultCodeMapper.rcException;
@@ -21,19 +27,19 @@ public class ResultCodeMapperTest {
 
   static {
     // separate collection instances used to simplify duplicate RC detection
-    EXCEPTIONS.add(new DatabaseBadException());
+    EXCEPTIONS.add(new BadDbiException());
     EXCEPTIONS.add(new TxnBadReaderLockTableSlotException());
     EXCEPTIONS.add(new TxnBadException());
-    EXCEPTIONS.add(new DatabaseBadValueSizeException());
+    EXCEPTIONS.add(new BadValueSizeException());
     EXCEPTIONS.add(new PageCorruptedException());
     EXCEPTIONS.add(new CursorFullException());
     EXCEPTIONS.add(new DatabasesFullException());
-    EXCEPTIONS.add(new DatabaseIncompatibleException());
+    EXCEPTIONS.add(new IncompatibleException());
     EXCEPTIONS.add(new FileInvalidException());
-    EXCEPTIONS.add(new DatabaseKeyExistsException());
+    EXCEPTIONS.add(new KeyExistsException());
     EXCEPTIONS.add(new EnvMapFullException());
-    EXCEPTIONS.add(new DatabaseMapResizedException());
-    EXCEPTIONS.add(new DatabaseKeyNotFoundException());
+    EXCEPTIONS.add(new MapResizedException());
+    EXCEPTIONS.add(new KeyNotFoundException());
     EXCEPTIONS.add(new PageFullException());
     EXCEPTIONS.add(new PageNotFoundException());
     EXCEPTIONS.add(new PanicException());
