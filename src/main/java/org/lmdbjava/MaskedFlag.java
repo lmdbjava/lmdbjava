@@ -53,7 +53,7 @@ public interface MaskedFlag {
    * @param flags to evaluate (usually produced by
    *              {@link #mask(org.lmdbjava.MaskedFlag...)}
    * @param test  the flag being sought (required)
-   * @return
+   * @return true if set.
    */
   static boolean isSet(final int flags, final MaskedFlag test) {
     requireNonNull(test);

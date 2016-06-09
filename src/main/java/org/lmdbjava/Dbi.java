@@ -208,7 +208,7 @@ public final class Dbi {
    * @throws BufferNotDirectException if a passed buffer is invalid
    * @throws NotOpenException         if the environment is not currently open
    * @throws LmdbNativeException      if a native C error occurred
-   * @see #put(Txn, ByteBuffer, ByteBuffer, DbiFlags...)
+   * @see Dbi#put(Txn, ByteBuffer, ByteBuffer, PutFlags...)
    */
   public void put(final ByteBuffer key, final ByteBuffer val) throws
       CommittedException, BufferNotDirectException, LmdbNativeException,

@@ -10,3 +10,4 @@ bin
 *.releaseBackup
 *.log
 *.tag
+*.next
