@@ -51,9 +51,17 @@ public class DbiTest {
     new Dbi(tx, "another", MDB_CREATE);
   }
 
+  @Test(expected = CommittedException.class)
+  @SuppressWarnings("ResultOfObjectAllocationIgnored")
+  public void dbTxCommitted() throws Exception {
+    tx.commit();
+    new Dbi(tx, "another", MDB_CREATE);
+  }
+
   @Test
   public void putAbortGet() throws Exception {
     Dbi db = new Dbi(tx, DB_1, MDB_CREATE);
+    assertThat(db.getName(), is(DB_1));
 
     db.put(tx, createBb(5), createBb(5));
     tx.abort();
