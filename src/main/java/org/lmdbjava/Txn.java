@@ -279,7 +279,6 @@ public final class Txn implements AutoCloseable {
 
     /**
      * Creates a new instance.
-     * <p>
      */
     public ReadOnlyRequiredException() {
       super("Not a read-only transaction");
@@ -295,7 +294,6 @@ public final class Txn implements AutoCloseable {
 
     /**
      * Creates a new instance.
-     * <p>
      */
     public ResetException() {
       super("Transaction has already been reset");

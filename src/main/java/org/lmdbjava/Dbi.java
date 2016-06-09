@@ -188,12 +188,12 @@ public final class Dbi {
    * or after its transaction ends. It can be reused with #mdb_cursor_renew()
    * before finally closing it.
    *
-   * @throws LmdbNativeException if a native C error occurred
-   * @note Earlier documentation said that cursors in every transaction were
+   * Earlier documentation said that cursors in every transaction were
    * closed when the transaction committed or aborted.
    *
    * @param tx transaction handle
    * @return cursor handle
+   * @throws LmdbNativeException if a native C error occurred
    */
   public Cursor openCursor(final Txn tx) throws LmdbNativeException {
     PointerByReference ptr = new PointerByReference();

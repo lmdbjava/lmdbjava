@@ -254,7 +254,7 @@ public final class Env implements AutoCloseable {
    * @param force force a synchronous flush (otherwise if the environment has
    *              the MDB_NOSYNC flag set the flushes will be omitted, and with
    *              MDB_MAPASYNC they will be asynchronous)
-   * @throws LmdbNativeException
+   * @throws LmdbNativeException if a native C error occurred
    */
   public void sync(final boolean force) throws LmdbNativeException {
     final int f = force ? 1 : 0;

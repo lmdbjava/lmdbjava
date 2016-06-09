@@ -19,8 +19,6 @@ import static java.util.Objects.requireNonNull;
 
 /**
  * Indicates an enum that can provide integers for each of its values,
- * <p>
- * These values can be masked together via {@link Utils#mask(java.util.Set)}.
  */
 public interface MaskedFlag {
 
