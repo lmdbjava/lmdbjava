@@ -26,7 +26,8 @@ interface BufferMutator {
    * Modifies the passed direct <code>Buffer</code> to point at the indicated
    * memory address and size.
    * <p>
-   * The passed buffer can be of any address or capacity.
+   * The passed buffer can be of any address or capacity, but the buffer must be
+   * direct. The result of presenting a non-direct buffer is undefined.
    * <p>
    * {@link Buffer#clear() } will be invoked automatically (this does not clear
    * the buffer, but simply resets its limits, position and mark).
