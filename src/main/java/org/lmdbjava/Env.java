@@ -216,4 +216,43 @@ public final class Env implements AutoCloseable {
         stat.ms_overflow_pages.longValue(),
         stat.ms_psize.longValue());
   }
+
+  /**
+   * Environment mapsize reached.
+   */
+  public static final class MapFullException extends LmdbNativeException {
+
+    private static final long serialVersionUID = 1L;
+    static final int MDB_MAP_FULL = -30_792;
+
+    MapFullException() {
+      super(MDB_MAP_FULL, "Environment mapsize reached");
+    }
+  }
+
+  /**
+   * Environment maxreaders reached.
+   */
+  public static final class ReadersFullException extends LmdbNativeException {
+
+    private static final long serialVersionUID = 1L;
+    static final int MDB_READERS_FULL = -30_790;
+
+    ReadersFullException() {
+      super(MDB_READERS_FULL, "Environment maxreaders reached");
+    }
+  }
+
+  /**
+   * Environment version mismatch.
+   */
+  public static final class VersionMismatchException extends LmdbNativeException {
+
+    private static final long serialVersionUID = 1L;
+    static final int MDB_VERSION_MISMATCH = -30_794;
+
+    VersionMismatchException() {
+      super(MDB_VERSION_MISMATCH, "Environment version mismatch");
+    }
+  }
 }

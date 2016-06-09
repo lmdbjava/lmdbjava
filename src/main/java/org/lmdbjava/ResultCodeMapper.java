@@ -26,9 +26,9 @@ import static org.lmdbjava.Database.KeyExistsException.MDB_KEYEXIST;
 import static org.lmdbjava.Database.KeyNotFoundException.MDB_NOTFOUND;
 import static org.lmdbjava.Database.MapResizedException.MDB_MAP_RESIZED;
 import static org.lmdbjava.DatabasesFullException.MDB_DBS_FULL;
-import static org.lmdbjava.EnvMapFullException.MDB_MAP_FULL;
-import static org.lmdbjava.EnvReadersFullException.MDB_READERS_FULL;
-import static org.lmdbjava.EnvVersionMismatchException.MDB_VERSION_MISMATCH;
+import static org.lmdbjava.Env.MapFullException.MDB_MAP_FULL;
+import static org.lmdbjava.Env.ReadersFullException.MDB_READERS_FULL;
+import static org.lmdbjava.Env.VersionMismatchException.MDB_VERSION_MISMATCH;
 import static org.lmdbjava.FileInvalidException.MDB_INVALID;
 import static org.lmdbjava.PageCorruptedException.MDB_CORRUPTED;
 import static org.lmdbjava.PageFullException.MDB_PAGE_FULL;
@@ -117,13 +117,13 @@ public final class ResultCodeMapper {
       case MDB_INVALID:
         return new FileInvalidException();
       case MDB_KEYEXIST:
-        return new org.lmdbjava.Database.KeyExistsException();
+        return new Database.KeyExistsException();
       case MDB_MAP_FULL:
-        return new EnvMapFullException();
+        return new Env.MapFullException();
       case MDB_MAP_RESIZED:
-        return new org.lmdbjava.Database.MapResizedException();
+        return new Database.MapResizedException();
       case MDB_NOTFOUND:
-        return new org.lmdbjava.Database.KeyNotFoundException();
+        return new Database.KeyNotFoundException();
       case MDB_PAGE_FULL:
         return new PageFullException();
       case MDB_PAGE_NOTFOUND:
@@ -131,13 +131,13 @@ public final class ResultCodeMapper {
       case MDB_PANIC:
         return new PanicException();
       case MDB_READERS_FULL:
-        return new EnvReadersFullException();
+        return new Env.ReadersFullException();
       case MDB_TLS_FULL:
         return new TlsFullException();
       case MDB_TXN_FULL:
         return new TxnFullException();
       case MDB_VERSION_MISMATCH:
-        return new EnvVersionMismatchException();
+        return new Env.VersionMismatchException();
     }
     return null;
   }

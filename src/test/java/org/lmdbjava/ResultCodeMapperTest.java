@@ -15,6 +15,9 @@ import org.lmdbjava.Database.IncompatibleException;
 import org.lmdbjava.Database.KeyExistsException;
 import org.lmdbjava.Database.KeyNotFoundException;
 import org.lmdbjava.Database.MapResizedException;
+import org.lmdbjava.Env.MapFullException;
+import org.lmdbjava.Env.ReadersFullException;
+import org.lmdbjava.Env.VersionMismatchException;
 import static org.lmdbjava.ResultCodeMapper.MDB_SUCCESS;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
 import static org.lmdbjava.ResultCodeMapper.rcException;
@@ -37,16 +40,16 @@ public class ResultCodeMapperTest {
     EXCEPTIONS.add(new IncompatibleException());
     EXCEPTIONS.add(new FileInvalidException());
     EXCEPTIONS.add(new KeyExistsException());
-    EXCEPTIONS.add(new EnvMapFullException());
+    EXCEPTIONS.add(new MapFullException());
     EXCEPTIONS.add(new MapResizedException());
     EXCEPTIONS.add(new KeyNotFoundException());
     EXCEPTIONS.add(new PageFullException());
     EXCEPTIONS.add(new PageNotFoundException());
     EXCEPTIONS.add(new PanicException());
-    EXCEPTIONS.add(new EnvReadersFullException());
+    EXCEPTIONS.add(new ReadersFullException());
     EXCEPTIONS.add(new TlsFullException());
     EXCEPTIONS.add(new TxnFullException());
-    EXCEPTIONS.add(new EnvVersionMismatchException());
+    EXCEPTIONS.add(new VersionMismatchException());
 
     for (LmdbNativeException e : EXCEPTIONS) {
       RESULT_CODES.add(e.getResultCode());
