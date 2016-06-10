@@ -46,7 +46,7 @@ final class Library {
   private Library() {
   }
 
-  @SuppressWarnings("PackageVisibleInnerClass")
+  @SuppressWarnings("all")
   public static final class MDB_envinfo extends Struct {
 
     public final Pointer f0_me_mapaddr;
@@ -67,16 +67,16 @@ final class Library {
     }
   }
 
-  @SuppressWarnings("PackageVisibleInnerClass")
+  @SuppressWarnings("all")
   public static final class MDB_stat extends Struct {
-    
+
     public final u_int32_t f0_ms_psize;
     public final u_int32_t f1_ms_depth;
     public final size_t f2_ms_branch_pages;
     public final size_t f3_ms_leaf_pages;
     public final size_t f4_ms_overflow_pages;
     public final size_t f5_ms_entries;
-    
+
     public MDB_stat(jnr.ffi.Runtime runtime) {
       super(runtime);
       this.f0_ms_psize = new u_int32_t();
@@ -88,263 +88,95 @@ final class Library {
     }
   }
 
+  @SuppressWarnings("all")
   public interface Lmdb {
 
-    /**
-     * Return the error description for this result code.
-     */
-    String mdb_strerror(int rc);
-    
-    Pointer mdb_version(IntByReference major, IntByReference minor, IntByReference patch);
-
-    /**
-     * Create an LMDB environment handle.
-     */
-    int mdb_env_create(PointerByReference envPtr);
-
-    /**
-     * Open an environment handle.
-     */
-    int mdb_env_open(@In Pointer env, @In String path, int flags, int mode);
-
-    /**
-     * Return statistics about the LMDB environment. 
-     */
-    int mdb_env_stat(@In Pointer env, @Out MDB_stat stat);
-
-    /**
-     * Forces a sync.
-     */
-    int mdb_env_sync(@In Pointer env, int f);
-
-    /**
-     * Return information about the LMDB environment. 
-     */
-    int mdb_env_info(@In Pointer env, @Out MDB_envinfo info);
-    
-    /**
-     * Copy an LMDB environment to the specified path, with options.
-     */
-    int mdb_env_copy2(@In Pointer env, @In String path, int flags);
-    
-    /**
-     * Close the environment and release the memory map.
-     */
-    void mdb_env_close(@In Pointer env);
-
-    /**
-     * Set environment flags.
-     */
-    int mdb_env_set_flags(@In Pointer env, int flags, int onoff);
-
-    /**
-     * Get environment flags.
-     */
-    int mdb_env_get_flags(@In Pointer env, int flags);
-
-    /**
-     * Return the path that was used in mdb_env_open().
-     */
-    int mdb_env_get_path(@In Pointer env, String path);
-
-    /**
-     * Return the filedescriptor for the given environment.
-     */
-    int mdb_env_get_fd(@In Pointer env, @In Pointer fd);
-
-    /**
-     * Set the size of the memory map to use for this environment.
-     */
-    int mdb_env_set_mapsize(@In Pointer env, long size);
-
-    /**
-     * Set the maximum number of threads/reader slots for the environment.
-     */
-    int mdb_env_set_maxreaders(@In Pointer env, int readers);
-
-    /**
-     * Get the maximum number of threads/reader slots for the environment.
-     */
-    int mdb_env_get_maxreaders(@In Pointer env, int readers);
-
-    /**
-     * Set the maximum number of named databases for the environment.
-     */
-    int mdb_env_set_maxdbs(@In Pointer env, int dbs);
-
-    /**
-     * Get the maximum size of keys and MDB_DUPSORT data we can write.
-     */
-    int mdb_env_get_maxkeysize(@In Pointer env);
-
-    /**
-     * Set application information associated with the MDB_env.
-     */
-    // int mdb_env_set_userctx(@In Pointer env, void *ctx);
-    /**
-     * Get the application information associated with the MDB_env.
-     */
-    // void * mdb_env_get_userctx(@In Pointer env);
-    /**
-     * Set or reset the assert() callback of the environment
-     */
-    // int mdb_env_set_assert(@In Pointer env, MDB_assert_func *func)
-    /**
-     * Create a transaction for use with the environment.
-     */
-    int mdb_txn_begin(@In Pointer env, @In Pointer parentTx, int flags,
-                      Pointer txPtr);
-
-    /**
-     * Returns the transaction's MDB_env.
-     */
-    Pointer mdb_txn_env(@In Pointer txn);
-
-    /**
-     * Return the transaction's ID.
-     */
-    long mdb_txn_id(@In Pointer txn);
-
-    /**
-     * Commit all the operations of a transaction into the database.
-     */
-    int mdb_txn_commit(@In Pointer txn);
-
-    /**
-     * Abandon all the operations of the transaction instead of saving them.
-     */
-    void mdb_txn_abort(@In Pointer txn);
-
-    /**
-     * Reset a read-only transaction.
-     */
-    void mdb_txn_reset(@In Pointer txn);
-
-    /**
-     * Renew a read-only transaction.
-     */
-    int mdb_txn_renew(@In Pointer txn);
-
-    /**
-     * Open a database in the environment.
-     */
-    int mdb_dbi_open(@In Pointer txn, @In String name, int flags,
-                     IntByReference dbiPtr);
-
-    /**
-     * Retrieve statistics for a database.
-     */
-    // int mdb_stat(@In Pointer txn, int dbiPtr, MDB_stat *stat);
-    /**
-     * Retrieve the DB flags for a database handle.
-     */
-    int mdb_dbi_flags(@In Pointer txn, int dbiPtr, int flags);
-
-    /**
-     * Close a database handle. Normally unnecessary. Use with care:
-     */
-    void mdb_dbi_close(@In Pointer env, int dbiPtr);
-
-    /**
-     * Empty or delete+close a database.
-     */
-    int mdb_drop(@In Pointer txn, int dbiPtr, int del);
-
-    /**
-     * Set a custom key comparison function for a database.
-     */
-    // int mdb_set_compare(@In Pointer txn, int dbiPtr, MDB_cmp_func *cmp);
-    /**
-     * Set a custom data comparison function for a MDB_DUPSORT database.
-     */
-    // int mdb_set_dupsort(@In Pointer txn, int dbiPtr, MDB_cmp_func *cmp);
-    /**
-     * Set a relocation function for a MDB_FIXEDMAP database.
-     */
-    // int mdb_set_relfunc(@In Pointer txn, int dbiPtr, MDB_rel_func *rel);
-    /**
-     * Set a context pointer for a MDB_FIXEDMAP database's relocation function.
-     */
-    // int mdb_set_relctx(@In Pointer txn, int dbiPtr, void *ctx);
-    /**
-     * Get items from a database.
-     */
-    int mdb_get(@In Pointer txn, int dbiPtr, @In Pointer key, @Out Pointer data);
-
-    /**
-     * Store items into a database.
-     */
-    int mdb_put(@In Pointer txn, int dbiPtr, @In Pointer key, @In Pointer data,
-                int flags);
-
-    /**
-     * Delete items from a database.
-     */
-    int mdb_del(@In Pointer txn, int dbiPtr, @In Pointer key, @In Pointer data);
-
-    /**
-     * Create a cursor handle.
-     */
-    int mdb_cursor_open(@In Pointer txn, int dbiPtr,
-                        PointerByReference cursorPtr);
-
-    /**
-     * Close a cursor handle.
-     */
     void mdb_cursor_close(@In Pointer cursor);
 
-    /**
-     * Renew a cursor handle.
-     */
-    int mdb_cursor_renew(@In Pointer txn, @In Pointer cursor);
+    int mdb_cursor_count(@In Pointer cursor, NativeLongByReference countp);
 
-    /**
-     * Return the cursor's transaction handle.
-     */
-    // Pointer mdb_cursor_txn(@In Pointer cursor);
+    int mdb_cursor_del(@In Pointer cursor, int flags);
 
-    /**
-     * Return the cursor's database handle.
-     */
-     // Pointer mdb_cursor_dbi(@In Pointer cursor);
-
-    /**
-     * Retrieve by cursor.
-     */
     int mdb_cursor_get(@In Pointer cursor, Pointer k, @Out Pointer v,
                        int cursorOp);
 
-    /**
-     * Store by cursor.
-     */
+    int mdb_cursor_open(@In Pointer txn, int dbiPtr,
+                        PointerByReference cursorPtr);
+
     int mdb_cursor_put(@In Pointer cursor, @In Pointer key, @In Pointer data,
                        int flags);
 
-    /**
-     * Delete current key/data pair.
-     */
-    int mdb_cursor_del(@In Pointer cursor, int flags);
+    int mdb_cursor_renew(@In Pointer txn, @In Pointer cursor);
 
-    /**
-     * Return count of duplicates for current key.
-     */
-    int mdb_cursor_count(@In Pointer cursor, NativeLongByReference countp);
-    /**
-     * Compare two data items according to a particular database.
-     */
-    // int mdb_cmp(@In Pointer txn, int dbiPtr, const MDB_val *a, const MDB_val *b);
-    /**
-     * Compare two data items according to a particular database.
-     */
-    // int mdb_dcmp(@In Pointer txn, int dbiPtr, const MDB_val *a, const MDB_val *b);
-    /**
-     * Dump the entries in the reader lock table.
-     */
-    // int mdb_reader_list(@In Pointer env, MDB_msg_func *func, void *ctx);
-    /**
-     * Check for stale entries in the reader lock table.
-     */
+    void mdb_dbi_close(@In Pointer env, int dbiPtr);
+
+    int mdb_dbi_flags(@In Pointer txn, int dbiPtr, int flags);
+
+    int mdb_dbi_open(@In Pointer txn, @In String name, int flags,
+                     IntByReference dbiPtr);
+
+    int mdb_del(@In Pointer txn, int dbiPtr, @In Pointer key, @In Pointer data);
+
+    int mdb_drop(@In Pointer txn, int dbiPtr, int del);
+
+    void mdb_env_close(@In Pointer env);
+
+    int mdb_env_copy2(@In Pointer env, @In String path, int flags);
+
+    int mdb_env_create(PointerByReference envPtr);
+
+    int mdb_env_get_fd(@In Pointer env, @In Pointer fd);
+
+    int mdb_env_get_flags(@In Pointer env, int flags);
+
+    int mdb_env_get_maxkeysize(@In Pointer env);
+
+    int mdb_env_get_maxreaders(@In Pointer env, int readers);
+
+    int mdb_env_get_path(@In Pointer env, String path);
+
+    int mdb_env_info(@In Pointer env, @Out MDB_envinfo info);
+
+    int mdb_env_open(@In Pointer env, @In String path, int flags, int mode);
+
+    int mdb_env_set_flags(@In Pointer env, int flags, int onoff);
+
+    int mdb_env_set_mapsize(@In Pointer env, long size);
+
+    int mdb_env_set_maxdbs(@In Pointer env, int dbs);
+
+    int mdb_env_set_maxreaders(@In Pointer env, int readers);
+
+    int mdb_env_stat(@In Pointer env, @Out MDB_stat stat);
+
+    int mdb_env_sync(@In Pointer env, int f);
+
+    int mdb_get(@In Pointer txn, int dbiPtr, @In Pointer key, @Out Pointer data);
+
+    int mdb_put(@In Pointer txn, int dbiPtr, @In Pointer key, @In Pointer data,
+                int flags);
+
     int mdb_reader_check(@In Pointer env, int dead);
+
+    String mdb_strerror(int rc);
+
+    void mdb_txn_abort(@In Pointer txn);
+
+    int mdb_txn_begin(@In Pointer env, @In Pointer parentTx, int flags,
+                      Pointer txPtr);
+
+    int mdb_txn_commit(@In Pointer txn);
+
+    Pointer mdb_txn_env(@In Pointer txn);
+
+    long mdb_txn_id(@In Pointer txn);
+
+    int mdb_txn_renew(@In Pointer txn);
+
+    void mdb_txn_reset(@In Pointer txn);
+
+    Pointer mdb_version(IntByReference major, IntByReference minor,
+                        IntByReference patch);
 
   }
 }
