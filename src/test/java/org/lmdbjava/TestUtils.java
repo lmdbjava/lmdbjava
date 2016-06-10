@@ -38,7 +38,7 @@ public final class TestUtils {
   }
 
   static ByteBuffer createBb(int value) {
-    ByteBuffer bb = allocateDirect(BYTES);
+    final ByteBuffer bb = allocateDirect(BYTES);
     bb.order(LITTLE_ENDIAN);
     bb.putInt(value).flip();
     return bb;
@@ -47,7 +47,7 @@ public final class TestUtils {
   static void invokePrivateConstructor(final Class<?> clazz) throws
       InstantiationException, IllegalAccessException, IllegalArgumentException,
       InvocationTargetException, NoSuchMethodException {
-    Constructor<?> c = clazz.getDeclaredConstructor();
+    final Constructor<?> c = clazz.getDeclaredConstructor();
     c.setAccessible(true);
     c.newInstance();
   }

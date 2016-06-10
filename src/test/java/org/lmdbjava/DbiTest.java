@@ -36,7 +36,6 @@ import org.lmdbjava.Env.MapFullException;
 import org.lmdbjava.Env.NotOpenException;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import org.lmdbjava.LmdbException.BufferNotDirectException;
-import org.lmdbjava.LmdbNativeException.ConstantDerviedException;
 import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
 import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.POSIX_MODE;
@@ -48,9 +47,7 @@ public class DbiTest {
 
   @Rule
   public final TemporaryFolder tmp = new TemporaryFolder();
-  private Dbi dbi;
   private Env env;
-  private Txn tx;
 
   @Before
   public void before() throws Exception {
@@ -61,50 +58,80 @@ public class DbiTest {
     env.setMaxDbs(2);
     env.setMaxReaders(1);
     env.open(path, POSIX_MODE, MDB_NOSUBDIR);
-
-    tx = new Txn(env);
-    dbi = new Dbi(tx, DB_1, MDB_CREATE);
   }
 
   @Test(expected = DbFullException.class)
   @SuppressWarnings("ResultOfObjectAllocationIgnored")
   public void dbOpenMaxDatabases() throws Exception {
-    new Dbi(tx, "another", MDB_CREATE);
-    new Dbi(tx, "fails", MDB_CREATE);
+    try (final Txn tx = new Txn(env)) {
+      new Dbi(tx, "db1 is OK", MDB_CREATE);
+      new Dbi(tx, "db2 is OK", MDB_CREATE);
+      new Dbi(tx, "db3 fails", MDB_CREATE);
+    }
   }
 
   @Test(expected = CommittedException.class)
   @SuppressWarnings("ResultOfObjectAllocationIgnored")
   public void dbTxCommitted() throws Exception {
-    tx.commit();
-    new Dbi(tx, "another", MDB_CREATE);
+    try (final Txn tx = new Txn(env)) {
+      tx.commit();
+      new Dbi(tx, "db1 fails", MDB_CREATE);
+    }
+  }
+
+  @Test
+  public void getName() throws Exception {
+    try (final Txn tx = new Txn(env)) {
+      final Dbi db = new Dbi(tx, DB_1, MDB_CREATE);
+      assertThat(db.getName(), is(DB_1));
+    }
+  }
+
+  @Test(expected = KeyExistsException.class)
+  public void keyExistsException() throws Exception {
+    final Dbi db;
+    try (final Txn tx = new Txn(env)) {
+      db = new Dbi(tx, DB_1, MDB_CREATE);
+      db.put(tx, createBb(5), createBb(5), MDB_NOOVERWRITE);
+      db.put(tx, createBb(5), createBb(5), MDB_NOOVERWRITE);
+    }
   }
 
   @Test
   public void putAbortGet() throws Exception {
-    Dbi db = new Dbi(tx, DB_1, MDB_CREATE);
-    assertThat(db.getName(), is(DB_1));
+    final Dbi db;
 
-    db.put(tx, createBb(5), createBb(5));
-    tx.abort();
+    try (final Txn tx = new Txn(env)) {
+      db = new Dbi(tx, DB_1, MDB_CREATE);
+      tx.commit();
+    }
 
-    try (Txn tx2 = new Txn(env)) {
-      db.get(tx2, createBb(5));
+    try (final Txn tx = new Txn(env)) {
+      db.put(tx, createBb(5), createBb(5));
+      tx.abort();
+    }
+
+    try (final Txn tx = new Txn(env)) {
+      db.get(tx, createBb(5));
       fail("key does not exist");
-    } catch (ConstantDerviedException e) {
-      assertThat(e.getResultCode(), is(22));
+    } catch (KeyNotFoundException e) {
     }
   }
 
   @Test
   public void putAndGetAndDeleteWithInternalTx() throws Exception {
-    Dbi db = new Dbi(tx, DB_1, MDB_CREATE);
-    tx.commit();
+    final Dbi db;
+    try (final Txn tx = new Txn(env)) {
+      db = new Dbi(tx, DB_1, MDB_CREATE);
+      tx.commit();
+    }
+
     db.put(createBb(5), createBb(5));
-    ByteBuffer val = db.get(createBb(5));
+    final ByteBuffer val = db.get(createBb(5));
     val.order(LITTLE_ENDIAN);
     assertThat(val.getInt(), is(5));
     db.delete(createBb(5));
+
     try {
       db.get(createBb(5));
       fail("should have been deleted");
@@ -114,13 +141,15 @@ public class DbiTest {
 
   @Test
   public void putCommitGet() throws Exception {
-    Dbi db = new Dbi(tx, DB_1, MDB_CREATE);
+    final Dbi db;
+    try (final Txn tx = new Txn(env)) {
+      db = new Dbi(tx, DB_1, MDB_CREATE);
+      db.put(tx, createBb(5), createBb(5));
+      tx.commit();
+    }
 
-    db.put(tx, createBb(5), createBb(5));
-    tx.commit();
-
-    try (Txn tx2 = new Txn(env)) {
-      ByteBuffer result = db.get(tx2, createBb(5));
+    try (final Txn tx = new Txn(env)) {
+      final ByteBuffer result = db.get(tx, createBb(5));
       result.order(LITTLE_ENDIAN);
       assertThat(result.getInt(), is(5));
     }
@@ -128,43 +157,47 @@ public class DbiTest {
 
   @Test
   public void putDelete() throws Exception {
-    Dbi db = new Dbi(tx, DB_1, MDB_CREATE);
+    Dbi db;
 
-    db.put(tx, createBb(5), createBb(5));
-    db.delete(tx, createBb(5));
+    try (final Txn tx = new Txn(env)) {
+      db = new Dbi(tx, DB_1, MDB_CREATE);
+      db.put(tx, createBb(5), createBb(5));
+      db.delete(tx, createBb(5));
 
-    try {
-      db.get(tx, createBb(5));
-      fail("key does not exist");
-    } catch (KeyNotFoundException e) {
+      try {
+        db.get(tx, createBb(5));
+        fail("key does not exist");
+      } catch (KeyNotFoundException e) {
+      }
+      tx.abort();
     }
-    tx.abort();
-  }
-
-  @Test(expected = KeyExistsException.class)
-  public void testKeyExistsException() throws Exception {
-    Dbi db = new Dbi(tx, DB_1, MDB_CREATE);
-    db.put(tx, createBb(5), createBb(5), MDB_NOOVERWRITE);
-    db.put(tx, createBb(5), createBb(5), MDB_NOOVERWRITE);
   }
 
   @Test(expected = MapFullException.class)
   public void testMapFullException() throws Exception {
-    Dbi db = new Dbi(tx, DB_1, MDB_CREATE);
-    ByteBuffer v = allocateDirect(1_024 * 1_024 * 1_024);
-    db.put(tx, createBb(1), v);
+    final Dbi db;
+    try (final Txn tx = new Txn(env)) {
+      db = new Dbi(tx, DB_1, MDB_CREATE);
+      final ByteBuffer v = allocateDirect(1_024 * 1_024 * 1_024);
+      db.put(tx, createBb(1), v);
+    }
   }
 
   @Test
   public void testParallelWritesStress() throws Exception {
-    tx.commit();
+    final Dbi db;
+    try (final Txn tx = new Txn(env)) {
+      db = new Dbi(tx, DB_1, MDB_CREATE);
+      tx.commit();
+    }
+
     // Travis CI has 1.5 cores for legacy builds
     nCopies(2, null).parallelStream()
         .forEach(ignored -> {
           Random random = new Random();
           for (int i = 0; i < 15_000; i++) {
             try {
-              dbi.put(createBb(random.nextInt()), createBb(random.nextInt()));
+              db.put(createBb(random.nextInt()), createBb(random.nextInt()));
             } catch (CommittedException | LmdbNativeException | NotOpenException |
                      BufferNotDirectException | ReadWriteRequiredException e) {
               throw new RuntimeException(e);
