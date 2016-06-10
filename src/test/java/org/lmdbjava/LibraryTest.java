@@ -33,7 +33,7 @@ public class LibraryTest {
   @Test
   public void structureFieldOrder() throws Exception {
     MDB_envinfo v = new MDB_envinfo(RUNTIME);
-    assertThat(v.me_mapaddr.offset(), is(0L));
-    assertThat(v.me_mapsize.offset(), is((long) BYTES));
+    assertThat(v.f0_me_mapaddr.offset(), is(0L));
+    assertThat(v.f1_me_mapsize.offset(), is((long) BYTES));
   }
 }

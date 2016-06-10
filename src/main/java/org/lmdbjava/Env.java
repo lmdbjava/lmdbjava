@@ -169,19 +169,19 @@ public final class Env implements AutoCloseable {
     checkRc(LIB.mdb_env_info(ptr, info));
 
     final long mapAddress;
-    if (info.me_mapaddr.get() == null) {
+    if (info.f0_me_mapaddr.get() == null) {
       mapAddress = 0;
     } else {
-      mapAddress = info.me_mapaddr.get().address();
+      mapAddress = info.f0_me_mapaddr.get().address();
     }
 
     return new EnvInfo(
         mapAddress,
-        info.me_mapsize.longValue(),
-        info.me_last_pgno.longValue(),
-        info.me_last_txnid.longValue(),
-        info.me_maxreaders.intValue(),
-        info.me_numreaders.intValue());
+        info.f1_me_mapsize.longValue(),
+        info.f2_me_last_pgno.longValue(),
+        info.f3_me_last_txnid.longValue(),
+        info.f4_me_maxreaders.intValue(),
+        info.f5_me_numreaders.intValue());
   }
 
   /**
@@ -240,12 +240,12 @@ public final class Env implements AutoCloseable {
     final MDB_stat stat = new MDB_stat(RUNTIME);
     checkRc(LIB.mdb_env_stat(ptr, stat));
     return new EnvStat(
-        stat.ms_psize.intValue(),
-        stat.ms_depth.intValue(),
-        stat.ms_branch_pages.longValue(),
-        stat.ms_leaf_pages.longValue(),
-        stat.ms_overflow_pages.longValue(),
-        stat.ms_entries.longValue());
+        stat.f0_ms_psize.intValue(),
+        stat.f1_ms_depth.intValue(),
+        stat.f2_ms_branch_pages.longValue(),
+        stat.f3_ms_leaf_pages.longValue(),
+        stat.f4_ms_overflow_pages.longValue(),
+        stat.f5_ms_entries.longValue());
   }
 
   /**

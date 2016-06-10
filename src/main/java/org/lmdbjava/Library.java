@@ -46,31 +46,45 @@ final class Library {
   private Library() {
   }
 
-  public static final class MDB_stat extends Struct {
-
-    public final u_int32_t ms_psize = new u_int32_t();
-    public final u_int32_t ms_depth = new u_int32_t();
-    public final size_t ms_branch_pages = new size_t();
-    public final size_t ms_leaf_pages = new size_t();
-    public final size_t ms_overflow_pages = new size_t();
-    public final size_t ms_entries = new size_t();
-
-    public MDB_stat(jnr.ffi.Runtime runtime) {
-      super(runtime);
-    }
-  }
-
+  @SuppressWarnings("PackageVisibleInnerClass")
   public static final class MDB_envinfo extends Struct {
 
-    public final Pointer me_mapaddr = new Pointer();
-    public final size_t me_mapsize = new size_t();
-    public final size_t me_last_pgno = new size_t();
-    public final size_t me_last_txnid = new size_t();
-    public final u_int32_t me_maxreaders = new u_int32_t();
-    public final u_int32_t me_numreaders = new u_int32_t();
+    public final Pointer f0_me_mapaddr;
+    public final size_t f1_me_mapsize;
+    public final size_t f2_me_last_pgno;
+    public final size_t f3_me_last_txnid;
+    public final u_int32_t f4_me_maxreaders;
+    public final u_int32_t f5_me_numreaders;
 
     public MDB_envinfo(jnr.ffi.Runtime runtime) {
       super(runtime);
+      this.f0_me_mapaddr = new Pointer();
+      this.f1_me_mapsize = new size_t();
+      this.f2_me_last_pgno = new size_t();
+      this.f3_me_last_txnid = new size_t();
+      this.f4_me_maxreaders = new u_int32_t();
+      this.f5_me_numreaders = new u_int32_t();
+    }
+  }
+
+  @SuppressWarnings("PackageVisibleInnerClass")
+  public static final class MDB_stat extends Struct {
+    
+    public final u_int32_t f0_ms_psize;
+    public final u_int32_t f1_ms_depth;
+    public final size_t f2_ms_branch_pages;
+    public final size_t f3_ms_leaf_pages;
+    public final size_t f4_ms_overflow_pages;
+    public final size_t f5_ms_entries;
+    
+    public MDB_stat(jnr.ffi.Runtime runtime) {
+      super(runtime);
+      this.f0_ms_psize = new u_int32_t();
+      this.f1_ms_depth = new u_int32_t();
+      this.f2_ms_branch_pages = new size_t();
+      this.f3_ms_leaf_pages = new size_t();
+      this.f5_ms_entries = new size_t();
+      this.f4_ms_overflow_pages = new size_t();
     }
   }
 
