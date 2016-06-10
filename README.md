@@ -6,21 +6,62 @@
 
 # LmdbJava
 
-LmdbJava provides an extremely low latency [JNR-FFI](https://github.com/jnr/jnr-ffi)-based
-binding to the [LMDB](http://symas.com/mdb/) native library. LMDB is an ultra-fast,
+LmdbJava provides an extremely low latency
+[JNR-FFI](https://github.com/jnr/jnr-ffi)-based binding to the
+[LMDB](http://symas.com/mdb/) native library. LMDB is an ultra-fast,
 ultra-compact, b-tree ordered, embedded, key-value store developed by Symas for
-the OpenLDAP Project. It uses memory-mapped files, so it has the read performance
-of a pure in-memory database while still offering the persistence of standard
-disk-based databases. It is transactional with full ACID semantics and crash-proof
-by design. No journal files. No corruption. No startup time. No dependencies.
-Zero-config tuning. LMDB is perfect for large, read-centric, single node workloads
-that require extremely low latency and strong operational robustness.
+the OpenLDAP Project.
 
-Prospective users might also consider [LMDBJNI](https://github.com/deephacks/lmdbjni),
-which uses HawtJNI for its native library binding and supports older JVMs.
-LmdbJava is instead focused on the latest available server-grade JVMs.
+LMDB uses memory-mapped files, so it has the read performance of a pure in-memory
+database while still offering the persistence of standard disk-based databases.
+It is transactional with full ACID semantics and crash-proof by design.
+No journal files. No corruption. No startup time. No dependencies. Zero-config
+tuning. LMDB is a perfect foundation for large, read-centric, single node
+workloads that require strong latency and operational robustness outcomes.
 
-### License
+## Usage
+
+1. Install `liblmdb` for your platform (eg Arch Linux: `pacman -S lmdb`)
+2. Clone this repository and `mvn clean install` (Maven Central coming soon)
+3. Add the `lmdbjava` artifact to your project POM
+4. Browse the [LMDB Documentation](http://lmdb.tech/doc/) (especially the
+   [Getting Started](http://lmdb.tech/doc/starting.html) page)
+5. Take a look at our 
+   [tests](https://github.com/lmdbjava/lmdbjava/tree/master/src/test/java/org/lmdbjava)
+   (the LmdbJava class names and contracts closely match the LMDB C API)
+
+## Support
+
+We're happy to help you use LmdbJava. Simply
+[open a GitHub issue](https://github.com/lmdbjava/lmdbjava/issues) if you have
+any questions.
+
+## Contributing
+
+Contributions are welcome! Simply submit a pull request that's consistent with
+the existing coding style and includes an appropriate test. 
+
+For larger changes, please
+[open a GitHub issue](https://github.com/lmdbjava/lmdbjava/issues) so we can
+discuss what you have in mind.
+
+## History
+
+For years Java users have been able to access LMDB via
+[LMDBJNI](https://github.com/deephacks/lmdbjni). Its public API is mature and
+widely used, but this makes it challenging to implement any substantial changes.
+
+LmdbJava was created to provide a new LMDB abstraction without the backward
+compatibility consideration. A separate project also offered a convenient
+opportunity to implement many internal changes to reduce latency and long-term
+maintenance costs. For example, we moved from HawtJNI to JNR-FFI (for its lower
+latency, Java 9 roadmap and its much simpler build requirements). We also
+significantly reduced `Unsafe` use, with only a single class still using it
+(and there is automatic reflective fallback used if `Unsafe` is not available).
+As such these changes make LmdbJava the optimal choice for projects targeting
+server-class JVMs.
+
+## License
 
 This project is licensed under the
 [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.html).
