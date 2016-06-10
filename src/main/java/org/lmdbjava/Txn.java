@@ -108,7 +108,7 @@ public final class Txn implements AutoCloseable {
       throw new CommittedException();
     }
     lib.mdb_txn_abort(ptr);
-    this.committed = true;
+    committed = true;
   }
 
   /**
@@ -120,7 +120,7 @@ public final class Txn implements AutoCloseable {
       return;
     }
     lib.mdb_txn_abort(ptr);
-    this.committed = true;
+    committed = true;
   }
 
   /**
@@ -134,7 +134,7 @@ public final class Txn implements AutoCloseable {
       throw new CommittedException();
     }
     checkRc(lib.mdb_txn_commit(ptr));
-    this.committed = true;
+    committed = true;
   }
 
   /**
