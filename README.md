@@ -16,7 +16,7 @@ LMDB uses memory-mapped files, so it has the read performance of a pure in-memor
 database while still offering the persistence of standard disk-based databases.
 It is transactional with full ACID semantics and crash-proof by design.
 No journal files. No corruption. No startup time. No dependencies. No config
-tuning. LMDB is a perfect foundation for large, read-centric, single node
+tuning. LMDB is the perfect foundation for large, read-centric, single node
 workloads that require strong latency and operational robustness outcomes.
 
 ## Usage
@@ -54,17 +54,17 @@ widely used, but this makes it challenging to implement any substantial changes.
 LmdbJava was created to provide a new LMDB abstraction without the backward
 compatibility consideration. A separate project also offered a convenient
 opportunity to implement many internal changes to reduce latency and long-term
-maintenance costs. For example, we moved from HawtJNI to JNR-FFI (for its lower
-latency, Java 9 roadmap and its much simpler build requirements). We also
-significantly reduced `Unsafe` use, with only a single class still using it
-(and there is automatic reflective fallback used if `Unsafe` is not available).
-As such these changes make LmdbJava the optimal choice for projects targeting
-server-class JVMs, and it will be very easy to support Java 9 when released.
+maintenance costs. For example, we moved from HawtJNI to JNR-FFI (for its active
+community, lower latency, Java 9 roadmap and much simpler build requirements). We
+also significantly reduced and isolated `Unsafe` use, with only a single method
+now requiring it (and there is an automatic reflective fallback if `Unsafe` isn't
+available). Overall these changes make LmdbJava the optimal choice for projects
+targeting server-class JVMs, and it will be easy to support Java 9 when released.
 
 ## License
 
 This project is licensed under the
 [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.html).
 
-You must separately install the `lmdb` library. LMDB is currently licensed under
+You must separately install the LMDB library. LMDB is currently licensed under
 [The OpenLDAP Public License](http://www.openldap.org/software/release/license.html).
