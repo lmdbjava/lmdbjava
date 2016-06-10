@@ -38,12 +38,7 @@ any questions.
 
 ## Contributing
 
-Contributions are welcome! Simply submit a pull request that's consistent with
-the existing coding style and includes an appropriate test. 
-
-For larger changes, please
-[open a GitHub issue](https://github.com/lmdbjava/lmdbjava/issues) so we can
-discuss what you have in mind.
+Contributions are welcome! Please see the [Contributing Guidelines](CONTRIBUTING.md).
 
 ## History
 
