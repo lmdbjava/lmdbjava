@@ -22,7 +22,7 @@ import jnr.ffi.Pointer;
 import jnr.ffi.byref.IntByReference;
 import jnr.ffi.byref.PointerByReference;
 import org.lmdbjava.Env.NotOpenException;
-import static org.lmdbjava.Library.lib;
+import static org.lmdbjava.Library.LIB;
 import org.lmdbjava.LmdbException.BufferNotDirectException;
 import static org.lmdbjava.MaskedFlag.mask;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
@@ -64,7 +64,7 @@ public final class Dbi {
     this.name = name;
     final int flagsMask = mask(flags);
     final IntByReference dbiPtr = new IntByReference();
-    checkRc(lib.mdb_dbi_open(tx.ptr, name, flagsMask, dbiPtr));
+    checkRc(LIB.mdb_dbi_open(tx.ptr, name, flagsMask, dbiPtr));
     dbi = dbiPtr.intValue();
   }
 
@@ -137,7 +137,7 @@ public final class Dbi {
     tx.checkWritesAllowed();
     final Pointer k = allocateMdbVal(key);
     final Pointer v = allocateMdbVal(val);
-    checkRc(lib.mdb_del(tx.ptr, dbi, k, v));
+    checkRc(LIB.mdb_del(tx.ptr, dbi, k, v));
   }
 
   /**
@@ -213,7 +213,7 @@ public final class Dbi {
     tx.checkNotCommitted();
     final Pointer k = allocateMdbVal(key);
     final Pointer v = allocateMdbVal();
-    checkRc(lib.mdb_get(tx.ptr, dbi, k, v));
+    checkRc(LIB.mdb_get(tx.ptr, dbi, k, v));
     setBufferToPointer(v, val);
   }
 
@@ -248,7 +248,7 @@ public final class Dbi {
     requireNonNull(tx);
     tx.checkNotCommitted();
     final PointerByReference ptr = new PointerByReference();
-    checkRc(lib.mdb_cursor_open(tx.ptr, dbi, ptr));
+    checkRc(LIB.mdb_cursor_open(tx.ptr, dbi, ptr));
     return new Cursor(ptr.getValue(), tx);
   }
 
@@ -304,7 +304,7 @@ public final class Dbi {
     final Pointer k = allocateMdbVal(key);
     final Pointer v = allocateMdbVal(val);
     int mask = mask(flags);
-    checkRc(lib.mdb_put(tx.ptr, dbi, k, v, mask));
+    checkRc(LIB.mdb_put(tx.ptr, dbi, k, v, mask));
   }
 
   /**

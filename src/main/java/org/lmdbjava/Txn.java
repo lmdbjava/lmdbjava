@@ -20,8 +20,8 @@ import static jnr.ffi.Memory.allocateDirect;
 import static jnr.ffi.NativeType.ADDRESS;
 import jnr.ffi.Pointer;
 import org.lmdbjava.Env.NotOpenException;
-import static org.lmdbjava.Library.lib;
-import static org.lmdbjava.Library.runtime;
+import static org.lmdbjava.Library.LIB;
+import static org.lmdbjava.Library.RUNTIME;
 import static org.lmdbjava.MaskedFlag.isSet;
 import static org.lmdbjava.MaskedFlag.mask;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
@@ -67,9 +67,9 @@ public final class Txn implements AutoCloseable {
     final int flagsMask = mask(flags);
     this.readOnly = isSet(flagsMask, MDB_RDONLY);
     this.parent = parent;
-    final Pointer txnPtr = allocateDirect(runtime, ADDRESS);
+    final Pointer txnPtr = allocateDirect(RUNTIME, ADDRESS);
     final Pointer txnParentPtr = parent == null ? null : parent.ptr;
-    checkRc(lib.mdb_txn_begin(env.ptr, txnParentPtr, flagsMask, txnPtr));
+    checkRc(LIB.mdb_txn_begin(env.ptr, txnParentPtr, flagsMask, txnPtr));
     ptr = txnPtr.getPointer(0);
   }
 
@@ -107,7 +107,7 @@ public final class Txn implements AutoCloseable {
     if (committed) {
       throw new CommittedException();
     }
-    lib.mdb_txn_abort(ptr);
+    LIB.mdb_txn_abort(ptr);
     committed = true;
   }
 
@@ -119,7 +119,7 @@ public final class Txn implements AutoCloseable {
     if (committed) {
       return;
     }
-    lib.mdb_txn_abort(ptr);
+    LIB.mdb_txn_abort(ptr);
     committed = true;
   }
 
@@ -133,7 +133,7 @@ public final class Txn implements AutoCloseable {
     if (committed) {
       throw new CommittedException();
     }
-    checkRc(lib.mdb_txn_commit(ptr));
+    checkRc(LIB.mdb_txn_commit(ptr));
     committed = true;
   }
 
@@ -143,7 +143,7 @@ public final class Txn implements AutoCloseable {
    * @return A transaction ID, valid if input is an active transaction
    */
   public long getId() {
-    return lib.mdb_txn_id(ptr);
+    return LIB.mdb_txn_id(ptr);
   }
 
   /**
@@ -193,7 +193,7 @@ public final class Txn implements AutoCloseable {
       throw new NotResetException();
     }
     reset = false;
-    checkRc(lib.mdb_txn_renew(ptr));
+    checkRc(LIB.mdb_txn_renew(ptr));
   }
 
   /**
@@ -210,7 +210,7 @@ public final class Txn implements AutoCloseable {
     if (reset) {
       throw new ResetException();
     }
-    lib.mdb_txn_reset(ptr);
+    LIB.mdb_txn_reset(ptr);
     reset = true;
   }
 

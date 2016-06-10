@@ -23,7 +23,7 @@ import static jnr.ffi.Memory.allocateDirect;
 import jnr.ffi.Pointer;
 import static org.lmdbjava.BufferMutators.MUTATOR;
 import static org.lmdbjava.BufferMutators.requireDirectBuffer;
-import static org.lmdbjava.Library.runtime;
+import static org.lmdbjava.Library.RUNTIME;
 import org.lmdbjava.LmdbException.BufferNotDirectException;
 
 /**
@@ -48,7 +48,7 @@ final class ValueBuffers {
    * @return the allocated location
    */
   static Pointer allocateMdbVal() {
-    return allocateDirect(runtime, MDB_VAL_STRUCT_SIZE, true);
+    return allocateDirect(RUNTIME, MDB_VAL_STRUCT_SIZE, true);
   }
 
   static Pointer allocateMdbVal(final Buffer src) throws

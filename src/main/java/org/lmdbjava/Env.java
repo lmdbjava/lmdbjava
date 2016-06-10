@@ -19,10 +19,10 @@ import java.io.File;
 import static java.util.Objects.requireNonNull;
 import jnr.ffi.Pointer;
 import jnr.ffi.byref.PointerByReference;
+import static org.lmdbjava.Library.LIB;
 import org.lmdbjava.Library.MDB_envinfo;
 import org.lmdbjava.Library.MDB_stat;
-import static org.lmdbjava.Library.lib;
-import static org.lmdbjava.Library.runtime;
+import static org.lmdbjava.Library.RUNTIME;
 import static org.lmdbjava.MaskedFlag.mask;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
 
@@ -42,7 +42,7 @@ public final class Env implements AutoCloseable {
    */
   public Env() throws LmdbNativeException {
     final PointerByReference envPtr = new PointerByReference();
-    checkRc(lib.mdb_env_create(envPtr));
+    checkRc(LIB.mdb_env_create(envPtr));
     ptr = envPtr.getValue();
   }
 
@@ -60,7 +60,7 @@ public final class Env implements AutoCloseable {
     if (!open) {
       return;
     }
-    lib.mdb_env_close(ptr);
+    LIB.mdb_env_close(ptr);
   }
 
   /**
@@ -91,7 +91,7 @@ public final class Env implements AutoCloseable {
       throw new InvalidCopyDestination("Path must contain no files");
     }
     final int flagsMask = mask(flags);
-    checkRc(lib.mdb_env_copy2(ptr, path.getAbsolutePath(), flagsMask));
+    checkRc(LIB.mdb_env_copy2(ptr, path.getAbsolutePath(), flagsMask));
   }
 
   /**
@@ -111,7 +111,7 @@ public final class Env implements AutoCloseable {
     if (closed) {
       throw new AlreadyClosedException();
     }
-    checkRc(lib.mdb_env_set_mapsize(ptr, mapSize));
+    checkRc(LIB.mdb_env_set_mapsize(ptr, mapSize));
   }
 
   /**
@@ -131,7 +131,7 @@ public final class Env implements AutoCloseable {
     if (closed) {
       throw new AlreadyClosedException();
     }
-    checkRc(lib.mdb_env_set_maxdbs(ptr, dbs));
+    checkRc(LIB.mdb_env_set_maxdbs(ptr, dbs));
   }
 
   /**
@@ -151,7 +151,7 @@ public final class Env implements AutoCloseable {
     if (closed) {
       throw new AlreadyClosedException();
     }
-    checkRc(lib.mdb_env_set_maxreaders(ptr, readers));
+    checkRc(LIB.mdb_env_set_maxreaders(ptr, readers));
   }
 
   /**
@@ -165,8 +165,8 @@ public final class Env implements AutoCloseable {
     if (!open) {
       throw new NotOpenException();
     }
-    final MDB_envinfo info = new MDB_envinfo(runtime);
-    checkRc(lib.mdb_env_info(ptr, info));
+    final MDB_envinfo info = new MDB_envinfo(RUNTIME);
+    checkRc(LIB.mdb_env_info(ptr, info));
 
     final long mapAddress;
     if (info.me_mapaddr.get() == null) {
@@ -222,7 +222,7 @@ public final class Env implements AutoCloseable {
       throw new AlreadyClosedException();
     }
     final int flagsMask = mask(flags);
-    checkRc(lib.mdb_env_open(ptr, path.getAbsolutePath(), flagsMask, mode));
+    checkRc(LIB.mdb_env_open(ptr, path.getAbsolutePath(), flagsMask, mode));
     this.open = true;
   }
 
@@ -237,8 +237,8 @@ public final class Env implements AutoCloseable {
     if (!open) {
       throw new NotOpenException();
     }
-    final MDB_stat stat = new MDB_stat(runtime);
-    checkRc(lib.mdb_env_stat(ptr, stat));
+    final MDB_stat stat = new MDB_stat(RUNTIME);
+    checkRc(LIB.mdb_env_stat(ptr, stat));
     return new EnvStat(
         stat.ms_psize.intValue(),
         stat.ms_depth.intValue(),
@@ -258,7 +258,7 @@ public final class Env implements AutoCloseable {
    */
   public void sync(final boolean force) throws LmdbNativeException {
     final int f = force ? 1 : 0;
-    checkRc(lib.mdb_env_sync(ptr, f));
+    checkRc(LIB.mdb_env_sync(ptr, f));
   }
 
   /**

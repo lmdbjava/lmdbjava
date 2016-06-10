@@ -16,7 +16,7 @@
 package org.lmdbjava;
 
 import jnr.ffi.byref.IntByReference;
-import static org.lmdbjava.Library.lib;
+import static org.lmdbjava.Library.LIB;
 
 /**
  * LMDB metadata functions.
@@ -36,7 +36,7 @@ public final class Meta {
    * @return the description
    */
   public static String error(final int err) {
-    return lib.mdb_strerror(err);
+    return LIB.mdb_strerror(err);
   }
 
   /**
@@ -49,7 +49,7 @@ public final class Meta {
     final IntByReference minor = new IntByReference();
     final IntByReference patch = new IntByReference();
 
-    lib.mdb_version(major, minor, patch);
+    LIB.mdb_version(major, minor, patch);
 
     return new Version(major.intValue(), minor.intValue(), patch.
                        intValue());

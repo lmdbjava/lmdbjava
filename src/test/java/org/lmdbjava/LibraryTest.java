@@ -20,7 +20,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import org.junit.Test;
 import org.lmdbjava.Library.MDB_envinfo;
-import static org.lmdbjava.Library.runtime;
+import static org.lmdbjava.Library.RUNTIME;
 import static org.lmdbjava.TestUtils.invokePrivateConstructor;
 
 public class LibraryTest {
@@ -32,7 +32,7 @@ public class LibraryTest {
 
   @Test
   public void structureFieldOrder() throws Exception {
-    MDB_envinfo v = new MDB_envinfo(runtime);
+    MDB_envinfo v = new MDB_envinfo(RUNTIME);
     assertThat(v.me_mapaddr.offset(), is(0L));
     assertThat(v.me_mapsize.offset(), is((long) BYTES));
   }

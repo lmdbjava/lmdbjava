@@ -34,12 +34,13 @@ import jnr.ffi.byref.PointerByReference;
  */
 final class Library {
 
-  static final Lmdb lib;
-  static final jnr.ffi.Runtime runtime;
+  private static final String LIB_NAME = "lmdb";
+  static final Lmdb LIB;
+  static final jnr.ffi.Runtime RUNTIME;
 
   static {
-    lib = create(Lmdb.class).load("lmdb");
-    runtime = getRuntime(lib);
+    LIB = create(Lmdb.class).load(LIB_NAME);
+    RUNTIME = getRuntime(LIB);
   }
 
   private Library() {

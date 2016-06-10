@@ -19,7 +19,7 @@ import java.nio.ByteBuffer;
 import static java.util.Objects.requireNonNull;
 import jnr.ffi.Pointer;
 import jnr.ffi.byref.NativeLongByReference;
-import static org.lmdbjava.Library.lib;
+import static org.lmdbjava.Library.LIB;
 import org.lmdbjava.LmdbException.BufferNotDirectException;
 import static org.lmdbjava.MaskedFlag.mask;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
@@ -63,7 +63,7 @@ public class Cursor implements AutoCloseable {
     if (!tx.isReadOnly() && tx.isCommitted()) {
       throw new CommittedException();
     }
-    lib.mdb_cursor_close(ptr);
+    LIB.mdb_cursor_close(ptr);
     closed = true;
   }
 
@@ -83,7 +83,7 @@ public class Cursor implements AutoCloseable {
     checkNotClosed();
     tx.checkNotCommitted();
     final NativeLongByReference longByReference = new NativeLongByReference();
-    checkRc(lib.mdb_cursor_count(ptr, longByReference));
+    checkRc(LIB.mdb_cursor_count(ptr, longByReference));
     return longByReference.longValue();
   }
 
@@ -102,7 +102,7 @@ public class Cursor implements AutoCloseable {
     checkNotClosed();
     tx.checkNotCommitted();
     tx.checkWritesAllowed();
-    checkRc(lib.mdb_cursor_del(ptr, 0));
+    checkRc(LIB.mdb_cursor_del(ptr, 0));
   }
 
   /**
@@ -132,7 +132,7 @@ public class Cursor implements AutoCloseable {
       setPointerToBuffer(key, k);
     }
 
-    checkRc(lib.mdb_cursor_get(ptr, k, v, op.getCode()));
+    checkRc(LIB.mdb_cursor_get(ptr, k, v, op.getCode()));
     setBufferToPointer(k, key);
     setBufferToPointer(v, val);
   }
@@ -164,7 +164,7 @@ public class Cursor implements AutoCloseable {
     setPointerToBuffer(key, k);
     setPointerToBuffer(val, v);
     final int flags = mask(op);
-    checkRc(lib.mdb_cursor_put(ptr, k, v, flags));
+    checkRc(LIB.mdb_cursor_put(ptr, k, v, flags));
   }
 
   /**
@@ -193,7 +193,7 @@ public class Cursor implements AutoCloseable {
     tx.checkReadOnly(); // new
     tx.checkNotCommitted(); // new
     this.tx = tx;
-    checkRc(lib.mdb_cursor_renew(tx.ptr, ptr));
+    checkRc(LIB.mdb_cursor_renew(tx.ptr, ptr));
   }
 
   private void checkNotClosed() throws ClosedException {
