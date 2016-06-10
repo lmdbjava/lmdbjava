@@ -26,6 +26,7 @@ import org.lmdbjava.LmdbException.BufferNotDirectException;
 import static org.lmdbjava.MaskedFlag.mask;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
 import org.lmdbjava.Txn.CommittedException;
+import org.lmdbjava.Txn.ReadOnlyRequiredException;
 import static org.lmdbjava.ValueBuffers.createVal;
 import static org.lmdbjava.ValueBuffers.wrap;
 
@@ -34,7 +35,6 @@ import static org.lmdbjava.ValueBuffers.wrap;
  */
 public class Cursor implements AutoCloseable {
 
-  private ByteBuffer buffer;
   private boolean closed;
   private final Pointer ptr;
   private final Txn tx;
@@ -59,7 +59,7 @@ public class Cursor implements AutoCloseable {
       return;
     }
     if (!tx.isReadOnly() && tx.isCommitted()) {
-      throw new Txn.CommittedException();
+      throw new CommittedException();
     }
     lib.mdb_cursor_close(ptr);
     closed = true;
@@ -69,12 +69,21 @@ public class Cursor implements AutoCloseable {
    * Return count of duplicates for current key.
    * <p>
    * This call is only valid on databases that support sorted duplicate data
-   * items {@link org.lmdbjava.DbiFlags#MDB_DUPSORT}.
+   * items {@link DbiFlags#MDB_DUPSORT}.
    *
    * @return count of duplicates for current key
    * @throws LmdbNativeException if a native C error occurred
+   * @throws CommittedException  if the transaction was committed
+   * @throws ClosedException     if the cursor is already closed
    */
-  public long count() throws LmdbNativeException {
+  public long count() throws LmdbNativeException, CommittedException,
+                             ClosedException {
+    if (tx.isCommitted()) {
+      throw new CommittedException();
+    }
+    if (closed) {
+      throw new ClosedException();
+    }
     final NativeLongByReference longByReference = new NativeLongByReference();
     checkRc(lib.mdb_cursor_count(ptr, longByReference));
     return longByReference.longValue();
@@ -86,36 +95,44 @@ public class Cursor implements AutoCloseable {
    * This function deletes the key/data pair to which the cursor refers.
    *
    * @throws LmdbNativeException if a native C error occurred
+   * @throws CommittedException  if the transaction was committed
+   * @throws ClosedException     if the cursor is already closed
    */
-  public void delete() throws LmdbNativeException {
+  public void delete() throws LmdbNativeException, CommittedException,
+                              ClosedException {
+    if (tx.isCommitted()) {
+      throw new CommittedException();
+    }
+    if (closed) {
+      throw new ClosedException();
+    }
     checkRc(lib.mdb_cursor_del(ptr, 0));
   }
 
   /**
    * Retrieve by cursor.
    * <p>
-   * This function retrieves key/data pairs from the database. The address and
-   * length of the key are returned in the object to which \b key refers (except
-   * for the case of the #MDB_SET option, in which the \b key object is
-   * unchanged), and the address and length of the data are returned in the
-   * object to which \b data
+   * This function retrieves key/data pairs from the database.
    *
-   * @param key Placeholder for the key memory address to be wrapped.
-   * @param val Placeholder for the value memory address to be wrapped.
-   * @param op  A cursor operation.
+   * @param key placeholder for the key memory address to be wrapped
+   * @param val placeholder for the value memory address to be wrapped
+   * @param op  options for this operation
    * @throws BufferNotDirectException if a passed buffer is invalid
    * @throws LmdbNativeException      if a native C error occurred
+   * @throws CommittedException       if the transaction was committed
+   * @throws ClosedException          if the cursor is already closed
    */
   public void get(final ByteBuffer key, final ByteBuffer val, final CursorOp op)
-      throws BufferNotDirectException, LmdbNativeException {
+      throws BufferNotDirectException, LmdbNativeException, CommittedException,
+             ClosedException {
     requireNonNull(key);
     requireNonNull(val);
     requireNonNull(op);
     if (tx.isCommitted()) {
-      throw new IllegalArgumentException("transaction already committed");
+      throw new CommittedException();
     }
     if (closed) {
-      throw new IllegalArgumentException("Cursor closed");
+      throw new ClosedException();
     }
     final MDB_val k;
     final MDB_val v = new MDB_val(runtime);
@@ -133,24 +150,28 @@ public class Cursor implements AutoCloseable {
   /**
    * Store by cursor.
    * <p>
+   * This function stores key/data pairs into the database. The cursor is
+   * positioned at the new item, or on failure usually near it.
    *
-   * @param key The key operated on.
-   * @param val The data operated on.
-   *
-   * @param op  Options for this operation.
+   * @param key key to store
+   * @param val data to store
+   * @param op  options for this operation
    * @throws BufferNotDirectException if a passed buffer is invalid
    * @throws LmdbNativeException      if a native C error occurred
+   * @throws CommittedException       if the transaction was committed
+   * @throws ClosedException          if the cursor is already closed
    */
   public void put(final ByteBuffer key, final ByteBuffer val,
                   final PutFlags... op)
-      throws BufferNotDirectException, LmdbNativeException {
+      throws BufferNotDirectException, LmdbNativeException, CommittedException,
+             ClosedException {
     requireNonNull(key);
     requireNonNull(val);
     if (tx.isCommitted()) {
-      throw new IllegalArgumentException("transaction already committed");
+      throw new CommittedException();
     }
     if (closed) {
-      throw new IllegalArgumentException("cursor closed");
+      throw new ClosedException();
     }
     final MDB_val k = createVal(key);
     final MDB_val v = createVal(val);
@@ -169,13 +190,39 @@ public class Cursor implements AutoCloseable {
    * dead.
    *
    * @param tx transaction handle
-   * @throws LmdbNativeException if a native C error occurred
+   * @throws LmdbNativeException       if a native C error occurred
+   * @throws ClosedException           if the cursor is already closed
+   * @throws CommittedException        if the transaction was committed
+   * @throws ReadOnlyRequiredException if a read-write transaction is in use
    */
-  public void renew(final Txn tx) throws LmdbNativeException {
+  public void renew(final Txn tx) throws LmdbNativeException, ClosedException,
+                                         ReadOnlyRequiredException,
+                                         CommittedException {
+    if (closed) {
+      throw new ClosedException();
+    }
+    if (tx.isCommitted()) {
+      throw new CommittedException();
+    }
     if (!tx.isReadOnly()) {
-      throw new IllegalArgumentException("cannot renew write transactions");
+      throw new ReadOnlyRequiredException();
     }
     checkRc(lib.mdb_cursor_renew(tx.ptr, ptr));
+  }
+
+  /**
+   * Cursor has already been closed.
+   */
+  public static final class ClosedException extends LmdbException {
+
+    private static final long serialVersionUID = 1L;
+
+    /**
+     * Creates a new instance.
+     */
+    public ClosedException() {
+      super("Cursor has already been closed");
+    }
   }
 
   /**

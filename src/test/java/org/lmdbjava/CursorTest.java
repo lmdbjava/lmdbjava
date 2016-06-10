@@ -9,6 +9,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.lmdbjava.Cursor.ClosedException;
 import static org.lmdbjava.CursorOp.MDB_FIRST;
 import static org.lmdbjava.CursorOp.MDB_LAST;
 import static org.lmdbjava.CursorOp.MDB_NEXT;
@@ -26,6 +27,7 @@ import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.POSIX_MODE;
 import static org.lmdbjava.TestUtils.createBb;
 import org.lmdbjava.Txn.CommittedException;
+import org.lmdbjava.Txn.ReadOnlyRequiredException;
 import static org.lmdbjava.TxnFlags.MDB_RDONLY;
 
 public class CursorTest {
@@ -48,7 +50,7 @@ public class CursorTest {
     db = new Dbi(tx, DB_1, MDB_CREATE, MDB_DUPSORT);
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test(expected = ClosedException.class)
   public void closeCursor() throws Exception {
     db = new Dbi(tx, DB_1, MDB_CREATE);
     Cursor cursor = db.openCursor(tx);
@@ -137,16 +139,10 @@ public class CursorTest {
     tx.commit();
   }
 
-  @Test
+  @Test(expected = ReadOnlyRequiredException.class)
   public void testCursorRenewWriteTx() throws Exception {
     Cursor cursor = db.openCursor(tx);
-    try {
-      cursor.renew(tx);
-      fail("should fail");
-    } catch (IllegalArgumentException e) {
-      assertThat(e.getMessage(), is("cannot renew write transactions"));
-    }
-    tx.commit();
+    cursor.renew(tx);
   }
 
   @Test
