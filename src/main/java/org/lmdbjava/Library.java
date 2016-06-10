@@ -45,16 +45,6 @@ final class Library {
   private Library() {
   }
 
-  public static final class MDB_val extends Struct {
-
-    public final size_t size = new size_t();
-    public final Pointer data = new Pointer();
-
-    public MDB_val(jnr.ffi.Runtime runtime) {
-      super(runtime);
-    }
-  }
-  
   public static final class MDB_stat extends Struct {
 
     public final u_int32_t ms_psize = new u_int32_t();
@@ -264,18 +254,18 @@ final class Library {
     /**
      * Get items from a database.
      */
-    int mdb_get(@In Pointer txn, int dbiPtr, @In MDB_val key, @Out MDB_val data);
+    int mdb_get(@In Pointer txn, int dbiPtr, @In Pointer key, @Out Pointer data);
 
     /**
      * Store items into a database.
      */
-    int mdb_put(@In Pointer txn, int dbiPtr, @In MDB_val key, @In MDB_val data,
+    int mdb_put(@In Pointer txn, int dbiPtr, @In Pointer key, @In Pointer data,
                 int flags);
 
     /**
      * Delete items from a database.
      */
-    int mdb_del(@In Pointer txn, int dbiPtr, @In MDB_val key, @In MDB_val data);
+    int mdb_del(@In Pointer txn, int dbiPtr, @In Pointer key, @In Pointer data);
 
     /**
      * Create a cursor handle.
@@ -306,13 +296,13 @@ final class Library {
     /**
      * Retrieve by cursor.
      */
-    int mdb_cursor_get(@In Pointer cursor, MDB_val k, @Out MDB_val v,
+    int mdb_cursor_get(@In Pointer cursor, Pointer k, @Out Pointer v,
                        int cursorOp);
 
     /**
      * Store by cursor.
      */
-    int mdb_cursor_put(@In Pointer cursor, @In MDB_val key, @In MDB_val data,
+    int mdb_cursor_put(@In Pointer cursor, @In Pointer key, @In Pointer data,
                        int flags);
 
     /**

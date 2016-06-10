@@ -17,22 +17,20 @@ package org.lmdbjava;
 
 import java.nio.ByteBuffer;
 import static java.nio.ByteBuffer.allocateDirect;
-import static java.nio.ByteOrder.LITTLE_ENDIAN;
 import static java.util.Objects.requireNonNull;
+import jnr.ffi.Pointer;
 import jnr.ffi.byref.IntByReference;
 import jnr.ffi.byref.PointerByReference;
 import org.lmdbjava.Env.NotOpenException;
-import org.lmdbjava.Library.MDB_val;
 import static org.lmdbjava.Library.lib;
-import static org.lmdbjava.Library.runtime;
 import org.lmdbjava.LmdbException.BufferNotDirectException;
 import static org.lmdbjava.MaskedFlag.mask;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
 import org.lmdbjava.Txn.CommittedException;
 import org.lmdbjava.Txn.ReadWriteRequiredException;
 import static org.lmdbjava.TxnFlags.MDB_RDONLY;
-import static org.lmdbjava.ValueBuffers.createVal;
-import static org.lmdbjava.ValueBuffers.wrap;
+import static org.lmdbjava.ValueBuffers.allocateMdbVal;
+import static org.lmdbjava.ValueBuffers.setBufferToPointer;
 
 /**
  * LMDB Database.
@@ -137,9 +135,8 @@ public final class Dbi {
     requireNonNull(key);
     tx.checkNotCommitted();
     tx.checkWritesAllowed();
-    final MDB_val k = createVal(key);
-    final MDB_val v = val == null ? null : createVal(key);
-
+    final Pointer k = allocateMdbVal(key);
+    final Pointer v = allocateMdbVal(val);
     checkRc(lib.mdb_del(tx.ptr, dbi, k, v));
   }
 
@@ -185,18 +182,39 @@ public final class Dbi {
    */
   public ByteBuffer get(final Txn tx, final ByteBuffer key) throws
       CommittedException, BufferNotDirectException, LmdbNativeException {
+    final ByteBuffer val = allocateDirect(0);
+    get(tx, key, val);
+    return val;
+  }
+
+  /**
+   * Get items from a database, pointing the passed value buffer at the result.
+   * <p>
+   * This function retrieves key/data pairs from the database. The address and
+   * length of the data associated with the specified \b key are returned in the
+   * structure to which \b data refers. If the database supports duplicate keys
+   * ({@link org.lmdbjava.DbiFlags#MDB_DUPSORT}) then the first data item for
+   * the key will be returned. Retrieval of other items requires the use of
+   * #mdb_cursor_get().
+   *
+   * @param tx  transaction handle (not null; not committed)
+   * @param key key to search for in the database (not null)
+   * @param val buffer to hold the value (not null)
+   * @throws CommittedException       if already committed
+   * @throws BufferNotDirectException if a passed buffer is invalid
+   * @throws LmdbNativeException      if a native C error occurred
+   */
+  public void get(final Txn tx, final ByteBuffer key, final ByteBuffer val)
+      throws
+      CommittedException, BufferNotDirectException, LmdbNativeException {
     requireNonNull(tx);
     requireNonNull(key);
+    requireNonNull(val);
     tx.checkNotCommitted();
-    final MDB_val k = createVal(key);
-    final MDB_val v = new MDB_val(runtime);
-
+    final Pointer k = allocateMdbVal(key);
+    final Pointer v = allocateMdbVal();
     checkRc(lib.mdb_get(tx.ptr, dbi, k, v));
-
-    // inefficient as we create a BB
-    final ByteBuffer bb = allocateDirect(1).order(LITTLE_ENDIAN);
-    wrap(bb, v);
-    return bb;
+    setBufferToPointer(v, val);
   }
 
   /**
@@ -283,8 +301,8 @@ public final class Dbi {
     requireNonNull(val);
     tx.checkNotCommitted();
     tx.checkWritesAllowed();
-    final MDB_val k = createVal(key);
-    final MDB_val v = createVal(val);
+    final Pointer k = allocateMdbVal(key);
+    final Pointer v = allocateMdbVal(val);
     int mask = mask(flags);
     checkRc(lib.mdb_put(tx.ptr, dbi, k, v, mask));
   }

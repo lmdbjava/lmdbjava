@@ -15,30 +15,72 @@
  */
 package org.lmdbjava;
 
-import java.nio.ByteBuffer;
-import jnr.ffi.provider.jffi.ByteBufferMemoryIO;
+import com.kenai.jffi.MemoryIO;
+import static com.kenai.jffi.MemoryIO.getInstance;
+import static java.lang.Long.BYTES;
+import java.nio.Buffer;
+import static jnr.ffi.Memory.allocateDirect;
+import jnr.ffi.Pointer;
 import static org.lmdbjava.BufferMutators.MUTATOR;
 import static org.lmdbjava.BufferMutators.requireDirectBuffer;
-import org.lmdbjava.Library.MDB_val;
 import static org.lmdbjava.Library.runtime;
 import org.lmdbjava.LmdbException.BufferNotDirectException;
 
+/**
+ * Methods for safely interacting with <code>MDB_val</code> pointers.
+ * <p>
+ * While JNR offers <code>struct</code> abstraction, benchmarking has shown this
+ * to be less efficient than simply using offset-based pointers. This class
+ * ensures the correct struct offsets are used with {@link BufferMutator}
+ * operations.
+ */
 final class ValueBuffers {
 
-  static MDB_val createVal(final ByteBuffer bb) throws BufferNotDirectException {
-    requireDirectBuffer(bb);
-    final MDB_val val = new MDB_val(runtime);
-    val.size.set(bb.limit());
-    val.data.set(new ByteBufferMemoryIO(runtime, bb));
-    return val;
+  private static final int MDB_VAL_STRUCT_SIZE = BYTES * 2;
+  private static final MemoryIO MEMORY_IO = getInstance();
+  private static final int STRUCT_FIELD_OFFSET_DATA = BYTES;
+  private static final int STRUCT_FIELD_OFFSET_SIZE = 0;
+
+  /**
+   * Allocate memory to store a <code>MDB_val</code> and return a pointer to
+   * that memory.
+   *
+   * @return the allocated location
+   */
+  static Pointer allocateMdbVal() {
+    return allocateDirect(runtime, MDB_VAL_STRUCT_SIZE, true);
   }
 
-  static void wrap(final ByteBuffer bb, final MDB_val val) throws
+  static Pointer allocateMdbVal(final Buffer src) throws
       BufferNotDirectException {
-    requireDirectBuffer(bb);
-    final long address = val.data.get().address();
-    final int capacity = (int) val.size.get();
-    MUTATOR.modify(bb, address, capacity);
+    if (src == null) {
+      return null;
+    }
+    final Pointer dest = allocateMdbVal();
+    setPointerToBuffer(src, dest);
+    return dest;
+  }
+
+  static long setBufferToPointer(final Pointer src, final Buffer dest) throws
+      BufferNotDirectException {
+    assert src.isDirect();
+    requireDirectBuffer(dest);
+    final long size = src.getLong(STRUCT_FIELD_OFFSET_SIZE);
+    final long data = src.getAddress(STRUCT_FIELD_OFFSET_DATA);
+    // no perf gain: final long data = mdbVal.data.longValue();
+    MUTATOR.modify(dest, data, (int) size);
+    return size;
+  }
+
+  static void setPointerToBuffer(final Buffer src, final Pointer dest) throws
+      BufferNotDirectException {
+    requireDirectBuffer(src);
+    assert dest.isDirect();
+    final long size = src.capacity();
+    // MEMORY_IO uses a native call; should benchmark reflection/unsafe alt
+    final long data = MEMORY_IO.getDirectBufferAddress(src);
+    dest.putLong(STRUCT_FIELD_OFFSET_SIZE, size);
+    dest.putLong(STRUCT_FIELD_OFFSET_DATA, data);
   }
 
   private ValueBuffers() {

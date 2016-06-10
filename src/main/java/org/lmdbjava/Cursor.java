@@ -19,17 +19,16 @@ import java.nio.ByteBuffer;
 import static java.util.Objects.requireNonNull;
 import jnr.ffi.Pointer;
 import jnr.ffi.byref.NativeLongByReference;
-import org.lmdbjava.Library.MDB_val;
 import static org.lmdbjava.Library.lib;
-import static org.lmdbjava.Library.runtime;
 import org.lmdbjava.LmdbException.BufferNotDirectException;
 import static org.lmdbjava.MaskedFlag.mask;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
 import org.lmdbjava.Txn.CommittedException;
 import org.lmdbjava.Txn.ReadOnlyRequiredException;
 import org.lmdbjava.Txn.ReadWriteRequiredException;
-import static org.lmdbjava.ValueBuffers.createVal;
-import static org.lmdbjava.ValueBuffers.wrap;
+import static org.lmdbjava.ValueBuffers.allocateMdbVal;
+import static org.lmdbjava.ValueBuffers.setBufferToPointer;
+import static org.lmdbjava.ValueBuffers.setPointerToBuffer;
 
 /**
  * A cursor handle.
@@ -37,8 +36,10 @@ import static org.lmdbjava.ValueBuffers.wrap;
 public class Cursor implements AutoCloseable {
 
   private boolean closed;
+  private final Pointer k = allocateMdbVal();
   private final Pointer ptr;
   private Txn tx;
+  private final Pointer v = allocateMdbVal();
 
   Cursor(final Pointer ptr, final Txn tx) {
     this.ptr = ptr;
@@ -125,17 +126,15 @@ public class Cursor implements AutoCloseable {
     requireNonNull(op);
     checkNotClosed();
     tx.checkNotCommitted();
-    final MDB_val k;
-    final MDB_val v = new MDB_val(runtime);
+
     // set operations 15, 16, 17
     if (op.getCode() >= 15) {
-      k = createVal(key);
-    } else {
-      k = new MDB_val(runtime);
+      setPointerToBuffer(key, k);
     }
+
     checkRc(lib.mdb_cursor_get(ptr, k, v, op.getCode()));
-    wrap(key, k);
-    wrap(val, v);
+    setBufferToPointer(k, key);
+    setBufferToPointer(v, val);
   }
 
   /**
@@ -162,8 +161,8 @@ public class Cursor implements AutoCloseable {
     checkNotClosed();
     tx.checkNotCommitted();
     tx.checkWritesAllowed();
-    final MDB_val k = createVal(key);
-    final MDB_val v = createVal(val);
+    setPointerToBuffer(key, k);
+    setPointerToBuffer(val, v);
     final int flags = mask(op);
     checkRc(lib.mdb_cursor_put(ptr, k, v, flags));
   }

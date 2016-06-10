@@ -74,7 +74,6 @@ public class BufferMutatorsTest {
   @Test
   public void coverPrivateConstructors() throws Exception {
     invokePrivateConstructor(BufferMutators.class);
-    invokePrivateConstructor(ValueBuffers.class);
   }
 
   @Test

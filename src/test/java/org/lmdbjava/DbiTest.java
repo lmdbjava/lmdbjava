@@ -18,6 +18,7 @@ package org.lmdbjava;
 import java.io.File;
 import java.nio.ByteBuffer;
 import static java.nio.ByteBuffer.allocateDirect;
+import static java.nio.ByteOrder.LITTLE_ENDIAN;
 import static java.util.Collections.nCopies;
 import java.util.Random;
 import static junit.framework.TestCase.fail;
@@ -101,6 +102,7 @@ public class DbiTest {
     tx.commit();
     db.put(createBb(5), createBb(5));
     ByteBuffer val = db.get(createBb(5));
+    val.order(LITTLE_ENDIAN);
     assertThat(val.getInt(), is(5));
     db.delete(createBb(5));
     try {
@@ -119,6 +121,7 @@ public class DbiTest {
 
     try (Txn tx2 = new Txn(env)) {
       ByteBuffer result = db.get(tx2, createBb(5));
+      result.order(LITTLE_ENDIAN);
       assertThat(result.getInt(), is(5));
     }
   }
