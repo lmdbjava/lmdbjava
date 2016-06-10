@@ -54,7 +54,11 @@ public final class Dbi {
   }
 
   /**
-   * @param key The key to delete from the database
+   * Starts a new read-write transaction and deletes the key.
+   * <p>
+   * WARNING: Convenience method. Do not use if latency sensitive.
+   * <p>
+   * @param key The key to delete from the database (required)
    * @throws CommittedException       if already committed
    * @throws BufferNotDirectException if a passed buffer is invalid
    * @throws NotOpenException         if the environment is not currently open
@@ -71,8 +75,10 @@ public final class Dbi {
   }
 
   /**
+   * Deletes the key using the passed transaction.
+   *
    * @param tx  Transaction handle
-   * @param key The key to delete from the database
+   * @param key The key to delete from the database (requierd)
    * @throws CommittedException       if already committed
    * @throws BufferNotDirectException if a passed buffer is invalid
    * @throws LmdbNativeException      if a native C error occurred
@@ -84,20 +90,20 @@ public final class Dbi {
   }
 
   /**
-   * <p>
    * Removes key/data pairs from the database.
-   * </p>
+   * <p>
    * If the database does not support sorted duplicate data items
-   * ({@link org.lmdbjava.DbiFlags#MDB_DUPSORT}) the value parameter is ignored.
-   * If the database supports sorted duplicates and the data parameter is NULL,
-   * all of the duplicate data items for the key will be deleted. Otherwise, if
-   * the data parameter is non-NULL only the matching data item will be deleted.
-   * This function will return false if the specified key/data pair is not in
-   * the database.
+   * ({@link DbiFlags#MDB_DUPSORT}) the value parameter is ignored. If the
+   * database supports sorted duplicates and the value parameter is null, all of
+   * the duplicate data items for the key will be deleted. Otherwise, if the
+   * data parameter is non-null only the matching data item will be deleted.
+   * <p>
+   * This function will throw {@link KeyNotFoundException} if the key/data pair
+   * is not found.
    *
    * @param tx  Transaction handle
    * @param key The key to delete from the database
-   * @param val The value to delete from the database
+   * @param val The value to delete from the database (null permitted)
    * @throws CommittedException       if already committed
    * @throws BufferNotDirectException if a passed buffer is invalid
    * @throws LmdbNativeException      if a native C error occurred
@@ -113,6 +119,10 @@ public final class Dbi {
   }
 
   /**
+   * Gets an item from the database.
+   * <p>
+   * WARNING: Convenience method. Do not use if latency sensitive.
+   * <p>
    * @param key The key to get from the database
    * @return A value placeholder for the memory address to be wrapped if found
    *         by key
@@ -131,9 +141,9 @@ public final class Dbi {
   }
 
   /**
-   * <p>
    * Get items from a database.
-   * </p>
+   * <p>
+   * WARNING: Convenience method. Do not use if latency sensitive.
    * <p>
    * This function retrieves key/data pairs from the database. The address and
    * length of the data associated with the specified \b key are returned in the
@@ -175,21 +185,16 @@ public final class Dbi {
   }
 
   /**
-   * <p>
    * Create a cursor handle.
-   * </p>
    * <p>
    * A cursor is associated with a specific transaction and database. A cursor
    * cannot be used when its database handle is closed. Nor when its transaction
-   * has ended, except with #mdb_cursor_renew(). It can be discarded with
-   * #mdb_cursor_close(). A cursor in a write-transaction can be closed before
-   * its transaction ends, and will otherwise be closed when its transaction
-   * ends. A cursor in a read-only transaction must be closed explicitly, before
-   * or after its transaction ends. It can be reused with #mdb_cursor_renew()
-   * before finally closing it.
-   *
-   * Earlier documentation said that cursors in every transaction were
-   * closed when the transaction committed or aborted.
+   * has ended, except with {@link Cursor#renew(org.lmdbjava.Txn)}. It can be
+   * discarded with {@link Cursor#close()}. A cursor in a write-transaction can
+   * be closed before its transaction ends, and will otherwise be closed when
+   * its transaction ends. A cursor in a read-only transaction must be closed
+   * explicitly, before or after its transaction ends. It can be reused with
+   * {@link Cursor#renew(org.lmdbjava.Txn)} before finally closing it.
    *
    * @param tx transaction handle
    * @return cursor handle
@@ -202,6 +207,10 @@ public final class Dbi {
   }
 
   /**
+   * Starts a new read-write transaction and puts the key/data pair.
+   * <p>
+   * WARNING: Convenience method. Do not use if latency sensitive.
+   * 
    * @param key The key to store in the database
    * @param val The value to store in the database
    * @throws CommittedException       if already committed
@@ -220,14 +229,12 @@ public final class Dbi {
   }
 
   /**
-   * <p>
-   * Store items into a database.
-   * </p>
+   * Store a key/value pair in the database.
    * <p>
    * This function stores key/data pairs in the database. The default behavior
    * is to enter the new key/data pair, replacing any previously existing key if
    * duplicates are disallowed, or adding a duplicate data item if duplicates
-   * are allowed ({@link org.lmdbjava.DbiFlags#MDB_DUPSORT}).
+   * are allowed ({@link DbiFlags#MDB_DUPSORT}).
    *
    * @param tx    transaction handle
    * @param key   The key to store in the database
