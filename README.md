@@ -15,7 +15,7 @@ the OpenLDAP Project.
 LMDB uses memory-mapped files, so it has the read performance of a pure in-memory
 database while still offering the persistence of standard disk-based databases.
 It is transactional with full ACID semantics and crash-proof by design.
-No journal files. No corruption. No startup time. No dependencies. Zero-config
+No journal files. No corruption. No startup time. No dependencies. No config
 tuning. LMDB is a perfect foundation for large, read-centric, single node
 workloads that require strong latency and operational robustness outcomes.
 
@@ -59,7 +59,7 @@ latency, Java 9 roadmap and its much simpler build requirements). We also
 significantly reduced `Unsafe` use, with only a single class still using it
 (and there is automatic reflective fallback used if `Unsafe` is not available).
 As such these changes make LmdbJava the optimal choice for projects targeting
-server-class JVMs.
+server-class JVMs, and it will be very easy to support Java 9 when released.
 
 ## License
 
