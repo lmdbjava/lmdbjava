@@ -201,7 +201,7 @@ public final class Dbi {
    * @throws LmdbNativeException if a native C error occurred
    */
   public Cursor openCursor(final Txn tx) throws LmdbNativeException {
-    PointerByReference ptr = new PointerByReference();
+    final PointerByReference ptr = new PointerByReference();
     checkRc(lib.mdb_cursor_open(tx.ptr, dbi, ptr));
     return new Cursor(ptr.getValue(), tx);
   }
