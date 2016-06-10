@@ -26,6 +26,7 @@ import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.POSIX_MODE;
 import static org.lmdbjava.TestUtils.createBb;
 import org.lmdbjava.Txn.CommittedException;
+import org.lmdbjava.Txn.ReadWriteRequiredException;
 
 public class DbiTest {
 
@@ -147,7 +148,7 @@ public class DbiTest {
             try {
               dbi.put(createBb(random.nextInt()), createBb(random.nextInt()));
             } catch (CommittedException | LmdbNativeException | NotOpenException |
-                     BufferNotDirectException e) {
+                     BufferNotDirectException | ReadWriteRequiredException e) {
               throw new RuntimeException(e);
             }
           }
