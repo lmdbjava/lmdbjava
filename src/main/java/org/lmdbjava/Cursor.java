@@ -25,13 +25,14 @@ import static org.lmdbjava.Library.runtime;
 import org.lmdbjava.LmdbException.BufferNotDirectException;
 import static org.lmdbjava.MaskedFlag.mask;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
+import org.lmdbjava.Txn.CommittedException;
 import static org.lmdbjava.ValueBuffers.createVal;
 import static org.lmdbjava.ValueBuffers.wrap;
 
 /**
  * A cursor handle.
  */
-public class Cursor {
+public class Cursor implements AutoCloseable {
 
   private ByteBuffer buffer;
   private boolean closed;
@@ -48,12 +49,20 @@ public class Cursor {
    * <p>
    * The cursor handle will be freed and must not be used again after this call.
    * Its transaction must still be live if it is a write-transaction.
+   *
+   * @throws CommittedException if the transaction was read-write and has
+   *                            already been closed
    */
-  public void close() {
-    if (!closed) {
-      lib.mdb_cursor_close(ptr);
-      closed = true;
+  @Override
+  public void close() throws CommittedException {
+    if (closed) {
+      return;
     }
+    if (!tx.isReadOnly() && tx.isCommitted()) {
+      throw new Txn.CommittedException();
+    }
+    lib.mdb_cursor_close(ptr);
+    closed = true;
   }
 
   /**

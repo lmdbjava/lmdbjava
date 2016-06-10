@@ -25,6 +25,7 @@ import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
 import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.POSIX_MODE;
 import static org.lmdbjava.TestUtils.createBb;
+import org.lmdbjava.Txn.CommittedException;
 import static org.lmdbjava.TxnFlags.MDB_RDONLY;
 
 public class CursorTest {
@@ -55,6 +56,17 @@ public class CursorTest {
     ByteBuffer k = createBb(1);
     ByteBuffer v = createBb(1);
     cursor.get(k, v, MDB_FIRST);
+  }
+
+  @Test(expected = CommittedException.class)
+  public void cursorCannotCloseIfTransactionClosed() throws Exception {
+    try (Cursor cursor = db.openCursor(tx)) {
+      cursor.put(createBb(1), createBb(2), MDB_APPENDDUP);
+      assertThat(cursor.count(), is(1L));
+      cursor.put(createBb(1), createBb(4), MDB_APPENDDUP);
+      assertThat(cursor.count(), is(2L));
+      tx.commit();
+    }
   }
 
   @Test
