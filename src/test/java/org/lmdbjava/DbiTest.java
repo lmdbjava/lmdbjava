@@ -2,6 +2,7 @@ package org.lmdbjava;
 
 import java.io.File;
 import java.nio.ByteBuffer;
+import static java.nio.ByteBuffer.allocateDirect;
 import static java.util.Collections.nCopies;
 import java.util.Random;
 import static junit.framework.TestCase.fail;
@@ -15,13 +16,12 @@ import org.lmdbjava.Dbi.DbFullException;
 import org.lmdbjava.Dbi.KeyExistsException;
 import org.lmdbjava.Dbi.KeyNotFoundException;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
-
 import org.lmdbjava.Env.MapFullException;
 import org.lmdbjava.Env.NotOpenException;
-
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import org.lmdbjava.LmdbException.BufferNotDirectException;
 import org.lmdbjava.LmdbNativeException.ConstantDerviedException;
+import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
 import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.POSIX_MODE;
 import static org.lmdbjava.TestUtils.createBb;
@@ -122,18 +122,18 @@ public class DbiTest {
     tx.abort();
   }
 
-  @Test(expected = MapFullException.class)
-  public void testMapFullException() throws Exception {
-    Dbi db = new Dbi(tx, DB_1, MDB_CREATE);
-    ByteBuffer v = ByteBuffer.allocateDirect(1024 * 1024 * 1024);
-    db.put(tx, createBb(1), v);
-  }
-
   @Test(expected = KeyExistsException.class)
   public void testKeyExistsException() throws Exception {
     Dbi db = new Dbi(tx, DB_1, MDB_CREATE);
-    db.put(tx, createBb(5), createBb(5), PutFlags.MDB_NOOVERWRITE);
-    db.put(tx, createBb(5), createBb(5), PutFlags.MDB_NOOVERWRITE);
+    db.put(tx, createBb(5), createBb(5), MDB_NOOVERWRITE);
+    db.put(tx, createBb(5), createBb(5), MDB_NOOVERWRITE);
+  }
+
+  @Test(expected = MapFullException.class)
+  public void testMapFullException() throws Exception {
+    Dbi db = new Dbi(tx, DB_1, MDB_CREATE);
+    ByteBuffer v = allocateDirect(1_024 * 1_024 * 1_024);
+    db.put(tx, createBb(1), v);
   }
 
   @Test
