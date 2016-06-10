@@ -20,6 +20,7 @@ import static org.lmdbjava.TestUtils.createBb;
 import org.lmdbjava.Txn.CommittedException;
 import org.lmdbjava.Txn.NotResetException;
 import org.lmdbjava.Txn.ReadOnlyRequiredException;
+import org.lmdbjava.Txn.ReadWriteRequiredException;
 import org.lmdbjava.Txn.ResetException;
 import static org.lmdbjava.TxnFlags.MDB_RDONLY;
 
@@ -41,8 +42,27 @@ public class TxnTest {
 
   }
 
+  @Test(expected = CommittedException.class)
+  public void testCheckNotCommitted() throws Exception {
+    final Txn tx = new Txn(env, MDB_RDONLY);
+    tx.commit();
+    tx.checkNotCommitted();
+  }
+
+  @Test(expected = ReadOnlyRequiredException.class)
+  public void testCheckReadOnly() throws Exception {
+    final Txn tx = new Txn(env);
+    tx.checkReadOnly();
+  }
+
+  @Test(expected = ReadWriteRequiredException.class)
+  public void testCheckWritesAllowed() throws Exception {
+    final Txn tx = new Txn(env, MDB_RDONLY);
+    tx.checkWritesAllowed();
+  }
+
   @Test
-  @Ignore
+  @Ignore(value = "Travis CI failure; suspect older liblmdb version")
   public void testGetId() throws Exception {
     Txn tx = new Txn(env);
     Dbi db = new Dbi(tx, DB_1, MDB_CREATE);
@@ -112,6 +132,8 @@ public class TxnTest {
     assertThat(tx.isCommitted(), is(false));
     assertThat(tx.isReadOnly(), is(true));
     assertThat(tx.isReset(), is(false));
+    tx.checkNotCommitted();
+    tx.checkReadOnly();
     tx.reset();
     assertThat(tx.isReset(), is(true));
     tx.renew();
@@ -126,6 +148,8 @@ public class TxnTest {
     assertThat(tx.getParent(), is(nullValue()));
     assertThat(tx.isCommitted(), is(false));
     assertThat(tx.isReadOnly(), is(false));
+    tx.checkNotCommitted();
+    tx.checkWritesAllowed();
     tx.commit();
     assertThat(tx.isCommitted(), is(true));
   }

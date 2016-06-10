@@ -32,7 +32,7 @@ import static org.lmdbjava.TxnFlags.MDB_RDONLY;
  */
 public final class Txn implements AutoCloseable {
 
-  private boolean committed;
+  private boolean committed = false;
   private final boolean readOnly;
   private boolean reset = false;
   final Env env;
@@ -214,6 +214,24 @@ public final class Txn implements AutoCloseable {
     reset = true;
   }
 
+  void checkNotCommitted() throws CommittedException {
+    if (committed) {
+      throw new CommittedException();
+    }
+  }
+
+  void checkReadOnly() throws ReadOnlyRequiredException {
+    if (!readOnly) {
+      throw new ReadOnlyRequiredException();
+    }
+  }
+
+  void checkWritesAllowed() throws ReadWriteRequiredException {
+    if (readOnly) {
+      throw new ReadWriteRequiredException();
+    }
+  }
+
   /**
    * Transaction must abort, has a child, or is invalid.
    */
@@ -251,7 +269,7 @@ public final class Txn implements AutoCloseable {
      * Creates a new instance.
      */
     public CommittedException() {
-      super("Transaction has already been opened");
+      super("Transaction has already been committed");
     }
   }
 
@@ -282,6 +300,21 @@ public final class Txn implements AutoCloseable {
      */
     public ReadOnlyRequiredException() {
       super("Not a read-only transaction");
+    }
+  }
+
+  /**
+   * The current transaction is not a read-write transaction.
+   */
+  public static class ReadWriteRequiredException extends LmdbException {
+
+    private static final long serialVersionUID = 1L;
+
+    /**
+     * Creates a new instance.
+     */
+    public ReadWriteRequiredException() {
+      super("Not a read-write transaction");
     }
   }
 
