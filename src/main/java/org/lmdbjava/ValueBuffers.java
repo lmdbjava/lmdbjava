@@ -20,6 +20,7 @@ import java.nio.Buffer;
 import jnr.ffi.Pointer;
 import jnr.ffi.provider.MemoryManager;
 import static org.lmdbjava.BufferMutators.MUTATOR;
+import static org.lmdbjava.BufferMutators.UnsafeBufferMutator.UNSAFE;
 import static org.lmdbjava.BufferMutators.requireDirectBuffer;
 import static org.lmdbjava.Env.SHOULD_CHECK;
 import static org.lmdbjava.Library.RUNTIME;
@@ -60,6 +61,17 @@ final class ValueBuffers {
     return dest;
   }
 
+  static long setBufferToPointer(final long address, final Buffer dest) throws
+    BufferNotDirectException {
+    if (SHOULD_CHECK) {
+      requireDirectBuffer(dest);
+    }
+    final long size = UNSAFE.getLong(address + STRUCT_FIELD_OFFSET_SIZE);
+    final long data = UNSAFE.getLong(address + STRUCT_FIELD_OFFSET_DATA);
+    MUTATOR.modify(dest, data, (int) size);
+    return size;
+  }
+
   static long setBufferToPointer(final Pointer src, final Buffer dest) throws
       BufferNotDirectException {
     if (SHOULD_CHECK) {
@@ -82,6 +94,17 @@ final class ValueBuffers {
     final long data = ((sun.nio.ch.DirectBuffer) src).address();
     dest.putLong(STRUCT_FIELD_OFFSET_SIZE, size);
     dest.putLong(STRUCT_FIELD_OFFSET_DATA, data);
+  }
+
+  static void setPointerToBuffer(final Buffer src, final long destAddress) throws
+    BufferNotDirectException {
+    if (SHOULD_CHECK) {
+      requireDirectBuffer(src);
+    }
+    final long size = src.capacity();
+    final long data = ((sun.nio.ch.DirectBuffer) src).address();
+    UNSAFE.putAddress(destAddress + STRUCT_FIELD_OFFSET_SIZE, size);
+    UNSAFE.putAddress(destAddress + STRUCT_FIELD_OFFSET_DATA, data);
   }
 
   private ValueBuffers() {

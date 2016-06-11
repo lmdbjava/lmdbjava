@@ -120,11 +120,11 @@ final class BufferMutators {
     }
   }
 
-  private static final class UnsafeBufferMutator implements BufferMutator {
+  static final class UnsafeBufferMutator implements BufferMutator {
 
     private static final long ADDRESS;
     private static final long CAPACITY;
-    private static final Unsafe UNSAFE;
+    static final Unsafe UNSAFE;
 
     static {
       try {

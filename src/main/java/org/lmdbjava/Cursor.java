@@ -40,9 +40,11 @@ public class Cursor implements AutoCloseable {
 
   private boolean closed;
   private final Pointer k = allocateMdbVal();
+  private final long kAddress = k.address();
   private final Pointer ptr;
   private Txn tx;
   private final Pointer v = allocateMdbVal();
+  private final long vAddress = v.address();
 
   Cursor(final Pointer ptr, final Txn tx) {
     this.ptr = ptr;
@@ -138,13 +140,13 @@ public class Cursor implements AutoCloseable {
       tx.checkNotCommitted();
     }
 
-    setPointerToBuffer(key, k);
+    setPointerToBuffer(key, kAddress);
 
     final int rc = LIB.mdb_cursor_get(ptr, k, v, op.getCode());
 
     if (rc == MDB_SUCCESS) {
-      setBufferToPointer(k, key);
-      setBufferToPointer(v, val);
+      setBufferToPointer(kAddress, key);
+      setBufferToPointer(vAddress, val);
     }
 
     if (rc == MDB_NOTFOUND) {
