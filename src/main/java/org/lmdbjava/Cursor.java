@@ -19,9 +19,11 @@ import java.nio.ByteBuffer;
 import static java.util.Objects.requireNonNull;
 import jnr.ffi.Pointer;
 import jnr.ffi.byref.NativeLongByReference;
+import static org.lmdbjava.Dbi.KeyNotFoundException.MDB_NOTFOUND;
 import static org.lmdbjava.Library.LIB;
 import org.lmdbjava.LmdbException.BufferNotDirectException;
 import static org.lmdbjava.MaskedFlag.mask;
+import static org.lmdbjava.ResultCodeMapper.MDB_SUCCESS;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
 import org.lmdbjava.Txn.CommittedException;
 import org.lmdbjava.Txn.ReadOnlyRequiredException;
@@ -113,12 +115,14 @@ public class Cursor implements AutoCloseable {
    * @param key placeholder for the key memory address to be wrapped
    * @param val placeholder for the value memory address to be wrapped
    * @param op  options for this operation
+   * @return false if key not found
    * @throws BufferNotDirectException if a passed buffer is invalid
    * @throws LmdbNativeException      if a native C error occurred
    * @throws CommittedException       if the transaction was committed
    * @throws ClosedException          if the cursor is already closed
    */
-  public void get(final ByteBuffer key, final ByteBuffer val, final CursorOp op)
+  public boolean get(final ByteBuffer key, final ByteBuffer val,
+                     final CursorOp op)
       throws BufferNotDirectException, LmdbNativeException, CommittedException,
              ClosedException {
     requireNonNull(key);
@@ -132,9 +136,20 @@ public class Cursor implements AutoCloseable {
       setPointerToBuffer(key, k);
     }
 
-    checkRc(LIB.mdb_cursor_get(ptr, k, v, op.getCode()));
-    setBufferToPointer(k, key);
-    setBufferToPointer(v, val);
+    final int rc = LIB.mdb_cursor_get(ptr, k, v, op.getCode());
+
+    if (rc == MDB_SUCCESS) {
+      setBufferToPointer(k, key);
+      setBufferToPointer(v, val);
+    }
+
+    if (rc == MDB_NOTFOUND) {
+      return false;
+    }
+
+    checkRc(rc);
+
+    return true;
   }
 
   /**

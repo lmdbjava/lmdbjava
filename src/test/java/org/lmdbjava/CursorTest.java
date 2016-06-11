@@ -31,7 +31,6 @@ import static org.lmdbjava.CursorOp.MDB_PREV;
 import static org.lmdbjava.CursorOp.MDB_SET;
 import static org.lmdbjava.CursorOp.MDB_SET_KEY;
 import static org.lmdbjava.CursorOp.MDB_SET_RANGE;
-import org.lmdbjava.Dbi.KeyNotFoundException;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import static org.lmdbjava.DbiFlags.MDB_DUPSORT;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
@@ -68,7 +67,7 @@ public class CursorTest {
       cursor.close();
       final ByteBuffer k = createBb(1);
       final ByteBuffer v = createBb(1);
-      cursor.get(k, v, MDB_FIRST);
+      assertThat(cursor.get(k, v, MDB_FIRST), is(true));
     }
   }
 
@@ -103,7 +102,6 @@ public class CursorTest {
     }
   }
 
-  @Test(expected = KeyNotFoundException.class)
   public void testCursorDelete() throws Exception {
     try (final Txn tx = new Txn(env)) {
       final Dbi db = new Dbi(tx, DB_1, MDB_CREATE, MDB_DUPSORT);
@@ -112,15 +110,15 @@ public class CursorTest {
       cursor.put(createBb(3), createBb(4));
       final ByteBuffer k = createBb(1);
       final ByteBuffer v = createBb();
-      cursor.get(k, v, MDB_FIRST);
+      assertThat(cursor.get(k, v, MDB_FIRST), is(true));
       assertThat(k.getInt(), is(1));
       assertThat(v.getInt(), is(2));
       cursor.delete();
-      cursor.get(k, v, MDB_FIRST);
+      assertThat(cursor.get(k, v, MDB_FIRST), is(true));
       assertThat(k.getInt(), is(3));
       assertThat(v.getInt(), is(4));
       cursor.delete();
-      cursor.get(k, v, MDB_FIRST);
+      assertThat(cursor.get(k, v, MDB_FIRST), is(false));
     }
   }
 
@@ -133,16 +131,16 @@ public class CursorTest {
       cursor.put(createBb(3), createBb(4));
       ByteBuffer k = createBb();
       ByteBuffer v = createBb();
-      cursor.get(k, v, MDB_FIRST);
+      assertThat(cursor.get(k, v, MDB_FIRST), is(true));
       assertThat(k.getInt(), is(1));
       assertThat(v.getInt(), is(2));
-      cursor.get(k, v, MDB_NEXT);
+      assertThat(cursor.get(k, v, MDB_NEXT), is(true));
       assertThat(k.getInt(), is(3));
       assertThat(v.getInt(), is(4));
-      cursor.get(k, v, MDB_PREV);
+      assertThat(cursor.get(k, v, MDB_PREV), is(true));
       assertThat(k.getInt(), is(1));
       assertThat(v.getInt(), is(2));
-      cursor.get(k, v, MDB_LAST);
+      assertThat(cursor.get(k, v, MDB_LAST), is(true));
       assertThat(k.getInt(), is(3));
       assertThat(v.getInt(), is(4));
     }
@@ -191,22 +189,22 @@ public class CursorTest {
       final ByteBuffer v = createBb();
 
       final ByteBuffer k1 = createBb(1);
-      cursor.get(k1, v, MDB_SET);
+      assertThat(cursor.get(k1, v, MDB_SET), is(true));
       assertThat(k1.getInt(), is(1));
       assertThat(v.getInt(), is(2));
 
       final ByteBuffer k3 = createBb(3);
-      cursor.get(k3, v, MDB_SET_KEY);
+      assertThat(cursor.get(k3, v, MDB_SET_KEY), is(true));
       assertThat(k3.getInt(), is(3));
       assertThat(v.getInt(), is(4));
 
       final ByteBuffer k5 = createBb(5);
-      cursor.get(k5, v, MDB_SET_RANGE);
+      assertThat(cursor.get(k5, v, MDB_SET_RANGE), is(true));
       assertThat(k5.getInt(), is(5));
       assertThat(v.getInt(), is(6));
 
       final ByteBuffer k0 = createBb(0);
-      cursor.get(k0, v, MDB_SET_RANGE);
+      assertThat(cursor.get(k0, v, MDB_SET_RANGE), is(true));
       assertThat(k0.getInt(), is(1));
       assertThat(v.getInt(), is(2));
     }
