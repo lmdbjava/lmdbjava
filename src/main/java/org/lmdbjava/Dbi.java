@@ -22,6 +22,7 @@ import jnr.ffi.Pointer;
 import jnr.ffi.byref.IntByReference;
 import jnr.ffi.byref.PointerByReference;
 import org.lmdbjava.Env.NotOpenException;
+import static org.lmdbjava.Env.SHOULD_CHECK;
 import static org.lmdbjava.Library.LIB;
 import org.lmdbjava.LmdbException.BufferNotDirectException;
 import static org.lmdbjava.MaskedFlag.mask;
@@ -131,10 +132,12 @@ public final class Dbi {
       throws
       CommittedException, BufferNotDirectException, LmdbNativeException,
       ReadWriteRequiredException {
-    requireNonNull(tx);
-    requireNonNull(key);
-    tx.checkNotCommitted();
-    tx.checkWritesAllowed();
+    if (SHOULD_CHECK) {
+      requireNonNull(tx);
+      requireNonNull(key);
+      tx.checkNotCommitted();
+      tx.checkWritesAllowed();
+    }
     final Pointer k = allocateMdbVal(key);
     final Pointer v = allocateMdbVal(val);
     checkRc(LIB.mdb_del(tx.ptr, dbi, k, v));
@@ -207,10 +210,12 @@ public final class Dbi {
   public void get(final Txn tx, final ByteBuffer key, final ByteBuffer val)
       throws
       CommittedException, BufferNotDirectException, LmdbNativeException {
-    requireNonNull(tx);
-    requireNonNull(key);
-    requireNonNull(val);
-    tx.checkNotCommitted();
+    if (SHOULD_CHECK) {
+      requireNonNull(tx);
+      requireNonNull(key);
+      requireNonNull(val);
+      tx.checkNotCommitted();
+    }
     final Pointer k = allocateMdbVal(key);
     final Pointer v = allocateMdbVal();
     checkRc(LIB.mdb_get(tx.ptr, dbi, k, v));
@@ -245,8 +250,10 @@ public final class Dbi {
    */
   public Cursor openCursor(final Txn tx) throws LmdbNativeException,
                                                 CommittedException {
-    requireNonNull(tx);
-    tx.checkNotCommitted();
+    if (SHOULD_CHECK) {
+      requireNonNull(tx);
+      tx.checkNotCommitted();
+    }
     final PointerByReference ptr = new PointerByReference();
     checkRc(LIB.mdb_cursor_open(tx.ptr, dbi, ptr));
     return new Cursor(ptr.getValue(), tx);
@@ -296,11 +303,13 @@ public final class Dbi {
                   final PutFlags... flags)
       throws CommittedException, BufferNotDirectException, LmdbNativeException,
              ReadWriteRequiredException {
-    requireNonNull(tx);
-    requireNonNull(key);
-    requireNonNull(val);
-    tx.checkNotCommitted();
-    tx.checkWritesAllowed();
+    if (SHOULD_CHECK) {
+      requireNonNull(tx);
+      requireNonNull(key);
+      requireNonNull(val);
+      tx.checkNotCommitted();
+      tx.checkWritesAllowed();
+    }
     final Pointer k = allocateMdbVal(key);
     final Pointer v = allocateMdbVal(val);
     int mask = mask(flags);

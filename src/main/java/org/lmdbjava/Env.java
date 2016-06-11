@@ -16,6 +16,7 @@
 package org.lmdbjava;
 
 import java.io.File;
+import static java.lang.Boolean.getBoolean;
 import static java.util.Objects.requireNonNull;
 import jnr.ffi.Pointer;
 import jnr.ffi.byref.PointerByReference;
@@ -30,6 +31,19 @@ import static org.lmdbjava.ResultCodeMapper.checkRc;
  * LMDB environment.
  */
 public final class Env implements AutoCloseable {
+
+  /**
+   * Java system property name that can be set to disable optional checks.
+   */
+  public static final String DISABLE_CHECKS_PROP = "lmdbjava.disable.checks";
+
+  /**
+   * Indicates whether optional checks should be applied in LmdbJava. Optional
+   * checks are only disabled in critical paths (see package-level JavaDocs).
+   * Non-critical paths have optional checks performed at all times, regardless
+   * of this property.
+   */
+  public static final boolean SHOULD_CHECK = !getBoolean(DISABLE_CHECKS_PROP);
 
   private boolean closed = false;
   private boolean open = false;

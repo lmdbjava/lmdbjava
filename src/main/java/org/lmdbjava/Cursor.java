@@ -20,6 +20,7 @@ import static java.util.Objects.requireNonNull;
 import jnr.ffi.Pointer;
 import jnr.ffi.byref.NativeLongByReference;
 import static org.lmdbjava.Dbi.KeyNotFoundException.MDB_NOTFOUND;
+import static org.lmdbjava.Env.SHOULD_CHECK;
 import static org.lmdbjava.Library.LIB;
 import org.lmdbjava.LmdbException.BufferNotDirectException;
 import static org.lmdbjava.MaskedFlag.mask;
@@ -62,7 +63,7 @@ public class Cursor implements AutoCloseable {
     if (closed) {
       return;
     }
-    if (!tx.isReadOnly() && tx.isCommitted()) {
+    if (SHOULD_CHECK && !tx.isReadOnly() && tx.isCommitted()) {
       throw new CommittedException();
     }
     LIB.mdb_cursor_close(ptr);
@@ -82,8 +83,10 @@ public class Cursor implements AutoCloseable {
    */
   public long count() throws LmdbNativeException, CommittedException,
                              ClosedException {
-    checkNotClosed();
-    tx.checkNotCommitted();
+    if (SHOULD_CHECK) {
+      checkNotClosed();
+      tx.checkNotCommitted();
+    }
     final NativeLongByReference longByReference = new NativeLongByReference();
     checkRc(LIB.mdb_cursor_count(ptr, longByReference));
     return longByReference.longValue();
@@ -101,9 +104,11 @@ public class Cursor implements AutoCloseable {
    */
   public void delete() throws LmdbNativeException, CommittedException,
                               ClosedException, ReadWriteRequiredException {
-    checkNotClosed();
-    tx.checkNotCommitted();
-    tx.checkWritesAllowed();
+    if (SHOULD_CHECK) {
+      checkNotClosed();
+      tx.checkNotCommitted();
+      tx.checkWritesAllowed();
+    }
     checkRc(LIB.mdb_cursor_del(ptr, 0));
   }
 
@@ -125,11 +130,13 @@ public class Cursor implements AutoCloseable {
                      final CursorOp op)
       throws BufferNotDirectException, LmdbNativeException, CommittedException,
              ClosedException {
-    requireNonNull(key);
-    requireNonNull(val);
-    requireNonNull(op);
-    checkNotClosed();
-    tx.checkNotCommitted();
+    if (SHOULD_CHECK) {
+      requireNonNull(key);
+      requireNonNull(val);
+      requireNonNull(op);
+      checkNotClosed();
+      tx.checkNotCommitted();
+    }
 
     setPointerToBuffer(key, k);
 
@@ -168,11 +175,13 @@ public class Cursor implements AutoCloseable {
                   final PutFlags... op)
       throws BufferNotDirectException, LmdbNativeException, CommittedException,
              ClosedException, ReadWriteRequiredException {
-    requireNonNull(key);
-    requireNonNull(val);
-    checkNotClosed();
-    tx.checkNotCommitted();
-    tx.checkWritesAllowed();
+    if (SHOULD_CHECK) {
+      requireNonNull(key);
+      requireNonNull(val);
+      checkNotClosed();
+      tx.checkNotCommitted();
+      tx.checkWritesAllowed();
+    }
     setPointerToBuffer(key, k);
     setPointerToBuffer(val, v);
     final int flags = mask(op);
@@ -199,11 +208,13 @@ public class Cursor implements AutoCloseable {
       throws LmdbNativeException, ClosedException,
              ReadOnlyRequiredException,
              CommittedException {
-    requireNonNull(tx);
-    checkNotClosed();
-    this.tx.checkReadOnly(); // existing
-    tx.checkReadOnly(); // new
-    tx.checkNotCommitted(); // new
+    if (SHOULD_CHECK) {
+      requireNonNull(tx);
+      checkNotClosed();
+      this.tx.checkReadOnly(); // existing
+      tx.checkReadOnly(); // new
+      tx.checkNotCommitted(); // new
+    }
     this.tx = tx;
     checkRc(LIB.mdb_cursor_renew(tx.ptr, ptr));
   }
