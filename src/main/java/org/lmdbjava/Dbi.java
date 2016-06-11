@@ -32,6 +32,7 @@ import org.lmdbjava.Txn.ReadWriteRequiredException;
 import static org.lmdbjava.TxnFlags.MDB_RDONLY;
 import static org.lmdbjava.ValueBuffers.allocateMdbVal;
 import static org.lmdbjava.ValueBuffers.setBufferToPointer;
+import static org.lmdbjava.ValueBuffers.setPointerToBuffer;
 
 /**
  * LMDB Database.
@@ -41,6 +42,8 @@ public final class Dbi {
   private final String name;
   final int dbi;
   final Env env;
+  final Pointer k;
+  final Pointer v;
 
   /**
    * Create and open an LMDB Database (dbi) handle.
@@ -67,6 +70,8 @@ public final class Dbi {
     final IntByReference dbiPtr = new IntByReference();
     checkRc(LIB.mdb_dbi_open(tx.ptr, name, flagsMask, dbiPtr));
     dbi = dbiPtr.intValue();
+    k = allocateMdbVal();
+    v = allocateMdbVal();
   }
 
   /**
@@ -138,9 +143,9 @@ public final class Dbi {
       tx.checkNotCommitted();
       tx.checkWritesAllowed();
     }
-    final Pointer k = allocateMdbVal(key);
-    final Pointer v = allocateMdbVal(val);
-    checkRc(LIB.mdb_del(tx.ptr, dbi, k, v));
+    final Pointer delk = allocateMdbVal(key);
+    final Pointer delV = allocateMdbVal(val);
+    checkRc(LIB.mdb_del(tx.ptr, dbi, delk, delV));
   }
 
   /**
@@ -216,8 +221,7 @@ public final class Dbi {
       requireNonNull(val);
       tx.checkNotCommitted();
     }
-    final Pointer k = allocateMdbVal(key);
-    final Pointer v = allocateMdbVal();
+    setPointerToBuffer(key, k);
     checkRc(LIB.mdb_get(tx.ptr, dbi, k, v));
     setBufferToPointer(v, val);
   }
@@ -310,8 +314,8 @@ public final class Dbi {
       tx.checkNotCommitted();
       tx.checkWritesAllowed();
     }
-    final Pointer k = allocateMdbVal(key);
-    final Pointer v = allocateMdbVal(val);
+    setPointerToBuffer(key, k);
+    setPointerToBuffer(val, v);
     int mask = mask(flags);
     checkRc(LIB.mdb_put(tx.ptr, dbi, k, v, mask));
   }

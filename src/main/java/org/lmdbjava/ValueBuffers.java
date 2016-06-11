@@ -15,14 +15,13 @@
  */
 package org.lmdbjava;
 
-import com.kenai.jffi.MemoryIO;
-import static com.kenai.jffi.MemoryIO.getInstance;
 import static java.lang.Long.BYTES;
 import java.nio.Buffer;
-import static jnr.ffi.Memory.allocateDirect;
 import jnr.ffi.Pointer;
+import jnr.ffi.provider.MemoryManager;
 import static org.lmdbjava.BufferMutators.MUTATOR;
 import static org.lmdbjava.BufferMutators.requireDirectBuffer;
+import static org.lmdbjava.Env.SHOULD_CHECK;
 import static org.lmdbjava.Library.RUNTIME;
 import org.lmdbjava.LmdbException.BufferNotDirectException;
 
@@ -37,7 +36,7 @@ import org.lmdbjava.LmdbException.BufferNotDirectException;
 final class ValueBuffers {
 
   private static final int MDB_VAL_STRUCT_SIZE = BYTES * 2;
-  private static final MemoryIO MEMORY_IO = getInstance();
+  private static final MemoryManager MEM_MGR = RUNTIME.getMemoryManager();
   private static final int STRUCT_FIELD_OFFSET_DATA = BYTES;
   private static final int STRUCT_FIELD_OFFSET_SIZE = 0;
 
@@ -48,7 +47,7 @@ final class ValueBuffers {
    * @return the allocated location
    */
   static Pointer allocateMdbVal() {
-    return allocateDirect(RUNTIME, MDB_VAL_STRUCT_SIZE, true);
+    return MEM_MGR.allocateTemporary(MDB_VAL_STRUCT_SIZE, false);
   }
 
   static Pointer allocateMdbVal(final Buffer src) throws
@@ -63,22 +62,24 @@ final class ValueBuffers {
 
   static long setBufferToPointer(final Pointer src, final Buffer dest) throws
       BufferNotDirectException {
-    assert src.isDirect();
-    requireDirectBuffer(dest);
+    if (SHOULD_CHECK) {
+      assert src.isDirect();
+      requireDirectBuffer(dest);
+    }
     final long size = src.getLong(STRUCT_FIELD_OFFSET_SIZE);
     final long data = src.getAddress(STRUCT_FIELD_OFFSET_DATA);
-    // no perf gain: final long data = mdbVal.data.longValue();
     MUTATOR.modify(dest, data, (int) size);
     return size;
   }
 
   static void setPointerToBuffer(final Buffer src, final Pointer dest) throws
       BufferNotDirectException {
-    requireDirectBuffer(src);
-    assert dest.isDirect();
+    if (SHOULD_CHECK) {
+      requireDirectBuffer(src);
+      assert dest.isDirect();
+    }
     final long size = src.capacity();
-    // MEMORY_IO uses a native call; should benchmark reflection/unsafe alt
-    final long data = MEMORY_IO.getDirectBufferAddress(src);
+    final long data = ((sun.nio.ch.DirectBuffer) src).address();
     dest.putLong(STRUCT_FIELD_OFFSET_SIZE, size);
     dest.putLong(STRUCT_FIELD_OFFSET_DATA, data);
   }
