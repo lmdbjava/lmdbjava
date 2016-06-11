@@ -131,10 +131,7 @@ public class Cursor implements AutoCloseable {
     checkNotClosed();
     tx.checkNotCommitted();
 
-    // set operations 15, 16, 17
-    if (op.getCode() >= 15) {
-      setPointerToBuffer(key, k);
-    }
+    setPointerToBuffer(key, k);
 
     final int rc = LIB.mdb_cursor_get(ptr, k, v, op.getCode());
 
