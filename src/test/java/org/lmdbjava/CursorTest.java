@@ -24,6 +24,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.lmdbjava.Cursor.ClosedException;
+import org.lmdbjava.Cursor.CursorOpException;
 import static org.lmdbjava.CursorOp.MDB_FIRST;
 import static org.lmdbjava.CursorOp.MDB_LAST;
 import static org.lmdbjava.CursorOp.MDB_NEXT;
@@ -63,11 +64,11 @@ public class CursorTest {
   public void closedCursorRejectsSubsequentGets() throws Exception {
     try (final Txn tx = new Txn(env)) {
       final Dbi db = new Dbi(tx, DB_1, MDB_CREATE);
-      final Cursor cursor = db.openCursor(tx);
+      final ByteBuffer roK = createBb();
+      final ByteBuffer roV = createBb();
+      final Cursor cursor = db.openCursor(tx, roK, roV);
       cursor.close();
-      final ByteBuffer k = createBb(1);
-      final ByteBuffer v = createBb(1);
-      assertThat(cursor.get(k, v, MDB_FIRST), is(true));
+      cursor.position(MDB_FIRST);
     }
   }
 
@@ -75,7 +76,9 @@ public class CursorTest {
   public void cursorCanCountKeys() throws Exception {
     try (final Txn tx = new Txn(env)) {
       final Dbi db = new Dbi(tx, DB_1, MDB_CREATE, MDB_DUPSORT);
-      final Cursor cursor = db.openCursor(tx);
+      final ByteBuffer roK = createBb();
+      final ByteBuffer roV = createBb();
+      final Cursor cursor = db.openCursor(tx, roK, roV);
       cursor.put(createBb(1), createBb(2), MDB_APPENDDUP);
       assertThat(cursor.count(), is(1L));
       cursor.put(createBb(1), createBb(4), MDB_APPENDDUP);
@@ -92,7 +95,9 @@ public class CursorTest {
     try (final Txn tx = new Txn(env)) {
       final Dbi db = new Dbi(tx, DB_1, MDB_CREATE, MDB_DUPSORT);
 
-      try (Cursor cursor = db.openCursor(tx)) {
+      final ByteBuffer roK = createBb();
+      final ByteBuffer roV = createBb();
+      try (Cursor cursor = db.openCursor(tx, roK, roV)) {
         cursor.put(createBb(1), createBb(2), MDB_APPENDDUP);
         assertThat(cursor.count(), is(1L));
         cursor.put(createBb(1), createBb(4), MDB_APPENDDUP);
@@ -102,67 +107,127 @@ public class CursorTest {
     }
   }
 
-  public void testCursorDelete() throws Exception {
+  public void delete() throws Exception {
     try (final Txn tx = new Txn(env)) {
       final Dbi db = new Dbi(tx, DB_1, MDB_CREATE, MDB_DUPSORT);
-      final Cursor cursor = db.openCursor(tx);
+      final ByteBuffer roK = createBb();
+      final ByteBuffer roV = createBb();
+      final Cursor cursor = db.openCursor(tx, roK, roV);
       cursor.put(createBb(1), createBb(2), MDB_NOOVERWRITE);
       cursor.put(createBb(3), createBb(4));
-      final ByteBuffer k = createBb(1);
-      final ByteBuffer v = createBb();
-      assertThat(cursor.get(k, v, MDB_FIRST), is(true));
-      assertThat(k.getInt(), is(1));
-      assertThat(v.getInt(), is(2));
+      assertThat(cursor.position(MDB_FIRST), is(true));
+      assertThat(roK.getInt(), is(1));
+      assertThat(roV.getInt(), is(2));
       cursor.delete();
-      assertThat(cursor.get(k, v, MDB_FIRST), is(true));
-      assertThat(k.getInt(), is(3));
-      assertThat(v.getInt(), is(4));
+      assertThat(cursor.position(MDB_FIRST), is(true));
+      assertThat(roK.getInt(), is(3));
+      assertThat(roV.getInt(), is(4));
       cursor.delete();
-      assertThat(cursor.get(k, v, MDB_FIRST), is(false));
+      assertThat(cursor.position(MDB_FIRST), is(false));
     }
   }
 
   @Test
-  public void testCursorGet() throws Exception {
+  public void get() throws Exception {
     try (final Txn tx = new Txn(env)) {
       final Dbi db = new Dbi(tx, DB_1, MDB_CREATE, MDB_DUPSORT);
-      Cursor cursor = db.openCursor(tx);
+      final ByteBuffer roK = createBb();
+      final ByteBuffer roV = createBb();
+      Cursor cursor = db.openCursor(tx, roK, roV);
       cursor.put(createBb(1), createBb(2), MDB_NOOVERWRITE);
       cursor.put(createBb(3), createBb(4));
-      ByteBuffer k = createBb();
-      ByteBuffer v = createBb();
-      assertThat(cursor.get(k, v, MDB_FIRST), is(true));
-      assertThat(k.getInt(), is(1));
-      assertThat(v.getInt(), is(2));
-      assertThat(cursor.get(k, v, MDB_NEXT), is(true));
-      assertThat(k.getInt(), is(3));
-      assertThat(v.getInt(), is(4));
-      assertThat(cursor.get(k, v, MDB_PREV), is(true));
-      assertThat(k.getInt(), is(1));
-      assertThat(v.getInt(), is(2));
-      assertThat(cursor.get(k, v, MDB_LAST), is(true));
-      assertThat(k.getInt(), is(3));
-      assertThat(v.getInt(), is(4));
+      assertThat(cursor.position(MDB_FIRST), is(true));
+      assertThat(roK.getInt(), is(1));
+      assertThat(roV.getInt(), is(2));
+      assertThat(cursor.position(MDB_NEXT), is(true));
+      assertThat(roK.getInt(), is(3));
+      assertThat(roV.getInt(), is(4));
+      assertThat(cursor.position(MDB_PREV), is(true));
+      assertThat(roK.getInt(), is(1));
+      assertThat(roV.getInt(), is(2));
+      assertThat(cursor.position(MDB_LAST), is(true));
+      assertThat(roK.getInt(), is(3));
+      assertThat(roV.getInt(), is(4));
+    }
+  }
+
+  @Test(expected = CursorOpException.class)
+  public void getMethodRejectsPositionOps() throws Exception {
+    try (final Txn tx = new Txn(env);) {
+      assertThat(tx.isReadOnly(), is(false));
+      final Dbi db = new Dbi(tx, DB_1, MDB_CREATE);
+      final ByteBuffer roK = createBb();
+      final ByteBuffer roV = createBb();
+      final Cursor cursor = db.openCursor(tx, roK, roV);
+      cursor.get(createBb(), MDB_FIRST);
+    }
+  }
+
+  @Test(expected = CursorOpException.class)
+  public void positionMethodRejectsKey() throws Exception {
+    try (final Txn tx = new Txn(env);) {
+      assertThat(tx.isReadOnly(), is(false));
+      final Dbi db = new Dbi(tx, DB_1, MDB_CREATE);
+      final ByteBuffer roK = createBb();
+      final ByteBuffer roV = createBb();
+      final Cursor cursor = db.openCursor(tx, roK, roV);
+      cursor.position(MDB_SET_KEY);
     }
   }
 
   @Test
-  public void testCursorRenew() throws Exception {
+  public void renew() throws Exception {
     final Dbi db;
     try (final Txn tx = new Txn(env)) {
       db = new Dbi(tx, DB_1, MDB_CREATE, MDB_DUPSORT);
       tx.commit();
     }
 
+    final ByteBuffer roK = createBb();
+    final ByteBuffer roV = createBb();
     final Cursor cursor;
     try (Txn tx = new Txn(env, MDB_RDONLY);) {
-      cursor = db.openCursor(tx);
+      cursor = db.openCursor(tx, roK, roV);
       tx.commit();
     }
 
     try (Txn tx = new Txn(env, MDB_RDONLY);) {
       cursor.renew(tx);
       tx.commit();
+    }
+  }
+
+  @Test
+  public void set() throws Exception {
+    try (final Txn tx = new Txn(env);) {
+      final Dbi db = new Dbi(tx, DB_1, MDB_CREATE, MDB_DUPSORT);
+
+      final ByteBuffer roK = createBb();
+      final ByteBuffer roV = createBb();
+      final Cursor cursor = db.openCursor(tx, roK, roV);
+      cursor.put(createBb(1), createBb(2));
+      cursor.put(createBb(3), createBb(4));
+      cursor.put(createBb(5), createBb(6));
+
+      final ByteBuffer k1 = createBb(1);
+      assertThat(cursor.get(k1, MDB_SET), is(true));
+      assertThat(roK.getInt(), is(1));
+      assertThat(roV.getInt(), is(2));
+
+      final ByteBuffer k3 = createBb(3);
+      assertThat(cursor.get(k3, MDB_SET_KEY), is(true));
+      assertThat(roK.getInt(), is(3));
+      assertThat(roV.getInt(), is(4));
+
+      final ByteBuffer k5 = createBb(5);
+      assertThat(cursor.get(k5, MDB_SET_RANGE), is(true));
+      assertThat(roK.getInt(), is(5));
+      assertThat(roV.getInt(), is(6));
+
+      final ByteBuffer k0 = createBb(0);
+      assertThat(cursor.get(k0, MDB_SET_RANGE), is(true));
+      assertThat(roK.getInt(), is(1));
+      assertThat(roV.getInt(), is(2));
     }
   }
 
@@ -171,42 +236,10 @@ public class CursorTest {
     try (final Txn tx = new Txn(env);) {
       assertThat(tx.isReadOnly(), is(false));
       final Dbi db = new Dbi(tx, DB_1, MDB_CREATE);
-      final Cursor cursor = db.openCursor(tx);
+      final ByteBuffer roK = createBb();
+      final ByteBuffer roV = createBb();
+      final Cursor cursor = db.openCursor(tx, roK, roV);
       cursor.renew(tx);
-    }
-  }
-
-  @Test
-  public void testCursorSet() throws Exception {
-    try (final Txn tx = new Txn(env);) {
-      final Dbi db = new Dbi(tx, DB_1, MDB_CREATE, MDB_DUPSORT);
-
-      final Cursor cursor = db.openCursor(tx);
-      cursor.put(createBb(1), createBb(2));
-      cursor.put(createBb(3), createBb(4));
-      cursor.put(createBb(5), createBb(6));
-
-      final ByteBuffer v = createBb();
-
-      final ByteBuffer k1 = createBb(1);
-      assertThat(cursor.get(k1, v, MDB_SET), is(true));
-      assertThat(k1.getInt(), is(1));
-      assertThat(v.getInt(), is(2));
-
-      final ByteBuffer k3 = createBb(3);
-      assertThat(cursor.get(k3, v, MDB_SET_KEY), is(true));
-      assertThat(k3.getInt(), is(3));
-      assertThat(v.getInt(), is(4));
-
-      final ByteBuffer k5 = createBb(5);
-      assertThat(cursor.get(k5, v, MDB_SET_RANGE), is(true));
-      assertThat(k5.getInt(), is(5));
-      assertThat(v.getInt(), is(6));
-
-      final ByteBuffer k0 = createBb(0);
-      assertThat(cursor.get(k0, v, MDB_SET_RANGE), is(true));
-      assertThat(k0.getInt(), is(1));
-      assertThat(v.getInt(), is(2));
     }
   }
 }

@@ -247,20 +247,25 @@ public final class Dbi {
    * explicitly, before or after its transaction ends. It can be reused with
    * {@link Cursor#renew(org.lmdbjava.Txn)} before finally closing it.
    *
-   * @param tx transaction handle (not null; not committed)
+   * @param tx    transaction handle (not null; not committed)
+   * @param roKey read-only buffer to cursor key (not null, must be direct)
+   * @param roVal read-only buffer to cursor value (not null, must be direct)
    * @return cursor handle
-   * @throws LmdbNativeException if a native C error occurred
-   * @throws CommittedException  if already committed
+   * @throws LmdbNativeException      if a native C error occurred
+   * @throws CommittedException       if already committed
+   * @throws BufferNotDirectException if a passed buffer is invalid
    */
-  public Cursor openCursor(final Txn tx) throws LmdbNativeException,
-                                                CommittedException {
+  public Cursor openCursor(final Txn tx, final ByteBuffer roKey,
+                           final ByteBuffer roVal) throws LmdbNativeException,
+                                                          CommittedException,
+                                                          BufferNotDirectException {
     if (SHOULD_CHECK) {
       requireNonNull(tx);
       tx.checkNotCommitted();
     }
     final PointerByReference ptr = new PointerByReference();
     checkRc(LIB.mdb_cursor_open(tx.ptr, dbi, ptr));
-    return new Cursor(ptr.getValue(), tx);
+    return new Cursor(ptr.getValue(), tx, roKey, roVal);
   }
 
   /**

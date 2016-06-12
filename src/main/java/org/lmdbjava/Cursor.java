@@ -19,6 +19,10 @@ import java.nio.ByteBuffer;
 import static java.util.Objects.requireNonNull;
 import jnr.ffi.Pointer;
 import jnr.ffi.byref.NativeLongByReference;
+import static org.lmdbjava.BufferMutators.requireDirectBuffer;
+import static org.lmdbjava.CursorOp.MDB_SET;
+import static org.lmdbjava.CursorOp.MDB_SET_KEY;
+import static org.lmdbjava.CursorOp.MDB_SET_RANGE;
 import static org.lmdbjava.Dbi.KeyNotFoundException.MDB_NOTFOUND;
 import static org.lmdbjava.Env.SHOULD_CHECK;
 import static org.lmdbjava.Library.LIB;
@@ -42,13 +46,24 @@ public class Cursor implements AutoCloseable {
   private final Pointer k = allocateMdbVal();
   private final long kAddress = k.address();
   private final Pointer ptr;
+  private final ByteBuffer roKey;
+  private final ByteBuffer roVal;
   private Txn tx;
   private final Pointer v = allocateMdbVal();
   private final long vAddress = v.address();
 
-  Cursor(final Pointer ptr, final Txn tx) {
+  Cursor(final Pointer ptr, final Txn tx, final ByteBuffer roKey,
+         ByteBuffer roVal) throws BufferNotDirectException {
+    if (SHOULD_CHECK) {
+      requireNonNull(roKey);
+      requireNonNull(roVal);
+      requireDirectBuffer(roKey);
+      requireDirectBuffer(roVal);
+    }
     this.ptr = ptr;
     this.tx = tx;
+    this.roKey = roKey;
+    this.roVal = roVal;
   }
 
   /**
@@ -115,29 +130,34 @@ public class Cursor implements AutoCloseable {
   }
 
   /**
-   * Retrieve by cursor.
+   * Reposition the read-only key/value buffers based on the passed key and
+   * operation.
    * <p>
-   * This function retrieves key/data pairs from the database.
+   * The method is only compatible with {@link CursorOp#MDB_SET},
+   * {@link CursorOp#MDB_SET_KEY} and {@link CursorOp#MDB_SET_RANGE}. All
+   * remaining operations can use the simpler and more efficient
+   * {@link #position(org.lmdbjava.CursorOp)} method.
    *
-   * @param key placeholder for the key memory address to be wrapped
-   * @param val placeholder for the value memory address to be wrapped
-   * @param op  options for this operation
+   * @param key to find
+   * @param op  options for this operation (see restrictions above)
    * @return false if key not found
    * @throws BufferNotDirectException if a passed buffer is invalid
    * @throws LmdbNativeException      if a native C error occurred
    * @throws CommittedException       if the transaction was committed
    * @throws ClosedException          if the cursor is already closed
+   * @throws CursorOpException        if op code is invalid (see method docs)
    */
-  public boolean get(final ByteBuffer key, final ByteBuffer val,
-                     final CursorOp op)
+  public boolean get(final ByteBuffer key, final CursorOp op)
       throws BufferNotDirectException, LmdbNativeException, CommittedException,
-             ClosedException {
+             ClosedException, CursorOpException {
     if (SHOULD_CHECK) {
       requireNonNull(key);
-      requireNonNull(val);
       requireNonNull(op);
       checkNotClosed();
       tx.checkNotCommitted();
+      if (op != MDB_SET && op != MDB_SET_KEY && op != MDB_SET_RANGE) {
+        throw new CursorOpException();
+      }
     }
 
     setPointerToBuffer(key, kAddress);
@@ -145,8 +165,9 @@ public class Cursor implements AutoCloseable {
     final int rc = LIB.mdb_cursor_get(ptr, k, v, op.getCode());
 
     if (rc == MDB_SUCCESS) {
-      setBufferToPointer(kAddress, key);
-      setBufferToPointer(vAddress, val);
+      setBufferToPointer(kAddress, roKey);
+      setBufferToPointer(vAddress, roVal);
+      return true;
     }
 
     if (rc == MDB_NOTFOUND) {
@@ -155,7 +176,53 @@ public class Cursor implements AutoCloseable {
 
     checkRc(rc);
 
-    return true;
+    throw new IllegalStateException("Unreachable state");
+  }
+
+  /**
+   * Reposition the read-only key/value buffers based on the passed operation.
+   * <p>
+   * The method must NOT present {@link CursorOp#MDB_SET},
+   * {@link CursorOp#MDB_SET_KEY} and {@link CursorOp#MDB_SET_RANGE}. Such
+   * operations require a key, so you must instead use the
+   * {@link #get(java.nio.ByteBuffer, org.lmdbjava.CursorOp)} method.
+   *
+   *
+   * @param op options for this operation (see restrictions above)
+   * @return false if key not found
+   * @throws BufferNotDirectException if a passed buffer is invalid
+   * @throws LmdbNativeException      if a native C error occurred
+   * @throws CommittedException       if the transaction was committed
+   * @throws ClosedException          if the cursor is already closed
+   * @throws CursorOpException        if op code is invalid (see method docs)
+   */
+  public boolean position(final CursorOp op)
+      throws BufferNotDirectException, LmdbNativeException, CommittedException,
+             ClosedException, CursorOpException {
+    if (SHOULD_CHECK) {
+      requireNonNull(op);
+      checkNotClosed();
+      tx.checkNotCommitted();
+      if (op == MDB_SET || op == MDB_SET_KEY || op == MDB_SET_RANGE) {
+        throw new CursorOpException();
+      }
+    }
+
+    final int rc = LIB.mdb_cursor_get(ptr, k, v, op.getCode());
+
+    if (rc == MDB_SUCCESS) {
+      setBufferToPointer(kAddress, roKey);
+      setBufferToPointer(vAddress, roVal);
+      return true;
+    }
+
+    if (rc == MDB_NOTFOUND) {
+      return false;
+    }
+
+    checkRc(rc);
+
+    throw new IllegalStateException("Unreachable state");
   }
 
   /**
@@ -239,6 +306,21 @@ public class Cursor implements AutoCloseable {
      */
     public ClosedException() {
       super("Cursor has already been closed");
+    }
+  }
+
+  /**
+   * CursorOp invalid for this method (check the documentation).
+   */
+  public static final class CursorOpException extends LmdbException {
+
+    private static final long serialVersionUID = 1L;
+
+    /**
+     * Creates a new instance.
+     */
+    public CursorOpException() {
+      super("CursorOp invalid for this method");
     }
   }
 
