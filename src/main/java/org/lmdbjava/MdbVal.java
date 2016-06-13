@@ -10,7 +10,6 @@ public class MdbVal {
   static final long MDB_VAL_SIZE_OFFSET = 0;
   static final long MDB_VAL_DATA_OFFSET = 8;
   private long address;
-  private long bufferAddress;
   private long mdbValAddress;
   private int size;
   private ByteBuffer buffer;
@@ -26,7 +25,6 @@ public class MdbVal {
   public void wrap(ByteBuffer buffer) {
     this.buffer = buffer;
     this.address = ((sun.nio.ch.DirectBuffer) buffer).address();
-    this.bufferAddress = address;
     this.size = buffer.capacity();
   }
 
