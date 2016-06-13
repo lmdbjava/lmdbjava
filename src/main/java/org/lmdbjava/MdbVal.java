@@ -40,8 +40,7 @@ public class MdbVal {
       if (buffer != null) {
         UNSAFE.putLong(buffer, ADDRESS, address);
         UNSAFE.putInt(buffer, CAPACITY, size);
-        buffer.limit(size);
-        buffer.rewind();
+        buffer.clear();
       }
     }
     return buffer;
