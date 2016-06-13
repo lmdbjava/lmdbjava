@@ -38,8 +38,8 @@ final class ValueBuffers {
 
   private static final int MDB_VAL_STRUCT_SIZE = BYTES * 2;
   private static final MemoryManager MEM_MGR = RUNTIME.getMemoryManager();
-  private static final int STRUCT_FIELD_OFFSET_DATA = BYTES;
-  private static final int STRUCT_FIELD_OFFSET_SIZE = 0;
+  static final int STRUCT_FIELD_OFFSET_DATA = BYTES;
+  static final int STRUCT_FIELD_OFFSET_SIZE = 0;
 
   /**
    * Allocate memory to store a <code>MDB_val</code> and return a pointer to

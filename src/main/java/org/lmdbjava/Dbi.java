@@ -16,19 +16,26 @@
 package org.lmdbjava;
 
 import java.nio.ByteBuffer;
+
 import static java.nio.ByteBuffer.allocateDirect;
 import static java.util.Objects.requireNonNull;
+
 import jnr.ffi.Pointer;
 import jnr.ffi.byref.IntByReference;
 import jnr.ffi.byref.PointerByReference;
 import org.lmdbjava.Env.NotOpenException;
+
 import static org.lmdbjava.Env.SHOULD_CHECK;
 import static org.lmdbjava.Library.LIB;
+
 import org.lmdbjava.LmdbException.BufferNotDirectException;
+
 import static org.lmdbjava.MaskedFlag.mask;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
+
 import org.lmdbjava.Txn.CommittedException;
 import org.lmdbjava.Txn.ReadWriteRequiredException;
+
 import static org.lmdbjava.TxnFlags.MDB_RDONLY;
 import static org.lmdbjava.ValueBuffers.allocateMdbVal;
 import static org.lmdbjava.ValueBuffers.setBufferToPointer;
@@ -60,7 +67,7 @@ public final class Dbi {
    * @throws ReadWriteRequiredException if a read-only transaction presented
    */
   public Dbi(final Txn tx, final String name, final DbiFlags... flags)
-      throws CommittedException, LmdbNativeException, ReadWriteRequiredException {
+    throws CommittedException, LmdbNativeException, ReadWriteRequiredException {
     requireNonNull(tx);
     tx.checkNotCommitted();
     tx.checkWritesAllowed();
@@ -79,6 +86,7 @@ public final class Dbi {
    * <p>
    * WARNING: Convenience method. Do not use if latency sensitive.
    * <p>
+   *
    * @param key key to delete from the database (not null)
    * @throws CommittedException         if already committed
    * @throws BufferNotDirectException   if a passed buffer is invalid
@@ -88,8 +96,8 @@ public final class Dbi {
    * @see #delete(Txn, ByteBuffer, ByteBuffer)
    */
   public void delete(final ByteBuffer key) throws
-      CommittedException, BufferNotDirectException, LmdbNativeException,
-      NotOpenException, ReadWriteRequiredException {
+    CommittedException, BufferNotDirectException, LmdbNativeException,
+    NotOpenException, ReadWriteRequiredException {
     try (final Txn tx = new Txn(env)) {
       delete(tx, key);
       tx.commit();
@@ -108,8 +116,8 @@ public final class Dbi {
    * @see #delete(Txn, ByteBuffer, ByteBuffer)
    */
   public void delete(final Txn tx, final ByteBuffer key) throws
-      CommittedException, BufferNotDirectException, LmdbNativeException,
-      ReadWriteRequiredException {
+    CommittedException, BufferNotDirectException, LmdbNativeException,
+    ReadWriteRequiredException {
     delete(tx, key, null);
   }
 
@@ -134,9 +142,9 @@ public final class Dbi {
    * @throws ReadWriteRequiredException if a read-only transaction presented
    */
   public void delete(final Txn tx, final ByteBuffer key, final ByteBuffer val)
-      throws
-      CommittedException, BufferNotDirectException, LmdbNativeException,
-      ReadWriteRequiredException {
+    throws
+    CommittedException, BufferNotDirectException, LmdbNativeException,
+    ReadWriteRequiredException {
     if (SHOULD_CHECK) {
       requireNonNull(tx);
       requireNonNull(key);
@@ -153,6 +161,7 @@ public final class Dbi {
    * <p>
    * WARNING: Convenience method. Do not use if latency sensitive.
    * <p>
+   *
    * @param key key to get from the database (not null)
    * @return the value found
    * @throws CommittedException       if already committed
@@ -162,8 +171,8 @@ public final class Dbi {
    * @see #get(Txn, ByteBuffer)
    */
   public ByteBuffer get(final ByteBuffer key) throws
-      CommittedException, BufferNotDirectException, LmdbNativeException,
-      NotOpenException {
+    CommittedException, BufferNotDirectException, LmdbNativeException,
+    NotOpenException {
     try (final Txn tx = new Txn(env, MDB_RDONLY)) {
       return get(tx, key);
     }
@@ -189,7 +198,7 @@ public final class Dbi {
    * @throws LmdbNativeException      if a native C error occurred
    */
   public ByteBuffer get(final Txn tx, final ByteBuffer key) throws
-      CommittedException, BufferNotDirectException, LmdbNativeException {
+    CommittedException, BufferNotDirectException, LmdbNativeException {
     final ByteBuffer val = allocateDirect(0);
     get(tx, key, val);
     return val;
@@ -213,8 +222,8 @@ public final class Dbi {
    * @throws LmdbNativeException      if a native C error occurred
    */
   public void get(final Txn tx, final ByteBuffer key, final ByteBuffer val)
-      throws
-      CommittedException, BufferNotDirectException, LmdbNativeException {
+    throws
+    CommittedException, BufferNotDirectException, LmdbNativeException {
     if (SHOULD_CHECK) {
       requireNonNull(tx);
       requireNonNull(key);
@@ -248,24 +257,20 @@ public final class Dbi {
    * {@link Cursor#renew(org.lmdbjava.Txn)} before finally closing it.
    *
    * @param tx    transaction handle (not null; not committed)
-   * @param roKey read-only buffer to cursor key (not null, must be direct)
-   * @param roVal read-only buffer to cursor value (not null, must be direct)
    * @return cursor handle
    * @throws LmdbNativeException      if a native C error occurred
    * @throws CommittedException       if already committed
    * @throws BufferNotDirectException if a passed buffer is invalid
    */
-  public Cursor openCursor(final Txn tx, final ByteBuffer roKey,
-                           final ByteBuffer roVal) throws LmdbNativeException,
-                                                          CommittedException,
-                                                          BufferNotDirectException {
+  public Cursor openCursor(final Txn tx) throws
+    LmdbNativeException, CommittedException, BufferNotDirectException {
     if (SHOULD_CHECK) {
       requireNonNull(tx);
       tx.checkNotCommitted();
     }
     final PointerByReference ptr = new PointerByReference();
     checkRc(LIB.mdb_cursor_open(tx.ptr, dbi, ptr));
-    return new Cursor(ptr.getValue(), tx, roKey, roVal);
+    return new Cursor(ptr.getValue(), tx);
   }
 
   /**
@@ -283,8 +288,8 @@ public final class Dbi {
    * @see Dbi#put(Txn, ByteBuffer, ByteBuffer, PutFlags...)
    */
   public void put(final ByteBuffer key, final ByteBuffer val) throws
-      CommittedException, BufferNotDirectException, LmdbNativeException,
-      NotOpenException, ReadWriteRequiredException {
+    CommittedException, BufferNotDirectException, LmdbNativeException,
+    NotOpenException, ReadWriteRequiredException {
     try (final Txn tx = new Txn(env)) {
       put(tx, key, val);
       tx.commit();
@@ -310,8 +315,8 @@ public final class Dbi {
    */
   public void put(final Txn tx, final ByteBuffer key, final ByteBuffer val,
                   final PutFlags... flags)
-      throws CommittedException, BufferNotDirectException, LmdbNativeException,
-             ReadWriteRequiredException {
+    throws CommittedException, BufferNotDirectException, LmdbNativeException,
+    ReadWriteRequiredException {
     if (SHOULD_CHECK) {
       requireNonNull(tx);
       requireNonNull(key);
@@ -348,7 +353,7 @@ public final class Dbi {
 
     BadValueSizeException() {
       super(MDB_BAD_VALSIZE,
-            "Unsupported size of key/DB name/data, or wrong DUPFIXED size");
+        "Unsupported size of key/DB name/data, or wrong DUPFIXED size");
     }
   }
 
@@ -384,7 +389,7 @@ public final class Dbi {
 
     IncompatibleException() {
       super(MDB_INCOMPATIBLE,
-            "Operation and DB incompatible, or DB type changed");
+        "Operation and DB incompatible, or DB type changed");
     }
   }
 

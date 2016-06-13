@@ -19,7 +19,6 @@ import java.nio.ByteBuffer;
 import static java.util.Objects.requireNonNull;
 import jnr.ffi.Pointer;
 import jnr.ffi.byref.NativeLongByReference;
-import static org.lmdbjava.BufferMutators.requireDirectBuffer;
 import static org.lmdbjava.CursorOp.MDB_SET;
 import static org.lmdbjava.CursorOp.MDB_SET_KEY;
 import static org.lmdbjava.CursorOp.MDB_SET_RANGE;
@@ -34,7 +33,6 @@ import org.lmdbjava.Txn.CommittedException;
 import org.lmdbjava.Txn.ReadOnlyRequiredException;
 import org.lmdbjava.Txn.ReadWriteRequiredException;
 import static org.lmdbjava.ValueBuffers.allocateMdbVal;
-import static org.lmdbjava.ValueBuffers.setBufferToPointer;
 import static org.lmdbjava.ValueBuffers.setPointerToBuffer;
 
 /**
@@ -44,26 +42,15 @@ public class Cursor implements AutoCloseable {
 
   private boolean closed;
   private final Pointer k = allocateMdbVal();
-  private final long kAddress = k.address();
-  private final Pointer ptr;
-  private final ByteBuffer roKey;
-  private final ByteBuffer roVal;
-  private Txn tx;
   private final Pointer v = allocateMdbVal();
+  private final long kAddress = k.address();
   private final long vAddress = v.address();
+  private final Pointer ptr;
+  private Txn tx;
 
-  Cursor(final Pointer ptr, final Txn tx, final ByteBuffer roKey,
-         ByteBuffer roVal) throws BufferNotDirectException {
-    if (SHOULD_CHECK) {
-      requireNonNull(roKey);
-      requireNonNull(roVal);
-      requireDirectBuffer(roKey);
-      requireDirectBuffer(roVal);
-    }
+  Cursor(final Pointer ptr, final Txn tx) throws BufferNotDirectException {
     this.ptr = ptr;
     this.tx = tx;
-    this.roKey = roKey;
-    this.roVal = roVal;
   }
 
   /**
@@ -147,11 +134,12 @@ public class Cursor implements AutoCloseable {
    * @throws ClosedException          if the cursor is already closed
    * @throws CursorOpException        if op code is invalid (see method docs)
    */
-  public boolean get(final ByteBuffer key, final CursorOp op)
+  public boolean get(final MdbVal key, MdbVal val, final CursorOp op)
       throws BufferNotDirectException, LmdbNativeException, CommittedException,
              ClosedException, CursorOpException {
     if (SHOULD_CHECK) {
       requireNonNull(key);
+      requireNonNull(val);
       requireNonNull(op);
       checkNotClosed();
       tx.checkNotCommitted();
@@ -160,23 +148,20 @@ public class Cursor implements AutoCloseable {
       }
     }
 
-    setPointerToBuffer(key, kAddress);
+    key.wrapInMdbValStruct(kAddress);
 
     final int rc = LIB.mdb_cursor_get(ptr, k, v, op.getCode());
 
     if (rc == MDB_SUCCESS) {
-      setBufferToPointer(kAddress, roKey);
-      setBufferToPointer(vAddress, roVal);
+      key.wrapOutMdbValStruct(kAddress);
+      val.wrapOutMdbValStruct(vAddress);
       return true;
-    }
-
-    if (rc == MDB_NOTFOUND) {
+    } else if (rc == MDB_NOTFOUND) {
       return false;
+    } else {
+      checkRc(rc);
+      throw new IllegalStateException("Unreachable state");
     }
-
-    checkRc(rc);
-
-    throw new IllegalStateException("Unreachable state");
   }
 
   /**
@@ -196,7 +181,7 @@ public class Cursor implements AutoCloseable {
    * @throws ClosedException          if the cursor is already closed
    * @throws CursorOpException        if op code is invalid (see method docs)
    */
-  public boolean position(final CursorOp op)
+  public boolean position(MdbVal key, MdbVal val, CursorOp op)
       throws BufferNotDirectException, LmdbNativeException, CommittedException,
              ClosedException, CursorOpException {
     if (SHOULD_CHECK) {
@@ -211,8 +196,8 @@ public class Cursor implements AutoCloseable {
     final int rc = LIB.mdb_cursor_get(ptr, k, v, op.getCode());
 
     if (rc == MDB_SUCCESS) {
-      setBufferToPointer(kAddress, roKey);
-      setBufferToPointer(vAddress, roVal);
+      key.wrapOutMdbValStruct(kAddress);
+      val.wrapOutMdbValStruct(vAddress);
       return true;
     }
 
