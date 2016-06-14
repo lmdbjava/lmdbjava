@@ -134,7 +134,7 @@ public class Cursor implements AutoCloseable {
    * @throws ClosedException          if the cursor is already closed
    * @throws CursorOpException        if op code is invalid (see method docs)
    */
-  public boolean get(final MdbVal key, MdbVal val, final CursorOp op)
+  public boolean get(final Val key, Val val, final CursorOp op)
       throws BufferNotDirectException, LmdbNativeException, CommittedException,
              ClosedException, CursorOpException {
     if (SHOULD_CHECK) {
@@ -181,7 +181,7 @@ public class Cursor implements AutoCloseable {
    * @throws ClosedException          if the cursor is already closed
    * @throws CursorOpException        if op code is invalid (see method docs)
    */
-  public boolean position(MdbVal key, MdbVal val, CursorOp op)
+  public boolean position(Val key, Val val, CursorOp op)
       throws BufferNotDirectException, LmdbNativeException, CommittedException,
              ClosedException, CursorOpException {
     if (SHOULD_CHECK) {

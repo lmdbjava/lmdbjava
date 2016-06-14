@@ -16,7 +16,7 @@
 package org.lmdbjava;
 
 import java.io.File;
-import java.nio.ByteBuffer;
+
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import org.junit.Before;
@@ -64,8 +64,8 @@ public class CursorTest {
   public void closedCursorRejectsSubsequentGets() throws Exception {
     try (final Txn tx = new Txn(env)) {
       final Dbi db = new Dbi(tx, DB_1, MDB_CREATE);
-      MdbVal key = new MdbVal(createBb());
-      MdbVal val = new MdbVal(createBb());
+      Val key = new Val(createBb());
+      Val val = new Val(createBb());
       final Cursor cursor = db.openCursor(tx);
       cursor.close();
       cursor.position(key, val, MDB_FIRST);
@@ -110,8 +110,8 @@ public class CursorTest {
       final Cursor cursor = db.openCursor(tx);
       cursor.put(createBb(1), createBb(2), MDB_NOOVERWRITE);
       cursor.put(createBb(3), createBb(4));
-      MdbVal key = createMdbVal();
-      MdbVal val = createMdbVal();
+      Val key = createVal();
+      Val val = createVal();
       assertThat(cursor.position(key, val, MDB_FIRST), is(true));
       assertThat(key.getByteBuffer().getInt(), is(1));
       assertThat(val.getByteBuffer().getInt(), is(2));
@@ -128,8 +128,8 @@ public class CursorTest {
   public void get() throws Exception {
     try (final Txn tx = new Txn(env)) {
       final Dbi db = new Dbi(tx, DB_1, MDB_CREATE, MDB_DUPSORT);
-      final MdbVal key = new MdbVal(createBb());
-      final MdbVal val = new MdbVal(createBb());
+      final Val key = new Val(createBb());
+      final Val val = new Val(createBb());
 
       Cursor cursor = db.openCursor(tx);
       cursor.put(createBb(1), createBb(2), MDB_NOOVERWRITE);
@@ -155,7 +155,7 @@ public class CursorTest {
       assertThat(tx.isReadOnly(), is(false));
       final Dbi db = new Dbi(tx, DB_1, MDB_CREATE);
       final Cursor cursor = db.openCursor(tx);
-      cursor.get(createMdbVal(), createMdbVal(), MDB_FIRST);
+      cursor.get(createVal(), createVal(), MDB_FIRST);
     }
   }
 
@@ -165,7 +165,7 @@ public class CursorTest {
       assertThat(tx.isReadOnly(), is(false));
       final Dbi db = new Dbi(tx, DB_1, MDB_CREATE);
       final Cursor cursor = db.openCursor(tx);
-      cursor.position(createMdbVal(), createMdbVal(), MDB_SET_KEY);
+      cursor.position(createVal(), createVal(), MDB_SET_KEY);
     }
   }
 
@@ -199,8 +199,8 @@ public class CursorTest {
       cursor.put(createBb(3), createBb(4));
       cursor.put(createBb(5), createBb(6));
 
-      final MdbVal key = new MdbVal(createBb(1));
-      final MdbVal val = new MdbVal(createBb());
+      final Val key = new Val(createBb(1));
+      final Val val = new Val(createBb());
       assertThat(cursor.get(key, val, MDB_SET), is(true));
       assertThat(key.getByteBuffer().getInt(), is(1));
       assertThat(val.getByteBuffer().getInt(), is(2));

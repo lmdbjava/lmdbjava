@@ -6,7 +6,7 @@ import static org.lmdbjava.BufferMutators.UnsafeBufferMutator.ADDRESS;
 import static org.lmdbjava.BufferMutators.UnsafeBufferMutator.CAPACITY;
 import static org.lmdbjava.BufferMutators.UnsafeBufferMutator.UNSAFE;
 
-public class MdbVal {
+public class Val {
   static final long MDB_VAL_SIZE_OFFSET = 0;
   static final long MDB_VAL_DATA_OFFSET = 8;
   private long address;
@@ -14,11 +14,11 @@ public class MdbVal {
   private int size;
   private ByteBuffer buffer;
 
-  public MdbVal(ByteBuffer buffer) {
+  public Val(ByteBuffer buffer) {
     wrap(buffer);
   }
 
-  public MdbVal(long address, int size) {
+  public Val(long address, int size) {
     wrap(address, size);
   }
 

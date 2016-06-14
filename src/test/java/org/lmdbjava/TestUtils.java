@@ -31,8 +31,8 @@ public final class TestUtils {
   public static final String DB_1 = "test-db-1";
   public static final int POSIX_MODE = 0664;
 
-  static MdbVal createMdbVal() {
-    return new MdbVal(createBb());
+  static Val createVal() {
+    return new Val(createBb());
   }
 
   static ByteBuffer createBb() {
