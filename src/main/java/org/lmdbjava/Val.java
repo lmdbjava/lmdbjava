@@ -10,7 +10,8 @@ public class Val {
   static final long MDB_VAL_SIZE_OFFSET = 0;
   static final long MDB_VAL_DATA_OFFSET = 8;
   private long address;
-  private long mdbValAddress;
+  private long mdbValDataAddress;
+  private long mdbValSizeAddress;
   private int size;
   private ByteBuffer buffer;
 
@@ -34,12 +35,10 @@ public class Val {
   }
 
   public ByteBuffer getByteBuffer() {
-    if (mdbValAddress != 0) {
-      setMdbValSizeAndAddress();
-      mdbValAddress = 0;
+    if (mdbValDataAddress != 0) {
       if (buffer != null) {
-        UNSAFE.putLong(buffer, ADDRESS, address);
-        UNSAFE.putInt(buffer, CAPACITY, size);
+        UNSAFE.putLong(buffer, ADDRESS, getAddress());
+        UNSAFE.putInt(buffer, CAPACITY, getSize());
         buffer.clear();
       }
     }
@@ -47,32 +46,28 @@ public class Val {
   }
 
   public long getAddress() {
-    if (mdbValAddress != 0) {
-      setMdbValSizeAndAddress();
-      mdbValAddress = 0;
+    if (mdbValDataAddress != 0) {
+      this.address = UNSAFE.getLong(mdbValDataAddress);
+      mdbValDataAddress = 0;
     }
     return address;
   }
 
   public int getSize() {
-    if (mdbValAddress != 0) {
-      setMdbValSizeAndAddress();
-      mdbValAddress = 0;
+    if (mdbValSizeAddress != 0) {
+      this.size = (int) UNSAFE.getLong(mdbValSizeAddress);
+      mdbValSizeAddress = 0;
     }
     return size;
   }
 
   void wrapOutMdbValStruct(long address) {
-    this.mdbValAddress = address;
+    this.mdbValSizeAddress = address + MDB_VAL_SIZE_OFFSET;
+    this.mdbValDataAddress = address + MDB_VAL_DATA_OFFSET;
   }
 
   void wrapInMdbValStruct(long address) {
     UNSAFE.putLong(address + MDB_VAL_SIZE_OFFSET, size);
     UNSAFE.putLong(address + MDB_VAL_DATA_OFFSET, this.address);
-  }
-
-  private void setMdbValSizeAndAddress() {
-    this.size = (int) UNSAFE.getLong(mdbValAddress + MDB_VAL_SIZE_OFFSET);
-    this.address = UNSAFE.getLong(mdbValAddress + MDB_VAL_DATA_OFFSET);
   }
 }
