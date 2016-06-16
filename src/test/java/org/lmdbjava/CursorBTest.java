@@ -17,6 +17,8 @@ package org.lmdbjava;
 
 import java.io.File;
 import java.nio.ByteBuffer;
+import org.agrona.MutableDirectBuffer;
+import org.agrona.concurrent.UnsafeBuffer;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -43,6 +45,8 @@ import org.lmdbjava.Txn.ReadOnlyRequiredException;
 
 import static org.lmdbjava.TestUtils.*;
 import static org.lmdbjava.TxnFlags.MDB_RDONLY;
+import static org.lmdbjava.ByteBufferVals.forBuffer;
+import static org.lmdbjava.MutableDirectBufferVal.forMdb;
 
 public class CursorBTest {
 
@@ -112,8 +116,8 @@ public class CursorBTest {
       cursor.put(createValBb(3), createValBb(4));
       final ByteBuffer keyBb = createBb();
       final ByteBuffer valBb = createBb();
-      ValB key = new ByteBufferValB(keyBb);
-      ValB val = new ByteBufferValB(valBb);
+      ValB key = forBuffer(keyBb);
+      ValB val = forBuffer(valBb);
       assertThat(cursor.get(key, val, MDB_FIRST), is(true));
       assertThat(keyBb.getInt(), is(1));
       assertThat(valBb.getInt(), is(2));
@@ -132,8 +136,8 @@ public class CursorBTest {
       final Dbi db = new Dbi(tx, DB_1, MDB_CREATE, MDB_DUPSORT);
       final ByteBuffer keyBb = createBb();
       final ByteBuffer valBb = createBb();
-      ValB key = new ByteBufferValB(keyBb);
-      ValB val = new ByteBufferValB(valBb);
+      ValB key = forBuffer(keyBb);
+      ValB val = forBuffer(valBb);
 
       CursorB cursor = db.openCursorB(tx);
       cursor.put(createValBb(1), createValBb(2), MDB_NOOVERWRITE);
@@ -150,6 +154,33 @@ public class CursorBTest {
       assertThat(cursor.get(key, val, MDB_LAST), is(true));
       assertThat(keyBb.getInt(), is(3));
       assertThat(valBb.getInt(), is(4));
+    }
+  }
+
+  @Test
+  public void getAgrona() throws Exception {
+    try (final Txn tx = new Txn(env)) {
+      final Dbi db = new Dbi(tx, DB_1, MDB_CREATE, MDB_DUPSORT);
+      final MutableDirectBuffer keyMdb = new UnsafeBuffer(createBb());
+      final MutableDirectBuffer valMdb = new UnsafeBuffer(createBb());
+      ValB key = forMdb(keyMdb);
+      ValB val = forMdb(valMdb);
+
+      CursorB cursor = db.openCursorB(tx);
+      cursor.put(createValBb(1), createValBb(2), MDB_NOOVERWRITE);
+      cursor.put(createValBb(3), createValBb(4));
+      assertThat(cursor.get(key, val, MDB_FIRST), is(true));
+      assertThat(keyMdb.getInt(0), is(1));
+      assertThat(valMdb.getInt(0), is(2));
+      assertThat(cursor.get(key, val, MDB_NEXT), is(true));
+      assertThat(keyMdb.getInt(0), is(3));
+      assertThat(valMdb.getInt(0), is(4));
+      assertThat(cursor.get(key, val, MDB_PREV), is(true));
+      assertThat(keyMdb.getInt(0), is(1));
+      assertThat(valMdb.getInt(0), is(2));
+      assertThat(cursor.get(key, val, MDB_LAST), is(true));
+      assertThat(keyMdb.getInt(0), is(3));
+      assertThat(valMdb.getInt(0), is(4));
     }
   }
 
@@ -184,8 +215,8 @@ public class CursorBTest {
       cursor.put(createValBb(5), createValBb(6));
 
       final ByteBuffer valBb = createBb();
-      ByteBufferValB key = createValBb(1);
-      ValB val = new ByteBufferValB(valBb);
+      ByteBufferVal key = createValBb(1);
+      ValB val = forBuffer(valBb);
       
       assertThat(cursor.get(key, val, MDB_SET), is(true));
       assertThat(key.buffer().getInt(), is(1));
