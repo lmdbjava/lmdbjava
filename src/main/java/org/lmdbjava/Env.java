@@ -116,7 +116,7 @@ public final class Env implements AutoCloseable {
    * @throws AlreadyClosedException if already closed
    * @throws LmdbNativeException    if a native C error occurred
    */
-  public void setMapSize(final int mapSize) throws AlreadyOpenException,
+  public void setMapSize(final long mapSize) throws AlreadyOpenException,
                                                    AlreadyClosedException,
                                                    LmdbNativeException {
     if (open) {
