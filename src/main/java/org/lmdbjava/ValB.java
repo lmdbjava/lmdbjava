@@ -72,6 +72,16 @@ public abstract class ValB {
   public abstract long dataAddress();
 
   /**
+   * Called by client code to force the underlying buffer to now reflect the
+   * <code>MDB_val.mv_size</code> and <code>MDB_val.mv_data</code>. Clients will
+   * only need to call this method if they both (a) require the underlying
+   * buffer to reflect the new <code>MDB_val</code> information and (b) the
+   * implementation did not already perform this action when {@link #dirty()}
+   * was invoked.
+   */
+  public abstract void refresh();
+
+  /**
    * Fetch the current <code>MDB_val.mv_size</code> from native memory.
    * <p>
    * In general an end user should not need to call this method. However, it may
@@ -81,6 +91,17 @@ public abstract class ValB {
    * @return the size in bytes of the data
    */
   public abstract long size();
+
+  /**
+   * Notifies the implementation the <code>MDB_val.mv_size</code> and/or
+   * <code>MDB_val.mv_data</code> may have been changed by an LMDB C API call.
+   * This allows an implementation to automatically refresh its underlying
+   * buffer if desired. An implementation should generally permit end users to
+   * enable such automatic updates as required (ie it should not be a default or
+   * mandatory action, as there are many situations when a user will may not
+   * require the underling buffer to reflect the change).
+   */
+  abstract void dirty();
 
   /**
    * Sets the <code>MDB_val.mv_size</code> and <code>MDB_val.mv_data</code>

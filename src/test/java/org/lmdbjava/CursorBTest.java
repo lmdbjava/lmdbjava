@@ -16,6 +16,7 @@
 package org.lmdbjava;
 
 import java.io.File;
+import java.nio.ByteBuffer;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -109,15 +110,17 @@ public class CursorBTest {
       final CursorB cursor = db.openCursorB(tx);
       cursor.put(createValBb(1), createValBb(2), MDB_NOOVERWRITE);
       cursor.put(createValBb(3), createValBb(4));
-      ByteBufferValB key = createValB();
-      ByteBufferValB val = createValB();
+      final ByteBuffer keyBb = createBb();
+      final ByteBuffer valBb = createBb();
+      ValB key = new ByteBufferValB(keyBb);
+      ValB val = new ByteBufferValB(valBb);
       assertThat(cursor.get(key, val, MDB_FIRST), is(true));
-      assertThat(key.wrapAndGet().getInt(), is(1));
-      assertThat(val.wrapAndGet().getInt(), is(2));
+      assertThat(keyBb.getInt(), is(1));
+      assertThat(valBb.getInt(), is(2));
       cursor.delete();
       assertThat(cursor.get(key, val, MDB_FIRST), is(true));
-      assertThat(key.wrapAndGet().getInt(), is(3));
-      assertThat(val.wrapAndGet().getInt(), is(4));
+      assertThat(keyBb.getInt(), is(3));
+      assertThat(valBb.getInt(), is(4));
       cursor.delete();
       assertThat(cursor.get(key, val, MDB_FIRST), is(false));
     }
@@ -127,24 +130,26 @@ public class CursorBTest {
   public void get() throws Exception {
     try (final Txn tx = new Txn(env)) {
       final Dbi db = new Dbi(tx, DB_1, MDB_CREATE, MDB_DUPSORT);
-      final ByteBufferValB key = createValB();
-      final ByteBufferValB val = createValB();
+      final ByteBuffer keyBb = createBb();
+      final ByteBuffer valBb = createBb();
+      ValB key = new ByteBufferValB(keyBb);
+      ValB val = new ByteBufferValB(valBb);
 
       CursorB cursor = db.openCursorB(tx);
       cursor.put(createValBb(1), createValBb(2), MDB_NOOVERWRITE);
       cursor.put(createValBb(3), createValBb(4));
       assertThat(cursor.get(key, val, MDB_FIRST), is(true));
-      assertThat(key.wrapAndGet().getInt(), is(1));
-      assertThat(val.wrapAndGet().getInt(), is(2));
+      assertThat(keyBb.getInt(), is(1));
+      assertThat(valBb.getInt(), is(2));
       assertThat(cursor.get(key, val, MDB_NEXT), is(true));
-      assertThat(key.wrapAndGet().getInt(), is(3));
-      assertThat(val.wrapAndGet().getInt(), is(4));
+      assertThat(keyBb.getInt(), is(3));
+      assertThat(valBb.getInt(), is(4));
       assertThat(cursor.get(key, val, MDB_PREV), is(true));
-      assertThat(key.wrapAndGet().getInt(), is(1));
-      assertThat(val.wrapAndGet().getInt(), is(2));
+      assertThat(keyBb.getInt(), is(1));
+      assertThat(valBb.getInt(), is(2));
       assertThat(cursor.get(key, val, MDB_LAST), is(true));
-      assertThat(key.wrapAndGet().getInt(), is(3));
-      assertThat(val.wrapAndGet().getInt(), is(4));
+      assertThat(keyBb.getInt(), is(3));
+      assertThat(valBb.getInt(), is(4));
     }
   }
 
@@ -178,26 +183,28 @@ public class CursorBTest {
       cursor.put(createValBb(3), createValBb(4));
       cursor.put(createValBb(5), createValBb(6));
 
-      final ByteBufferValB key = createValBb(1);
-      final ByteBufferValB val = createValB();
+      final ByteBuffer valBb = createBb();
+      ByteBufferValB key = createValBb(1);
+      ValB val = new ByteBufferValB(valBb);
+      
       assertThat(cursor.get(key, val, MDB_SET), is(true));
-      assertThat(key.wrapAndGet().getInt(), is(1));
-      assertThat(val.wrapAndGet().getInt(), is(2));
+      assertThat(key.buffer().getInt(), is(1));
+      assertThat(valBb.getInt(), is(2));
 
-      key.setBuffer(createBb(3));
+      key.wrap(createBb(3));
       assertThat(cursor.get(key, val, MDB_SET_KEY), is(true));
-      assertThat(key.wrapAndGet().getInt(), is(3));
-      assertThat(val.wrapAndGet().getInt(), is(4));
+      assertThat(key.buffer().getInt(), is(3));
+      assertThat(valBb.getInt(), is(4));
 
-      key.setBuffer(createBb(5));
+      key.wrap(createBb(5));
       assertThat(cursor.get(key, val, MDB_SET_RANGE), is(true));
-      assertThat(key.wrapAndGet().getInt(), is(5));
-      assertThat(val.wrapAndGet().getInt(), is(6));
+      assertThat(key.buffer().getInt(), is(5));
+      assertThat(valBb.getInt(), is(6));
 
-      key.setBuffer(createBb(0));
+      key.wrap(createBb(0));
       assertThat(cursor.get(key, val, MDB_SET_RANGE), is(true));
-      assertThat(key.wrapAndGet().getInt(), is(1));
-      assertThat(val.wrapAndGet().getInt(), is(2));
+      assertThat(key.buffer().getInt(), is(1));
+      assertThat(valBb.getInt(), is(2));
     }
   }
 

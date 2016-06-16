@@ -146,7 +146,8 @@ public class CursorB implements AutoCloseable {
     }
 
     checkRc(rc);
-
+    key.dirty();
+    val.dirty();
     return true;
   }
 
@@ -180,6 +181,8 @@ public class CursorB implements AutoCloseable {
     val.set();
     final int flags = mask(op);
     checkRc(LIB.mdb_cursor_put(ptr, key.ptr, val.ptr, flags));
+    key.dirty();
+    val.dirty();
   }
 
   /**

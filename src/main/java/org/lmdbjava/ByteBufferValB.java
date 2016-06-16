@@ -27,44 +27,52 @@ import org.lmdbjava.LmdbException.BufferNotDirectException;
  */
 public final class ByteBufferValB extends ValB {
 
+  private final boolean autoRefresh;
   private ByteBuffer bb;
   private long bbAddress;
 
   /**
    * Create a new instance that uses the passed <code>ByteBuffer</code> to get
-   * and set bytes from LMDB.
+   * and set bytes from LMDB. Auto-refresh is enabled, meaning the user does not
+   * ever need to invoke {@link #refresh()} (ie the buffer will always reflect
+   * the <code>MDB_val</code> when modified by the LMDB C API).
    *
    * @param buffer instance to use
    * @throws BufferNotDirectException if a passed buffer is invalid
    */
-  public ByteBufferValB(final ByteBuffer buffer) throws
-      BufferNotDirectException {
+  public ByteBufferValB(final ByteBuffer buffer) throws BufferNotDirectException {
+    this(buffer, true);
+  }
+
+  /**
+   * Create a new instance that uses the passed <code>ByteBuffer</code> to get
+   * and set bytes from LMDB.
+   *
+   * @param buffer      instance to use
+   * @param autoRefresh automatically refresh the buffer when {@link #dirty()}
+   *                    is called
+   * @throws BufferNotDirectException if a passed buffer is invalid
+   */
+  public ByteBufferValB(final ByteBuffer buffer, final boolean autoRefresh)
+      throws BufferNotDirectException {
     super();
-    setBuffer(buffer);
+    wrap(buffer);
+    this.autoRefresh = autoRefresh;
+  }
+
+  /**
+   * Returns the internal <code>ByteBuffer</code> currently wrapped by this
+   * instance.
+   *
+   * @return the buffer (never null)
+   */
+  public ByteBuffer buffer() {
+    return bb;
   }
 
   @Override
   public long dataAddress() {
     return UNSAFE.getLong(ptrAddress + STRUCT_FIELD_OFFSET_DATA);
-  }
-
-  /**
-   * Set the internal <code>ByteBuffer</code> to the passed instance.
-   *
-   * @param buffer instance to use (required; must be direct)
-   * @throws BufferNotDirectException if a passed buffer is invalid
-   */
-  public void setBuffer(final ByteBuffer buffer) throws BufferNotDirectException {
-    if (SHOULD_CHECK) {
-      requireDirectBuffer(buffer);
-    }
-    this.bb = buffer;
-    this.bbAddress = ((sun.nio.ch.DirectBuffer) buffer).address();
-  }
-
-  @Override
-  public long size() {
-    return UNSAFE.getLong(ptrAddress + STRUCT_FIELD_OFFSET_SIZE);
   }
 
   /**
@@ -74,22 +82,35 @@ public final class ByteBufferValB extends ValB {
    * The result is undefined if the <code>MDB_val</code> has not been populated
    * with a valid value (eg an LdmbJava method was not invoked beforehand).
    */
-  public void wrap() {
+  @Override
+  public void refresh() {
     MUTATOR.modify(bb, dataAddress(), (int) size());
   }
 
+  @Override
+  public long size() {
+    return UNSAFE.getLong(ptrAddress + STRUCT_FIELD_OFFSET_SIZE);
+  }
+
   /**
-   * Convenience method that calls {@link #wrap()} and then returns the internal
-   * <code>ByteBuffer</code>. This is useful for one-liner methods. It is
-   * generally more efficient for calling code to store the buffer they passed
-   * to the constructor or {@link #set()} method and simply call {@link #wrap()}
-   * when an update to that buffer is required.
+   * Set the internal <code>ByteBuffer</code> to the passed instance.
    *
-   * @return the buffer (never null)
+   * @param buffer instance to use (required; must be direct)
+   * @throws BufferNotDirectException if a passed buffer is invalid
    */
-  public ByteBuffer wrapAndGet() {
-    wrap();
-    return bb;
+  public void wrap(final ByteBuffer buffer) throws BufferNotDirectException {
+    if (SHOULD_CHECK) {
+      requireDirectBuffer(buffer);
+    }
+    this.bb = buffer;
+    this.bbAddress = ((sun.nio.ch.DirectBuffer) buffer).address();
+  }
+
+  @Override
+  void dirty() {
+    if (autoRefresh) {
+      refresh();
+    }
   }
 
   @Override
