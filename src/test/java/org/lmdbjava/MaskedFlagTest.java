@@ -17,6 +17,7 @@ package org.lmdbjava;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.arrayWithSize;
 import org.junit.Test;
 import static org.lmdbjava.EnvFlags.MDB_FIXEDMAP;
 import static org.lmdbjava.EnvFlags.MDB_NOSYNC;
@@ -53,6 +54,10 @@ public class MaskedFlagTest {
 
     final EnvFlags[] emptyFlags = new EnvFlags[]{};
     assertThat(mask(emptyFlags), is(0));
+
+    final EnvFlags[] nullElementZero = new EnvFlags[]{null};
+    assertThat(nullElementZero, is(arrayWithSize(1)));
+    assertThat(mask(nullElementZero), is(0));
 
     assertThat(mask(MDB_NOSYNC), is(MDB_NOSYNC.getMask()));
 

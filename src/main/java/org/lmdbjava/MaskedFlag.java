@@ -42,6 +42,9 @@ public interface MaskedFlag {
 
     int result = 0;
     for (MaskedFlag flag : flags) {
+      if (flag == null) {
+        continue;
+      }
       result |= flag.getMask();
     }
     return result;
