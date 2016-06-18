@@ -9,7 +9,6 @@ import static java.nio.ByteBuffer.allocateDirect;
 import org.lmdbjava.LmdbException.BufferNotDirectException;
 import static org.lmdbjava.ValB.STRUCT_FIELD_OFFSET_DATA;
 import sun.misc.Unsafe;
-import static java.lang.Class.forName;
 
 /**
  * Provides the optimal {@link ByteBufferVal} for this JVM.
@@ -86,10 +85,26 @@ public final class ByteBufferVals {
   public static ByteBufferVal forBuffer(final ByteBuffer buffer,
                                         final boolean autoRefresh) throws
       BufferNotDirectException {
-    if (SUPPORTS_UNSAFE) {
-      return new UnsafeByteBufferVal(buffer, autoRefresh);
+    return FACTORY.forBuffer(buffer, autoRefresh);
+  }
+
+  /**
+   * Create a new {@link ByteBufferVal} for the passed {@link ByteBuffer}.
+   *
+   * @param buffer      instance to use
+   * @param autoRefresh automatically refresh the buffer when updated by C
+   * @param forceSafe   forces use of safer JVM classes (not recommended)
+   * @return an initialized instance (never null)
+   * @throws BufferNotDirectException if a passed buffer is invalid
+   */
+  public static ByteBufferVal forBuffer(final ByteBuffer buffer,
+                                        final boolean autoRefresh,
+                                        final boolean forceSafe) throws
+      BufferNotDirectException {
+    if (forceSafe) {
+      return new ReflectiveByteBufferVal(buffer, autoRefresh);
     }
-    return new ReflectiveByteBufferVal(buffer, autoRefresh);
+    return FACTORY.forBuffer(buffer, autoRefresh);
   }
 
   static Field findField(final Class<?> c, final String name) throws
