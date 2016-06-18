@@ -170,7 +170,7 @@ public final class ByteBufferVals {
     public void refresh() {
       try {
         ADDRESS.set(bb, dataAddress());
-        CAPACITY.set(bb, size());
+        CAPACITY.set(bb, (int) size());
       } catch (IllegalArgumentException | IllegalAccessException ex) {
         throw new RuntimeException("Cannot modify buffer", ex);
       }
@@ -179,7 +179,7 @@ public final class ByteBufferVals {
 
     @Override
     public long size() {
-      return ptr.getLong(ptrAddress + STRUCT_FIELD_OFFSET_SIZE);
+      return ptr.getLong(STRUCT_FIELD_OFFSET_SIZE);
     }
 
     @Override
