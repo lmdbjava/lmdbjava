@@ -18,7 +18,7 @@ package org.lmdbjava;
 import jnr.constants.Constant;
 import jnr.constants.ConstantSet;
 import static jnr.constants.ConstantSet.getConstantSet;
-import static org.lmdbjava.CursorB.FullException.MDB_CURSOR_FULL;
+import static org.lmdbjava.Cursor.FullException.MDB_CURSOR_FULL;
 import static org.lmdbjava.Dbi.BadDbiException.MDB_BAD_DBI;
 import static org.lmdbjava.Dbi.BadValueSizeException.MDB_BAD_VALSIZE;
 import static org.lmdbjava.Dbi.DbFullException.MDB_DBS_FULL;
@@ -112,7 +112,7 @@ final class ResultCodeMapper {
       case MDB_CORRUPTED:
         return new LmdbNativeException.PageCorruptedException();
       case MDB_CURSOR_FULL:
-        return new CursorB.FullException();
+        return new Cursor.FullException();
       case MDB_DBS_FULL:
         return new Dbi.DbFullException();
       case MDB_INCOMPATIBLE:

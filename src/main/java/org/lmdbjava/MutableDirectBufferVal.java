@@ -27,7 +27,7 @@ import org.lmdbjava.LmdbException.BufferNotDirectException;
  * <p>
  * This class requires unsafe to operate.
  */
-public final class MutableDirectBufferVal extends ValB {
+public final class MutableDirectBufferVal extends Val {
 
   /**
    * Create a new automatically refreshing {@link MutableDirectBufferVal} for

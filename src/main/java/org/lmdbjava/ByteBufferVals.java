@@ -7,7 +7,7 @@ import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import static java.nio.ByteBuffer.allocateDirect;
 import org.lmdbjava.LmdbException.BufferNotDirectException;
-import static org.lmdbjava.ValB.STRUCT_FIELD_OFFSET_DATA;
+import static org.lmdbjava.Val.STRUCT_FIELD_OFFSET_DATA;
 import sun.misc.Unsafe;
 
 /**

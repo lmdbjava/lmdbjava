@@ -28,7 +28,7 @@ import static org.lmdbjava.Library.RUNTIME;
  * buffers, long-indexed buffers) while ensuring flyweight patterns can be
  * applied and usability is not diminished.
  */
-public abstract class ValB {
+public abstract class Val {
 
   private static final int MDB_VAL_STRUCT_SIZE = BYTES * 2;
   private static final MemoryManager MEM_MGR = RUNTIME.getMemoryManager();
@@ -60,7 +60,7 @@ public abstract class ValB {
   /**
    * Create a new instance.
    */
-  protected ValB() {
+  protected Val() {
     ptr = MEM_MGR.allocateTemporary(MDB_VAL_STRUCT_SIZE, false);
     ptrAddress = ptr.address();
   }

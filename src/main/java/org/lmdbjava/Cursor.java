@@ -34,13 +34,13 @@ import org.lmdbjava.Txn.ReadWriteRequiredException;
 /**
  * A cursor handle.
  */
-public class CursorB implements AutoCloseable {
+public class Cursor implements AutoCloseable {
 
   private boolean closed;
   private final Pointer ptr;
   private Txn tx;
 
-  CursorB(final Pointer ptr, final Txn tx) {
+  Cursor(final Pointer ptr, final Txn tx) {
     this.ptr = ptr;
     this.tx = tx;
   }
@@ -124,7 +124,7 @@ public class CursorB implements AutoCloseable {
    * @throws CommittedException       if the transaction was committed
    * @throws ClosedException          if the cursor is already closed
    */
-  public boolean get(final ValB key, final ValB val, final CursorOp op)
+  public boolean get(final Val key, final Val val, final CursorOp op)
       throws BufferNotDirectException, LmdbNativeException, CommittedException,
              ClosedException {
     if (SHOULD_CHECK) {
@@ -166,7 +166,7 @@ public class CursorB implements AutoCloseable {
    * @throws ClosedException            if the cursor is already closed
    * @throws ReadWriteRequiredException if cursor using a read-only transaction
    */
-  public void put(final ValB key, final ValB val,
+  public void put(final Val key, final Val val,
                   final PutFlags... op)
       throws BufferNotDirectException, LmdbNativeException, CommittedException,
              ClosedException, ReadWriteRequiredException {

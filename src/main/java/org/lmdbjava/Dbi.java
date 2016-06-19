@@ -40,7 +40,7 @@ import static org.lmdbjava.TxnFlags.MDB_RDONLY;
  * All accessor and mutator methods on this class use <code>ByteBuffer</code>.
  * This is solely for end user convenience and use of these methods is strongly
  * discouraged. Instead use the more flexible buffer API and lower latency
- * operating modes available via {@link #openCursorB(org.lmdbjava.Txn)}.
+ * operating modes available via {@link #openCursor(org.lmdbjava.Txn)}.
  */
 public final class Dbi {
 
@@ -278,7 +278,7 @@ public final class Dbi {
    * @throws CommittedException       if already committed
    * @throws BufferNotDirectException if a passed buffer is invalid
    */
-  public CursorB openCursorB(final Txn tx) throws
+  public Cursor openCursor(final Txn tx) throws
       LmdbNativeException, CommittedException, BufferNotDirectException {
     if (SHOULD_CHECK) {
       requireNonNull(tx);
@@ -286,7 +286,7 @@ public final class Dbi {
     }
     final PointerByReference ptr = new PointerByReference();
     checkRc(LIB.mdb_cursor_open(tx.ptr, dbi, ptr));
-    return new CursorB(ptr.getValue(), tx);
+    return new Cursor(ptr.getValue(), tx);
   }
 
   /**

@@ -26,7 +26,7 @@ import org.lmdbjava.LmdbException.BufferNotDirectException;
  * Use {@link ByteBufferVals#forBuffer(java.nio.ByteBuffer)} to obtain a
  * concrete implementation.
  */
-public abstract class ByteBufferVal extends ValB {
+public abstract class ByteBufferVal extends Val {
 
   static void requireDirectBuffer(final Buffer buffer) throws
       BufferNotDirectException {
