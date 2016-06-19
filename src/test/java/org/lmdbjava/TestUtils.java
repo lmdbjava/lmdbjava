@@ -34,10 +34,6 @@ public final class TestUtils {
   public static final String DB_1 = "test-db-1";
   public static final int POSIX_MODE = 0664;
 
-  static Val createVal() {
-    return new Val(createBb());
-  }
-
   static ByteBuffer createBb() {
     ByteBuffer bb = allocateDirect(BYTES);
     bb.order(LITTLE_ENDIAN);

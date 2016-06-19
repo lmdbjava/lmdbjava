@@ -255,35 +255,6 @@ public final class Dbi {
    * @throws CommittedException       if already committed
    * @throws BufferNotDirectException if a passed buffer is invalid
    */
-  public Cursor openCursor(final Txn tx) throws
-    LmdbNativeException, CommittedException, BufferNotDirectException {
-    if (SHOULD_CHECK) {
-      requireNonNull(tx);
-      tx.checkNotCommitted();
-    }
-    final PointerByReference ptr = new PointerByReference();
-    checkRc(LIB.mdb_cursor_open(tx.ptr, dbi, ptr));
-    return new Cursor(ptr.getValue(), tx);
-  }
-  
-  /**
-   * Create a cursor handle.
-   * <p>
-   * A cursor is associated with a specific transaction and database. A cursor
-   * cannot be used when its database handle is closed. Nor when its transaction
-   * has ended, except with {@link Cursor#renew(org.lmdbjava.Txn)}. It can be
-   * discarded with {@link Cursor#close()}. A cursor in a write-transaction can
-   * be closed before its transaction ends, and will otherwise be closed when
-   * its transaction ends. A cursor in a read-only transaction must be closed
-   * explicitly, before or after its transaction ends. It can be reused with
-   * {@link Cursor#renew(org.lmdbjava.Txn)} before finally closing it.
-   *
-   * @param tx    transaction handle (not null; not committed)
-   * @return cursor handle
-   * @throws LmdbNativeException      if a native C error occurred
-   * @throws CommittedException       if already committed
-   * @throws BufferNotDirectException if a passed buffer is invalid
-   */
   public CursorB openCursorB(final Txn tx) throws
     LmdbNativeException, CommittedException, BufferNotDirectException {
     if (SHOULD_CHECK) {
