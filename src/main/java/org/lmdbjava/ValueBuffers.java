@@ -21,7 +21,7 @@ import jnr.ffi.Pointer;
 import jnr.ffi.provider.MemoryManager;
 import static org.lmdbjava.BufferMutators.MUTATOR;
 import static org.lmdbjava.BufferMutators.UnsafeBufferMutator.UNSAFE;
-import static org.lmdbjava.BufferMutators.requireDirectBuffer;
+import static org.lmdbjava.ByteBufferVal.requireDirectBuffer;
 import static org.lmdbjava.Env.SHOULD_CHECK;
 import static org.lmdbjava.Library.RUNTIME;
 import org.lmdbjava.LmdbException.BufferNotDirectException;

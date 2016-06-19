@@ -80,12 +80,6 @@ final class BufferMutators {
     throw new NoSuchFieldException(name + " not found");
   }
 
-  static void requireDirectBuffer(final Buffer buffer) throws
-      BufferNotDirectException {
-    if (!buffer.isDirect()) {
-      throw new BufferNotDirectException();
-    }
-  }
 
   private BufferMutators() {
   }

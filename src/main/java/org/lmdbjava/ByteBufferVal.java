@@ -15,8 +15,8 @@
  */
 package org.lmdbjava;
 
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
-import static org.lmdbjava.BufferMutators.requireDirectBuffer;
 import static org.lmdbjava.Env.SHOULD_CHECK;
 import org.lmdbjava.LmdbException.BufferNotDirectException;
 
@@ -27,6 +27,13 @@ import org.lmdbjava.LmdbException.BufferNotDirectException;
  * concrete implementation.
  */
 public abstract class ByteBufferVal extends ValB {
+
+  static void requireDirectBuffer(final Buffer buffer) throws
+      BufferNotDirectException {
+    if (!buffer.isDirect()) {
+      throw new BufferNotDirectException();
+    }
+  }
 
   private final boolean autoRefresh;
 
