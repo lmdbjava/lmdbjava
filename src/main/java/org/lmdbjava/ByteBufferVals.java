@@ -183,7 +183,7 @@ public final class ByteBufferVals {
     }
 
     @Override
-    void set() {
+    protected void onSet() {
       ptr.putLong(STRUCT_FIELD_OFFSET_SIZE, bb.capacity());
       ptr.putLong(STRUCT_FIELD_OFFSET_DATA, bbAddress);
     }
@@ -249,7 +249,7 @@ public final class ByteBufferVals {
     }
 
     @Override
-    void set() {
+    protected void onSet() {
       UNSAFE.putLong(ptrAddress + STRUCT_FIELD_OFFSET_SIZE, bb.capacity());
       UNSAFE.putLong(ptrAddress + STRUCT_FIELD_OFFSET_DATA, bbAddress);
     }
