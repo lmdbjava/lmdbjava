@@ -100,7 +100,7 @@ final class Library {
     int mdb_cursor_get(@In Pointer cursor, Pointer k, @Out Pointer v,
                        int cursorOp);
 
-    int mdb_cursor_open(@In Pointer txn, int dbiPtr,
+    int mdb_cursor_open(@In Pointer txn, @In Pointer dbi,
                         PointerByReference cursorPtr);
 
     int mdb_cursor_put(@In Pointer cursor, @In Pointer key, @In Pointer data,
@@ -108,16 +108,17 @@ final class Library {
 
     int mdb_cursor_renew(@In Pointer txn, @In Pointer cursor);
 
-    void mdb_dbi_close(@In Pointer env, int dbiPtr);
+    void mdb_dbi_close(@In Pointer env, @In Pointer dbi);
 
-    int mdb_dbi_flags(@In Pointer txn, int dbiPtr, int flags);
+    int mdb_dbi_flags(@In Pointer txn, @In Pointer dbi, int flags);
 
     int mdb_dbi_open(@In Pointer txn, @In String name, int flags,
-                     IntByReference dbiPtr);
+                     @In Pointer dbiPtr);
 
-    int mdb_del(@In Pointer txn, int dbiPtr, @In Pointer key, @In Pointer data);
+    int mdb_del(@In Pointer txn, @In Pointer dbi, @In Pointer key,
+                @In Pointer data);
 
-    int mdb_drop(@In Pointer txn, int dbiPtr, int del);
+    int mdb_drop(@In Pointer txn, @In Pointer dbi, int del);
 
     void mdb_env_close(@In Pointer env);
 
@@ -151,9 +152,11 @@ final class Library {
 
     int mdb_env_sync(@In Pointer env, int f);
 
-    int mdb_get(@In Pointer txn, int dbiPtr, @In Pointer key, @Out Pointer data);
+    int mdb_get(@In Pointer txn, @In Pointer dbi, @In Pointer key,
+                @Out Pointer data);
 
-    int mdb_put(@In Pointer txn, int dbiPtr, @In Pointer key, @In Pointer data,
+    int mdb_put(@In Pointer txn, @In Pointer dbi, @In Pointer key,
+                @In Pointer data,
                 int flags);
 
     int mdb_reader_check(@In Pointer env, int dead);
