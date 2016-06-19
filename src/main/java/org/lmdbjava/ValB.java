@@ -43,18 +43,23 @@ public abstract class ValB {
    * field can be read.
    */
   protected static final int STRUCT_FIELD_OFFSET_SIZE = 0;
+
   /**
    * The actual pointer unpinning this instance. It has protected visibility for
    * implementations that may require its methods to get/set the native memory
    * fields. Implementations must not use any other methods.
    */
   protected final Pointer ptr;
+
   /**
    * Absolute native memory address where the <code>MDB_val</code> structure
    * underpinning this instance has been allocated.
    */
   protected final long ptrAddress;
 
+  /**
+   * Create a new instance.
+   */
   protected ValB() {
     ptr = MEM_MGR.allocateTemporary(MDB_VAL_STRUCT_SIZE, false);
     ptrAddress = ptr.address();

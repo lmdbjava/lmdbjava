@@ -94,7 +94,13 @@ public final class MutableDirectBufferVal extends ValB {
     return UNSAFE.getLong(ptrAddress + STRUCT_FIELD_OFFSET_SIZE);
   }
 
-  public final void wrap(final MutableDirectBuffer buffer) throws
+  /**
+   * Set the internal buffer to the passed instance.
+   *
+   * @param buffer instance to use (required; must be direct)
+   * @throws BufferNotDirectException if a passed buffer is invalid
+   */
+  public void wrap(final MutableDirectBuffer buffer) throws
       BufferNotDirectException {
     if (SHOULD_CHECK) {
       requireNonNull(buffer);

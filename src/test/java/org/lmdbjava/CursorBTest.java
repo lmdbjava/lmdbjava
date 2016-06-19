@@ -19,13 +19,13 @@ import java.io.File;
 import java.nio.ByteBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
-
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import static org.lmdbjava.ByteBufferVals.forBuffer;
 import org.lmdbjava.CursorB.ClosedException;
 import static org.lmdbjava.CursorOp.MDB_FIRST;
 import static org.lmdbjava.CursorOp.MDB_LAST;
@@ -37,16 +37,13 @@ import static org.lmdbjava.CursorOp.MDB_SET_RANGE;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import static org.lmdbjava.DbiFlags.MDB_DUPSORT;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
+import static org.lmdbjava.MutableDirectBufferVal.forMdb;
 import static org.lmdbjava.PutFlags.MDB_APPENDDUP;
 import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
-
+import static org.lmdbjava.TestUtils.*;
 import org.lmdbjava.Txn.CommittedException;
 import org.lmdbjava.Txn.ReadOnlyRequiredException;
-
-import static org.lmdbjava.TestUtils.*;
 import static org.lmdbjava.TxnFlags.MDB_RDONLY;
-import static org.lmdbjava.ByteBufferVals.forBuffer;
-import static org.lmdbjava.MutableDirectBufferVal.forMdb;
 
 public class CursorBTest {
 
@@ -217,7 +214,7 @@ public class CursorBTest {
       final ByteBuffer valBb = createBb();
       ByteBufferVal key = createValBb(1);
       ValB val = forBuffer(valBb);
-      
+
       assertThat(cursor.get(key, val, MDB_SET), is(true));
       assertThat(key.buffer().getInt(), is(1));
       assertThat(valBb.getInt(), is(2));

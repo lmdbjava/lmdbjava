@@ -21,9 +21,8 @@ import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
 import static java.nio.ByteBuffer.allocateDirect;
 import static java.nio.ByteOrder.LITTLE_ENDIAN;
+import static org.lmdbjava.ByteBufferVals.forBuffer;
 import org.lmdbjava.LmdbException.BufferNotDirectException;
-import static org.lmdbjava.ByteBufferVals.forBuffer;
-import static org.lmdbjava.ByteBufferVals.forBuffer;
 
 /**
  * Static constants and methods that are convenient when writing LMDB-related
@@ -40,15 +39,15 @@ public final class TestUtils {
     return bb;
   }
 
-  static ByteBufferVal createValB() throws BufferNotDirectException {
-    return forBuffer(createBb());
-  }
-
   static ByteBuffer createBb(int value) {
     final ByteBuffer bb = allocateDirect(BYTES);
     bb.order(LITTLE_ENDIAN);
     bb.putInt(value).flip();
     return bb;
+  }
+
+  static ByteBufferVal createValB() throws BufferNotDirectException {
+    return forBuffer(createBb());
   }
 
   static ByteBufferVal createValBb(int value) throws BufferNotDirectException {
