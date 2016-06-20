@@ -27,6 +27,7 @@ import static org.lmdbjava.ByteBufferVal.requireDirectBuffer;
 import org.lmdbjava.ByteBufferVals.ReflectiveByteBufferVal;
 import org.lmdbjava.ByteBufferVals.UnsafeByteBufferVal;
 import static org.lmdbjava.ByteBufferVals.factory;
+import static org.lmdbjava.ByteBufferVals.findField;
 import static org.lmdbjava.ByteBufferVals.forBuffer;
 import org.lmdbjava.LmdbException.BufferNotDirectException;
 
@@ -50,6 +51,11 @@ public class ByteBufferValTest {
     requireDirectBuffer(allocate(BYTES));
   }
 
+  @Test(expected = RuntimeException.class)
+  public void missingFieldRaisesException() throws Exception {
+    findField(UnsafeByteBufferVal.class, "notARealField");
+  }
+
   @Test
   public void safeCanBeForced() throws Exception {
     final ByteBufferVal v = forBuffer(allocateDirect(BYTES), true, true);
@@ -70,4 +76,5 @@ public class ByteBufferValTest {
     assertThat(v, is(notNullValue()));
     assertThat(v.getClass().getName(), is(UNSAFE));
   }
+
 }

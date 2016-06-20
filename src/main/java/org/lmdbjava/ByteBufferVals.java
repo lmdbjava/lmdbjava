@@ -57,15 +57,15 @@ public final class ByteBufferVals {
    * Indicates whether unsafe use is allowed.
    */
   public static final boolean ALLOW_UNSAFE = !getBoolean(DISABLE_UNSAFE_PROP);
+  private static final Factory FACTORY_OPTIMAL;
+  private static final Factory FACTORY_SAFE;
 
   private static final String FIELD_NAME_ADDRESS = "address";
   private static final String FIELD_NAME_CAPACITY = "capacity";
   private static final String FIELD_NAME_THE_UNSAFE = "theUnsafe";
   private static final String OUTER = ByteBufferVals.class.getName();
-  private static final String NAME_REFLECTIVE = OUTER + "$ReflectiveValFactory";
   private static final String NAME_UNSAFE = OUTER + "$UnsafeValFactory";
-  private static final Factory FACTORY_OPTIMAL;
-  private static final Factory FACTORY_SAFE;
+  private static final String NAME_REFLECTIVE = OUTER + "$ReflectiveValFactory";
 
   static {
     FACTORY_SAFE = factory(NAME_REFLECTIVE);
@@ -135,8 +135,7 @@ public final class ByteBufferVals {
     return null;
   }
 
-  static Field findField(final Class<?> c, final String name) throws
-      NoSuchFieldException {
+  static Field findField(final Class<?> c, final String name) {
     Class<?> clazz = c;
 
     do {
@@ -149,7 +148,7 @@ public final class ByteBufferVals {
       }
     } while (clazz != null);
 
-    throw new NoSuchFieldException(name + " not found");
+    throw new RuntimeException(name + " not found");
   }
 
   static void requireDirectBuffer(final Buffer buffer) throws
@@ -164,13 +163,6 @@ public final class ByteBufferVals {
   private ByteBufferVals() {
   }
 
-  private static interface Factory {
-
-    ByteBufferVal forBuffer(ByteBuffer buffer, final boolean autoRefresh) throws
-        BufferNotDirectException;
-
-  }
-
   /**
    * A {@link ByteBufferVal} that uses Java reflection to modify byte buffer
    * fields, and official JNR-FFF methods to manipulate its allocated pointers.
@@ -181,12 +173,8 @@ public final class ByteBufferVals {
     private static final Field CAPACITY_FIELD;
 
     static {
-      try {
-        ADDRESS_FIELD = findField(Buffer.class, FIELD_NAME_ADDRESS);
-        CAPACITY_FIELD = findField(Buffer.class, FIELD_NAME_CAPACITY);
-      } catch (NoSuchFieldException ex) {
-        throw new RuntimeException(ex);
-      }
+      ADDRESS_FIELD = findField(Buffer.class, FIELD_NAME_ADDRESS);
+      CAPACITY_FIELD = findField(Buffer.class, FIELD_NAME_CAPACITY);
     }
 
     ReflectiveByteBufferVal(final ByteBuffer buffer, final boolean autoRefresh)
@@ -305,6 +293,13 @@ public final class ByteBufferVals {
         throws BufferNotDirectException {
       return new UnsafeByteBufferVal(buffer, autoRefresh);
     }
+
+  }
+
+  private interface Factory {
+
+    ByteBufferVal forBuffer(ByteBuffer buffer, final boolean autoRefresh) throws
+        BufferNotDirectException;
 
   }
 
