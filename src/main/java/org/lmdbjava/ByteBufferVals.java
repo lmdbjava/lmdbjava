@@ -155,9 +155,7 @@ public final class ByteBufferVals {
       BufferNotDirectException {
     if (!buffer.isDirect()) {
       throw new BufferNotDirectException();
-
     }
-
   }
 
   private ByteBufferVals() {
