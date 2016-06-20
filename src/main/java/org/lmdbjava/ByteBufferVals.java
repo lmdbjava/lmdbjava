@@ -151,13 +151,6 @@ public final class ByteBufferVals {
     throw new RuntimeException(name + " not found");
   }
 
-  static void requireDirectBuffer(final Buffer buffer) throws
-      BufferNotDirectException {
-    if (!buffer.isDirect()) {
-      throw new BufferNotDirectException();
-    }
-  }
-
   private ByteBufferVals() {
   }
 
