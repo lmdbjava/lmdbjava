@@ -200,6 +200,16 @@ public class CursorTest {
   }
 
   @Test
+  public void repeatedCloseCausesNotError() throws Exception {
+    try (final Txn tx = new Txn(env)) {
+      final Dbi db = new Dbi(tx, DB_1, MDB_CREATE);
+      final Cursor cursor = db.openCursor(tx);
+      cursor.close();
+      cursor.close();
+    }
+  }
+
+  @Test
   public void set() throws Exception {
     try (final Txn tx = new Txn(env);) {
       final Dbi db = new Dbi(tx, DB_1, MDB_CREATE, MDB_DUPSORT);
