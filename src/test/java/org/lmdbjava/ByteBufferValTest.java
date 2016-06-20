@@ -18,11 +18,27 @@ package org.lmdbjava;
 import static java.lang.Integer.BYTES;
 import static java.nio.ByteBuffer.allocate;
 import static java.nio.ByteBuffer.allocateDirect;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
 import org.junit.Test;
 import static org.lmdbjava.ByteBufferVal.requireDirectBuffer;
+import org.lmdbjava.ByteBufferVals.ReflectiveByteBufferVal;
+import org.lmdbjava.ByteBufferVals.UnsafeByteBufferVal;
+import static org.lmdbjava.ByteBufferVals.factory;
+import static org.lmdbjava.ByteBufferVals.forBuffer;
 import org.lmdbjava.LmdbException.BufferNotDirectException;
 
 public class ByteBufferValTest {
+
+  private static final String REFLECT = ReflectiveByteBufferVal.class.getName();
+  private static final String UNSAFE = UnsafeByteBufferVal.class.getName();
+
+  @Test
+  public void coverageOnly() {
+    assertThat(factory("not a class"), is(nullValue()));
+  }
 
   @Test
   public void directBufferAllowed() throws Exception {
@@ -32,5 +48,26 @@ public class ByteBufferValTest {
   @Test(expected = BufferNotDirectException.class)
   public void javaBufferRejected() throws Exception {
     requireDirectBuffer(allocate(BYTES));
+  }
+
+  @Test
+  public void safeCanBeForced() throws Exception {
+    final ByteBufferVal v = forBuffer(allocateDirect(BYTES), true, true);
+    assertThat(v, is(notNullValue()));
+    assertThat(v.getClass().getName(), is(REFLECT));
+  }
+
+  @Test
+  public void unsafeCanBeForced() throws Exception {
+    final ByteBufferVal v = forBuffer(allocateDirect(BYTES), true, false);
+    assertThat(v, is(notNullValue()));
+    assertThat(v.getClass().getName(), is(UnsafeByteBufferVal.class.getName()));
+  }
+
+  @Test
+  public void unsafeIsDefault() throws Exception {
+    final ByteBufferVal v = forBuffer(allocateDirect(BYTES));
+    assertThat(v, is(notNullValue()));
+    assertThat(v.getClass().getName(), is(UNSAFE));
   }
 }
