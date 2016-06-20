@@ -50,6 +50,13 @@ public class EnvTest {
   }
 
   @Test(expected = AlreadyClosedException.class)
+  public void cannotInfoOnceClosed() throws Exception {
+    final Env env = new Env();
+    env.close();
+    env.info();
+  }
+
+  @Test(expected = AlreadyClosedException.class)
   public void cannotOpenOnceClosed() throws Exception {
     final Env e = new Env();
     final File path = tmp.newFile();
@@ -115,6 +122,28 @@ public class EnvTest {
   public void cannotStatIfNeverOpen() throws Exception {
     final Env e = new Env();
     e.stat();
+  }
+
+  @Test(expected = AlreadyClosedException.class)
+  public void cannotStatOnceClosed() throws Exception {
+    final Env env = new Env();
+    env.close();
+    env.stat();
+  }
+
+  @Test(expected = NotOpenException.class)
+  public void cannotSyncIfNotOpen() throws Exception {
+    final Env env = new Env();
+    env.sync(false);
+  }
+
+  @Test(expected = AlreadyClosedException.class)
+  public void cannotSyncOnceClosed() throws Exception {
+    final Env env = new Env();
+    final File path = tmp.newFile();
+    env.open(path, POSIX_MODE, MDB_NOSUBDIR);
+    env.close();
+    env.sync(false);
   }
 
   @Test

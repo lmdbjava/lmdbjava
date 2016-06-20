@@ -172,10 +172,15 @@ public final class Env implements AutoCloseable {
    * Return information about this environment.
    *
    * @return an immutable information object.
-   * @throws NotOpenException    if the env has not been opened
-   * @throws LmdbNativeException if a native C error occurred
+   * @throws NotOpenException       if the env has not been opened
+   * @throws LmdbNativeException    if a native C error occurred
+   * @throws AlreadyClosedException if already closed
    */
-  public EnvInfo info() throws NotOpenException, LmdbNativeException {
+  public EnvInfo info() throws NotOpenException, LmdbNativeException,
+                               AlreadyClosedException {
+    if (closed) {
+      throw new AlreadyClosedException();
+    }
     if (!open) {
       throw new NotOpenException();
     }
@@ -244,10 +249,15 @@ public final class Env implements AutoCloseable {
    * Return statistics about this environment.
    *
    * @return an immutable statistics object.
-   * @throws NotOpenException    if the env has not been opened
-   * @throws LmdbNativeException if a native C error occurred
+   * @throws NotOpenException       if the env has not been opened
+   * @throws LmdbNativeException    if a native C error occurred
+   * @throws AlreadyClosedException if already closed
    */
-  public EnvStat stat() throws NotOpenException, LmdbNativeException {
+  public EnvStat stat() throws NotOpenException, LmdbNativeException,
+                               AlreadyClosedException {
+    if (closed) {
+      throw new AlreadyClosedException();
+    }
     if (!open) {
       throw new NotOpenException();
     }
@@ -268,9 +278,19 @@ public final class Env implements AutoCloseable {
    * @param force force a synchronous flush (otherwise if the environment has
    *              the MDB_NOSYNC flag set the flushes will be omitted, and with
    *              MDB_MAPASYNC they will be asynchronous)
-   * @throws LmdbNativeException if a native C error occurred
+   * @throws AlreadyClosedException if already closed
+   * @throws NotOpenException       if the env has not been opened
+   * @throws LmdbNativeException    if a native C error occurred
    */
-  public void sync(final boolean force) throws LmdbNativeException {
+  public void sync(final boolean force) throws AlreadyClosedException,
+                                               NotOpenException,
+                                               LmdbNativeException {
+    if (closed) {
+      throw new AlreadyClosedException();
+    }
+    if (!open) {
+      throw new NotOpenException();
+    }
     final int f = force ? 1 : 0;
     checkRc(LIB.mdb_env_sync(ptr, f));
   }
