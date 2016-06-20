@@ -96,7 +96,7 @@ public class EnvTest {
   }
 
   @Test
-  @Ignore(value = "Travis CI failure; suspect older liblmdb version")
+  @Ignore("Travis CI failure; suspect older liblmdb version")
   public void copy() throws Exception {
     final File dest = tmp.newFolder();
     assertThat(dest.exists(), is(true));

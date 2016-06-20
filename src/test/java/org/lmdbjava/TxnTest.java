@@ -77,7 +77,7 @@ public class TxnTest {
   }
 
   @Test
-  @Ignore(value = "Travis CI failure; suspect older liblmdb version")
+  @Ignore("Travis CI failure; suspect older liblmdb version")
   public void testGetId() throws Exception {
     Txn tx = new Txn(env);
     Dbi db = new Dbi(tx, DB_1, MDB_CREATE);
