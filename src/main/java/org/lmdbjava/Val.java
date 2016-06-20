@@ -27,6 +27,12 @@ import static org.lmdbjava.Library.RUNTIME;
  * implementations (including <code>ByteBuffer</code>, third-party Unsafe-based
  * buffers, long-indexed buffers) while ensuring flyweight patterns can be
  * applied and usability is not diminished.
+ * <p>
+ * All <code>Val</code> subclasses must allow re-pointing their underlying
+ * buffers at new memory locations and capacities as indicated by the LMDB C
+ * <code>MDB_val</code>. Such re-pointed memory must always be considered
+ * read-only, as it will generally be reliant on a memory-mapped file page. Any
+ * changes may flush through to the file and cause unspecified failures.
  */
 public abstract class Val {
 

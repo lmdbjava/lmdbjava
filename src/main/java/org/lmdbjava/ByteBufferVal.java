@@ -23,8 +23,16 @@ import org.lmdbjava.LmdbException.BufferNotDirectException;
 /**
  * {@link ByteBuffer} value.
  * <p>
- * Use {@link ByteBufferVals#forBuffer(java.nio.ByteBuffer)} to obtain a
- * concrete implementation.
+ * Use {@link ByteBufferVals#forBuffer(java.nio.ByteBuffer)} (and associated
+ * overloaded method signatures) to obtain a concrete implementation.
+ * <p>
+ * Only "direct" byte buffers can be used. These should be created using
+ * {@link ByteBuffer#allocateDirect(int)}.
+ * <p>
+ * As required by the {@link Val} contract, the byte buffer address and capacity
+ * will change as a result of LMBC C calls. <code>ByteBufferVal</code>
+ * subclasses use either reflection or unsafe-based techniques to modify a given
+ * {@link ByteBuffer} and point it to a new address or capacity.
  */
 public abstract class ByteBufferVal extends Val {
 

@@ -23,7 +23,7 @@ import static org.lmdbjava.Env.SHOULD_CHECK;
 import org.lmdbjava.LmdbException.BufferNotDirectException;
 
 /**
- * Agrona buffer value.
+ * A {@link Val} that is backed by Agrona's {@link MutableDirectBuffer}.
  * <p>
  * This class requires unsafe to operate.
  */
