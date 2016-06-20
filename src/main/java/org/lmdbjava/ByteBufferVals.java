@@ -57,9 +57,9 @@ public final class ByteBufferVals {
    * Indicates whether unsafe use is allowed.
    */
   public static final boolean ALLOW_UNSAFE = !getBoolean(DISABLE_UNSAFE_PROP);
+
   private static final Factory FACTORY_OPTIMAL;
   private static final Factory FACTORY_SAFE;
-
   private static final String FIELD_NAME_ADDRESS = "address";
   private static final String FIELD_NAME_CAPACITY = "capacity";
   private static final String FIELD_NAME_THE_UNSAFE = "theUnsafe";
