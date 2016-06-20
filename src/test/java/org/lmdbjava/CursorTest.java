@@ -65,8 +65,8 @@ public class CursorTest {
   public void closedCursorRejectsSubsequentGets() throws Exception {
     try (final Txn tx = new Txn(env)) {
       final Dbi db = new Dbi(tx, DB_1, MDB_CREATE);
-      Val key = createValBb(1);
-      Val val = createValBb(1);
+      final Val key = createValBb(1);
+      final Val val = createValBb(1);
       final Cursor cursor = db.openCursor(tx);
       cursor.close();
       cursor.get(key, val, MDB_FIRST);
@@ -94,7 +94,7 @@ public class CursorTest {
     try (final Txn tx = new Txn(env)) {
       final Dbi db = new Dbi(tx, DB_1, MDB_CREATE, MDB_DUPSORT);
 
-      try (Cursor cursor = db.openCursor(tx)) {
+      try (final Cursor cursor = db.openCursor(tx)) {
         cursor.put(createValBb(1), createValBb(2), MDB_APPENDDUP);
         assertThat(cursor.count(), is(1L));
         cursor.put(createValBb(1), createValBb(4), MDB_APPENDDUP);
@@ -113,8 +113,8 @@ public class CursorTest {
       cursor.put(createValBb(3), createValBb(4));
       final ByteBuffer keyBb = createBb();
       final ByteBuffer valBb = createBb();
-      Val key = forBuffer(keyBb);
-      Val val = forBuffer(valBb);
+      final Val key = forBuffer(keyBb);
+      final Val val = forBuffer(valBb);
       assertThat(cursor.get(key, val, MDB_FIRST), is(true));
       assertThat(keyBb.getInt(), is(1));
       assertThat(valBb.getInt(), is(2));
@@ -133,10 +133,9 @@ public class CursorTest {
       final Dbi db = new Dbi(tx, DB_1, MDB_CREATE, MDB_DUPSORT);
       final ByteBuffer keyBb = createBb();
       final ByteBuffer valBb = createBb();
-      Val key = forBuffer(keyBb);
-      Val val = forBuffer(valBb);
-
-      Cursor cursor = db.openCursor(tx);
+      final Val key = forBuffer(keyBb);
+      final Val val = forBuffer(valBb);
+      final Cursor cursor = db.openCursor(tx);
       cursor.put(createValBb(1), createValBb(2), MDB_NOOVERWRITE);
       cursor.put(createValBb(3), createValBb(4));
       assertThat(cursor.get(key, val, MDB_FIRST), is(true));
@@ -160,10 +159,9 @@ public class CursorTest {
       final Dbi db = new Dbi(tx, DB_1, MDB_CREATE, MDB_DUPSORT);
       final MutableDirectBuffer keyMdb = new UnsafeBuffer(createBb());
       final MutableDirectBuffer valMdb = new UnsafeBuffer(createBb());
-      Val key = forMdb(keyMdb);
-      Val val = forMdb(valMdb);
-
-      Cursor cursor = db.openCursor(tx);
+      final Val key = forMdb(keyMdb);
+      final Val val = forMdb(valMdb);
+      final Cursor cursor = db.openCursor(tx);
       cursor.put(createValBb(1), createValBb(2), MDB_NOOVERWRITE);
       cursor.put(createValBb(3), createValBb(4));
       assertThat(cursor.get(key, val, MDB_FIRST), is(true));
@@ -190,12 +188,12 @@ public class CursorTest {
     }
 
     final Cursor cursor;
-    try (Txn tx = new Txn(env, MDB_RDONLY);) {
+    try (final Txn tx = new Txn(env, MDB_RDONLY);) {
       cursor = db.openCursor(tx);
       tx.commit();
     }
 
-    try (Txn tx = new Txn(env, MDB_RDONLY);) {
+    try (final Txn tx = new Txn(env, MDB_RDONLY);) {
       cursor.renew(tx);
       tx.commit();
     }
@@ -212,8 +210,8 @@ public class CursorTest {
       cursor.put(createValBb(5), createValBb(6));
 
       final ByteBuffer valBb = createBb();
-      ByteBufferVal key = createValBb(1);
-      Val val = forBuffer(valBb);
+      final ByteBufferVal key = createValBb(1);
+      final Val val = forBuffer(valBb);
 
       assertThat(cursor.get(key, val, MDB_SET), is(true));
       assertThat(key.buffer().getInt(), is(1));
