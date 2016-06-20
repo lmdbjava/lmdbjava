@@ -28,10 +28,12 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import static org.lmdbjava.CursorOp.MDB_SET_KEY;
 import org.lmdbjava.Dbi.DbFullException;
 import org.lmdbjava.Dbi.KeyExistsException;
 import org.lmdbjava.Dbi.KeyNotFoundException;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
+import static org.lmdbjava.DbiFlags.MDB_DUPSORT;
 import org.lmdbjava.Env.MapFullException;
 import org.lmdbjava.Env.NotOpenException;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
@@ -40,6 +42,8 @@ import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
 import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.POSIX_MODE;
 import static org.lmdbjava.TestUtils.createBb;
+import static org.lmdbjava.TestUtils.createValB;
+import static org.lmdbjava.TestUtils.createValBb;
 import org.lmdbjava.Txn.CommittedException;
 import org.lmdbjava.Txn.ReadWriteRequiredException;
 
@@ -168,6 +172,27 @@ public class DbiTest {
         db.get(tx, createBb(5));
         fail("key does not exist");
       } catch (KeyNotFoundException e) {
+      }
+      tx.abort();
+    }
+  }
+
+  @Test
+  public void putDuplicateDelete() throws Exception {
+    Dbi db;
+
+    try (final Txn tx = new Txn(env)) {
+      db = new Dbi(tx, DB_1, MDB_CREATE, MDB_DUPSORT);
+      db.put(tx, createBb(5), createBb(5));
+      db.put(tx, createBb(5), createBb(6));
+      db.put(tx, createBb(5), createBb(7));
+      db.delete(tx, createBb(5), createBb(6));
+
+      try (final Cursor cursor = db.openCursor(tx)) {
+        final ByteBufferVal key = createValBb(5);
+        final ByteBufferVal val = createValB();
+        cursor.get(key, val, MDB_SET_KEY);
+        assertThat(cursor.count(), is(2L));
       }
       tx.abort();
     }
