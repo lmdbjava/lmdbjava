@@ -27,6 +27,7 @@ import static org.lmdbjava.CopyFlags.MDB_CP_COMPACT;
 import org.lmdbjava.Env.AlreadyClosedException;
 import org.lmdbjava.Env.AlreadyOpenException;
 import org.lmdbjava.Env.InvalidCopyDestination;
+import org.lmdbjava.Env.NotOpenException;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.TestUtils.POSIX_MODE;
 
@@ -40,6 +41,21 @@ public class EnvTest {
     final Env env = new Env();
     env.close();
     assertThat(env.isClosed(), is(true));
+  }
+
+  @Test(expected = NotOpenException.class)
+  public void cannotInfoIfNeverOpen() throws Exception {
+    final Env e = new Env();
+    e.info();
+  }
+
+  @Test(expected = AlreadyClosedException.class)
+  public void cannotOpenOnceClosed() throws Exception {
+    final Env e = new Env();
+    final File path = tmp.newFile();
+    e.open(path, POSIX_MODE, MDB_NOSUBDIR);
+    e.close();
+    e.open(path, POSIX_MODE, MDB_NOSUBDIR); // error
   }
 
   @Test(expected = AlreadyOpenException.class)
@@ -93,6 +109,12 @@ public class EnvTest {
     final File path = tmp.newFile();
     env.open(path, POSIX_MODE, MDB_NOSUBDIR);
     env.setMaxReaders(1);
+  }
+
+  @Test(expected = NotOpenException.class)
+  public void cannotStatIfNeverOpen() throws Exception {
+    final Env e = new Env();
+    e.stat();
   }
 
   @Test

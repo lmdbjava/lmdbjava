@@ -229,11 +229,11 @@ public final class Env implements AutoCloseable {
   public void open(final File path, final int mode, final EnvFlags... flags)
       throws AlreadyOpenException, AlreadyClosedException, LmdbNativeException {
     requireNonNull(path);
-    if (open) {
-      throw new AlreadyOpenException();
-    }
     if (closed) {
       throw new AlreadyClosedException();
+    }
+    if (open) {
+      throw new AlreadyOpenException();
     }
     final int flagsMask = mask(flags);
     checkRc(LIB.mdb_env_open(ptr, path.getAbsolutePath(), flagsMask, mode));
