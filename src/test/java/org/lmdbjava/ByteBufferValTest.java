@@ -30,11 +30,17 @@ import static org.lmdbjava.ByteBufferVals.factory;
 import static org.lmdbjava.ByteBufferVals.findField;
 import static org.lmdbjava.ByteBufferVals.forBuffer;
 import org.lmdbjava.LmdbException.BufferNotDirectException;
+import static org.lmdbjava.TestUtils.invokePrivateConstructor;
 
 public class ByteBufferValTest {
 
   private static final String REFLECT = ReflectiveByteBufferVal.class.getName();
   private static final String UNSAFE = UnsafeByteBufferVal.class.getName();
+
+  @Test
+  public void coverPrivateConstructor() throws Exception {
+    invokePrivateConstructor(ByteBufferVals.class);
+  }
 
   @Test
   public void coverageOnly() {
