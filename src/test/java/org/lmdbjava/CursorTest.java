@@ -32,7 +32,6 @@ import static org.lmdbjava.CursorOp.MDB_FIRST;
 import static org.lmdbjava.CursorOp.MDB_LAST;
 import static org.lmdbjava.CursorOp.MDB_NEXT;
 import static org.lmdbjava.CursorOp.MDB_PREV;
-import static org.lmdbjava.CursorOp.MDB_SET;
 import static org.lmdbjava.CursorOp.MDB_SET_KEY;
 import static org.lmdbjava.CursorOp.MDB_SET_RANGE;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
@@ -75,7 +74,7 @@ public class CursorTest {
   }
 
   @Test
-  public void cursorCanCountKeys() throws Exception {
+  public void count() throws Exception {
     try (final Txn tx = new Txn(env)) {
       final Dbi db = new Dbi(tx, DB_1, MDB_CREATE, MDB_DUPSORT);
       final Cursor cursor = db.openCursor(tx);
@@ -129,59 +128,150 @@ public class CursorTest {
   }
 
   @Test
-  public void get() throws Exception {
+  public void getWithByteBufferDefault() throws Exception {
     try (final Txn tx = new Txn(env)) {
       final Dbi db = new Dbi(tx, DB_1, MDB_CREATE, MDB_DUPSORT);
-      final ByteBuffer keyBb = createBb();
-      final ByteBuffer valBb = createBb();
-      final Val key = forBuffer(keyBb);
-      final Val val = forBuffer(valBb);
+
+      final ByteBuffer kb = createBb();
+      final ByteBuffer vb = createBb();
+      final ByteBufferVal kv = forBuffer(kb, true, false);
+      assertThat(kv.buffer(), is(kb));
+      final Val vv = forBuffer(vb, true, false);
+
+      // populate data
       final Cursor cursor = db.openCursor(tx);
       cursor.put(createValBb(1), createValBb(2), MDB_NOOVERWRITE);
       cursor.put(createValBb(3), createValBb(4));
-      assertThat(cursor.get(key, val, MDB_FIRST), is(true));
-      assertThat(keyBb.getInt(), is(1));
-      assertThat(valBb.getInt(), is(2));
-      assertThat(cursor.get(key, val, MDB_NEXT), is(true));
-      assertThat(keyBb.getInt(), is(3));
-      assertThat(valBb.getInt(), is(4));
-      assertThat(cursor.get(key, val, MDB_PREV), is(true));
-      assertThat(keyBb.getInt(), is(1));
-      assertThat(valBb.getInt(), is(2));
-      assertThat(cursor.get(key, val, MDB_LAST), is(true));
-      assertThat(keyBb.getInt(), is(3));
-      assertThat(valBb.getInt(), is(4));
+      cursor.put(createValBb(5), createValBb(6));
+      cursor.put(createValBb(7), createValBb(8));
+
+      // check MDB_SET operations
+      kb.putInt(0, 3);
+      assertThat(cursor.get(kv, vv, MDB_SET_KEY), is(true));
+      assertThat(kb.getInt(0), is(3));
+      assertThat(vb.getInt(0), is(4));
+      final long key3Addr = kv.dataAddress();
+      kv.wrap(createBb(6));
+      final ByteBuffer kb2 = kv.buffer();
+      assertThat(cursor.get(kv, vv, MDB_SET_RANGE), is(true));
+      assertThat(kb2.getInt(0), is(7));
+      assertThat(vb.getInt(0), is(8));
+      final long key7Addr = kv.dataAddress();
+      assertThat(key7Addr, not(key3Addr));
+
+      // check MDB navigation operations
+      assertThat(cursor.get(kv, vv, MDB_LAST), is(true));
+      assertThat(kb2.getInt(0), is(7));
+      assertThat(vb.getInt(0), is(8));
+      assertThat(cursor.get(kv, vv, MDB_PREV), is(true));
+      assertThat(kb2.getInt(0), is(5));
+      assertThat(vb.getInt(0), is(6));
+      assertThat(cursor.get(kv, vv, MDB_NEXT), is(true));
+      assertThat(kb2.getInt(0), is(7));
+      assertThat(vb.getInt(0), is(8));
+      assertThat(cursor.get(kv, vv, MDB_FIRST), is(true));
+      assertThat(kb2.getInt(0), is(1));
+      assertThat(vb.getInt(0), is(2));
     }
   }
 
   @Test
-  public void getAgrona() throws Exception {
+  public void getWithByteBufferSafe() throws Exception {
     try (final Txn tx = new Txn(env)) {
       final Dbi db = new Dbi(tx, DB_1, MDB_CREATE, MDB_DUPSORT);
-      final MutableDirectBuffer keyMdb = new UnsafeBuffer(createBb());
-      final MutableDirectBuffer valMdb = new UnsafeBuffer(createBb());
-      final Val key = forMdb(keyMdb);
-      final Val val = forMdb(valMdb);
+
+      final ByteBuffer kb = createBb();
+      final ByteBuffer vb = createBb();
+      final ByteBufferVal kv = forBuffer(kb, true, true);
+      assertThat(kv.buffer(), is(kb));
+      final Val vv = forBuffer(vb, true, true);
+
+      // populate data
       final Cursor cursor = db.openCursor(tx);
       cursor.put(createValBb(1), createValBb(2), MDB_NOOVERWRITE);
       cursor.put(createValBb(3), createValBb(4));
-      assertThat(cursor.get(key, val, MDB_FIRST), is(true));
-      assertThat(keyMdb.getInt(0), is(1));
-      assertThat(valMdb.getInt(0), is(2));
-      assertThat(cursor.get(key, val, MDB_NEXT), is(true));
-      assertThat(keyMdb.getInt(0), is(3));
-      assertThat(valMdb.getInt(0), is(4));
-      assertThat(cursor.get(key, val, MDB_PREV), is(true));
-      assertThat(keyMdb.getInt(0), is(1));
-      assertThat(valMdb.getInt(0), is(2));
-      assertThat(cursor.get(key, val, MDB_LAST), is(true));
-      assertThat(keyMdb.getInt(0), is(3));
-      assertThat(valMdb.getInt(0), is(4));
+      cursor.put(createValBb(5), createValBb(6));
+      cursor.put(createValBb(7), createValBb(8));
+
+      // check MDB_SET operations
+      kb.putInt(0, 3);
+      assertThat(cursor.get(kv, vv, MDB_SET_KEY), is(true));
+      assertThat(kb.getInt(0), is(3));
+      assertThat(vb.getInt(0), is(4));
+      final long key3Addr = kv.dataAddress();
+      kv.wrap(createBb(6));
+      final ByteBuffer kb2 = kv.buffer();
+      assertThat(cursor.get(kv, vv, MDB_SET_RANGE), is(true));
+      assertThat(kb2.getInt(0), is(7));
+      assertThat(vb.getInt(0), is(8));
+      final long key7Addr = kv.dataAddress();
+      assertThat(key7Addr, not(key3Addr));
+
+      // check MDB navigation operations
+      assertThat(cursor.get(kv, vv, MDB_LAST), is(true));
+      assertThat(kb2.getInt(0), is(7));
+      assertThat(vb.getInt(0), is(8));
+      assertThat(cursor.get(kv, vv, MDB_PREV), is(true));
+      assertThat(kb2.getInt(0), is(5));
+      assertThat(vb.getInt(0), is(6));
+      assertThat(cursor.get(kv, vv, MDB_NEXT), is(true));
+      assertThat(kb2.getInt(0), is(7));
+      assertThat(vb.getInt(0), is(8));
+      assertThat(cursor.get(kv, vv, MDB_FIRST), is(true));
+      assertThat(kb2.getInt(0), is(1));
+      assertThat(vb.getInt(0), is(2));
     }
   }
 
   @Test
-  public void renew() throws Exception {
+  public void getWithMutableDirectBuffer() throws Exception {
+    try (final Txn tx = new Txn(env)) {
+      final Dbi db = new Dbi(tx, DB_1, MDB_CREATE, MDB_DUPSORT);
+
+      final MutableDirectBuffer kb = new UnsafeBuffer(createBb());
+      final MutableDirectBuffer vb = new UnsafeBuffer(createBb());
+      final MutableDirectBufferVal kv = forMdb(kb);
+      assertThat(kv.buffer(), is(kb));
+      final Val vv = forMdb(vb);
+
+      // populate data
+      final Cursor cursor = db.openCursor(tx);
+      cursor.put(createValBb(1), createValBb(2), MDB_NOOVERWRITE);
+      cursor.put(createValBb(3), createValBb(4));
+      cursor.put(createValBb(5), createValBb(6));
+      cursor.put(createValBb(7), createValBb(8));
+
+      // check MDB_SET operations
+      kb.putInt(0, 3);
+      assertThat(cursor.get(kv, vv, MDB_SET_KEY), is(true));
+      assertThat(kb.getInt(0), is(3));
+      assertThat(vb.getInt(0), is(4));
+      final long key3Addr = kv.dataAddress();
+      kb.wrap(createBb(6));
+      assertThat(cursor.get(kv, vv, MDB_SET_RANGE), is(true));
+      assertThat(kb.getInt(0), is(7));
+      assertThat(vb.getInt(0), is(8));
+      final long key7Addr = kv.dataAddress();
+      assertThat(key7Addr, not(key3Addr));
+
+      // check MDB navigation operations
+      assertThat(cursor.get(kv, vv, MDB_LAST), is(true));
+      assertThat(kb.getInt(0), is(7));
+      assertThat(vb.getInt(0), is(8));
+      assertThat(cursor.get(kv, vv, MDB_PREV), is(true));
+      assertThat(kb.getInt(0), is(5));
+      assertThat(vb.getInt(0), is(6));
+      assertThat(cursor.get(kv, vv, MDB_NEXT), is(true));
+      assertThat(kb.getInt(0), is(7));
+      assertThat(vb.getInt(0), is(8));
+      assertThat(cursor.get(kv, vv, MDB_FIRST), is(true));
+      assertThat(kb.getInt(0), is(1));
+      assertThat(vb.getInt(0), is(2));
+    }
+  }
+
+  @Test
+  public void renewTxRo() throws Exception {
     final Dbi db;
     try (final Txn tx = new Txn(env)) {
       db = new Dbi(tx, DB_1, MDB_CREATE, MDB_DUPSORT);
@@ -200,6 +290,17 @@ public class CursorTest {
     }
   }
 
+  @Test(expected = ReadOnlyRequiredException.class)
+  public void renewTxRw() throws Exception {
+    try (final Txn tx = new Txn(env);) {
+      assertThat(tx.isReadOnly(), is(false));
+      final Dbi db = new Dbi(tx, DB_1, MDB_CREATE);
+
+      final Cursor cursor = db.openCursor(tx);
+      cursor.renew(tx);
+    }
+  }
+
   @Test
   public void repeatedCloseCausesNotError() throws Exception {
     try (final Txn tx = new Txn(env)) {
@@ -207,56 +308,6 @@ public class CursorTest {
       final Cursor cursor = db.openCursor(tx);
       cursor.close();
       cursor.close();
-    }
-  }
-
-  @Test
-  public void set() throws Exception {
-    try (final Txn tx = new Txn(env);) {
-      final Dbi db = new Dbi(tx, DB_1, MDB_CREATE, MDB_DUPSORT);
-
-      final Cursor cursor = db.openCursor(tx);
-      cursor.put(createValBb(1), createValBb(2));
-      cursor.put(createValBb(3), createValBb(4));
-      cursor.put(createValBb(5), createValBb(6));
-
-      final ByteBuffer valBb = createBb();
-      final ByteBufferVal key = createValBb(1);
-      final Val val = forBuffer(valBb);
-
-      assertThat(cursor.get(key, val, MDB_SET), is(true));
-      assertThat(key.buffer().getInt(), is(1));
-      assertThat(valBb.getInt(), is(2));
-      final long key1Addr = key.dataAddress();
-      assertThat(key.size(), is((long) createBb().capacity()));
-
-      key.wrap(createBb(3));
-      assertThat(cursor.get(key, val, MDB_SET_KEY), is(true));
-      assertThat(key.buffer().getInt(), is(3));
-      assertThat(valBb.getInt(), is(4));
-      final long key3Addr = key.dataAddress();
-      assertThat(key1Addr, not(key3Addr));
-
-      key.wrap(createBb(5));
-      assertThat(cursor.get(key, val, MDB_SET_RANGE), is(true));
-      assertThat(key.buffer().getInt(), is(5));
-      assertThat(valBb.getInt(), is(6));
-
-      key.wrap(createBb(0));
-      assertThat(cursor.get(key, val, MDB_SET_RANGE), is(true));
-      assertThat(key.buffer().getInt(), is(1));
-      assertThat(valBb.getInt(), is(2));
-    }
-  }
-
-  @Test(expected = ReadOnlyRequiredException.class)
-  public void testCursorRenewWriteTx() throws Exception {
-    try (final Txn tx = new Txn(env);) {
-      assertThat(tx.isReadOnly(), is(false));
-      final Dbi db = new Dbi(tx, DB_1, MDB_CREATE);
-
-      final Cursor cursor = db.openCursor(tx);
-      cursor.renew(tx);
     }
   }
 }
