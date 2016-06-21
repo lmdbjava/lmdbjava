@@ -17,7 +17,6 @@ package org.lmdbjava;
 
 import static java.util.Objects.requireNonNull;
 import org.agrona.MutableDirectBuffer;
-import static org.lmdbjava.ByteBufferVal.requireDirectBuffer;
 import static org.lmdbjava.ByteBufferVal.UnsafeByteBufferVal.UNSAFE;
 import static org.lmdbjava.Env.SHOULD_CHECK;
 import org.lmdbjava.LmdbException.BufferNotDirectException;
@@ -109,13 +108,10 @@ public final class MutableDirectBufferVal extends Val {
    * Set the internal buffer to the passed instance.
    *
    * @param buffer instance to use (required; must be direct)
-   * @throws BufferNotDirectException if a passed buffer is invalid
    */
-  public void wrap(final MutableDirectBuffer buffer) throws
-      BufferNotDirectException {
+  public void wrap(final MutableDirectBuffer buffer) {
     if (SHOULD_CHECK) {
       requireNonNull(buffer);
-      requireDirectBuffer(buffer.byteBuffer());
     }
     mdb = buffer;
   }
