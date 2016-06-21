@@ -18,7 +18,7 @@ package org.lmdbjava;
 import static java.util.Objects.requireNonNull;
 import org.agrona.MutableDirectBuffer;
 import static org.lmdbjava.ByteBufferVal.requireDirectBuffer;
-import static org.lmdbjava.ByteBufferVals.UnsafeByteBufferVal.UNSAFE;
+import static org.lmdbjava.ByteBufferVal.UnsafeByteBufferVal.UNSAFE;
 import static org.lmdbjava.Env.SHOULD_CHECK;
 import org.lmdbjava.LmdbException.BufferNotDirectException;
 

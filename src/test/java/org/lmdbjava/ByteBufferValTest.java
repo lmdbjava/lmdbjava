@@ -23,24 +23,18 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import org.junit.Test;
+import org.lmdbjava.ByteBufferVal.ReflectiveByteBufferVal;
+import org.lmdbjava.ByteBufferVal.UnsafeByteBufferVal;
+import static org.lmdbjava.ByteBufferVal.factory;
+import static org.lmdbjava.ByteBufferVal.findField;
+import static org.lmdbjava.ByteBufferVal.forBuffer;
 import static org.lmdbjava.ByteBufferVal.requireDirectBuffer;
-import org.lmdbjava.ByteBufferVals.ReflectiveByteBufferVal;
-import org.lmdbjava.ByteBufferVals.UnsafeByteBufferVal;
-import static org.lmdbjava.ByteBufferVals.factory;
-import static org.lmdbjava.ByteBufferVals.findField;
-import static org.lmdbjava.ByteBufferVals.forBuffer;
 import org.lmdbjava.LmdbException.BufferNotDirectException;
-import static org.lmdbjava.TestUtils.invokePrivateConstructor;
 
 public class ByteBufferValTest {
 
   private static final String REFLECT = ReflectiveByteBufferVal.class.getName();
   private static final String UNSAFE = UnsafeByteBufferVal.class.getName();
-
-  @Test
-  public void coverPrivateConstructor() throws Exception {
-    invokePrivateConstructor(ByteBufferVals.class);
-  }
 
   @Test
   public void coverageOnly() {
@@ -59,7 +53,7 @@ public class ByteBufferValTest {
 
   @Test(expected = RuntimeException.class)
   public void missingFieldRaisesException() throws Exception {
-    findField(UnsafeByteBufferVal.class, "notARealField");
+    findField(Long.class, "notARealField");
   }
 
   @Test

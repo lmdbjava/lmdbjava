@@ -21,7 +21,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
 import static java.nio.ByteBuffer.allocateDirect;
 import static java.nio.ByteOrder.LITTLE_ENDIAN;
-import static org.lmdbjava.ByteBufferVals.forBuffer;
+import static org.lmdbjava.ByteBufferVal.forBuffer;
 import org.lmdbjava.LmdbException.BufferNotDirectException;
 
 /**

@@ -22,7 +22,7 @@ import static jnr.ffi.Memory.allocateDirect;
 import static jnr.ffi.NativeType.ADDRESS;
 import jnr.ffi.Pointer;
 import jnr.ffi.byref.PointerByReference;
-import static org.lmdbjava.ByteBufferVals.forBuffer;
+import static org.lmdbjava.ByteBufferVal.forBuffer;
 import org.lmdbjava.Env.NotOpenException;
 import static org.lmdbjava.Env.SHOULD_CHECK;
 import static org.lmdbjava.Library.LIB;
