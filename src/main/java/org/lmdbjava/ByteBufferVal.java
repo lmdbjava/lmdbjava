@@ -75,14 +75,16 @@ public abstract class ByteBufferVal extends Val {
   private static final String FIELD_NAME_ADDRESS = "address";
   private static final String FIELD_NAME_CAPACITY = "capacity";
   private static final String FIELD_NAME_THE_UNSAFE = "theUnsafe";
-  private static final String OUTER = ByteBufferVal.class.getName();
-  private static final String NAME_UNSAFE = OUTER + "$UnsafeValFactory";
-  private static final String NAME_REFLECTIVE = OUTER + "$ReflectiveValFactory";
+  private static final String NAME_PREFIX = ByteBufferVal.class.getName() + "$";
+  private static final String NAME_REFLECT = "Reflective";
+  private static final String NAME_SUFFIX = "ValFactory";
+  private static final String NAME_UNSAFE = "Unsafe";
 
   static {
-    FACTORY_SAFE = factory(NAME_REFLECTIVE);
+    FACTORY_SAFE = factory(NAME_PREFIX + NAME_REFLECT + NAME_SUFFIX);
     requireNonNull(FACTORY_SAFE, "Mandatory reflective factory unavailable");
-    final Factory unsafe = ALLOW_UNSAFE ? factory(NAME_UNSAFE) : null;
+    final Factory unsafe = ALLOW_UNSAFE ? factory(NAME_PREFIX + NAME_UNSAFE
+                                                      + NAME_SUFFIX) : null;
     FACTORY_OPTIMAL = unsafe == null ? FACTORY_SAFE : unsafe;
   }
 
