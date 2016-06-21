@@ -19,7 +19,6 @@ import static java.util.Objects.requireNonNull;
 import org.agrona.MutableDirectBuffer;
 import static org.lmdbjava.ByteBufferVal.UnsafeByteBufferVal.UNSAFE;
 import static org.lmdbjava.Env.SHOULD_CHECK;
-import org.lmdbjava.LmdbException.BufferNotDirectException;
 
 /**
  * A {@link Val} that is backed by Agrona's {@link MutableDirectBuffer}.
@@ -34,11 +33,9 @@ public final class MutableDirectBufferVal extends Val {
    *
    * @param buffer instance to use
    * @return an initialized, automatically-refreshing instance (never null)
-   * @throws BufferNotDirectException if a passed buffer is invalid
    */
   public static MutableDirectBufferVal forMdb(
-      final MutableDirectBuffer buffer) throws
-      BufferNotDirectException {
+      final MutableDirectBuffer buffer) {
     return new MutableDirectBufferVal(buffer, true);
   }
 
@@ -49,12 +46,10 @@ public final class MutableDirectBufferVal extends Val {
    * @param buffer      instance to use
    * @param autoRefresh automatically refresh the buffer when updated by C
    * @return an initialized instance (never null)
-   * @throws BufferNotDirectException if a passed buffer is invalid
    */
   public static MutableDirectBufferVal forMdb(
       final MutableDirectBuffer buffer,
-      final boolean autoRefresh)
-      throws BufferNotDirectException {
+      final boolean autoRefresh) {
     return new MutableDirectBufferVal(buffer, autoRefresh);
   }
 
@@ -73,8 +68,7 @@ public final class MutableDirectBufferVal extends Val {
   private MutableDirectBuffer mdb;
 
   private MutableDirectBufferVal(final MutableDirectBuffer buffer,
-                                 final boolean autoRefresh)
-      throws BufferNotDirectException {
+                                 final boolean autoRefresh) {
     super();
     this.autoRefresh = autoRefresh;
     wrap(buffer);
