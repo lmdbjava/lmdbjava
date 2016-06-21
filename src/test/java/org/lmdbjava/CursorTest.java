@@ -20,6 +20,7 @@ import java.nio.ByteBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import org.junit.Before;
 import org.junit.Rule;
@@ -226,11 +227,15 @@ public class CursorTest {
       assertThat(cursor.get(key, val, MDB_SET), is(true));
       assertThat(key.buffer().getInt(), is(1));
       assertThat(valBb.getInt(), is(2));
+      final long key1Addr = key.dataAddress();
+      assertThat(key.size(), is((long) createBb().capacity()));
 
       key.wrap(createBb(3));
       assertThat(cursor.get(key, val, MDB_SET_KEY), is(true));
       assertThat(key.buffer().getInt(), is(3));
       assertThat(valBb.getInt(), is(4));
+      final long key3Addr = key.dataAddress();
+      assertThat(key1Addr, not(key3Addr));
 
       key.wrap(createBb(5));
       assertThat(cursor.get(key, val, MDB_SET_RANGE), is(true));
