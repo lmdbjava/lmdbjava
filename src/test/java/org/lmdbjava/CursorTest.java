@@ -232,7 +232,7 @@ public class CursorTest {
       final MutableDirectBuffer vb = new UnsafeBuffer(createBb());
       final MutableDirectBufferVal kv = forMdb(kb);
       assertThat(kv.buffer(), is(kb));
-      final Val vv = forMdb(vb);
+      final Val vv = forMdb(vb, true);
 
       // populate data
       final Cursor cursor = db.openCursor(tx);
