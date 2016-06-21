@@ -121,14 +121,14 @@ public final class MutableDirectBufferVal extends Val {
   }
 
   @Override
-  void dirty() {
+  protected void dirty() {
     if (autoRefresh) {
       refresh();
     }
   }
 
   @Override
-  void set() {
+  protected void set() {
     final long newAddress = mdb.addressOffset();
     final long newCapacity = mdb.capacity();
     if (newAddress == lastAddress && newCapacity == lastCapacity) {

@@ -227,20 +227,20 @@ public abstract class ByteBufferVal extends Val {
     this.mdbValSet = false;
   }
 
+  @Override
+  final protected void dirty() {
+    if (autoRefresh) {
+      refresh();
+    }
+  }
+
   /**
    * Called when a subclass should set the <code>MDB_val</code>.
    */
   protected abstract void onSet();
 
   @Override
-  final void dirty() {
-    if (autoRefresh) {
-      refresh();
-    }
-  }
-
-  @Override
-  final void set() {
+  final protected void set() {
     if (mdbValSet) {
       return;
     }

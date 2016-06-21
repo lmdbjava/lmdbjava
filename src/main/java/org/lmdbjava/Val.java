@@ -112,7 +112,7 @@ public abstract class Val {
    * mandatory action, as there are many situations when a user will may not
    * require the underling buffer to reflect the change).
    */
-  abstract void dirty();
+  protected abstract void dirty();
 
   /**
    * Sets the <code>MDB_val.mv_size</code> and <code>MDB_val.mv_data</code>
@@ -122,6 +122,6 @@ public abstract class Val {
    * does not invoke this method before it invokes LMDB functions that merely
    * write new values to the passed <code>MDB_val</code>).
    */
-  abstract void set();
+  protected abstract void set();
 
 }
