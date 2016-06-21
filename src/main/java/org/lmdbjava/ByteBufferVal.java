@@ -173,12 +173,6 @@ public abstract class ByteBufferVal extends Val {
   private final boolean autoRefresh;
 
   /**
-   * Tracks whether the current {@link #bbAddress} and capacity have been
-   * written to the <code>MDB_val</code>.
-   */
-  private boolean mdbValSet;
-
-  /**
    * The byte buffer currently wrapped by this instance.
    */
   protected ByteBuffer bb;
@@ -226,7 +220,6 @@ public abstract class ByteBufferVal extends Val {
     }
     this.bb = buffer;
     this.bbAddress = ((sun.nio.ch.DirectBuffer) buffer).address();
-    this.mdbValSet = false;
   }
 
   @Override
@@ -234,20 +227,6 @@ public abstract class ByteBufferVal extends Val {
     if (autoRefresh) {
       refresh();
     }
-  }
-
-  /**
-   * Called when a subclass should set the <code>MDB_val</code>.
-   */
-  protected abstract void onSet();
-
-  @Override
-  final protected void set() {
-    if (mdbValSet) {
-      return;
-    }
-    mdbValSet = true;
-    onSet();
   }
 
   /**
@@ -291,7 +270,7 @@ public abstract class ByteBufferVal extends Val {
     }
 
     @Override
-    protected void onSet() {
+    protected void set() {
       ptr.putLong(STRUCT_FIELD_OFFSET_SIZE, bb.capacity());
       ptr.putLong(STRUCT_FIELD_OFFSET_DATA, bbAddress);
     }
@@ -363,7 +342,7 @@ public abstract class ByteBufferVal extends Val {
     }
 
     @Override
-    protected void onSet() {
+    protected void set() {
       UNSAFE.putLong(ptrAddress + STRUCT_FIELD_OFFSET_SIZE, bb.capacity());
       UNSAFE.putLong(ptrAddress + STRUCT_FIELD_OFFSET_DATA, bbAddress);
     }

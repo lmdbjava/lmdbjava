@@ -121,13 +121,6 @@ public abstract class Val {
    * will read existing <code>MDB_val</code> values (for efficiency reasons it
    * does not invoke this method before it invokes LMDB functions that merely
    * write new values to the passed <code>MDB_val</code>).
-   * <p>
-   * An implementation may immediately return if the current Java-side buffer
-   * address and size has not varied since the last occasion it set the
-   * <code>MDB_val</code>. This allows a significant efficiency gain during
-   * cursor iteration, as the Java-side buffer address and size will always be
-   * the same as the current <code>MDB_val</code>.
-   * <p>
    */
   protected abstract void set();
 

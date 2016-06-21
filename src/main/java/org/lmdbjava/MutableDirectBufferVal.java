@@ -55,16 +55,6 @@ public final class MutableDirectBufferVal extends Val {
 
   private final boolean autoRefresh;
 
-  /**
-   * Last buffer address written to <code>MDB_val</code>.
-   */
-  private long lastAddress = 0;
-
-  /**
-   * Last buffer capacity written to <code>MDB_val</code>.
-   */
-  private long lastCapacity = 0;
-
   private MutableDirectBuffer mdb;
 
   private MutableDirectBufferVal(final MutableDirectBuffer buffer,
@@ -119,14 +109,8 @@ public final class MutableDirectBufferVal extends Val {
 
   @Override
   protected void set() {
-    // using wrapped MDB accessors, as the MDB itself may have had wrap() called
     final long newAddress = mdb.addressOffset();
     final long newCapacity = mdb.capacity();
-    if (newAddress == lastAddress && newCapacity == lastCapacity) {
-      return;
-    }
-    lastAddress = newAddress;
-    lastCapacity = newCapacity;
     UNSAFE.putLong(ptrAddress + STRUCT_FIELD_OFFSET_DATA, newAddress);
     UNSAFE.putLong(ptrAddress + STRUCT_FIELD_OFFSET_SIZE, newCapacity);
   }
