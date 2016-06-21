@@ -125,6 +125,7 @@ public final class MutableDirectBufferVal extends Val {
 
   @Override
   protected void set() {
+    // using wrapped MDB accessors, as the MDB itself may have had wrap() called
     final long newAddress = mdb.addressOffset();
     final long newCapacity = mdb.capacity();
     if (newAddress == lastAddress && newCapacity == lastCapacity) {
