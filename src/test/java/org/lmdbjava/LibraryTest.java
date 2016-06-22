@@ -28,6 +28,7 @@ public class LibraryTest {
   @Test
   public void coverPrivateConstructors() throws Exception {
     invokePrivateConstructor(Library.class);
+    invokePrivateConstructor(UnsafeAccess.class);
   }
 
   @Test
