@@ -1,18 +1,3 @@
-/*
- * Copyright 2016 The LmdbJava Project, http://lmdbjava.org/
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.lmdbjava;
 
 import static java.lang.Integer.BYTES;
@@ -21,6 +6,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
 import static java.nio.ByteBuffer.allocateDirect;
 import static java.nio.ByteOrder.LITTLE_ENDIAN;
+import org.agrona.MutableDirectBuffer;
 import static org.lmdbjava.ByteBufferVal.forBuffer;
 import org.lmdbjava.LmdbException.BufferNotDirectException;
 
@@ -32,6 +18,19 @@ public final class TestUtils {
 
   public static final String DB_1 = "test-db-1";
   public static final int POSIX_MODE = 0664;
+
+  static ByteBuffer allocateBb(CursorB<ByteBuffer> c, int value) {
+    final ByteBuffer b = c.allocate(BYTES);
+    b.putInt(value).flip();
+    return b;
+  }
+
+  static MutableDirectBuffer allocateMdb(CursorB<MutableDirectBuffer> c,
+                                         int value) {
+    final MutableDirectBuffer b = c.allocate(BYTES);
+    b.putInt(0, value);
+    return b;
+  }
 
   static ByteBuffer createBb() {
     ByteBuffer bb = allocateDirect(BYTES);
