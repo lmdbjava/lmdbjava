@@ -16,6 +16,8 @@
 package org.lmdbjava;
 
 import java.io.File;
+import java.nio.ByteBuffer;
+
 import static java.lang.Boolean.getBoolean;
 import static java.util.Objects.requireNonNull;
 import jnr.ffi.Pointer;
@@ -243,6 +245,30 @@ public final class Env implements AutoCloseable {
     final int flagsMask = mask(flags);
     checkRc(LIB.mdb_env_open(ptr, path.getAbsolutePath(), flagsMask, mode));
     this.open = true;
+  }
+
+  public Dbi<ByteBuffer> openDbi(String name, DbiFlags... flags)
+    throws NotOpenException, LmdbNativeException {
+    try (Txn txn = new Txn(this)) {
+      Dbi<ByteBuffer> dbi = new Dbi<>(txn, name, ByteBufferProxy.PROXY_OPTIMAL, flags);
+      txn.commit();
+      return dbi;
+    } catch (Txn.CommittedException | Txn.ReadWriteRequiredException e) {
+      // never happens
+      throw new IllegalStateException();
+    }
+  }
+
+  public <T> Dbi<T> openDbi(String name, BufferProxy<T> proxy, DbiFlags... flags)
+    throws NotOpenException, LmdbNativeException {
+    try (Txn txn = new Txn(this)) {
+      Dbi<T> dbi = new Dbi<>(txn, name, proxy, flags);
+      txn.commit();
+      return dbi;
+    } catch (Txn.CommittedException | Txn.ReadWriteRequiredException e) {
+      // never happens
+      throw new IllegalStateException();
+    }
   }
 
   /**

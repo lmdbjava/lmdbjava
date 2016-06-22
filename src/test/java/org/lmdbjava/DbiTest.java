@@ -66,11 +66,9 @@ public class DbiTest {
   @Test(expected = DbFullException.class)
   @SuppressWarnings("ResultOfObjectAllocationIgnored")
   public void dbOpenMaxDatabases() throws Exception {
-    try (final Txn tx = new Txn(env)) {
-      new Dbi<>(tx, "db1 is OK", PROXY_OPTIMAL, MDB_CREATE);
-      new Dbi<>(tx, "db2 is OK", PROXY_OPTIMAL, MDB_CREATE);
-      new Dbi<>(tx, "db3 fails", PROXY_OPTIMAL, MDB_CREATE);
-    }
+    env.openDbi("db1 is OK", MDB_CREATE);
+    env.openDbi("db2 is OK", MDB_CREATE);
+    env.openDbi("db3 fails", MDB_CREATE);
   }
 
   @Test(expected = CommittedException.class)
