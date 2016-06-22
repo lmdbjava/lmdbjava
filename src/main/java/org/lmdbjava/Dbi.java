@@ -22,7 +22,6 @@ import static jnr.ffi.NativeType.ADDRESS;
 import jnr.ffi.Pointer;
 import jnr.ffi.byref.PointerByReference;
 import jnr.ffi.provider.MemoryManager;
-import org.lmdbjava.BufferProxy.BufferProxyFactory;
 import static org.lmdbjava.BufferProxy.MDB_VAL_STRUCT_SIZE;
 import org.lmdbjava.Env.NotOpenException;
 import static org.lmdbjava.Env.SHOULD_CHECK;
@@ -50,7 +49,6 @@ public final class Dbi<T> {
 
   private final String name;
   private final BufferProxy<T> proxy;
-  private final BufferProxyFactory<T> proxyFactory;
   private final Pointer ptrKey;
   private final long ptrKeyAddr;
   private final Pointer ptrVal;
@@ -76,16 +74,15 @@ public final class Dbi<T> {
    * @throws ReadWriteRequiredException if a read-only transaction presented
    */
   public Dbi(final Txn tx, final String name,
-             final BufferProxyFactory<T> proxyFactory, final DbiFlags... flags)
+             final BufferProxy<T> proxy, final DbiFlags... flags)
       throws CommittedException, LmdbNativeException, ReadWriteRequiredException {
     requireNonNull(tx);
-    requireNonNull(proxyFactory);
+    requireNonNull(proxy);
     tx.checkNotCommitted();
     tx.checkWritesAllowed();
     this.env = tx.env;
     this.name = name;
-    this.proxyFactory = proxyFactory;
-    this.proxy = proxyFactory.create();
+    this.proxy = proxy;
     final int flagsMask = mask(flags);
     final Pointer dbiPtr = allocateDirect(RUNTIME, ADDRESS);
     checkRc(LIB.mdb_dbi_open(tx.ptr, name, flagsMask, dbiPtr));
@@ -279,7 +276,7 @@ public final class Dbi<T> {
     }
     final PointerByReference ptr = new PointerByReference();
     checkRc(LIB.mdb_cursor_open(tx.ptr, dbi, ptr));
-    return new Cursor<>(ptr.getValue(), tx, proxyFactory.create());
+    return new Cursor<>(ptr.getValue(), tx, proxy);
   }
 
   /**

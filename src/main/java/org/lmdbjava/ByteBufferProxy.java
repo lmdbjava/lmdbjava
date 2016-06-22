@@ -15,14 +15,11 @@
  */
 package org.lmdbjava;
 
-import static java.lang.Class.forName;
 import java.lang.reflect.Field;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import static java.nio.ByteBuffer.allocateDirect;
-import static java.util.Objects.requireNonNull;
 import jnr.ffi.Pointer;
-import org.lmdbjava.BufferProxy.BufferProxyFactory;
 import static org.lmdbjava.UnsafeAccess.UNSAFE;
 
 /**
@@ -46,40 +43,27 @@ public final class ByteBufferProxy {
    * {@link UnsafeAccess#DISABLE_UNSAFE_PROP} has been set to <code>true</code>
    * or {@link UnsafeAccess} is unavailable. Guaranteed to never be null.
    */
-  public static final BufferProxyFactory<ByteBuffer> FACTORY_OPTIMAL;
+  public static final BufferProxy<ByteBuffer> PROXY_OPTIMAL;
 
   /**
    * The safe, reflective {@link ByteBuffer} proxy for this system. Guaranteed
    * to never be null.
    */
-  public static final BufferProxyFactory<ByteBuffer> FACTORY_SAFE;
+  public static final BufferProxy<ByteBuffer> PROXY_SAFE;
   private static final String FIELD_NAME_ADDRESS = "address";
   private static final String FIELD_NAME_CAPACITY = "capacity";
-  private static final String NAME_PRE = ByteBufferProxy.class.getName() + "$";
-  private static final String NAME_REFLECT = NAME_PRE + "ReflectiveProxyFactory";
-  private static final String NAME_UNSAFE = NAME_PRE + "UnsafeProxyFactory";
 
   static {
-    FACTORY_SAFE = factory(NAME_REFLECT);
-    requireNonNull(FACTORY_SAFE, "Mandatory reflective factory unavailable");
-    final BufferProxyFactory<ByteBuffer> unsafe = factory(NAME_UNSAFE);
-    FACTORY_OPTIMAL = unsafe == null ? FACTORY_SAFE : unsafe;
+    PROXY_SAFE = new ReflectiveProxy();
+    PROXY_OPTIMAL = getProxyOptimal();
   }
 
-  /**
-   * Safely instantiates the proxy, hiding any exceptions.
-   *
-   * @param name class to instantiate
-   * @return the initialized proxy, or null if there was an exception
-   */
-  @SuppressWarnings("unchecked")
-  static BufferProxyFactory<ByteBuffer> factory(final String name) {
+  public static BufferProxy<ByteBuffer> getProxyOptimal() {
     try {
-      return (BufferProxyFactory<ByteBuffer>) forName(name).newInstance();
-    } catch (ClassNotFoundException | IllegalAccessException |
-             ClassCastException | InstantiationException ignore) {
+      return new UnsafeProxy();
+    } catch (Throwable e) {
+      return PROXY_SAFE;
     }
-    return null;
   }
 
   static Field findField(final Class<?> c, final String name) {
@@ -182,25 +166,4 @@ public final class ByteBufferProxy {
     }
 
   }
-
-  static final class ReflectiveProxyFactory implements
-      BufferProxyFactory<ByteBuffer> {
-
-    @Override
-    public BufferProxy<ByteBuffer> create() {
-      return new ReflectiveProxy();
-    }
-
-  }
-
-  static final class UnsafeProxyFactory implements
-      BufferProxyFactory<ByteBuffer> {
-
-    @Override
-    public BufferProxy<ByteBuffer> create() {
-      return new UnsafeProxy();
-    }
-
-  }
-
 }

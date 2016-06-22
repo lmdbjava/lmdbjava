@@ -24,9 +24,9 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import static org.lmdbjava.ByteBufferProxy.FACTORY_OPTIMAL;
-import static org.lmdbjava.ByteBufferProxy.FACTORY_SAFE;
 import org.lmdbjava.Cursor.ClosedException;
+
+import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
 import static org.lmdbjava.CursorOp.MDB_FIRST;
 import static org.lmdbjava.CursorOp.MDB_LAST;
 import static org.lmdbjava.CursorOp.MDB_NEXT;
@@ -64,7 +64,7 @@ public class CursorTest {
   public void closedCursorRejectsSubsequentGets() throws Exception {
     try (final Txn tx = new Txn(env)) {
       final Dbi<ByteBuffer> db
-          = new Dbi<>(tx, DB_1, FACTORY_OPTIMAL, MDB_CREATE);
+          = new Dbi<>(tx, DB_1, PROXY_OPTIMAL, MDB_CREATE);
       final Cursor<ByteBuffer> c = db.openCursor(tx);
       final ByteBuffer key = allocateBb(db, 1);
       final ByteBuffer val = allocateBb(db, 1);
@@ -77,7 +77,7 @@ public class CursorTest {
   public void count() throws Exception {
     try (final Txn tx = new Txn(env)) {
       final Dbi<ByteBuffer> db
-          = new Dbi<>(tx, DB_1, FACTORY_OPTIMAL, MDB_CREATE, MDB_DUPSORT);
+          = new Dbi<>(tx, DB_1, PROXY_OPTIMAL, MDB_CREATE, MDB_DUPSORT);
       final Cursor<ByteBuffer> c = db.openCursor(tx);
       c.put(allocateBb(db, 1), allocateBb(db, 2), MDB_APPENDDUP);
       assertThat(c.count(), is(1L));
@@ -94,7 +94,7 @@ public class CursorTest {
   public void cursorCannotCloseIfTransactionCommitted() throws Exception {
     try (final Txn tx = new Txn(env)) {
       final Dbi<ByteBuffer> db
-          = new Dbi<>(tx, DB_1, FACTORY_OPTIMAL, MDB_CREATE, MDB_DUPSORT);
+          = new Dbi<>(tx, DB_1, PROXY_OPTIMAL, MDB_CREATE, MDB_DUPSORT);
 
       try (final Cursor<ByteBuffer> c = db.openCursor(tx);) {
         c.put(allocateBb(db, 1), allocateBb(db, 2), MDB_APPENDDUP);
@@ -110,7 +110,7 @@ public class CursorTest {
   public void delete() throws Exception {
     try (final Txn tx = new Txn(env)) {
       final Dbi<ByteBuffer> db
-          = new Dbi<>(tx, DB_1, FACTORY_OPTIMAL, MDB_CREATE, MDB_DUPSORT);
+          = new Dbi<>(tx, DB_1, PROXY_OPTIMAL, MDB_CREATE, MDB_DUPSORT);
       final Cursor<ByteBuffer> c = db.openCursor(tx);
       c.put(allocateBb(db, 1), allocateBb(db, 2), MDB_NOOVERWRITE);
       c.put(allocateBb(db, 3), allocateBb(db, 4));
@@ -130,7 +130,7 @@ public class CursorTest {
   public void getWithByteBufferOptimal() throws Exception {
     try (final Txn tx = new Txn(env)) {
       final Dbi<ByteBuffer> db
-          = new Dbi<>(tx, DB_1, FACTORY_OPTIMAL, MDB_CREATE, MDB_DUPSORT);
+          = new Dbi<>(tx, DB_1, PROXY_OPTIMAL, MDB_CREATE, MDB_DUPSORT);
 
       // populate data
       final Cursor<ByteBuffer> c = db.openCursor(tx);
@@ -169,7 +169,7 @@ public class CursorTest {
   public void getWithByteBufferSafe() throws Exception {
     try (final Txn tx = new Txn(env)) {
       final Dbi<ByteBuffer> db
-          = new Dbi<>(tx, DB_1, FACTORY_SAFE, MDB_CREATE, MDB_DUPSORT);
+          = new Dbi<>(tx, DB_1, PROXY_OPTIMAL, MDB_CREATE, MDB_DUPSORT);
 
       // populate data
       final Cursor<ByteBuffer> c = db.openCursor(tx);
@@ -247,7 +247,7 @@ public class CursorTest {
   public void renewTxRo() throws Exception {
     final Dbi<ByteBuffer> db;
     try (final Txn tx = new Txn(env)) {
-      db = new Dbi<>(tx, DB_1, FACTORY_OPTIMAL, MDB_CREATE, MDB_DUPSORT);
+      db = new Dbi<>(tx, DB_1, PROXY_OPTIMAL, MDB_CREATE, MDB_DUPSORT);
       tx.commit();
     }
 
@@ -268,7 +268,7 @@ public class CursorTest {
     try (final Txn tx = new Txn(env);) {
       assertThat(tx.isReadOnly(), is(false));
       final Dbi<ByteBuffer> db
-          = new Dbi<>(tx, DB_1, FACTORY_OPTIMAL, MDB_CREATE);
+          = new Dbi<>(tx, DB_1, PROXY_OPTIMAL, MDB_CREATE);
 
       final Cursor<ByteBuffer> c = db.openCursor(tx);
       c.renew(tx);
@@ -279,7 +279,7 @@ public class CursorTest {
   public void repeatedCloseCausesNotError() throws Exception {
     try (final Txn tx = new Txn(env)) {
       final Dbi<ByteBuffer> db
-          = new Dbi<>(tx, DB_1, FACTORY_OPTIMAL, MDB_CREATE);
+          = new Dbi<>(tx, DB_1, PROXY_OPTIMAL, MDB_CREATE);
       final Cursor<ByteBuffer> c = db.openCursor(tx);
       c.close();
       c.close();

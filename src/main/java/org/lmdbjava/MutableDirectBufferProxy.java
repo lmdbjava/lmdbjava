@@ -35,8 +35,8 @@ public final class MutableDirectBufferProxy implements
    * although a class initialization exception will occur if unsafe is
    * unavailable or Agrona is not in the classpath.
    */
-  public static final BufferProxyFactory<MutableDirectBuffer> FACTORY_MDB
-      = new MutableDirectBufferProxyFactory();
+  public static final BufferProxy<MutableDirectBuffer> FACTORY_MDB
+      = new MutableDirectBufferProxy();
 
   private static MutableDirectBuffer alloc(int bytes) {
     ByteBuffer bb = allocateDirect(bytes);
@@ -63,14 +63,4 @@ public final class MutableDirectBufferProxy implements
     UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_DATA, addr);
     UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE, size);
   }
-
-  static final class MutableDirectBufferProxyFactory implements
-      BufferProxyFactory<MutableDirectBuffer> {
-
-    @Override
-    public BufferProxy<MutableDirectBuffer> create() {
-      return new MutableDirectBufferProxy();
-    }
-  }
-
 }

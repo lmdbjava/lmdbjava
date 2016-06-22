@@ -28,17 +28,17 @@ public interface BufferProxy<T> {
   /**
    * Size of a <code>MDB_val</code> pointer in bytes.
    */
-  static final int MDB_VAL_STRUCT_SIZE = BYTES * 2;
+  int MDB_VAL_STRUCT_SIZE = BYTES * 2;
 
   /**
    * Offset from a pointer of the <code>MDB_val.mv_data</code> field.
    */
-  static final int STRUCT_FIELD_OFFSET_DATA = BYTES;
+  int STRUCT_FIELD_OFFSET_DATA = BYTES;
 
   /**
    * Offset from a pointer of the <code>MDB_val.mv_size</code> field.
    */
-  static final int STRUCT_FIELD_OFFSET_SIZE = 0;
+  int STRUCT_FIELD_OFFSET_SIZE = 0;
 
   /**
    * Called when the <code>MDB_val</code> may have changed and the passed buffer
@@ -67,20 +67,4 @@ public interface BufferProxy<T> {
    * @param ptrAddr the address of the <code>MDB_val</code> pointer
    */
   void set(T buffer, Pointer ptr, long ptrAddr);
-
-  /**
-   * A factory for a {@link BufferProxy}.
-   *
-   * @param <T> type of buffer managed by this proxy
-   */
-  public static interface BufferProxyFactory<T> {
-
-    /**
-     * Create a new proxy instance.
-     *
-     * @return the proxy (never null)
-     */
-    BufferProxy<T> create();
-  }
-
 }
