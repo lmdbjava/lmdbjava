@@ -25,6 +25,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import static org.lmdbjava.ByteBufferProxy.FACTORY_OPTIMAL;
+import static org.lmdbjava.ByteBufferProxy.FACTORY_SAFE;
 import org.lmdbjava.Cursor.ClosedException;
 import static org.lmdbjava.CursorOp.MDB_FIRST;
 import static org.lmdbjava.CursorOp.MDB_LAST;
@@ -130,6 +131,45 @@ public class CursorTest {
     try (final Txn tx = new Txn(env)) {
       final Dbi<ByteBuffer> db
           = new Dbi<>(tx, DB_1, FACTORY_OPTIMAL, MDB_CREATE, MDB_DUPSORT);
+
+      // populate data
+      final Cursor<ByteBuffer> c = db.openCursor(tx);
+      c.put(allocateBb(db, 1), allocateBb(db, 2), MDB_NOOVERWRITE);
+      c.put(allocateBb(db, 3), allocateBb(db, 4));
+      c.put(allocateBb(db, 5), allocateBb(db, 6));
+      c.put(allocateBb(db, 7), allocateBb(db, 8));
+
+      // check MDB_SET operations
+      final ByteBuffer key3 = allocateBb(db, 3);
+      assertThat(c.get(key3, MDB_SET_KEY), is(true));
+      assertThat(c.key().getInt(0), is(3));
+      assertThat(c.val().getInt(0), is(4));
+      final ByteBuffer key6 = allocateBb(db, 6);
+      assertThat(c.get(key6, MDB_SET_RANGE), is(true));
+      assertThat(c.key().getInt(0), is(7));
+      assertThat(c.val().getInt(0), is(8));
+
+      // check MDB navigation operations
+      assertThat(c.get(null, MDB_LAST), is(true));
+      assertThat(c.key().getInt(0), is(7));
+      assertThat(c.val().getInt(0), is(8));
+      assertThat(c.get(null, MDB_PREV), is(true));
+      assertThat(c.key().getInt(0), is(5));
+      assertThat(c.val().getInt(0), is(6));
+      assertThat(c.get(null, MDB_NEXT), is(true));
+      assertThat(c.key().getInt(0), is(7));
+      assertThat(c.val().getInt(0), is(8));
+      assertThat(c.get(null, MDB_FIRST), is(true));
+      assertThat(c.key().getInt(0), is(1));
+      assertThat(c.val().getInt(0), is(2));
+    }
+  }
+
+  @Test
+  public void getWithByteBufferSafe() throws Exception {
+    try (final Txn tx = new Txn(env)) {
+      final Dbi<ByteBuffer> db
+          = new Dbi<>(tx, DB_1, FACTORY_SAFE, MDB_CREATE, MDB_DUPSORT);
 
       // populate data
       final Cursor<ByteBuffer> c = db.openCursor(tx);
