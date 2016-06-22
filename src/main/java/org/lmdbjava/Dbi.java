@@ -16,18 +16,18 @@
 package org.lmdbjava;
 
 import java.nio.ByteBuffer;
-import static java.nio.ByteBuffer.allocateDirect;
 import static java.util.Objects.requireNonNull;
 import static jnr.ffi.Memory.allocateDirect;
 import static jnr.ffi.NativeType.ADDRESS;
 import jnr.ffi.Pointer;
 import jnr.ffi.byref.PointerByReference;
-import static org.lmdbjava.ByteBufferVal.forBuffer;
+import jnr.ffi.provider.MemoryManager;
+import org.lmdbjava.BufferProxy.BufferProxyFactory;
+import static org.lmdbjava.BufferProxy.MDB_VAL_STRUCT_SIZE;
 import org.lmdbjava.Env.NotOpenException;
 import static org.lmdbjava.Env.SHOULD_CHECK;
 import static org.lmdbjava.Library.LIB;
 import static org.lmdbjava.Library.RUNTIME;
-import org.lmdbjava.LmdbException.BufferNotDirectException;
 import static org.lmdbjava.MaskedFlag.mask;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
 import org.lmdbjava.Txn.CommittedException;
@@ -41,10 +41,22 @@ import static org.lmdbjava.TxnFlags.MDB_RDONLY;
  * This is solely for end user convenience and use of these methods is strongly
  * discouraged. Instead use the more flexible buffer API and lower latency
  * operating modes available via {@link #openCursor(org.lmdbjava.Txn)}.
+ *
+ * @param <T> buffer type
  */
-public final class Dbi {
+public final class Dbi<T> {
+
+  private static final MemoryManager MEM_MGR = RUNTIME.getMemoryManager();
 
   private final String name;
+  private final BufferProxy<T> proxy;
+  private final BufferProxyFactory<T> proxyFactory;
+  private final Pointer ptrKey;
+  private final long ptrKeyAddr;
+  private final Pointer ptrVal;
+  private final long ptrValAddr;
+  private final T roKey;
+  private final T roVal;
   final Pointer dbi;
   final Env env;
 
@@ -54,25 +66,46 @@ public final class Dbi {
    * The passed transaction will automatically commit and the database handle
    * will become available to other transactions.
    *
-   * @param tx    transaction to open and commit this database within (not null;
-   *              not committed; must be R-W)
-   * @param name  name of the database (or null if no name is required)
-   * @param flags to open the database with
+   * @param tx           transaction to open and commit this database within
+   *                     (not null; not committed; must be R-W)
+   * @param name         name of the database (or null if no name is required)
+   * @param proxyFactory buffer proxy factory (not null)
+   * @param flags        to open the database with
    * @throws CommittedException         if already committed
    * @throws LmdbNativeException        if a native C error occurred
    * @throws ReadWriteRequiredException if a read-only transaction presented
    */
-  public Dbi(final Txn tx, final String name, final DbiFlags... flags)
+  public Dbi(final Txn tx, final String name,
+             final BufferProxyFactory<T> proxyFactory, final DbiFlags... flags)
       throws CommittedException, LmdbNativeException, ReadWriteRequiredException {
     requireNonNull(tx);
+    requireNonNull(proxyFactory);
     tx.checkNotCommitted();
     tx.checkWritesAllowed();
     this.env = tx.env;
     this.name = name;
+    this.proxyFactory = proxyFactory;
+    this.proxy = proxyFactory.create();
     final int flagsMask = mask(flags);
     final Pointer dbiPtr = allocateDirect(RUNTIME, ADDRESS);
     checkRc(LIB.mdb_dbi_open(tx.ptr, name, flagsMask, dbiPtr));
     dbi = dbiPtr.getPointer(0);
+    this.roKey = proxy.allocate(0);
+    this.roVal = proxy.allocate(0);
+    ptrKey = MEM_MGR.allocateTemporary(MDB_VAL_STRUCT_SIZE, false);
+    ptrKeyAddr = ptrKey.address();
+    ptrVal = MEM_MGR.allocateTemporary(MDB_VAL_STRUCT_SIZE, false);
+    ptrValAddr = ptrVal.address();
+  }
+
+  /**
+   * Allocate a new buffer suitable for read-write use.
+   *
+   * @param bytes the size of the buffer
+   * @return a writable buffer suitable for use with buffer-requiring methods
+   */
+  public T allocate(final int bytes) {
+    return proxy.allocate(bytes);
   }
 
   /**
@@ -82,14 +115,13 @@ public final class Dbi {
    *
    * @param key key to delete from the database (not null)
    * @throws CommittedException         if already committed
-   * @throws BufferNotDirectException   if a passed buffer is invalid
    * @throws NotOpenException           if the environment is not currently open
    * @throws LmdbNativeException        if a native C error occurred
    * @throws ReadWriteRequiredException if a read-only transaction presented
    * @see #delete(Txn, ByteBuffer, ByteBuffer)
    */
-  public void delete(final ByteBuffer key) throws
-      CommittedException, BufferNotDirectException, LmdbNativeException,
+  public void delete(final T key) throws
+      CommittedException, LmdbNativeException,
       NotOpenException, ReadWriteRequiredException {
     try (final Txn tx = new Txn(env)) {
       delete(tx, key);
@@ -105,13 +137,12 @@ public final class Dbi {
    * @param tx  transaction handle (not null; not committed; must be R-W)
    * @param key key to delete from the database (not null)
    * @throws CommittedException         if already committed
-   * @throws BufferNotDirectException   if a passed buffer is invalid
    * @throws LmdbNativeException        if a native C error occurred
    * @throws ReadWriteRequiredException if a read-only transaction presented
    * @see #delete(Txn, ByteBuffer, ByteBuffer)
    */
-  public void delete(final Txn tx, final ByteBuffer key) throws
-      CommittedException, BufferNotDirectException, LmdbNativeException,
+  public void delete(final Txn tx, final T key) throws
+      CommittedException, LmdbNativeException,
       ReadWriteRequiredException {
     delete(tx, key, null);
   }
@@ -134,13 +165,12 @@ public final class Dbi {
    * @param key key to delete from the database (not null)
    * @param val value to delete from the database (null permitted)
    * @throws CommittedException         if already committed
-   * @throws BufferNotDirectException   if a passed buffer is invalid
    * @throws LmdbNativeException        if a native C error occurred
    * @throws ReadWriteRequiredException if a read-only transaction presented
    */
-  public void delete(final Txn tx, final ByteBuffer key, final ByteBuffer val)
+  public void delete(final Txn tx, final T key, final T val)
       throws
-      CommittedException, BufferNotDirectException, LmdbNativeException,
+      CommittedException, LmdbNativeException,
       ReadWriteRequiredException {
     if (SHOULD_CHECK) {
       requireNonNull(tx);
@@ -149,20 +179,14 @@ public final class Dbi {
       tx.checkWritesAllowed();
     }
 
-    final ByteBufferVal k = forBuffer(key, false);
-    k.set();
-    final Pointer delK = k.ptr;
+    proxy.set(key, ptrKey, ptrKeyAddr);
 
-    final Pointer delV;
     if (val == null) {
-      delV = null;
+      checkRc(LIB.mdb_del(tx.ptr, dbi, ptrKey, null));
     } else {
-      final ByteBufferVal v = forBuffer(val, false);
-      v.set();
-      delV = v.ptr;
+      proxy.set(val, ptrVal, ptrValAddr);
+      checkRc(LIB.mdb_del(tx.ptr, dbi, ptrKey, ptrVal));
     }
-
-    checkRc(LIB.mdb_del(tx.ptr, dbi, delK, delV));
   }
 
   /**
@@ -172,44 +196,17 @@ public final class Dbi {
    *
    * @param key key to get from the database (not null)
    * @return the value found
-   * @throws CommittedException       if already committed
-   * @throws BufferNotDirectException if a passed buffer is invalid
-   * @throws NotOpenException         if the environment is not currently open
-   * @throws LmdbNativeException      if a native C error occurred
+   * @throws CommittedException  if already committed
+   * @throws NotOpenException    if the environment is not currently open
+   * @throws LmdbNativeException if a native C error occurred
    * @see #get(Txn, ByteBuffer)
    */
-  public ByteBuffer get(final ByteBuffer key) throws
-      CommittedException, BufferNotDirectException, LmdbNativeException,
+  public T get(final T key) throws
+      CommittedException, LmdbNativeException,
       NotOpenException {
     try (final Txn tx = new Txn(env, MDB_RDONLY)) {
       return get(tx, key);
     }
-  }
-
-  /**
-   * Get items from a database.
-   * <p>
-   * This function retrieves key/data pairs from the database. The address and
-   * length of the data associated with the specified \b key are returned in the
-   * structure to which \b data refers. If the database supports duplicate keys
-   * ({@link org.lmdbjava.DbiFlags#MDB_DUPSORT}) then the first data item for
-   * the key will be returned. Retrieval of other items requires the use of
-   * #mdb_cursor_get().
-   * <p>
-   * WARNING: Convenience method. Do not use if latency sensitive.
-   *
-   * @param tx  transaction handle (not null; not committed)
-   * @param key key to search for in the database (not null)
-   * @return the value found
-   * @throws CommittedException       if already committed
-   * @throws BufferNotDirectException if a passed buffer is invalid
-   * @throws LmdbNativeException      if a native C error occurred
-   */
-  public ByteBuffer get(final Txn tx, final ByteBuffer key) throws
-      CommittedException, BufferNotDirectException, LmdbNativeException {
-    final ByteBuffer val = allocateDirect(0);
-    get(tx, key, val);
-    return val;
   }
 
   /**
@@ -226,26 +223,22 @@ public final class Dbi {
    *
    * @param tx  transaction handle (not null; not committed)
    * @param key key to search for in the database (not null)
-   * @param val buffer to hold the value (not null)
-   * @throws CommittedException       if already committed
-   * @throws BufferNotDirectException if a passed buffer is invalid
-   * @throws LmdbNativeException      if a native C error occurred
+   * @return
+   * @throws CommittedException  if already committed
+   * @throws LmdbNativeException if a native C error occurred
    */
-  public void get(final Txn tx, final ByteBuffer key, final ByteBuffer val)
+  public T get(final Txn tx, final T key)
       throws
-      CommittedException, BufferNotDirectException, LmdbNativeException {
+      CommittedException, LmdbNativeException {
     if (SHOULD_CHECK) {
       requireNonNull(tx);
       requireNonNull(key);
-      requireNonNull(val);
       tx.checkNotCommitted();
     }
-    final ByteBufferVal kv = forBuffer(key, false);
-    kv.set();
-    final ByteBufferVal vv = forBuffer(val, true);
-    vv.set();
-    checkRc(LIB.mdb_get(tx.ptr, dbi, kv.ptr, vv.ptr));
-    vv.dirty();
+    proxy.set(key, ptrKey, ptrKeyAddr);
+    checkRc(LIB.mdb_get(tx.ptr, dbi, ptrKey, ptrVal));
+    proxy.dirty(roVal, ptrVal, ptrValAddr); // marked as out in LMDB C docs
+    return roVal;
   }
 
   /**
@@ -272,14 +265,12 @@ public final class Dbi {
    * explicitly, before or after its transaction ends. It can be reused with
    * {@link Cursor#renew(org.lmdbjava.Txn)} before finally closing it.
    *
-   * @param <T>     the type of buffer
-   * @param tx      transaction handle (not null; not committed)
-   * @param factory the factory (not null)
+   * @param tx transaction handle (not null; not committed)
    * @return cursor handle
    * @throws LmdbNativeException if a native C error occurred
    * @throws CommittedException  if already committed
    */
-  public <T> CursorB<T> openCursor(final Txn tx, final CursorFactory<T> factory)
+  public Cursor<T> openCursor(final Txn tx)
       throws
       LmdbNativeException, CommittedException {
     if (SHOULD_CHECK) {
@@ -288,39 +279,7 @@ public final class Dbi {
     }
     final PointerByReference ptr = new PointerByReference();
     checkRc(LIB.mdb_cursor_open(tx.ptr, dbi, ptr));
-    return factory.openCursor(ptr.getValue(), tx);
-  }
-
-  /**
-   * Create a cursor handle.
-   * <p>
-   * Cursors are <em>strongly recommended</em> for all use cases, particularly
-   * if flexible buffer implementations and/or latency is of concern.
-   * <p>
-   * A cursor is associated with a specific transaction and database. A cursor
-   * cannot be used when its database handle is closed. Nor when its transaction
-   * has ended, except with {@link Cursor#renew(org.lmdbjava.Txn)}. It can be
-   * discarded with {@link Cursor#close()}. A cursor in a write-transaction can
-   * be closed before its transaction ends, and will otherwise be closed when
-   * its transaction ends. A cursor in a read-only transaction must be closed
-   * explicitly, before or after its transaction ends. It can be reused with
-   * {@link Cursor#renew(org.lmdbjava.Txn)} before finally closing it.
-   *
-   * @param tx transaction handle (not null; not committed)
-   * @return cursor handle
-   * @throws LmdbNativeException      if a native C error occurred
-   * @throws CommittedException       if already committed
-   * @throws BufferNotDirectException if a passed buffer is invalid
-   */
-  public Cursor openCursor(final Txn tx) throws
-      LmdbNativeException, CommittedException, BufferNotDirectException {
-    if (SHOULD_CHECK) {
-      requireNonNull(tx);
-      tx.checkNotCommitted();
-    }
-    final PointerByReference ptr = new PointerByReference();
-    checkRc(LIB.mdb_cursor_open(tx.ptr, dbi, ptr));
-    return new Cursor(ptr.getValue(), tx);
+    return new Cursor<>(ptr.getValue(), tx, proxyFactory.create());
   }
 
   /**
@@ -331,14 +290,13 @@ public final class Dbi {
    * @param key key to store in the database (not null)
    * @param val value to store in the database (not null)
    * @throws CommittedException         if already committed
-   * @throws BufferNotDirectException   if a passed buffer is invalid
    * @throws NotOpenException           if the environment is not currently open
    * @throws LmdbNativeException        if a native C error occurred
    * @throws ReadWriteRequiredException if a read-only transaction presented
    * @see Dbi#put(Txn, ByteBuffer, ByteBuffer, PutFlags...)
    */
-  public void put(final ByteBuffer key, final ByteBuffer val) throws
-      CommittedException, BufferNotDirectException, LmdbNativeException,
+  public void put(final T key, final T val) throws
+      CommittedException, LmdbNativeException,
       NotOpenException, ReadWriteRequiredException {
     try (final Txn tx = new Txn(env)) {
       put(tx, key, val);
@@ -361,13 +319,12 @@ public final class Dbi {
    * @param val   value to store in the database (not null)
    * @param flags Special options for this operation
    * @throws CommittedException         if already committed
-   * @throws BufferNotDirectException   if a passed buffer is invalid
    * @throws LmdbNativeException        if a native C error occurred
    * @throws ReadWriteRequiredException if a read-only transaction presented
    */
-  public void put(final Txn tx, final ByteBuffer key, final ByteBuffer val,
+  public void put(final Txn tx, final T key, final T val,
                   final PutFlags... flags)
-      throws CommittedException, BufferNotDirectException, LmdbNativeException,
+      throws CommittedException, LmdbNativeException,
              ReadWriteRequiredException {
     if (SHOULD_CHECK) {
       requireNonNull(tx);
@@ -376,12 +333,11 @@ public final class Dbi {
       tx.checkNotCommitted();
       tx.checkWritesAllowed();
     }
-    final ByteBufferVal kv = forBuffer(key, false);
-    kv.set();
-    final ByteBufferVal vv = forBuffer(val, false);
-    vv.set();
+    proxy.set(key, ptrKey, ptrKeyAddr);
+    proxy.set(val, ptrVal, ptrValAddr);
     int mask = mask(flags);
-    checkRc(LIB.mdb_put(tx.ptr, dbi, kv.ptr, vv.ptr, mask));
+    checkRc(LIB.mdb_put(tx.ptr, dbi, ptrKey, ptrVal, mask));
+    proxy.dirty(roVal, ptrVal, ptrValAddr); // marked as in,out in LMDB C docs   
   }
 
   /**

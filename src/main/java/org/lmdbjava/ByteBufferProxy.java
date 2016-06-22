@@ -22,60 +22,60 @@ import java.nio.ByteBuffer;
 import static java.nio.ByteBuffer.allocateDirect;
 import static java.util.Objects.requireNonNull;
 import jnr.ffi.Pointer;
-import org.lmdbjava.LmdbException.BufferNotDirectException;
+import org.lmdbjava.BufferProxy.BufferProxyFactory;
 import static org.lmdbjava.UnsafeAccess.UNSAFE;
 
 /**
- * {@link ByteBuffer}-based cursor.
+ * {@link ByteBuffer}-based proxy.
  * <p>
  * There are two concrete {@link ByteBuffer} cursor implementations available:
  * <ul>
- * <li>A "fast" implementation: {@link UnsafeByteBufferCursor}</li>
- * <li>A "safe" implementation: {@link ReflectiveByteBufferCursor}</li>
+ * <li>A "fast" implementation: {@link UnsafeProxy}</li>
+ * <li>A "safe" implementation: {@link ReflectiveProxy}</li>
  * </ul>
  * <p>
  * Users nominate which implementation they prefer by referencing the
  * {@link #FACTORY_OPTIMAL} or {@link #FACTORY_SAFE} field when invoking
  * {@link Dbi#openCursor(org.lmdbjava.Txn, org.lmdbjava.CursorFactory)}.
  */
-public final class ByteBufferCursor {
+public final class ByteBufferProxy {
 
   /**
-   * The fastest {@link ByteBuffer} factory that is available on this platform.
+   * The fastest {@link ByteBuffer} proxy that is available on this platform.
    * This will always be the same instance as {@link #FACTORY_SAFE} if the
    * {@link UnsafeAccess#DISABLE_UNSAFE_PROP} has been set to <code>true</code>
    * or {@link UnsafeAccess} is unavailable. Guaranteed to never be null.
    */
-  public static final CursorFactory<ByteBuffer> FACTORY_OPTIMAL;
+  public static final BufferProxyFactory<ByteBuffer> FACTORY_OPTIMAL;
 
   /**
-   * The safe, reflective {@link ByteBuffer} for this system. Guaranteed to
-   * never be null.
+   * The safe, reflective {@link ByteBuffer} proxy for this system. Guaranteed
+   * to never be null.
    */
-  public static final CursorFactory<ByteBuffer> FACTORY_SAFE;
+  public static final BufferProxyFactory<ByteBuffer> FACTORY_SAFE;
   private static final String FIELD_NAME_ADDRESS = "address";
   private static final String FIELD_NAME_CAPACITY = "capacity";
-  private static final String NAME_PRE = ByteBufferCursor.class.getName() + "$";
-  private static final String NAME_REFLECT = NAME_PRE + "ReflectiveFactory";
-  private static final String NAME_UNSAFE = NAME_PRE + "UnsafeFactory";
+  private static final String NAME_PRE = ByteBufferProxy.class.getName() + "$";
+  private static final String NAME_REFLECT = NAME_PRE + "ReflectiveProxyFactory";
+  private static final String NAME_UNSAFE = NAME_PRE + "UnsafeProxyFactory";
 
   static {
     FACTORY_SAFE = factory(NAME_REFLECT);
     requireNonNull(FACTORY_SAFE, "Mandatory reflective factory unavailable");
-    final CursorFactory<ByteBuffer> unsafe = factory(NAME_UNSAFE);
+    final BufferProxyFactory<ByteBuffer> unsafe = factory(NAME_UNSAFE);
     FACTORY_OPTIMAL = unsafe == null ? FACTORY_SAFE : unsafe;
   }
 
   /**
-   * Safely instantiates the factory, hiding any exceptions.
+   * Safely instantiates the proxy, hiding any exceptions.
    *
    * @param name class to instantiate
-   * @return the initialized factory, or null if there was an exception
+   * @return the initialized proxy, or null if there was an exception
    */
   @SuppressWarnings("unchecked")
-  static CursorFactory<ByteBuffer> factory(final String name) {
+  static BufferProxyFactory<ByteBuffer> factory(final String name) {
     try {
-      return (CursorFactory<ByteBuffer>) forName(name).newInstance();
+      return (BufferProxyFactory<ByteBuffer>) forName(name).newInstance();
     } catch (ClassNotFoundException | IllegalAccessException |
              ClassCastException | InstantiationException ignore) {
     }
@@ -96,14 +96,14 @@ public final class ByteBufferCursor {
     throw new RuntimeException(name + " not found");
   }
 
-  private ByteBufferCursor() {
+  private ByteBufferProxy() {
   }
 
   /**
-   * A cursor that uses Java reflection to modify byte buffer fields, and
+   * A proxy that uses Java reflection to modify byte buffer fields, and
    * official JNR-FFF methods to manipulate native pointers.
    */
-  private static final class ReflectiveByteBufferCursor extends CursorB<ByteBuffer> {
+  private static final class ReflectiveProxy implements BufferProxy<ByteBuffer> {
 
     private static final Field ADDRESS_FIELD;
     private static final Field CAPACITY_FIELD;
@@ -113,17 +113,13 @@ public final class ByteBufferCursor {
       CAPACITY_FIELD = findField(Buffer.class, FIELD_NAME_CAPACITY);
     }
 
-    private ReflectiveByteBufferCursor(final Pointer ptrCursor, final Txn tx) {
-      super(ptrCursor, tx, allocateDirect(0), allocateDirect(0));
-    }
-
     @Override
-    protected ByteBuffer allocate(int bytes) {
+    public ByteBuffer allocate(int bytes) {
       return allocateDirect(bytes);
     }
 
     @Override
-    protected void dirty(ByteBuffer roBuffer, Pointer ptr, long ptrAddr) {
+    public void dirty(ByteBuffer roBuffer, Pointer ptr, long ptrAddr) {
       final long addr = ptr.getLong(STRUCT_FIELD_OFFSET_DATA);
       final long size = ptr.getLong(STRUCT_FIELD_OFFSET_SIZE);
       try {
@@ -136,7 +132,7 @@ public final class ByteBufferCursor {
     }
 
     @Override
-    protected void set(ByteBuffer buffer, Pointer ptr, long ptrAddr) {
+    public void set(ByteBuffer buffer, Pointer ptr, long ptrAddr) {
       final long addr = ((sun.nio.ch.DirectBuffer) buffer).address();
       ptr.putLong(STRUCT_FIELD_OFFSET_SIZE, buffer.capacity());
       ptr.putLong(STRUCT_FIELD_OFFSET_DATA, addr);
@@ -145,20 +141,18 @@ public final class ByteBufferCursor {
   }
 
   /**
-   * A cursor that uses Java's "unsafe" class to directly manipulate byte buffer
+   * A proxy that uses Java's "unsafe" class to directly manipulate byte buffer
    * fields and JNR-FFF allocated memory pointers.
    */
-  private static final class UnsafeByteBufferCursor extends CursorB<ByteBuffer> {
+  private static final class UnsafeProxy implements BufferProxy<ByteBuffer> {
 
     static final long ADDRESS_OFFSET;
     static final long CAPACITY_OFFSET;
 
     static {
       try {
-        final Field address = findField(Buffer.class,
-                                        FIELD_NAME_ADDRESS);
-        final Field capacity = findField(Buffer.class,
-                                         FIELD_NAME_CAPACITY);
+        final Field address = findField(Buffer.class, FIELD_NAME_ADDRESS);
+        final Field capacity = findField(Buffer.class, FIELD_NAME_CAPACITY);
         ADDRESS_OFFSET = UNSAFE.objectFieldOffset(address);
         CAPACITY_OFFSET = UNSAFE.objectFieldOffset(capacity);
       } catch (SecurityException e) {
@@ -166,17 +160,13 @@ public final class ByteBufferCursor {
       }
     }
 
-    private UnsafeByteBufferCursor(final Pointer ptrCursor, final Txn tx) {
-      super(ptrCursor, tx, allocateDirect(0), allocateDirect(0));
-    }
-
     @Override
-    protected ByteBuffer allocate(int bytes) {
+    public ByteBuffer allocate(int bytes) {
       return allocateDirect(bytes);
     }
 
     @Override
-    protected void dirty(ByteBuffer roBuffer, Pointer ptr, long ptrAddr) {
+    public void dirty(ByteBuffer roBuffer, Pointer ptr, long ptrAddr) {
       final long addr = UNSAFE.getLong(ptrAddr + STRUCT_FIELD_OFFSET_DATA);
       final long size = UNSAFE.getLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE);
       UNSAFE.putLong(roBuffer, ADDRESS_OFFSET, addr);
@@ -185,7 +175,7 @@ public final class ByteBufferCursor {
     }
 
     @Override
-    protected void set(ByteBuffer buffer, Pointer ptr, long ptrAddr) {
+    public void set(ByteBuffer buffer, Pointer ptr, long ptrAddr) {
       final long addr = ((sun.nio.ch.DirectBuffer) buffer).address();
       UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE, buffer.capacity());
       UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_DATA, addr);
@@ -193,24 +183,22 @@ public final class ByteBufferCursor {
 
   }
 
-  static final class ReflectiveFactory implements CursorFactory<ByteBuffer> {
+  static final class ReflectiveProxyFactory implements
+      BufferProxyFactory<ByteBuffer> {
 
     @Override
-    public CursorB<ByteBuffer> openCursor(Pointer ptrCursor, Txn tx) {
-      return new ReflectiveByteBufferCursor(ptrCursor, tx);
+    public BufferProxy<ByteBuffer> create() {
+      return new ReflectiveProxy();
     }
 
   }
 
-  static final class UnsafeFactory implements CursorFactory<ByteBuffer> {
-
-    UnsafeFactory() throws BufferNotDirectException {
-      requireNonNull(UNSAFE);
-    }
+  static final class UnsafeProxyFactory implements
+      BufferProxyFactory<ByteBuffer> {
 
     @Override
-    public CursorB<ByteBuffer> openCursor(Pointer ptrCursor, Txn tx) {
-      return new UnsafeByteBufferCursor(ptrCursor, tx);
+    public BufferProxy<ByteBuffer> create() {
+      return new UnsafeProxy();
     }
 
   }

@@ -18,13 +18,15 @@ package org.lmdbjava;
 import static java.util.Objects.requireNonNull;
 import jnr.ffi.Pointer;
 import jnr.ffi.byref.NativeLongByReference;
+import jnr.ffi.provider.MemoryManager;
+import static org.lmdbjava.BufferProxy.MDB_VAL_STRUCT_SIZE;
 import static org.lmdbjava.CursorOp.MDB_SET;
 import static org.lmdbjava.CursorOp.MDB_SET_KEY;
 import static org.lmdbjava.CursorOp.MDB_SET_RANGE;
 import static org.lmdbjava.Dbi.KeyNotFoundException.MDB_NOTFOUND;
 import static org.lmdbjava.Env.SHOULD_CHECK;
 import static org.lmdbjava.Library.LIB;
-import org.lmdbjava.LmdbException.BufferNotDirectException;
+import static org.lmdbjava.Library.RUNTIME;
 import static org.lmdbjava.MaskedFlag.mask;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
 import org.lmdbjava.Txn.CommittedException;
@@ -33,16 +35,37 @@ import org.lmdbjava.Txn.ReadWriteRequiredException;
 
 /**
  * A cursor handle.
+ *
+ * @param <T> buffer type
  */
-public class Cursor implements AutoCloseable {
+public final class Cursor<T> implements AutoCloseable {
+
+  private static final MemoryManager MEM_MGR = RUNTIME.getMemoryManager();
 
   private boolean closed;
-  private final Pointer ptr;
-  private Txn tx;
+  private final BufferProxy<T> proxy;
+  private final Pointer ptrCursor;
+  private final Pointer ptrKey;
+  private final long ptrKeyAddr;
+  private final Pointer ptrVal;
+  private final long ptrValAddr;
+  private final T roKey;
+  private final T roVal;
+  private Txn txn;
 
-  Cursor(final Pointer ptr, final Txn tx) {
-    this.ptr = ptr;
-    this.tx = tx;
+  Cursor(final Pointer ptr, final Txn tx, final BufferProxy<T> proxy) {
+    requireNonNull(ptr);
+    requireNonNull(tx);
+    requireNonNull(proxy);
+    this.ptrCursor = ptr;
+    this.txn = tx;
+    this.proxy = proxy;
+    this.roKey = proxy.allocate(0);
+    this.roVal = proxy.allocate(0);
+    ptrKey = MEM_MGR.allocateTemporary(MDB_VAL_STRUCT_SIZE, false);
+    ptrKeyAddr = ptrKey.address();
+    ptrVal = MEM_MGR.allocateTemporary(MDB_VAL_STRUCT_SIZE, false);
+    ptrValAddr = ptrVal.address();
   }
 
   /**
@@ -59,10 +82,10 @@ public class Cursor implements AutoCloseable {
     if (closed) {
       return;
     }
-    if (SHOULD_CHECK && !tx.isReadOnly() && tx.isCommitted()) {
+    if (SHOULD_CHECK && !txn.isReadOnly() && txn.isCommitted()) {
       throw new CommittedException();
     }
-    LIB.mdb_cursor_close(ptr);
+    LIB.mdb_cursor_close(ptrCursor);
     closed = true;
   }
 
@@ -81,10 +104,10 @@ public class Cursor implements AutoCloseable {
                              ClosedException {
     if (SHOULD_CHECK) {
       checkNotClosed();
-      tx.checkNotCommitted();
+      txn.checkNotCommitted();
     }
     final NativeLongByReference longByReference = new NativeLongByReference();
-    checkRc(LIB.mdb_cursor_count(ptr, longByReference));
+    checkRc(LIB.mdb_cursor_count(ptrCursor, longByReference));
     return longByReference.longValue();
   }
 
@@ -105,50 +128,60 @@ public class Cursor implements AutoCloseable {
                                            ReadWriteRequiredException {
     if (SHOULD_CHECK) {
       checkNotClosed();
-      tx.checkNotCommitted();
-      tx.checkWritesAllowed();
+      txn.checkNotCommitted();
+      txn.checkWritesAllowed();
     }
     final int flags = mask(f);
-    checkRc(LIB.mdb_cursor_del(ptr, flags));
+    checkRc(LIB.mdb_cursor_del(ptrCursor, flags));
   }
 
   /**
    * Reposition the key/value buffers based on the passed key and operation.
    *
-   * @param key to hold key
-   * @param val to hold value
+   * @param key to search for (only needed for MDB_SET based ops)
    * @param op  options for this operation (see restrictions above)
    * @return false if key not found
-   * @throws BufferNotDirectException if a passed buffer is invalid
-   * @throws LmdbNativeException      if a native C error occurred
-   * @throws CommittedException       if the transaction was committed
-   * @throws ClosedException          if the cursor is already closed
+   * @throws LmdbNativeException if a native C error occurred
+   * @throws CommittedException  if the transaction was committed
+   * @throws ClosedException     if the cursor is already closed
    */
-  public boolean get(final Val key, final Val val, final CursorOp op)
-      throws BufferNotDirectException, LmdbNativeException, CommittedException,
-             ClosedException {
+  public boolean get(final T key, final CursorOp op)
+      throws LmdbNativeException, CommittedException, ClosedException {
     if (SHOULD_CHECK) {
-      requireNonNull(key);
-      requireNonNull(val);
       requireNonNull(op);
       checkNotClosed();
-      tx.checkNotCommitted();
+      txn.checkNotCommitted();
     }
 
     if (op == MDB_SET || op == MDB_SET_KEY || op == MDB_SET_RANGE) {
-      key.set();
+      if (SHOULD_CHECK) {
+        requireNonNull(key);
+      }
+      proxy.set(key, ptrKey, ptrKeyAddr);
     }
 
-    final int rc = LIB.mdb_cursor_get(ptr, key.ptr, val.ptr, op.getCode());
+    final int rc = LIB.mdb_cursor_get(ptrCursor, ptrKey, ptrVal, op.getCode());
 
     if (rc == MDB_NOTFOUND) {
       return false;
     }
 
     checkRc(rc);
-    key.dirty();
-    val.dirty();
+    proxy.dirty(roKey, ptrKey, ptrKeyAddr);
+    proxy.dirty(roVal, ptrVal, ptrValAddr);
     return true;
+  }
+
+  /**
+   * Fetch the buffer which holds a read-only view of the LMDI allocated memory.
+   * Any use of this buffer must comply with the standard LMDB C "mdb_get"
+   * contract (ie do not modify, do not attempt to release the memory, do not
+   * use once the transaction or cursor closes, do not use after a write etc).
+   *
+   * @return the key buffer (never null)
+   */
+  public T key() {
+    return roKey;
   }
 
   /**
@@ -160,29 +193,28 @@ public class Cursor implements AutoCloseable {
    * @param key key to store
    * @param val data to store
    * @param op  options for this operation
-   * @throws BufferNotDirectException   if a passed buffer is invalid
    * @throws LmdbNativeException        if a native C error occurred
    * @throws CommittedException         if the transaction was committed
    * @throws ClosedException            if the cursor is already closed
    * @throws ReadWriteRequiredException if cursor using a read-only transaction
    */
-  public void put(final Val key, final Val val,
+  public void put(final T key, final T val,
                   final PutFlags... op)
-      throws BufferNotDirectException, LmdbNativeException, CommittedException,
-             ClosedException, ReadWriteRequiredException {
+      throws LmdbNativeException, CommittedException, ClosedException,
+             ReadWriteRequiredException {
     if (SHOULD_CHECK) {
       requireNonNull(key);
       requireNonNull(val);
       checkNotClosed();
-      tx.checkNotCommitted();
-      tx.checkWritesAllowed();
+      txn.checkNotCommitted();
+      txn.checkWritesAllowed();
     }
-    key.set();
-    val.set();
+    proxy.set(key, ptrKey, ptrKeyAddr);
+    proxy.set(val, ptrVal, ptrValAddr);
     final int flags = mask(op);
-    checkRc(LIB.mdb_cursor_put(ptr, key.ptr, val.ptr, flags));
-    key.dirty();
-    val.dirty();
+    checkRc(LIB.mdb_cursor_put(ptrCursor, ptrKey, ptrVal, flags));
+    proxy.dirty(roKey, ptrKey, ptrKeyAddr);
+    proxy.dirty(roVal, ptrVal, ptrValAddr);
   }
 
   /**
@@ -208,12 +240,24 @@ public class Cursor implements AutoCloseable {
     if (SHOULD_CHECK) {
       requireNonNull(tx);
       checkNotClosed();
-      this.tx.checkReadOnly(); // existing
+      this.txn.checkReadOnly(); // existing
       tx.checkReadOnly(); // new
       tx.checkNotCommitted(); // new
     }
-    this.tx = tx;
-    checkRc(LIB.mdb_cursor_renew(tx.ptr, ptr));
+    this.txn = tx;
+    checkRc(LIB.mdb_cursor_renew(tx.ptr, ptrCursor));
+  }
+
+  /**
+   * Fetch the buffer which holds a read-only view of the LMDI allocated memory.
+   * Any use of this buffer must comply with the standard LMDB C "mdb_get"
+   * contract (ie do not modify, do not attempt to release the memory, do not
+   * use once the transaction or cursor closes, do not use after a write etc).
+   *
+   * @return the value buffer (never null)
+   */
+  public T val() {
+    return roVal;
   }
 
   private void checkNotClosed() throws ClosedException {

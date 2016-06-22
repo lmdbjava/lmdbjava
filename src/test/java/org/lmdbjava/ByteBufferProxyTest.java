@@ -21,23 +21,24 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import org.junit.Test;
-import static org.lmdbjava.ByteBufferCursor.FACTORY_OPTIMAL;
-import static org.lmdbjava.ByteBufferCursor.FACTORY_SAFE;
-import org.lmdbjava.ByteBufferCursor.ReflectiveFactory;
-import org.lmdbjava.ByteBufferCursor.UnsafeFactory;
-import static org.lmdbjava.ByteBufferCursor.factory;
-import static org.lmdbjava.ByteBufferCursor.findField;
+import org.lmdbjava.BufferProxy.BufferProxyFactory;
+import static org.lmdbjava.ByteBufferProxy.FACTORY_OPTIMAL;
+import static org.lmdbjava.ByteBufferProxy.FACTORY_SAFE;
+import org.lmdbjava.ByteBufferProxy.ReflectiveProxyFactory;
+import org.lmdbjava.ByteBufferProxy.UnsafeProxyFactory;
+import static org.lmdbjava.ByteBufferProxy.factory;
+import static org.lmdbjava.ByteBufferProxy.findField;
 import static org.lmdbjava.TestUtils.invokePrivateConstructor;
 import static org.lmdbjava.UnsafeAccess.ALLOW_UNSAFE;
 
-public class ByteBufferCursorTest {
+public class ByteBufferProxyTest {
 
-  private static final String REFLECT = ReflectiveFactory.class.getName();
-  private static final String UNSAFE = UnsafeFactory.class.getName();
+  private static final String REFLECT = ReflectiveProxyFactory.class.getName();
+  private static final String UNSAFE = UnsafeProxyFactory.class.getName();
 
   @Test
   public void coverPrivateConstructor() throws Exception {
-    invokePrivateConstructor(ByteBufferCursor.class);
+    invokePrivateConstructor(ByteBufferProxy.class);
   }
 
   @Test
@@ -52,7 +53,7 @@ public class ByteBufferCursorTest {
 
   @Test
   public void safeCanBeForced() throws Exception {
-    final CursorFactory<ByteBuffer> v = FACTORY_SAFE;
+    final BufferProxyFactory<ByteBuffer> v = FACTORY_SAFE;
     assertThat(v, is(notNullValue()));
     assertThat(v.getClass().getName(), is(REFLECT));
   }
@@ -60,7 +61,7 @@ public class ByteBufferCursorTest {
   @Test
   public void unsafeIsDefault() throws Exception {
     assertThat(ALLOW_UNSAFE, is(true));
-    final CursorFactory<ByteBuffer> v = FACTORY_OPTIMAL;
+    final BufferProxyFactory<ByteBuffer> v = FACTORY_OPTIMAL;
     assertThat(v, is(notNullValue()));
     assertThat(v.getClass().getName(), is(UNSAFE));
   }

@@ -18,7 +18,6 @@ package org.lmdbjava;
 import java.io.File;
 import java.nio.ByteBuffer;
 import static java.nio.ByteBuffer.allocateDirect;
-import static java.nio.ByteOrder.LITTLE_ENDIAN;
 import static java.util.Collections.nCopies;
 import java.util.Random;
 import static junit.framework.TestCase.fail;
@@ -28,6 +27,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import static org.lmdbjava.ByteBufferProxy.FACTORY_OPTIMAL;
 import static org.lmdbjava.CursorOp.MDB_SET_KEY;
 import org.lmdbjava.Dbi.DbFullException;
 import org.lmdbjava.Dbi.KeyExistsException;
@@ -37,13 +37,11 @@ import static org.lmdbjava.DbiFlags.MDB_DUPSORT;
 import org.lmdbjava.Env.MapFullException;
 import org.lmdbjava.Env.NotOpenException;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
-import org.lmdbjava.LmdbException.BufferNotDirectException;
 import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
 import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.POSIX_MODE;
+import static org.lmdbjava.TestUtils.allocateBb;
 import static org.lmdbjava.TestUtils.createBb;
-import static org.lmdbjava.TestUtils.createValB;
-import static org.lmdbjava.TestUtils.createValBb;
 import org.lmdbjava.Txn.CommittedException;
 import org.lmdbjava.Txn.ReadWriteRequiredException;
 
@@ -68,9 +66,9 @@ public class DbiTest {
   @SuppressWarnings("ResultOfObjectAllocationIgnored")
   public void dbOpenMaxDatabases() throws Exception {
     try (final Txn tx = new Txn(env)) {
-      new Dbi(tx, "db1 is OK", MDB_CREATE);
-      new Dbi(tx, "db2 is OK", MDB_CREATE);
-      new Dbi(tx, "db3 fails", MDB_CREATE);
+      new Dbi<>(tx, "db1 is OK", FACTORY_OPTIMAL, MDB_CREATE);
+      new Dbi<>(tx, "db2 is OK", FACTORY_OPTIMAL, MDB_CREATE);
+      new Dbi<>(tx, "db3 fails", FACTORY_OPTIMAL, MDB_CREATE);
     }
   }
 
@@ -79,23 +77,24 @@ public class DbiTest {
   public void dbTxCommitted() throws Exception {
     try (final Txn tx = new Txn(env)) {
       tx.commit();
-      new Dbi(tx, "db1 fails", MDB_CREATE);
+      new Dbi<>(tx, "db1 fails", FACTORY_OPTIMAL, MDB_CREATE);
     }
   }
 
   @Test
   public void getName() throws Exception {
     try (final Txn tx = new Txn(env)) {
-      final Dbi db = new Dbi(tx, DB_1, MDB_CREATE);
+      final Dbi<ByteBuffer> db;
+      db = new Dbi<>(tx, DB_1, FACTORY_OPTIMAL, MDB_CREATE);
       assertThat(db.getName(), is(DB_1));
     }
   }
 
   @Test(expected = KeyExistsException.class)
   public void keyExistsException() throws Exception {
-    final Dbi db;
+    final Dbi<ByteBuffer> db;
     try (final Txn tx = new Txn(env)) {
-      db = new Dbi(tx, DB_1, MDB_CREATE);
+      db = new Dbi<>(tx, DB_1, FACTORY_OPTIMAL, MDB_CREATE);
       db.put(tx, createBb(5), createBb(5), MDB_NOOVERWRITE);
       db.put(tx, createBb(5), createBb(5), MDB_NOOVERWRITE);
     }
@@ -103,10 +102,10 @@ public class DbiTest {
 
   @Test
   public void putAbortGet() throws Exception {
-    final Dbi db;
+    final Dbi<ByteBuffer> db;
 
     try (final Txn tx = new Txn(env)) {
-      db = new Dbi(tx, DB_1, MDB_CREATE);
+      db = new Dbi<>(tx, DB_1, FACTORY_OPTIMAL, MDB_CREATE);
       tx.commit();
     }
 
@@ -124,15 +123,14 @@ public class DbiTest {
 
   @Test
   public void putAndGetAndDeleteWithInternalTx() throws Exception {
-    final Dbi db;
+    final Dbi<ByteBuffer> db;
     try (final Txn tx = new Txn(env)) {
-      db = new Dbi(tx, DB_1, MDB_CREATE);
+      db = new Dbi<>(tx, DB_1, FACTORY_OPTIMAL, MDB_CREATE);
       tx.commit();
     }
 
     db.put(createBb(5), createBb(5));
     final ByteBuffer val = db.get(createBb(5));
-    val.order(LITTLE_ENDIAN);
     assertThat(val.getInt(), is(5));
     db.delete(createBb(5));
 
@@ -145,26 +143,25 @@ public class DbiTest {
 
   @Test
   public void putCommitGet() throws Exception {
-    final Dbi db;
+    final Dbi<ByteBuffer> db;
     try (final Txn tx = new Txn(env)) {
-      db = new Dbi(tx, DB_1, MDB_CREATE);
+      db = new Dbi<>(tx, DB_1, FACTORY_OPTIMAL, MDB_CREATE);
       db.put(tx, createBb(5), createBb(5));
       tx.commit();
     }
 
     try (final Txn tx = new Txn(env)) {
       final ByteBuffer result = db.get(tx, createBb(5));
-      result.order(LITTLE_ENDIAN);
       assertThat(result.getInt(), is(5));
     }
   }
 
   @Test
   public void putDelete() throws Exception {
-    Dbi db;
+    Dbi<ByteBuffer> db;
 
     try (final Txn tx = new Txn(env)) {
-      db = new Dbi(tx, DB_1, MDB_CREATE);
+      db = new Dbi<>(tx, DB_1, FACTORY_OPTIMAL, MDB_CREATE);
       db.put(tx, createBb(5), createBb(5));
       db.delete(tx, createBb(5));
 
@@ -179,19 +176,18 @@ public class DbiTest {
 
   @Test
   public void putDuplicateDelete() throws Exception {
-    Dbi db;
+    Dbi<ByteBuffer> db;
 
     try (final Txn tx = new Txn(env)) {
-      db = new Dbi(tx, DB_1, MDB_CREATE, MDB_DUPSORT);
+      db = new Dbi<>(tx, DB_1, FACTORY_OPTIMAL, MDB_CREATE, MDB_DUPSORT);
       db.put(tx, createBb(5), createBb(5));
       db.put(tx, createBb(5), createBb(6));
       db.put(tx, createBb(5), createBb(7));
       db.delete(tx, createBb(5), createBb(6));
 
-      try (final Cursor cursor = db.openCursor(tx)) {
-        final ByteBufferVal key = createValBb(5);
-        final ByteBufferVal val = createValB();
-        cursor.get(key, val, MDB_SET_KEY);
+      try (final Cursor<ByteBuffer> cursor = db.openCursor(tx)) {
+        final ByteBuffer key = allocateBb(db, 5);
+        cursor.get(key, MDB_SET_KEY);
         assertThat(cursor.count(), is(2L));
       }
       tx.abort();
@@ -200,9 +196,9 @@ public class DbiTest {
 
   @Test(expected = MapFullException.class)
   public void testMapFullException() throws Exception {
-    final Dbi db;
+    final Dbi<ByteBuffer> db;
     try (final Txn tx = new Txn(env)) {
-      db = new Dbi(tx, DB_1, MDB_CREATE);
+      db = new Dbi<>(tx, DB_1, FACTORY_OPTIMAL, MDB_CREATE);
       final ByteBuffer v = allocateDirect(1_024 * 1_024 * 1_024);
       db.put(tx, createBb(1), v);
     }
@@ -210,9 +206,9 @@ public class DbiTest {
 
   @Test
   public void testParallelWritesStress() throws Exception {
-    final Dbi db;
+    final Dbi<ByteBuffer> db;
     try (final Txn tx = new Txn(env)) {
-      db = new Dbi(tx, DB_1, MDB_CREATE);
+      db = new Dbi<>(tx, DB_1, FACTORY_OPTIMAL, MDB_CREATE);
       tx.commit();
     }
 
@@ -224,7 +220,7 @@ public class DbiTest {
             try {
               db.put(createBb(random.nextInt()), createBb(random.nextInt()));
             } catch (CommittedException | LmdbNativeException | NotOpenException |
-                     BufferNotDirectException | ReadWriteRequiredException e) {
+                     ReadWriteRequiredException e) {
               throw new RuntimeException(e);
             }
           }

@@ -31,18 +31,4 @@ public class LmdbException extends Exception {
     super(message);
   }
 
-  /**
-   * The buffer must be direct.
-   */
-  public static class BufferNotDirectException extends LmdbException {
-
-    private static final long serialVersionUID = 1L;
-
-    /**
-     * Creates a new instance.
-     */
-    public BufferNotDirectException() {
-      super("The provided buffer must be direct");
-    }
-  }
 }
