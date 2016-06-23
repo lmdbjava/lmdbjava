@@ -32,8 +32,8 @@ public final class MutableDirectBufferProxy implements
 
   /**
    * The {@link MutableDirectBuffer} proxy factory. Guaranteed to never be null,
-   * although a class initialization exception will occur if unsafe is
-   * unavailable or Agrona is not in the classpath.
+   * although a class initialization exception will occur if an attempt is made
+   * to access this field when unsafe or Agrona is unavailable.
    */
   public static final BufferProxy<MutableDirectBuffer> FACTORY_MDB
       = new MutableDirectBufferProxy();

@@ -25,23 +25,23 @@ import static org.lmdbjava.UnsafeAccess.UNSAFE;
 /**
  * {@link ByteBuffer}-based proxy.
  * <p>
- * There are two concrete {@link ByteBuffer} cursor implementations available:
+ * There are two concrete {@link ByteBuffer} proxy implementations available:
  * <ul>
  * <li>A "fast" implementation: {@link UnsafeProxy}</li>
  * <li>A "safe" implementation: {@link ReflectiveProxy}</li>
  * </ul>
  * <p>
  * Users nominate which implementation they prefer by referencing the
- * {@link #FACTORY_OPTIMAL} or {@link #FACTORY_SAFE} field when invoking
- * {@link Dbi#openCursor(org.lmdbjava.Txn, org.lmdbjava.CursorFactory)}.
+ * {@link #PROXY_OPTIMAL} or {@link #PROXY_SAFE} field when constructing
+ * {@link Dbi}.
  */
 public final class ByteBufferProxy {
 
   /**
    * The fastest {@link ByteBuffer} proxy that is available on this platform.
-   * This will always be the same instance as {@link #FACTORY_SAFE} if the
+   * This will always be the same instance as {@link #PROXY_SAFE} if the
    * {@link UnsafeAccess#DISABLE_UNSAFE_PROP} has been set to <code>true</code>
-   * or {@link UnsafeAccess} is unavailable. Guaranteed to never be null.
+   * and/or {@link UnsafeAccess} is unavailable. Guaranteed to never be null.
    */
   public static final BufferProxy<ByteBuffer> PROXY_OPTIMAL;
 
@@ -50,6 +50,7 @@ public final class ByteBufferProxy {
    * to never be null.
    */
   public static final BufferProxy<ByteBuffer> PROXY_SAFE;
+
   private static final String FIELD_NAME_ADDRESS = "address";
   private static final String FIELD_NAME_CAPACITY = "capacity";
 

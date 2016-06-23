@@ -16,18 +16,20 @@
 package org.lmdbjava;
 
 import java.io.File;
-import java.nio.ByteBuffer;
-
 import static java.lang.Boolean.getBoolean;
+import java.nio.ByteBuffer;
 import static java.util.Objects.requireNonNull;
 import jnr.ffi.Pointer;
 import jnr.ffi.byref.PointerByReference;
+import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
 import static org.lmdbjava.Library.LIB;
 import org.lmdbjava.Library.MDB_envinfo;
 import org.lmdbjava.Library.MDB_stat;
 import static org.lmdbjava.Library.RUNTIME;
 import static org.lmdbjava.MaskedFlag.mask;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
+import org.lmdbjava.Txn.CommittedException;
+import org.lmdbjava.Txn.ReadWriteRequiredException;
 
 /**
  * LMDB environment.
@@ -247,25 +249,47 @@ public final class Env implements AutoCloseable {
     this.open = true;
   }
 
+  /**
+   * Open the {@link Dbi} for {@link ByteBuffer}-based buffers, using the
+   * {@link ByteBufferProxy#PROXY_OPTIMAL} on this system. This is the
+   * recommended way to open a {@link ByteBuffer}-based {@link Dbi}.
+   *
+   * @param name  name of the database (or null if no name is required)
+   * @param flags to open the database with
+   * @return a database that is ready to use
+   * @throws NotOpenException
+   * @throws LmdbNativeException
+   */
   public Dbi<ByteBuffer> openDbi(String name, DbiFlags... flags)
-    throws NotOpenException, LmdbNativeException {
+      throws NotOpenException, LmdbNativeException {
     try (Txn txn = new Txn(this)) {
-      Dbi<ByteBuffer> dbi = new Dbi<>(txn, name, ByteBufferProxy.PROXY_OPTIMAL, flags);
+      Dbi<ByteBuffer> dbi = new Dbi<>(txn, name, PROXY_OPTIMAL, flags);
       txn.commit();
       return dbi;
-    } catch (Txn.CommittedException | Txn.ReadWriteRequiredException e) {
+    } catch (CommittedException | ReadWriteRequiredException e) {
       // never happens
       throw new IllegalStateException();
     }
   }
 
+  /**
+   * Open the {@link Dbi} using the provided {@link BufferProxy}.
+   *
+   * @param <T>   buffer type that used by {@link Dbi} and its {@link Cursor}s
+   * @param name  name of the database (or null if no name is required)
+   * @param proxy the proxy to use for buffer management
+   * @param flags to open the database with
+   * @return a database that is ready to use
+   * @throws NotOpenException
+   * @throws LmdbNativeException
+   */
   public <T> Dbi<T> openDbi(String name, BufferProxy<T> proxy, DbiFlags... flags)
-    throws NotOpenException, LmdbNativeException {
+      throws NotOpenException, LmdbNativeException {
     try (Txn txn = new Txn(this)) {
       Dbi<T> dbi = new Dbi<>(txn, name, proxy, flags);
       txn.commit();
       return dbi;
-    } catch (Txn.CommittedException | Txn.ReadWriteRequiredException e) {
+    } catch (CommittedException | ReadWriteRequiredException e) {
       // never happens
       throw new IllegalStateException();
     }

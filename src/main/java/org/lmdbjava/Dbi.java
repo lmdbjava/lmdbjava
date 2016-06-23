@@ -64,11 +64,11 @@ public final class Dbi<T> {
    * The passed transaction will automatically commit and the database handle
    * will become available to other transactions.
    *
-   * @param tx           transaction to open and commit this database within
-   *                     (not null; not committed; must be R-W)
-   * @param name         name of the database (or null if no name is required)
-   * @param proxyFactory buffer proxy factory (not null)
-   * @param flags        to open the database with
+   * @param tx    transaction to open and commit this database within (not null;
+   *              not committed; must be R-W)
+   * @param name  name of the database (or null if no name is required)
+   * @param proxy the proxy to use for buffer management
+   * @param flags to open the database with
    * @throws CommittedException         if already committed
    * @throws LmdbNativeException        if a native C error occurred
    * @throws ReadWriteRequiredException if a read-only transaction presented
