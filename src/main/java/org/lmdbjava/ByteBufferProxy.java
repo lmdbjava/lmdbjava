@@ -88,7 +88,7 @@ public final class ByteBufferProxy {
    * A proxy that uses Java reflection to modify byte buffer fields, and
    * official JNR-FFF methods to manipulate native pointers.
    */
-  private static final class ReflectiveProxy implements BufferProxy<ByteBuffer> {
+  static final class ReflectiveProxy implements BufferProxy<ByteBuffer> {
 
     private static final Field ADDRESS_FIELD;
     private static final Field CAPACITY_FIELD;
@@ -97,6 +97,11 @@ public final class ByteBufferProxy {
       ADDRESS_FIELD = findField(Buffer.class, FIELD_NAME_ADDRESS);
       CAPACITY_FIELD = findField(Buffer.class, FIELD_NAME_CAPACITY);
     }
+    ByteBuffer buffer;
+
+    ReflectiveProxy() {
+      this.buffer = ByteBuffer.allocateDirect(0);
+    }
 
     @Override
     public ByteBuffer allocate(int bytes) {
@@ -104,25 +109,29 @@ public final class ByteBufferProxy {
     }
 
     @Override
-    public void dirty(ByteBuffer roBuffer, Pointer ptr, long ptrAddr) {
+    public void out(Pointer ptr, long ptrAddr) {
       final long addr = ptr.getLong(STRUCT_FIELD_OFFSET_DATA);
       final long size = ptr.getLong(STRUCT_FIELD_OFFSET_SIZE);
       try {
-        ADDRESS_FIELD.set(roBuffer, addr);
-        CAPACITY_FIELD.set(roBuffer, (int) size);
+        ADDRESS_FIELD.set(buffer, addr);
+        CAPACITY_FIELD.set(buffer, (int) size);
       } catch (IllegalArgumentException | IllegalAccessException ex) {
         throw new RuntimeException("Cannot modify buffer", ex);
       }
-      roBuffer.clear();
+      buffer.clear();
     }
 
     @Override
-    public void set(ByteBuffer buffer, Pointer ptr, long ptrAddr) {
+    public void in(ByteBuffer buffer, Pointer ptr, long ptrAddr) {
       final long addr = ((sun.nio.ch.DirectBuffer) buffer).address();
       ptr.putLong(STRUCT_FIELD_OFFSET_SIZE, buffer.capacity());
       ptr.putLong(STRUCT_FIELD_OFFSET_DATA, addr);
     }
 
+    @Override
+    public ByteBuffer buffer() {
+      return buffer;
+    }
   }
 
   /**
@@ -144,6 +153,11 @@ public final class ByteBufferProxy {
         throw new RuntimeException(e);
       }
     }
+    ByteBuffer buffer;
+
+    UnsafeProxy() {
+      buffer = ByteBuffer.allocateDirect(0);
+    }
 
     @Override
     public ByteBuffer allocate(int bytes) {
@@ -151,20 +165,24 @@ public final class ByteBufferProxy {
     }
 
     @Override
-    public void dirty(ByteBuffer roBuffer, Pointer ptr, long ptrAddr) {
+    public void out(Pointer ptr, long ptrAddr) {
       final long addr = UNSAFE.getLong(ptrAddr + STRUCT_FIELD_OFFSET_DATA);
       final long size = UNSAFE.getLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE);
-      UNSAFE.putLong(roBuffer, ADDRESS_OFFSET, addr);
-      UNSAFE.putInt(roBuffer, CAPACITY_OFFSET, (int) size);
-      roBuffer.clear();
+      UNSAFE.putLong(buffer, ADDRESS_OFFSET, addr);
+      UNSAFE.putInt(buffer, CAPACITY_OFFSET, (int) size);
+      buffer.clear();
     }
 
     @Override
-    public void set(ByteBuffer buffer, Pointer ptr, long ptrAddr) {
+    public void in(ByteBuffer buffer, Pointer ptr, long ptrAddr) {
       final long addr = ((sun.nio.ch.DirectBuffer) buffer).address();
       UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE, buffer.capacity());
       UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_DATA, addr);
     }
 
+    @Override
+    public ByteBuffer buffer() {
+      return buffer;
+    }
   }
 }

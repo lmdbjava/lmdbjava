@@ -21,8 +21,6 @@ import static jnr.ffi.Memory.allocateDirect;
 import static jnr.ffi.NativeType.ADDRESS;
 import jnr.ffi.Pointer;
 import jnr.ffi.byref.PointerByReference;
-import jnr.ffi.provider.MemoryManager;
-import static org.lmdbjava.BufferProxy.MDB_VAL_STRUCT_SIZE;
 import org.lmdbjava.Env.NotOpenException;
 import static org.lmdbjava.Env.SHOULD_CHECK;
 import static org.lmdbjava.Library.LIB;
@@ -45,46 +43,40 @@ import static org.lmdbjava.TxnFlags.MDB_RDONLY;
  */
 public final class Dbi<T> {
 
-  private static final MemoryManager MEM_MGR = RUNTIME.getMemoryManager();
-
   private final String name;
-  private final BufferProxy<T> proxy;
-  private final Pointer ptrKey;
-  private final long ptrKeyAddr;
-  private final Pointer ptrVal;
-  private final long ptrValAddr;
-  private final T roKey;
-  private final T roVal;
+  private final BufferProxyFactory<T> proxyFactory;
   final Pointer dbi;
   final Env env;
 
-  Dbi(final Txn tx, final String name, final BufferProxy<T> proxy,
-      final DbiFlags... flags) throws LmdbNativeException {
+  /**
+   * Create and open an LMDB Database (dbi) handle.
+   * <p>
+   * The passed transaction will automatically commit and the database handle
+   * will become available to other transactions.
+   *
+   * @param tx           transaction to open and commit this database within
+   *                     (not null; not committed; must be R-W)
+   * @param name         name of the database (or null if no name is required)
+   * @param proxyFactory buffer proxy factory (not null)
+   * @param flags        to open the database with
+   * @throws CommittedException         if already committed
+   * @throws LmdbNativeException        if a native C error occurred
+   * @throws ReadWriteRequiredException if a read-only transaction presented
+   */
+  Dbi(final Txn tx, final String name,
+             final BufferProxyFactory<T> proxyFactory, final DbiFlags... flags)
+      throws CommittedException, LmdbNativeException, ReadWriteRequiredException {
     requireNonNull(tx);
-    requireNonNull(proxy);
+    requireNonNull(proxyFactory);
+    tx.checkNotCommitted();
+    tx.checkWritesAllowed();
     this.env = tx.env;
     this.name = name;
-    this.proxy = proxy;
+    this.proxyFactory = proxyFactory;
     final int flagsMask = mask(flags);
     final Pointer dbiPtr = allocateDirect(RUNTIME, ADDRESS);
     checkRc(LIB.mdb_dbi_open(tx.ptr, name, flagsMask, dbiPtr));
     dbi = dbiPtr.getPointer(0);
-    this.roKey = proxy.allocate(0);
-    this.roVal = proxy.allocate(0);
-    ptrKey = MEM_MGR.allocateTemporary(MDB_VAL_STRUCT_SIZE, false);
-    ptrKeyAddr = ptrKey.address();
-    ptrVal = MEM_MGR.allocateTemporary(MDB_VAL_STRUCT_SIZE, false);
-    ptrValAddr = ptrVal.address();
-  }
-
-  /**
-   * Allocate a new buffer suitable for read-write use.
-   *
-   * @param bytes the size of the buffer
-   * @return a writable buffer suitable for use with buffer-requiring methods
-   */
-  public T allocate(final int bytes) {
-    return proxy.allocate(bytes);
   }
 
   /**
@@ -102,7 +94,7 @@ public final class Dbi<T> {
   public void delete(final T key) throws
       CommittedException, LmdbNativeException,
       NotOpenException, ReadWriteRequiredException {
-    try (final Txn tx = new Txn(env)) {
+    try (final Txn tx = env.txnWrite()) {
       delete(tx, key);
       tx.commit();
     }
@@ -158,13 +150,13 @@ public final class Dbi<T> {
       tx.checkWritesAllowed();
     }
 
-    proxy.set(key, ptrKey, ptrKeyAddr);
+    tx.ctx.keyIn(key);
 
     if (val == null) {
-      checkRc(LIB.mdb_del(tx.ptr, dbi, ptrKey, null));
+      checkRc(LIB.mdb_del(tx.ptr, dbi, tx.ctx.ptrKey, null));
     } else {
-      proxy.set(val, ptrVal, ptrValAddr);
-      checkRc(LIB.mdb_del(tx.ptr, dbi, ptrKey, ptrVal));
+      tx.ctx.valIn(val);
+      checkRc(LIB.mdb_del(tx.ptr, dbi, tx.ctx.ptrKey, tx.ctx.ptrVal));
     }
   }
 
@@ -183,7 +175,7 @@ public final class Dbi<T> {
   public T get(final T key) throws
       CommittedException, LmdbNativeException,
       NotOpenException {
-    try (final Txn tx = new Txn(env, MDB_RDONLY)) {
+    try (final Txn tx = env.txnRead()) {
       return get(tx, key);
     }
   }
@@ -214,10 +206,10 @@ public final class Dbi<T> {
       requireNonNull(key);
       tx.checkNotCommitted();
     }
-    proxy.set(key, ptrKey, ptrKeyAddr);
-    checkRc(LIB.mdb_get(tx.ptr, dbi, ptrKey, ptrVal));
-    proxy.dirty(roVal, ptrVal, ptrValAddr); // marked as out in LMDB C docs
-    return roVal;
+    tx.ctx.keyIn(key);
+    checkRc(LIB.mdb_get(tx.ptr, dbi, tx.ctx.ptrKey, tx.ctx.ptrVal));
+    tx.ctx.valOut(); // marked as out in LMDB C docs
+    return (T) tx.ctx.val.buffer();
   }
 
   /**
@@ -258,7 +250,7 @@ public final class Dbi<T> {
     }
     final PointerByReference ptr = new PointerByReference();
     checkRc(LIB.mdb_cursor_open(tx.ptr, dbi, ptr));
-    return new Cursor<>(ptr.getValue(), tx, proxy);
+    return new Cursor<>(ptr.getValue(), tx.ctx);
   }
 
   /**
@@ -277,7 +269,7 @@ public final class Dbi<T> {
   public void put(final T key, final T val) throws
       CommittedException, LmdbNativeException,
       NotOpenException, ReadWriteRequiredException {
-    try (final Txn tx = new Txn(env)) {
+    try (final Txn tx = env.txnWrite()) {
       put(tx, key, val);
       tx.commit();
     }
@@ -312,11 +304,11 @@ public final class Dbi<T> {
       tx.checkNotCommitted();
       tx.checkWritesAllowed();
     }
-    proxy.set(key, ptrKey, ptrKeyAddr);
-    proxy.set(val, ptrVal, ptrValAddr);
+    tx.ctx.keyIn(key);
+    tx.ctx.valIn(val);
     int mask = mask(flags);
-    checkRc(LIB.mdb_put(tx.ptr, dbi, ptrKey, ptrVal, mask));
-    proxy.dirty(roVal, ptrVal, ptrValAddr); // marked as in,out in LMDB C docs   
+    checkRc(LIB.mdb_put(tx.ptr, dbi, tx.ctx.ptrKey, tx.ctx.ptrVal, mask));
+    tx.ctx.valOut(); // marked as in,out in LMDB C docs
   }
 
   /**

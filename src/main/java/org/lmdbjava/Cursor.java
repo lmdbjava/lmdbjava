@@ -18,15 +18,13 @@ package org.lmdbjava;
 import static java.util.Objects.requireNonNull;
 import jnr.ffi.Pointer;
 import jnr.ffi.byref.NativeLongByReference;
-import jnr.ffi.provider.MemoryManager;
-import static org.lmdbjava.BufferProxy.MDB_VAL_STRUCT_SIZE;
+
 import static org.lmdbjava.CursorOp.MDB_SET;
 import static org.lmdbjava.CursorOp.MDB_SET_KEY;
 import static org.lmdbjava.CursorOp.MDB_SET_RANGE;
 import static org.lmdbjava.Dbi.KeyNotFoundException.MDB_NOTFOUND;
 import static org.lmdbjava.Env.SHOULD_CHECK;
 import static org.lmdbjava.Library.LIB;
-import static org.lmdbjava.Library.RUNTIME;
 import static org.lmdbjava.MaskedFlag.mask;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
 import org.lmdbjava.Txn.CommittedException;
@@ -40,32 +38,17 @@ import org.lmdbjava.Txn.ReadWriteRequiredException;
  */
 public final class Cursor<T> implements AutoCloseable {
 
-  private static final MemoryManager MEM_MGR = RUNTIME.getMemoryManager();
-
   private boolean closed;
-  private final BufferProxy<T> proxy;
   private final Pointer ptrCursor;
-  private final Pointer ptrKey;
-  private final long ptrKeyAddr;
-  private final Pointer ptrVal;
-  private final long ptrValAddr;
-  private final T roKey;
-  private final T roVal;
-  private Txn txn;
+  private final TxnContext<T> txc;
+  private final Txn txn;
 
-  Cursor(final Pointer ptr, final Txn tx, final BufferProxy<T> proxy) {
+  Cursor(final Pointer ptr, final TxnContext<T> txc) {
     requireNonNull(ptr);
-    requireNonNull(tx);
-    requireNonNull(proxy);
+    requireNonNull(txc);
     this.ptrCursor = ptr;
-    this.txn = tx;
-    this.proxy = proxy;
-    this.roKey = proxy.allocate(0);
-    this.roVal = proxy.allocate(0);
-    ptrKey = MEM_MGR.allocateTemporary(MDB_VAL_STRUCT_SIZE, false);
-    ptrKeyAddr = ptrKey.address();
-    ptrVal = MEM_MGR.allocateTemporary(MDB_VAL_STRUCT_SIZE, false);
-    ptrValAddr = ptrVal.address();
+    this.txn = txc.txn;
+    this.txc = txc;
   }
 
   /**
@@ -157,18 +140,18 @@ public final class Cursor<T> implements AutoCloseable {
       if (SHOULD_CHECK) {
         requireNonNull(key);
       }
-      proxy.set(key, ptrKey, ptrKeyAddr);
+      txc.keyIn(key);
     }
 
-    final int rc = LIB.mdb_cursor_get(ptrCursor, ptrKey, ptrVal, op.getCode());
+    final int rc = LIB.mdb_cursor_get(ptrCursor, txc.ptrKey, txc.ptrVal, op.getCode());
 
     if (rc == MDB_NOTFOUND) {
       return false;
     }
 
     checkRc(rc);
-    proxy.dirty(roKey, ptrKey, ptrKeyAddr);
-    proxy.dirty(roVal, ptrVal, ptrValAddr);
+    txc.keyOut();
+    txc.valOut();
     return true;
   }
 
@@ -181,7 +164,7 @@ public final class Cursor<T> implements AutoCloseable {
    * @return the key buffer (never null)
    */
   public T key() {
-    return roKey;
+    return txc.key.buffer();
   }
 
   /**
@@ -209,12 +192,12 @@ public final class Cursor<T> implements AutoCloseable {
       txn.checkNotCommitted();
       txn.checkWritesAllowed();
     }
-    proxy.set(key, ptrKey, ptrKeyAddr);
-    proxy.set(val, ptrVal, ptrValAddr);
+    txc.keyIn(key);
+    txc.valIn(val);
     final int flags = mask(op);
-    checkRc(LIB.mdb_cursor_put(ptrCursor, ptrKey, ptrVal, flags));
-    proxy.dirty(roKey, ptrKey, ptrKeyAddr);
-    proxy.dirty(roVal, ptrVal, ptrValAddr);
+    checkRc(LIB.mdb_cursor_put(ptrCursor, txc.ptrKey, txc.ptrVal, flags));
+    txc.keyOut();
+    txc.valOut();
   }
 
   /**
@@ -244,7 +227,6 @@ public final class Cursor<T> implements AutoCloseable {
       tx.checkReadOnly(); // new
       tx.checkNotCommitted(); // new
     }
-    this.txn = tx;
     checkRc(LIB.mdb_cursor_renew(tx.ptr, ptrCursor));
   }
 
@@ -257,7 +239,7 @@ public final class Cursor<T> implements AutoCloseable {
    * @return the value buffer (never null)
    */
   public T val() {
-    return roVal;
+    return txc.val.buffer();
   }
 
   private void checkNotClosed() throws ClosedException {

@@ -42,6 +42,11 @@ public final class MutableDirectBufferProxy implements
     ByteBuffer bb = allocateDirect(bytes);
     return new UnsafeBuffer(bb);
   }
+  final MutableDirectBuffer buffer;
+
+  MutableDirectBufferProxy() {
+    buffer = alloc(0);
+  }
 
   @Override
   public MutableDirectBuffer allocate(int bytes) {
@@ -49,18 +54,38 @@ public final class MutableDirectBufferProxy implements
   }
 
   @Override
-  public void dirty(MutableDirectBuffer roBuffer, Pointer ptr,
-                    long ptrAddr) {
-    final long addr = UNSAFE.getLong(ptrAddr + STRUCT_FIELD_OFFSET_DATA);
-    final long size = UNSAFE.getLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE);
-    roBuffer.wrap(addr, (int) size);
+  public MutableDirectBuffer buffer() {
+    return buffer;
   }
 
   @Override
-  public void set(MutableDirectBuffer buffer, Pointer ptr, long ptrAddr) {
+  public void out(Pointer ptr, long ptrAddr) {
+    final long addr = UNSAFE.getLong(ptrAddr + STRUCT_FIELD_OFFSET_DATA);
+    final long size = UNSAFE.getLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE);
+    buffer.wrap(addr, (int) size);
+  }
+
+  @Override
+  public void in(MutableDirectBuffer buffer, Pointer ptr, long ptrAddr) {
     final long addr = buffer.addressOffset();
     final long size = buffer.capacity();
     UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_DATA, addr);
     UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE, size);
+  }
+
+  public static MutableDirectBufferProxyFactory MDB_FACTORY = new MutableDirectBufferProxyFactory();
+
+  public static class MutableDirectBufferProxyFactory
+    implements BufferProxyFactory<MutableDirectBuffer> {
+
+    @Override
+    public MutableDirectBufferProxy allocate() {
+      return new MutableDirectBufferProxy();
+    }
+
+    @Override
+    public void deallocate(BufferProxy proxy) {
+
+    }
   }
 }

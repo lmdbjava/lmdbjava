@@ -33,7 +33,7 @@ import org.lmdbjava.Txn.CommittedException;
 /**
  * LMDB environment.
  */
-public final class Env implements AutoCloseable {
+public final class Env<T> implements AutoCloseable {
 
   /**
    * Java system property name that can be set to disable optional checks.
@@ -51,17 +51,38 @@ public final class Env implements AutoCloseable {
   private boolean closed = false;
   private boolean open = false;
   final Pointer ptr;
+  final BufferProxyFactory<T> factory;
 
   /**
    * Creates a new environment handle.
    *
    * @throws LmdbNativeException if a native C error occurred
    */
-  public Env() throws LmdbNativeException {
+  Env(BufferProxyFactory<T> factory) throws LmdbNativeException {
     final PointerByReference envPtr = new PointerByReference();
     checkRc(LIB.mdb_env_create(envPtr));
     ptr = envPtr.getValue();
+    this.factory = factory;
   }
+
+  public static Env<ByteBuffer> create() throws LmdbNativeException {
+    return new Env<>(new BufferProxyFactory<ByteBuffer>() {
+      @Override
+      public BufferProxy<ByteBuffer> allocate() {
+        return new ByteBufferProxy.ReflectiveProxy();
+      }
+
+      @Override
+      public void deallocate(BufferProxy<ByteBuffer> proxy) {
+      }
+    });
+  }
+
+  public static <T> Env<T> create(BufferProxyFactory<T> factory)
+    throws LmdbNativeException {
+    return new Env<>(factory);
+  }
+
 
   /**
    * Close the handle.
@@ -249,22 +270,6 @@ public final class Env implements AutoCloseable {
   }
 
   /**
-   * Open the {@link Dbi} for {@link ByteBuffer}-based buffers, using the
-   * {@link ByteBufferProxy#PROXY_OPTIMAL} on this system. This is the
-   * recommended way to open a {@link ByteBuffer}-based {@link Dbi}.
-   *
-   * @param name  name of the database (or null if no name is required)
-   * @param flags to open the database with
-   * @return a database that is ready to use
-   * @throws NotOpenException
-   * @throws LmdbNativeException
-   */
-  public Dbi<ByteBuffer> openDbi(String name, DbiFlags... flags)
-      throws NotOpenException, LmdbNativeException {
-    return openDbi(name, PROXY_OPTIMAL, flags);
-  }
-
-  /**
    * Open the {@link Dbi} using the provided {@link BufferProxy}.
    *
    * @param <T>   buffer type that used by {@link Dbi} and its {@link Cursor}s
@@ -275,15 +280,23 @@ public final class Env implements AutoCloseable {
    * @throws NotOpenException
    * @throws LmdbNativeException
    */
-  public <T> Dbi<T> openDbi(String name, BufferProxy<T> proxy, DbiFlags... flags)
+  public <T> Dbi<T> openDbi(String name, DbiFlags... flags)
       throws NotOpenException, LmdbNativeException {
-    try (Txn txn = new Txn(this)) {
-      Dbi<T> dbi = new Dbi<>(txn, name, proxy, flags);
+    try (Txn txn = txnWrite()) {
+      Dbi<T> dbi = (Dbi<T>) new Dbi<>(txn, name, factory, flags);
       txn.commit();
       return dbi;
-    } catch (CommittedException e) {
+    } catch (Txn.ReadWriteRequiredException | CommittedException e) {
       throw new IllegalStateException(); // cannot happen (Txn is try scoped)
     }
+  }
+
+  public Txn txnWrite() throws NotOpenException, LmdbNativeException {
+    return new Txn(this, factory, null);
+  }
+
+  public Txn txnRead() throws NotOpenException, LmdbNativeException {
+    return new Txn(this, factory, null, TxnFlags.MDB_RDONLY);
   }
 
   /**

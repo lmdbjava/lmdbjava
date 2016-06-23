@@ -48,11 +48,11 @@ public class DbiTest {
 
   @Rule
   public final TemporaryFolder tmp = new TemporaryFolder();
-  private Env env;
+  private Env<ByteBuffer> env;
 
   @Before
   public void before() throws Exception {
-    env = new Env();
+    env = Env.create();
     final File path = tmp.newFile();
 
     env.setMapSize(1_024 * 1_024 * 1_024);
@@ -78,7 +78,7 @@ public class DbiTest {
   @Test(expected = KeyExistsException.class)
   public void keyExistsException() throws Exception {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
-    try (final Txn tx = new Txn(env)) {
+    try (final Txn tx = env.txnWrite()) {
       db.put(tx, createBb(5), createBb(5), MDB_NOOVERWRITE);
       db.put(tx, createBb(5), createBb(5), MDB_NOOVERWRITE);
     }
@@ -88,12 +88,12 @@ public class DbiTest {
   public void putAbortGet() throws Exception {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
 
-    try (final Txn tx = new Txn(env)) {
+    try (final Txn tx = env.txnWrite()) {
       db.put(tx, createBb(5), createBb(5));
       tx.abort();
     }
 
-    try (final Txn tx = new Txn(env)) {
+    try (final Txn tx = env.txnWrite()) {
       db.get(tx, createBb(5));
       fail("key does not exist");
     } catch (KeyNotFoundException e) {
@@ -119,12 +119,12 @@ public class DbiTest {
   @Test
   public void putCommitGet() throws Exception {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
-    try (final Txn tx = new Txn(env)) {
+    try (final Txn tx = env.txnWrite()) {
       db.put(tx, createBb(5), createBb(5));
       tx.commit();
     }
 
-    try (final Txn tx = new Txn(env)) {
+    try (final Txn tx = env.txnWrite()) {
       final ByteBuffer result = db.get(tx, createBb(5));
       assertThat(result.getInt(), is(5));
     }
@@ -134,7 +134,7 @@ public class DbiTest {
   public void putDelete() throws Exception {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
 
-    try (final Txn tx = new Txn(env)) {
+    try (final Txn tx = env.txnWrite()) {
       db.put(tx, createBb(5), createBb(5));
       db.delete(tx, createBb(5));
 
@@ -151,7 +151,7 @@ public class DbiTest {
   public void putDuplicateDelete() throws Exception {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
 
-    try (final Txn tx = new Txn(env)) {
+    try (final Txn tx = env.txnWrite()) {
       db.put(tx, createBb(5), createBb(5));
       db.put(tx, createBb(5), createBb(6));
       db.put(tx, createBb(5), createBb(7));
@@ -169,7 +169,7 @@ public class DbiTest {
   @Test(expected = MapFullException.class)
   public void testMapFullException() throws Exception {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
-    try (final Txn tx = new Txn(env)) {
+    try (final Txn tx = env.txnWrite()) {
       final ByteBuffer v = allocateDirect(1_024 * 1_024 * 1_024);
       db.put(tx, createBb(1), v);
     }

@@ -6,6 +6,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
 import static java.nio.ByteBuffer.allocateDirect;
 import org.agrona.MutableDirectBuffer;
+import org.agrona.concurrent.UnsafeBuffer;
 
 /**
  * Static constants and methods that are convenient when writing LMDB-related
@@ -17,14 +18,14 @@ public final class TestUtils {
   public static final int POSIX_MODE = 0664;
 
   static ByteBuffer allocateBb(Dbi<ByteBuffer> d, int value) {
-    final ByteBuffer b = d.allocate(BYTES);
+    final ByteBuffer b = ByteBuffer.allocateDirect(BYTES);
     b.putInt(value).flip();
     return b;
   }
 
   static MutableDirectBuffer allocateMdb(Dbi<MutableDirectBuffer> d,
                                          int value) {
-    final MutableDirectBuffer b = d.allocate(BYTES);
+    final MutableDirectBuffer b = new UnsafeBuffer(ByteBuffer.allocateDirect(BYTES));
     b.putInt(0, value);
     return b;
   }

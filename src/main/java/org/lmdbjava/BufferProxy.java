@@ -44,19 +44,11 @@ public interface BufferProxy<T> {
    * Called when the <code>MDB_val</code> may have changed and the passed buffer
    * should be modified to reflect the new <code>MDB_val</code>.
    *
-   * @param roBuffer the buffer to modify to reflect the <code>MDB_val</code>
+   * @param buffer the buffer to modify to reflect the <code>MDB_val</code>
    * @param ptr      the pointer to the <code>MDB_val</code>
    * @param ptrAddr  the address of the <code>MDB_val</code> pointer
    */
-  void dirty(T roBuffer, Pointer ptr, long ptrAddr);
-
-  /**
-   * Allocate a new buffer suitable for read-write use.
-   *
-   * @param bytes the size of the buffer
-   * @return a writable buffer suitable for use with buffer-requiring methods
-   */
-  T allocate(int bytes);
+  void out(Pointer ptr, long ptrAddr);
 
   /**
    * Called when the <code>MDB_val</code> should be set to reflect the passed
@@ -66,5 +58,16 @@ public interface BufferProxy<T> {
    * @param ptr     the pointer to the <code>MDB_val</code>
    * @param ptrAddr the address of the <code>MDB_val</code> pointer
    */
-  void set(T buffer, Pointer ptr, long ptrAddr);
+  void in(T buffer, Pointer ptr, long ptrAddr);
+
+  /**
+   * Allocate a new buffer suitable for read-write use.
+   *
+   * @param bytes the size of the buffer
+   * @return a writable buffer suitable for use with buffer-requiring methods
+   */
+  T allocate(int bytes);
+
+  T buffer();
+
 }
