@@ -15,6 +15,7 @@
  */
 package org.lmdbjava;
 
+import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
@@ -24,6 +25,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import org.junit.Test;
 import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
 import static org.lmdbjava.ByteBufferProxy.PROXY_SAFE;
+import static org.lmdbjava.ByteBufferProxy.findField;
 import static org.lmdbjava.TestUtils.invokePrivateConstructor;
 import static org.lmdbjava.UnsafeAccess.ALLOW_UNSAFE;
 
@@ -32,6 +34,17 @@ public class ByteBufferProxyTest {
   @Test
   public void coverPrivateConstructor() throws Exception {
     invokePrivateConstructor(ByteBufferProxy.class);
+  }
+
+  @Test(expected = RuntimeException.class)
+  public void fieldNeverFound() throws Exception {
+    final Field f = findField(Exception.class, "notARealField");
+  }
+
+  @Test
+  public void fieldSuperclassScan() throws Exception {
+    final Field f = findField(Exception.class, "detailMessage");
+    assertThat(f, is(notNullValue()));
   }
 
   @Test
