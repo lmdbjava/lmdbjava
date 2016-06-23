@@ -58,7 +58,7 @@ public final class ByteBufferProxy {
     PROXY_OPTIMAL = getProxyOptimal();
   }
 
-  public static BufferProxy<ByteBuffer> getProxyOptimal() {
+  private static BufferProxy<ByteBuffer> getProxyOptimal() {
     try {
       return new UnsafeProxy();
     } catch (Throwable e) {
