@@ -261,13 +261,7 @@ public final class Env implements AutoCloseable {
    */
   public Dbi<ByteBuffer> openDbi(String name, DbiFlags... flags)
       throws NotOpenException, LmdbNativeException {
-    try (Txn txn = new Txn(this)) {
-      Dbi<ByteBuffer> dbi = new Dbi<>(txn, name, PROXY_OPTIMAL, flags);
-      txn.commit();
-      return dbi;
-    } catch (CommittedException e) {
-      throw new IllegalStateException(); // cannot happen (Txn is try scoped)
-    }
+    return openDbi(name, PROXY_OPTIMAL, flags);
   }
 
   /**
