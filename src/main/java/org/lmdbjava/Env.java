@@ -29,7 +29,6 @@ import static org.lmdbjava.Library.RUNTIME;
 import static org.lmdbjava.MaskedFlag.mask;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
 import org.lmdbjava.Txn.CommittedException;
-import org.lmdbjava.Txn.ReadWriteRequiredException;
 
 /**
  * LMDB environment.
@@ -266,9 +265,8 @@ public final class Env implements AutoCloseable {
       Dbi<ByteBuffer> dbi = new Dbi<>(txn, name, PROXY_OPTIMAL, flags);
       txn.commit();
       return dbi;
-    } catch (CommittedException | ReadWriteRequiredException e) {
-      // never happens
-      throw new IllegalStateException();
+    } catch (CommittedException e) {
+      throw new IllegalStateException(); // cannot happen (Txn is try scoped)
     }
   }
 
@@ -289,9 +287,8 @@ public final class Env implements AutoCloseable {
       Dbi<T> dbi = new Dbi<>(txn, name, proxy, flags);
       txn.commit();
       return dbi;
-    } catch (CommittedException | ReadWriteRequiredException e) {
-      // never happens
-      throw new IllegalStateException();
+    } catch (CommittedException e) {
+      throw new IllegalStateException(); // cannot happen (Txn is try scoped)
     }
   }
 

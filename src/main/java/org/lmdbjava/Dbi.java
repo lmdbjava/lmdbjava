@@ -58,28 +58,10 @@ public final class Dbi<T> {
   final Pointer dbi;
   final Env env;
 
-  /**
-   * Create and open an LMDB Database (dbi) handle.
-   * <p>
-   * The passed transaction will automatically commit and the database handle
-   * will become available to other transactions.
-   *
-   * @param tx    transaction to open and commit this database within (not null;
-   *              not committed; must be R-W)
-   * @param name  name of the database (or null if no name is required)
-   * @param proxy the proxy to use for buffer management
-   * @param flags to open the database with
-   * @throws CommittedException         if already committed
-   * @throws LmdbNativeException        if a native C error occurred
-   * @throws ReadWriteRequiredException if a read-only transaction presented
-   */
-  public Dbi(final Txn tx, final String name,
-             final BufferProxy<T> proxy, final DbiFlags... flags)
-      throws CommittedException, LmdbNativeException, ReadWriteRequiredException {
+  Dbi(final Txn tx, final String name, final BufferProxy<T> proxy,
+      final DbiFlags... flags) throws LmdbNativeException {
     requireNonNull(tx);
     requireNonNull(proxy);
-    tx.checkNotCommitted();
-    tx.checkWritesAllowed();
     this.env = tx.env;
     this.name = name;
     this.proxy = proxy;

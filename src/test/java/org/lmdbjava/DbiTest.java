@@ -27,7 +27,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
 import static org.lmdbjava.CursorOp.MDB_SET_KEY;
 import org.lmdbjava.Dbi.DbFullException;
 import org.lmdbjava.Dbi.KeyExistsException;
@@ -68,15 +67,6 @@ public class DbiTest {
     env.openDbi("db1 is OK", MDB_CREATE);
     env.openDbi("db2 is OK", MDB_CREATE);
     env.openDbi("db3 fails", MDB_CREATE);
-  }
-
-  @Test(expected = CommittedException.class)
-  @SuppressWarnings("ResultOfObjectAllocationIgnored")
-  public void dbTxCommitted() throws Exception {
-    try (final Txn tx = new Txn(env)) {
-      tx.commit();
-      new Dbi<>(tx, "db1 fails", PROXY_OPTIMAL, MDB_CREATE);
-    }
   }
 
   @Test
