@@ -81,18 +81,14 @@ public class DbiTest {
 
   @Test
   public void getName() throws Exception {
-    try (final Txn tx = new Txn(env)) {
-      final Dbi<ByteBuffer> db;
-      db = new Dbi<>(tx, DB_1, PROXY_OPTIMAL, MDB_CREATE);
-      assertThat(db.getName(), is(DB_1));
-    }
+    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
+    assertThat(db.getName(), is(DB_1));
   }
 
   @Test(expected = KeyExistsException.class)
   public void keyExistsException() throws Exception {
-    final Dbi<ByteBuffer> db;
+    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
     try (final Txn tx = new Txn(env)) {
-      db = new Dbi<>(tx, DB_1, PROXY_OPTIMAL, MDB_CREATE);
       db.put(tx, createBb(5), createBb(5), MDB_NOOVERWRITE);
       db.put(tx, createBb(5), createBb(5), MDB_NOOVERWRITE);
     }
@@ -100,12 +96,7 @@ public class DbiTest {
 
   @Test
   public void putAbortGet() throws Exception {
-    final Dbi<ByteBuffer> db;
-
-    try (final Txn tx = new Txn(env)) {
-      db = new Dbi<>(tx, DB_1, PROXY_OPTIMAL, MDB_CREATE);
-      tx.commit();
-    }
+    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
 
     try (final Txn tx = new Txn(env)) {
       db.put(tx, createBb(5), createBb(5));
@@ -121,11 +112,7 @@ public class DbiTest {
 
   @Test
   public void putAndGetAndDeleteWithInternalTx() throws Exception {
-    final Dbi<ByteBuffer> db;
-    try (final Txn tx = new Txn(env)) {
-      db = new Dbi<>(tx, DB_1, PROXY_OPTIMAL, MDB_CREATE);
-      tx.commit();
-    }
+    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
 
     db.put(createBb(5), createBb(5));
     final ByteBuffer val = db.get(createBb(5));
@@ -141,9 +128,8 @@ public class DbiTest {
 
   @Test
   public void putCommitGet() throws Exception {
-    final Dbi<ByteBuffer> db;
+    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
     try (final Txn tx = new Txn(env)) {
-      db = new Dbi<>(tx, DB_1, PROXY_OPTIMAL, MDB_CREATE);
       db.put(tx, createBb(5), createBb(5));
       tx.commit();
     }
@@ -156,10 +142,9 @@ public class DbiTest {
 
   @Test
   public void putDelete() throws Exception {
-    Dbi<ByteBuffer> db;
+    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
 
     try (final Txn tx = new Txn(env)) {
-      db = new Dbi<>(tx, DB_1, PROXY_OPTIMAL, MDB_CREATE);
       db.put(tx, createBb(5), createBb(5));
       db.delete(tx, createBb(5));
 
@@ -174,10 +159,9 @@ public class DbiTest {
 
   @Test
   public void putDuplicateDelete() throws Exception {
-    Dbi<ByteBuffer> db;
+    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
 
     try (final Txn tx = new Txn(env)) {
-      db = new Dbi<>(tx, DB_1, PROXY_OPTIMAL, MDB_CREATE, MDB_DUPSORT);
       db.put(tx, createBb(5), createBb(5));
       db.put(tx, createBb(5), createBb(6));
       db.put(tx, createBb(5), createBb(7));
@@ -194,9 +178,8 @@ public class DbiTest {
 
   @Test(expected = MapFullException.class)
   public void testMapFullException() throws Exception {
-    final Dbi<ByteBuffer> db;
+    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
     try (final Txn tx = new Txn(env)) {
-      db = new Dbi<>(tx, DB_1, PROXY_OPTIMAL, MDB_CREATE);
       final ByteBuffer v = allocateDirect(1_024 * 1_024 * 1_024);
       db.put(tx, createBb(1), v);
     }
@@ -204,11 +187,7 @@ public class DbiTest {
 
   @Test
   public void testParallelWritesStress() throws Exception {
-    final Dbi<ByteBuffer> db;
-    try (final Txn tx = new Txn(env)) {
-      db = new Dbi<>(tx, DB_1, PROXY_OPTIMAL, MDB_CREATE);
-      tx.commit();
-    }
+    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
 
     // Travis CI has 1.5 cores for legacy builds
     nCopies(2, null).parallelStream()

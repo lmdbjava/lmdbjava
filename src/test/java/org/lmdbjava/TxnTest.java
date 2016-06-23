@@ -27,7 +27,6 @@ import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import org.lmdbjava.Env.NotOpenException;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
@@ -81,9 +80,7 @@ public class TxnTest {
   @Test
   @Ignore("Travis CI failure; suspect older liblmdb version")
   public void testGetId() throws Exception {
-    Txn tx = new Txn(env);
-    Dbi<ByteBuffer> db = new Dbi<>(tx, DB_1, PROXY_OPTIMAL, MDB_CREATE);
-    tx.commit();
+    Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
 
     final AtomicLong txId1 = new AtomicLong();
     final AtomicLong txId2 = new AtomicLong();
