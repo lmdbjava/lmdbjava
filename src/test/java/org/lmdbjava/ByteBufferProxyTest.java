@@ -17,10 +17,12 @@ package org.lmdbjava;
 
 import java.nio.ByteBuffer;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
 import org.junit.Test;
-
+import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
 import static org.lmdbjava.ByteBufferProxy.PROXY_SAFE;
 import static org.lmdbjava.TestUtils.invokePrivateConstructor;
 import static org.lmdbjava.UnsafeAccess.ALLOW_UNSAFE;
@@ -33,16 +35,25 @@ public class ByteBufferProxyTest {
   }
 
   @Test
+  public void optimalAlwaysAvailable() throws Exception {
+    final BufferProxy<ByteBuffer> v = PROXY_OPTIMAL;
+    assertThat(v, is(notNullValue()));
+  }
+
+  @Test
   public void safeCanBeForced() throws Exception {
     final BufferProxy<ByteBuffer> v = PROXY_SAFE;
     assertThat(v, is(notNullValue()));
+    assertThat(v.getClass().getSimpleName(), startsWith("Reflect"));
   }
 
   @Test
   public void unsafeIsDefault() throws Exception {
     assertThat(ALLOW_UNSAFE, is(true));
-    final BufferProxy<ByteBuffer> v = PROXY_SAFE;
+    final BufferProxy<ByteBuffer> v = PROXY_OPTIMAL;
     assertThat(v, is(notNullValue()));
+    assertThat(v, is(not(PROXY_SAFE)));
+    assertThat(v.getClass().getSimpleName(), startsWith("Unsafe"));
   }
 
 }
