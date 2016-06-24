@@ -1,20 +1,17 @@
 package org.lmdbjava;
 
+import java.io.File;
 import org.agrona.MutableDirectBuffer;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-
-import java.io.File;
-
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.lmdbjava.CursorOp.*;
-import static org.lmdbjava.CursorOp.MDB_FIRST;
-import static org.lmdbjava.CursorOp.MDB_NEXT;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import static org.lmdbjava.DbiFlags.MDB_DUPSORT;
+import static org.lmdbjava.Env.create;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.MutableDirectBufferProxy.MDB_FACTORY;
 import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
@@ -23,23 +20,25 @@ import static org.lmdbjava.TestUtils.POSIX_MODE;
 import static org.lmdbjava.TestUtils.allocateMdb;
 
 public class MutableDirectBufferTest {
+
   @Rule
   public final TemporaryFolder tmp = new TemporaryFolder();
   private Env env;
 
   @Before
   public void before() throws Exception {
-    env = Env.create(MDB_FACTORY);
+    env = create(MDB_FACTORY);
     final File path = tmp.newFile();
     env.setMapSize(1_024 * 1_024);
     env.setMaxDbs(1);
     env.setMaxReaders(1);
     env.open(path, POSIX_MODE, MDB_NOSUBDIR);
   }
+
   @Test
   public void getWithMutableByteBuffer() throws Exception {
     final Dbi<MutableDirectBuffer> db = env.openDbi(DB_1,
-      MDB_CREATE, MDB_DUPSORT);
+                                                    MDB_CREATE, MDB_DUPSORT);
     try (final Txn tx = env.txnWrite()) {
       // populate data
       final Cursor<MutableDirectBuffer> c = db.openCursor(tx);

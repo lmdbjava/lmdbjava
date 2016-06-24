@@ -29,6 +29,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import org.lmdbjava.Env.NotOpenException;
+import static org.lmdbjava.Env.create;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.POSIX_MODE;
@@ -38,7 +39,6 @@ import org.lmdbjava.Txn.NotResetException;
 import org.lmdbjava.Txn.ReadOnlyRequiredException;
 import org.lmdbjava.Txn.ReadWriteRequiredException;
 import org.lmdbjava.Txn.ResetException;
-import static org.lmdbjava.TxnFlags.MDB_RDONLY;
 
 public class TxnTest {
 
@@ -48,7 +48,7 @@ public class TxnTest {
 
   @Before
   public void before() throws Exception {
-    env = Env.create();
+    env = create();
     final File path = tmp.newFile();
 
     env.setMapSize(1_024 * 1_024);
@@ -138,7 +138,6 @@ public class TxnTest {
 //    assertThat(txRoot.getParent(), is(nullValue()));
 //    assertThat(txChild.getParent(), is(txRoot));
 //  }
-
   @Test
   public void txReadOnly() throws Exception {
     final Txn tx = env.txnRead();

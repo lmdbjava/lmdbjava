@@ -35,6 +35,7 @@ import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import static org.lmdbjava.DbiFlags.MDB_DUPSORT;
 import org.lmdbjava.Env.MapFullException;
 import org.lmdbjava.Env.NotOpenException;
+import static org.lmdbjava.Env.create;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
 import static org.lmdbjava.TestUtils.DB_1;
@@ -52,7 +53,7 @@ public class DbiTest {
 
   @Before
   public void before() throws Exception {
-    env = Env.create();
+    env = create();
     final File path = tmp.newFile();
 
     env.setMapSize(1_024 * 1_024 * 1_024);

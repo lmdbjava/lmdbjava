@@ -18,7 +18,6 @@ package org.lmdbjava;
 import static java.util.Objects.requireNonNull;
 import jnr.ffi.Pointer;
 import jnr.ffi.byref.NativeLongByReference;
-
 import static org.lmdbjava.CursorOp.MDB_SET;
 import static org.lmdbjava.CursorOp.MDB_SET_KEY;
 import static org.lmdbjava.CursorOp.MDB_SET_RANGE;
@@ -143,7 +142,8 @@ public final class Cursor<T> implements AutoCloseable {
       txc.keyIn(key);
     }
 
-    final int rc = LIB.mdb_cursor_get(ptrCursor, txc.ptrKey, txc.ptrVal, op.getCode());
+    final int rc = LIB.mdb_cursor_get(ptrCursor, txc.ptrKey, txc.ptrVal,
+                                      op.getCode());
 
     if (rc == MDB_NOTFOUND) {
       return false;

@@ -100,12 +100,24 @@ public final class ByteBufferProxy {
     ByteBuffer buffer;
 
     ReflectiveProxy() {
-      this.buffer = ByteBuffer.allocateDirect(0);
+      this.buffer = allocateDirect(0);
     }
 
     @Override
     public ByteBuffer allocate(int bytes) {
       return allocateDirect(bytes);
+    }
+
+    @Override
+    public ByteBuffer buffer() {
+      return buffer;
+    }
+
+    @Override
+    public void in(ByteBuffer buffer, Pointer ptr, long ptrAddr) {
+      final long addr = ((sun.nio.ch.DirectBuffer) buffer).address();
+      ptr.putLong(STRUCT_FIELD_OFFSET_SIZE, buffer.capacity());
+      ptr.putLong(STRUCT_FIELD_OFFSET_DATA, addr);
     }
 
     @Override
@@ -120,25 +132,13 @@ public final class ByteBufferProxy {
       }
       buffer.clear();
     }
-
-    @Override
-    public void in(ByteBuffer buffer, Pointer ptr, long ptrAddr) {
-      final long addr = ((sun.nio.ch.DirectBuffer) buffer).address();
-      ptr.putLong(STRUCT_FIELD_OFFSET_SIZE, buffer.capacity());
-      ptr.putLong(STRUCT_FIELD_OFFSET_DATA, addr);
-    }
-
-    @Override
-    public ByteBuffer buffer() {
-      return buffer;
-    }
   }
 
   /**
    * A proxy that uses Java's "unsafe" class to directly manipulate byte buffer
    * fields and JNR-FFF allocated memory pointers.
    */
-  private static final class UnsafeProxy implements BufferProxy<ByteBuffer> {
+  static final class UnsafeProxy implements BufferProxy<ByteBuffer> {
 
     static final long ADDRESS_OFFSET;
     static final long CAPACITY_OFFSET;
@@ -156,7 +156,7 @@ public final class ByteBufferProxy {
     ByteBuffer buffer;
 
     UnsafeProxy() {
-      buffer = ByteBuffer.allocateDirect(0);
+      buffer = allocateDirect(0);
     }
 
     @Override
@@ -165,12 +165,8 @@ public final class ByteBufferProxy {
     }
 
     @Override
-    public void out(Pointer ptr, long ptrAddr) {
-      final long addr = UNSAFE.getLong(ptrAddr + STRUCT_FIELD_OFFSET_DATA);
-      final long size = UNSAFE.getLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE);
-      UNSAFE.putLong(buffer, ADDRESS_OFFSET, addr);
-      UNSAFE.putInt(buffer, CAPACITY_OFFSET, (int) size);
-      buffer.clear();
+    public ByteBuffer buffer() {
+      return buffer;
     }
 
     @Override
@@ -181,8 +177,12 @@ public final class ByteBufferProxy {
     }
 
     @Override
-    public ByteBuffer buffer() {
-      return buffer;
+    public void out(Pointer ptr, long ptrAddr) {
+      final long addr = UNSAFE.getLong(ptrAddr + STRUCT_FIELD_OFFSET_DATA);
+      final long size = UNSAFE.getLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE);
+      UNSAFE.putLong(buffer, ADDRESS_OFFSET, addr);
+      UNSAFE.putInt(buffer, CAPACITY_OFFSET, (int) size);
+      buffer.clear();
     }
   }
 }

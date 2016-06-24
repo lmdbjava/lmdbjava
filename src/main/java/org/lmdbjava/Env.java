@@ -21,7 +21,6 @@ import java.nio.ByteBuffer;
 import static java.util.Objects.requireNonNull;
 import jnr.ffi.Pointer;
 import jnr.ffi.byref.PointerByReference;
-import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
 import static org.lmdbjava.Library.LIB;
 import org.lmdbjava.Library.MDB_envinfo;
 import org.lmdbjava.Library.MDB_stat;
@@ -29,9 +28,12 @@ import static org.lmdbjava.Library.RUNTIME;
 import static org.lmdbjava.MaskedFlag.mask;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
 import org.lmdbjava.Txn.CommittedException;
+import static org.lmdbjava.TxnFlags.MDB_RDONLY;
 
 /**
  * LMDB environment.
+ *
+ * @param <T>
  */
 public final class Env<T> implements AutoCloseable {
 
@@ -48,23 +50,10 @@ public final class Env<T> implements AutoCloseable {
    */
   public static final boolean SHOULD_CHECK = !getBoolean(DISABLE_CHECKS_PROP);
 
-  private boolean closed = false;
-  private boolean open = false;
-  final Pointer ptr;
-  final BufferProxyFactory<T> factory;
-
   /**
-   * Creates a new environment handle.
    *
-   * @throws LmdbNativeException if a native C error occurred
+   * @return @throws LmdbNativeException
    */
-  Env(BufferProxyFactory<T> factory) throws LmdbNativeException {
-    final PointerByReference envPtr = new PointerByReference();
-    checkRc(LIB.mdb_env_create(envPtr));
-    ptr = envPtr.getValue();
-    this.factory = factory;
-  }
-
   public static Env<ByteBuffer> create() throws LmdbNativeException {
     return new Env<>(new BufferProxyFactory<ByteBuffer>() {
       @Override
@@ -78,11 +67,34 @@ public final class Env<T> implements AutoCloseable {
     });
   }
 
-  public static <T> Env<T> create(BufferProxyFactory<T> factory)
-    throws LmdbNativeException {
+  /**
+   *
+   * @param <T>
+   * @param factory
+   * @return
+   * @throws LmdbNativeException
+   */
+  public static <T> Env<T> create(BufferProxyFactory<T> factory) throws
+      LmdbNativeException {
     return new Env<>(factory);
   }
 
+  private boolean closed = false;
+  private boolean open = false;
+  final BufferProxyFactory<T> factory;
+  final Pointer ptr;
+
+  /**
+   * Creates a new environment handle.
+   *
+   * @throws LmdbNativeException if a native C error occurred
+   */
+  Env(BufferProxyFactory<T> factory) throws LmdbNativeException {
+    final PointerByReference envPtr = new PointerByReference();
+    checkRc(LIB.mdb_env_create(envPtr));
+    ptr = envPtr.getValue();
+    this.factory = factory;
+  }
 
   /**
    * Close the handle.
@@ -274,7 +286,6 @@ public final class Env<T> implements AutoCloseable {
    *
    * @param <T>   buffer type that used by {@link Dbi} and its {@link Cursor}s
    * @param name  name of the database (or null if no name is required)
-   * @param proxy the proxy to use for buffer management
    * @param flags to open the database with
    * @return a database that is ready to use
    * @throws NotOpenException
@@ -289,14 +300,6 @@ public final class Env<T> implements AutoCloseable {
     } catch (Txn.ReadWriteRequiredException | CommittedException e) {
       throw new IllegalStateException(); // cannot happen (Txn is try scoped)
     }
-  }
-
-  public Txn txnWrite() throws NotOpenException, LmdbNativeException {
-    return new Txn(this, factory, null);
-  }
-
-  public Txn txnRead() throws NotOpenException, LmdbNativeException {
-    return new Txn(this, factory, null, TxnFlags.MDB_RDONLY);
   }
 
   /**
@@ -347,6 +350,25 @@ public final class Env<T> implements AutoCloseable {
     }
     final int f = force ? 1 : 0;
     checkRc(LIB.mdb_env_sync(ptr, f));
+  }
+
+  /**
+   *
+   * @return @throws NotOpenException
+   * @throws LmdbNativeException
+   */
+  public Txn txnRead() throws NotOpenException, LmdbNativeException {
+    return new Txn(this, factory, null, MDB_RDONLY);
+  }
+
+  /**
+   *
+   * @return @throws NotOpenException
+   * @throws LmdbNativeException
+   */
+  public Txn txnWrite() throws NotOpenException,
+                               LmdbNativeException {
+    return new Txn(this, factory, null);
   }
 
   /**

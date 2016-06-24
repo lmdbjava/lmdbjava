@@ -32,6 +32,7 @@ import static org.lmdbjava.CursorOp.MDB_SET_KEY;
 import static org.lmdbjava.CursorOp.MDB_SET_RANGE;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import static org.lmdbjava.DbiFlags.MDB_DUPSORT;
+import static org.lmdbjava.Env.create;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.PutFlags.MDB_APPENDDUP;
 import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
@@ -47,7 +48,7 @@ public class CursorTest {
 
   @Before
   public void before() throws Exception {
-    env = Env.create();
+    env = create();
     final File path = tmp.newFile();
     env.setMapSize(1_024 * 1_024);
     env.setMaxDbs(1);
@@ -189,7 +190,6 @@ public class CursorTest {
       assertThat(c.val().getInt(0), is(2));
     }
   }
-
 
   @Test
   public void renewTxRo() throws Exception {

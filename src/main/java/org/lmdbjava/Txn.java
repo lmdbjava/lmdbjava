@@ -20,7 +20,6 @@ import static jnr.ffi.Memory.allocateDirect;
 import static jnr.ffi.NativeType.ADDRESS;
 import jnr.ffi.Pointer;
 import org.lmdbjava.Env.NotOpenException;
-
 import static org.lmdbjava.Library.LIB;
 import static org.lmdbjava.Library.RUNTIME;
 import static org.lmdbjava.MaskedFlag.isSet;
@@ -32,14 +31,15 @@ import static org.lmdbjava.TxnFlags.MDB_RDONLY;
  * LMDB transaction.
  */
 public final class Txn implements AutoCloseable {
+
   private boolean committed = false;
   private final boolean readOnly;
   private boolean reset = false;
+  final TxnContext ctx;
 
   final Env env;
   final Txn parent;
   final Pointer ptr;
-  final TxnContext ctx;
 
   /**
    * Create a transaction handle.
@@ -59,8 +59,8 @@ public final class Txn implements AutoCloseable {
    * @throws LmdbNativeException if a native C error occurred
    */
   Txn(final Env env, BufferProxyFactory factory, final Txn parent,
-             final TxnFlags... flags) throws NotOpenException,
-                                             LmdbNativeException {
+      final TxnFlags... flags) throws NotOpenException,
+                                      LmdbNativeException {
     requireNonNull(env);
     if (!env.isOpen() || env.isClosed()) {
       throw new NotOpenException();
@@ -90,6 +90,19 @@ public final class Txn implements AutoCloseable {
   }
 
   /**
+   * Closes this transaction by aborting if not already committed
+   */
+  @Override
+  public void close() {
+    ctx.close();
+    if (committed) {
+      return;
+    }
+    LIB.mdb_txn_abort(ptr);
+    committed = true;
+  }
+
+  /**
    * Commits this transaction.
    *
    * @throws CommittedException  if already committed
@@ -100,19 +113,6 @@ public final class Txn implements AutoCloseable {
       throw new CommittedException();
     }
     checkRc(LIB.mdb_txn_commit(ptr));
-    committed = true;
-  }
-
-  /**
-   * Closes this transaction by aborting if not already committed
-   */
-  @Override
-  public void close() {
-    ctx.close();
-    if (committed) {
-      return;
-    }
-    LIB.mdb_txn_abort(ptr);
     committed = true;
   }
 

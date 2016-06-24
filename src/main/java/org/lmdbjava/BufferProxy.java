@@ -44,9 +44,8 @@ public interface BufferProxy<T> {
    * Called when the <code>MDB_val</code> may have changed and the passed buffer
    * should be modified to reflect the new <code>MDB_val</code>.
    *
-   * @param buffer the buffer to modify to reflect the <code>MDB_val</code>
-   * @param ptr      the pointer to the <code>MDB_val</code>
-   * @param ptrAddr  the address of the <code>MDB_val</code> pointer
+   * @param ptr     the pointer to the <code>MDB_val</code>
+   * @param ptrAddr the address of the <code>MDB_val</code> pointer
    */
   void out(Pointer ptr, long ptrAddr);
 
@@ -68,6 +67,10 @@ public interface BufferProxy<T> {
    */
   T allocate(int bytes);
 
+  /**
+   *
+   * @return
+   */
   T buffer();
 
 }

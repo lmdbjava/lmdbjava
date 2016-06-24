@@ -18,14 +18,14 @@ public final class TestUtils {
   public static final int POSIX_MODE = 0664;
 
   static ByteBuffer allocateBb(Dbi<ByteBuffer> d, int value) {
-    final ByteBuffer b = ByteBuffer.allocateDirect(BYTES);
+    final ByteBuffer b = allocateDirect(BYTES);
     b.putInt(value).flip();
     return b;
   }
 
   static MutableDirectBuffer allocateMdb(Dbi<MutableDirectBuffer> d,
                                          int value) {
-    final MutableDirectBuffer b = new UnsafeBuffer(ByteBuffer.allocateDirect(BYTES));
+    final MutableDirectBuffer b = new UnsafeBuffer(allocateDirect(BYTES));
     b.putInt(0, value);
     return b;
   }

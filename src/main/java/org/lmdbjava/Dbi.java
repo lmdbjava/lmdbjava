@@ -29,7 +29,6 @@ import static org.lmdbjava.MaskedFlag.mask;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
 import org.lmdbjava.Txn.CommittedException;
 import org.lmdbjava.Txn.ReadWriteRequiredException;
-import static org.lmdbjava.TxnFlags.MDB_RDONLY;
 
 /**
  * LMDB Database.
@@ -64,7 +63,7 @@ public final class Dbi<T> {
    * @throws ReadWriteRequiredException if a read-only transaction presented
    */
   Dbi(final Txn tx, final String name,
-             final BufferProxyFactory<T> proxyFactory, final DbiFlags... flags)
+      final BufferProxyFactory<T> proxyFactory, final DbiFlags... flags)
       throws CommittedException, LmdbNativeException, ReadWriteRequiredException {
     requireNonNull(tx);
     requireNonNull(proxyFactory);
