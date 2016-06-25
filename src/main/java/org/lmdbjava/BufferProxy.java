@@ -26,7 +26,7 @@ import jnr.ffi.Pointer;
  * {@link Cursor} associated with the {@link Env}.
  * <p>
  * Users must not call {@link BufferProxy} methods themselves. Instead use the
- * buffer-related methods by {@link Txn}.
+ * buffer-related methods on {@link Txn}.
  *
  * @param <T> buffer type
  */
