@@ -18,9 +18,6 @@ package org.lmdbjava;
 import static java.util.Objects.requireNonNull;
 import jnr.ffi.Pointer;
 import jnr.ffi.byref.NativeLongByReference;
-import static org.lmdbjava.CursorOp.MDB_SET;
-import static org.lmdbjava.CursorOp.MDB_SET_KEY;
-import static org.lmdbjava.CursorOp.MDB_SET_RANGE;
 import static org.lmdbjava.Dbi.KeyNotFoundException.MDB_NOTFOUND;
 import static org.lmdbjava.Env.SHOULD_CHECK;
 import static org.lmdbjava.Library.LIB;
@@ -117,27 +114,22 @@ public final class Cursor<T> implements AutoCloseable {
   /**
    * Reposition the key/value buffers based on the passed key and operation.
    *
-   * @param key to search for (only needed for MDB_SET based ops)
-   * @param op  options for this operation (see restrictions above)
+   * @param key to search for
+   * @param op  options for this operation
    * @return false if key not found
    * @throws LmdbNativeException if a native C error occurred
    * @throws CommittedException  if the transaction was committed
    * @throws ClosedException     if the cursor is already closed
    */
-  public boolean get(final T key, final CursorOp op)
+  public boolean get(final T key, final GetOp op)
       throws LmdbNativeException, CommittedException, ClosedException {
     if (SHOULD_CHECK) {
+      requireNonNull(key);
       requireNonNull(op);
       checkNotClosed();
       txn.checkNotCommitted();
     }
-
-    if (op == MDB_SET || op == MDB_SET_KEY || op == MDB_SET_RANGE) {
-      if (SHOULD_CHECK) {
-        requireNonNull(key);
-      }
-      txn.keyIn(key);
-    }
+    txn.keyIn(key);
 
     final int rc = LIB.mdb_cursor_get(ptrCursor, txn.ptrKey, txn.ptrVal,
                                       op.getCode());
@@ -211,6 +203,36 @@ public final class Cursor<T> implements AutoCloseable {
       txn.checkNotCommitted(); // new
     }
     checkRc(LIB.mdb_cursor_renew(txn.ptr, ptrCursor));
+  }
+
+  /**
+   * Reposition the key/value buffers based on the passed operation.
+   *
+   * @param op options for this operation
+   * @return false if requested position not found
+   * @throws LmdbNativeException if a native C error occurred
+   * @throws CommittedException  if the transaction was committed
+   * @throws ClosedException     if the cursor is already closed
+   */
+  public boolean seek(final SeekOp op)
+      throws LmdbNativeException, CommittedException, ClosedException {
+    if (SHOULD_CHECK) {
+      requireNonNull(op);
+      checkNotClosed();
+      txn.checkNotCommitted();
+    }
+
+    final int rc = LIB.mdb_cursor_get(ptrCursor, txn.ptrKey, txn.ptrVal,
+                                      op.getCode());
+
+    if (rc == MDB_NOTFOUND) {
+      return false;
+    }
+
+    checkRc(rc);
+    txn.keyOut();
+    txn.valOut();
+    return true;
   }
 
   private void checkNotClosed() throws ClosedException {

@@ -16,11 +16,11 @@
 package org.lmdbjava;
 
 /**
- * Flags for use when performing a cursor operation.
+ * Flags for use when performing a {@link Cursor#seek(org.lmdbjava.SeekOp)}.
  * <p>
- * Unlike all other LMDB enums, this enum is not bit masked.
+ * Unlike most other LMDB enums, this enum is not bit masked.
  */
-public enum CursorOp {
+public enum SeekOp {
 
   /**
    * Position at first key/data item
@@ -89,19 +89,7 @@ public enum CursorOp {
   /**
    * Position at last data item of previous key
    */
-  MDB_PREV_NODUP(14),
-  /**
-   * Position at specified key
-   */
-  MDB_SET(15),
-  /**
-   * Position at specified key, return key + data
-   */
-  MDB_SET_KEY(16),
-  /**
-   * Position at first key greater than or equal to specified key
-   */
-  MDB_SET_RANGE(17);
+  MDB_PREV_NODUP(14);
 
   private final int code;
 
@@ -114,7 +102,7 @@ public enum CursorOp {
     return code;
   }
 
-  CursorOp(final int code) {
+  SeekOp(final int code) {
     this.code = code;
   }
 

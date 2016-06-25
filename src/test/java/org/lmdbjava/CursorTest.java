@@ -26,19 +26,19 @@ import org.junit.rules.TemporaryFolder;
 import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
 import static org.lmdbjava.ByteBufferProxy.PROXY_SAFE;
 import org.lmdbjava.Cursor.ClosedException;
-import static org.lmdbjava.CursorOp.MDB_FIRST;
-import static org.lmdbjava.CursorOp.MDB_LAST;
-import static org.lmdbjava.CursorOp.MDB_NEXT;
-import static org.lmdbjava.CursorOp.MDB_PREV;
-import static org.lmdbjava.CursorOp.MDB_SET_KEY;
-import static org.lmdbjava.CursorOp.MDB_SET_RANGE;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import static org.lmdbjava.DbiFlags.MDB_DUPSORT;
 import static org.lmdbjava.Env.create;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
+import static org.lmdbjava.GetOp.MDB_SET_KEY;
+import static org.lmdbjava.GetOp.MDB_SET_RANGE;
 import static org.lmdbjava.MutableDirectBufferProxy.PROXY_MDB;
 import static org.lmdbjava.PutFlags.MDB_APPENDDUP;
 import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
+import static org.lmdbjava.SeekOp.MDB_FIRST;
+import static org.lmdbjava.SeekOp.MDB_LAST;
+import static org.lmdbjava.SeekOp.MDB_NEXT;
+import static org.lmdbjava.SeekOp.MDB_PREV;
 import static org.lmdbjava.TestUtils.*;
 import org.lmdbjava.Txn.CommittedException;
 import org.lmdbjava.Txn.ReadOnlyRequiredException;
@@ -54,10 +54,8 @@ public class CursorTest {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
     try (final Txn<ByteBuffer> txn = env.txnWrite()) {
       final Cursor<ByteBuffer> c = db.openCursor(txn);
-      final ByteBuffer key = allocateBb(txn, 1);
-      final ByteBuffer val = allocateBb(txn, 1);
       c.close();
-      c.get(key, MDB_FIRST);
+      c.seek(MDB_FIRST);
     }
   }
 
@@ -101,16 +99,16 @@ public class CursorTest {
       assertThat(txn.val().getInt(0), is(8));
 
       // check MDB navigation operations
-      assertThat(c.get(null, MDB_LAST), is(true));
+      assertThat(c.seek(MDB_LAST), is(true));
       assertThat(txn.key().getInt(0), is(7));
       assertThat(txn.val().getInt(0), is(8));
-      assertThat(c.get(null, MDB_PREV), is(true));
+      assertThat(c.seek(MDB_PREV), is(true));
       assertThat(txn.key().getInt(0), is(5));
       assertThat(txn.val().getInt(0), is(6));
-      assertThat(c.get(null, MDB_NEXT), is(true));
+      assertThat(c.seek(MDB_NEXT), is(true));
       assertThat(txn.key().getInt(0), is(7));
       assertThat(txn.val().getInt(0), is(8));
-      assertThat(c.get(null, MDB_FIRST), is(true));
+      assertThat(c.seek(MDB_FIRST), is(true));
       assertThat(txn.key().getInt(0), is(1));
       assertThat(txn.val().getInt(0), is(2));
     }
@@ -139,16 +137,16 @@ public class CursorTest {
       assertThat(txn.val().getInt(0), is(8));
 
       // check MDB navigation operations
-      assertThat(c.get(null, MDB_LAST), is(true));
+      assertThat(c.seek(MDB_LAST), is(true));
       assertThat(txn.key().getInt(0), is(7));
       assertThat(txn.val().getInt(0), is(8));
-      assertThat(c.get(null, MDB_PREV), is(true));
+      assertThat(c.seek(MDB_PREV), is(true));
       assertThat(txn.key().getInt(0), is(5));
       assertThat(txn.val().getInt(0), is(6));
-      assertThat(c.get(null, MDB_NEXT), is(true));
+      assertThat(c.seek(MDB_NEXT), is(true));
       assertThat(txn.key().getInt(0), is(7));
       assertThat(txn.val().getInt(0), is(8));
-      assertThat(c.get(null, MDB_FIRST), is(true));
+      assertThat(c.seek(MDB_FIRST), is(true));
       assertThat(txn.key().getInt(0), is(1));
       assertThat(txn.val().getInt(0), is(2));
     }
@@ -193,16 +191,16 @@ public class CursorTest {
       assertThat(txn.val().getInt(0), is(8));
 
       // check MDB navigation operations
-      assertThat(c.get(null, MDB_LAST), is(true));
+      assertThat(c.seek(MDB_LAST), is(true));
       assertThat(txn.key().getInt(0), is(7));
       assertThat(txn.val().getInt(0), is(8));
-      assertThat(c.get(null, MDB_PREV), is(true));
+      assertThat(c.seek(MDB_PREV), is(true));
       assertThat(txn.key().getInt(0), is(5));
       assertThat(txn.val().getInt(0), is(6));
-      assertThat(c.get(null, MDB_NEXT), is(true));
+      assertThat(c.seek(MDB_NEXT), is(true));
       assertThat(txn.key().getInt(0), is(7));
       assertThat(txn.val().getInt(0), is(8));
-      assertThat(c.get(null, MDB_FIRST), is(true));
+      assertThat(c.seek(MDB_FIRST), is(true));
       assertThat(txn.key().getInt(0), is(1));
       assertThat(txn.val().getInt(0), is(2));
     }
@@ -216,15 +214,15 @@ public class CursorTest {
       final Cursor<ByteBuffer> c = db.openCursor(txn);
       c.put(allocateBb(txn, 1), allocateBb(txn, 2), MDB_NOOVERWRITE);
       c.put(allocateBb(txn, 3), allocateBb(txn, 4));
-      assertThat(c.get(null, MDB_FIRST), is(true));
+      assertThat(c.seek(MDB_FIRST), is(true));
       assertThat(txn.key().getInt(), is(1));
       assertThat(txn.val().getInt(), is(2));
       c.delete();
-      assertThat(c.get(null, MDB_FIRST), is(true));
+      assertThat(c.seek(MDB_FIRST), is(true));
       assertThat(txn.key().getInt(), is(3));
       assertThat(txn.val().getInt(), is(4));
       c.delete();
-      assertThat(c.get(null, MDB_FIRST), is(false));
+      assertThat(c.seek(MDB_FIRST), is(false));
     }
   }
 
