@@ -37,12 +37,12 @@ public abstract class BufferProxy<T> {
   /**
    * Offset from a pointer of the <code>MDB_val.mv_data</code> field.
    */
-  protected static int STRUCT_FIELD_OFFSET_DATA = BYTES;
+  protected static final int STRUCT_FIELD_OFFSET_DATA = BYTES;
 
   /**
    * Offset from a pointer of the <code>MDB_val.mv_size</code> field.
    */
-  protected static int STRUCT_FIELD_OFFSET_SIZE = 0;
+  protected static final int STRUCT_FIELD_OFFSET_SIZE = 0;
 
   /**
    * Allocate a new buffer suitable for read-write use.
