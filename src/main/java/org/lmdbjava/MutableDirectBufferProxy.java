@@ -27,7 +27,7 @@ import static org.lmdbjava.UnsafeAccess.UNSAFE;
  * <p>
  * This class requires {@link UnsafeAccess} and Agrona must be in the classpath.
  */
-public final class MutableDirectBufferProxy implements
+public final class MutableDirectBufferProxy extends
     BufferProxy<MutableDirectBuffer> {
 
   /**
@@ -38,23 +38,19 @@ public final class MutableDirectBufferProxy implements
   public static final BufferProxy<MutableDirectBuffer> PROXY_MDB
       = new MutableDirectBufferProxy();
 
-  private static MutableDirectBuffer alloc(final int bytes) {
+  @Override
+  protected MutableDirectBuffer allocate(final int bytes) {
     ByteBuffer bb = allocateDirect(bytes);
     return new UnsafeBuffer(bb);
   }
 
   @Override
-  public MutableDirectBuffer allocate(final int bytes) {
-    return alloc(bytes);
+  protected void deallocate(final MutableDirectBuffer buff) {
   }
 
   @Override
-  public void deallocate(final MutableDirectBuffer buff) {
-  }
-
-  @Override
-  public void in(final MutableDirectBuffer buffer, final Pointer ptr,
-                 final long ptrAddr) {
+  protected void in(final MutableDirectBuffer buffer, final Pointer ptr,
+                    final long ptrAddr) {
     final long addr = buffer.addressOffset();
     final long size = buffer.capacity();
     UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_DATA, addr);
@@ -62,8 +58,8 @@ public final class MutableDirectBufferProxy implements
   }
 
   @Override
-  public void out(final MutableDirectBuffer buffer, final Pointer ptr,
-                  final long ptrAddr) {
+  protected void out(final MutableDirectBuffer buffer, final Pointer ptr,
+                     final long ptrAddr) {
     final long addr = UNSAFE.getLong(ptrAddr + STRUCT_FIELD_OFFSET_DATA);
     final long size = UNSAFE.getLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE);
     buffer.wrap(addr, (int) size);

@@ -88,7 +88,7 @@ public final class ByteBufferProxy {
    * A proxy that uses Java reflection to modify byte buffer fields, and
    * official JNR-FFF methods to manipulate native pointers.
    */
-  private static final class ReflectiveProxy implements BufferProxy<ByteBuffer> {
+  private static final class ReflectiveProxy extends BufferProxy<ByteBuffer> {
 
     private static final Field ADDRESS_FIELD;
     private static final Field CAPACITY_FIELD;
@@ -99,25 +99,25 @@ public final class ByteBufferProxy {
     }
 
     @Override
-    public ByteBuffer allocate(final int bytes) {
+    protected ByteBuffer allocate(final int bytes) {
       return allocateDirect(bytes);
     }
 
     @Override
-    public void deallocate(final ByteBuffer buff) {
+    protected void deallocate(final ByteBuffer buff) {
     }
 
     @Override
-    public void in(final ByteBuffer buffer, final Pointer ptr,
-                   final long ptrAddr) {
+    protected void in(final ByteBuffer buffer, final Pointer ptr,
+                      final long ptrAddr) {
       final long addr = ((sun.nio.ch.DirectBuffer) buffer).address();
       ptr.putLong(STRUCT_FIELD_OFFSET_SIZE, buffer.capacity());
       ptr.putLong(STRUCT_FIELD_OFFSET_DATA, addr);
     }
 
     @Override
-    public void out(final ByteBuffer buffer, final Pointer ptr,
-                    final long ptrAddr) {
+    protected void out(final ByteBuffer buffer, final Pointer ptr,
+                       final long ptrAddr) {
       final long addr = ptr.getLong(STRUCT_FIELD_OFFSET_DATA);
       final long size = ptr.getLong(STRUCT_FIELD_OFFSET_SIZE);
       try {
@@ -135,7 +135,7 @@ public final class ByteBufferProxy {
    * A proxy that uses Java's "unsafe" class to directly manipulate byte buffer
    * fields and JNR-FFF allocated memory pointers.
    */
-  private static final class UnsafeProxy implements BufferProxy<ByteBuffer> {
+  private static final class UnsafeProxy extends BufferProxy<ByteBuffer> {
 
     private static final long ADDRESS_OFFSET;
     private static final long CAPACITY_OFFSET;
@@ -152,25 +152,25 @@ public final class ByteBufferProxy {
     }
 
     @Override
-    public ByteBuffer allocate(final int bytes) {
+    protected ByteBuffer allocate(final int bytes) {
       return allocateDirect(bytes);
     }
 
     @Override
-    public void deallocate(final ByteBuffer buff) {
+    protected void deallocate(final ByteBuffer buff) {
     }
 
     @Override
-    public void in(final ByteBuffer buffer, final Pointer ptr,
-                   final long ptrAddr) {
+    protected void in(final ByteBuffer buffer, final Pointer ptr,
+                      final long ptrAddr) {
       final long addr = ((sun.nio.ch.DirectBuffer) buffer).address();
       UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE, buffer.capacity());
       UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_DATA, addr);
     }
 
     @Override
-    public void out(final ByteBuffer buffer, final Pointer ptr,
-                    final long ptrAddr) {
+    protected void out(final ByteBuffer buffer, final Pointer ptr,
+                       final long ptrAddr) {
       final long addr = UNSAFE.getLong(ptrAddr + STRUCT_FIELD_OFFSET_DATA);
       final long size = UNSAFE.getLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE);
       UNSAFE.putLong(buffer, ADDRESS_OFFSET, addr);
