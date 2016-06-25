@@ -97,6 +97,8 @@ public class CursorTest {
       assertThat(c.get(key6, MDB_SET_RANGE), is(true));
       assertThat(txn.key().getInt(0), is(7));
       assertThat(txn.val().getInt(0), is(8));
+      final ByteBuffer key999 = allocateBb(txn, 999);
+      assertThat(c.get(key999, MDB_SET_KEY), is(false));
 
       // check MDB navigation operations
       assertThat(c.seek(MDB_LAST), is(true));
@@ -135,6 +137,8 @@ public class CursorTest {
       assertThat(c.get(key6, MDB_SET_RANGE), is(true));
       assertThat(txn.key().getInt(0), is(7));
       assertThat(txn.val().getInt(0), is(8));
+      final ByteBuffer key999 = allocateBb(txn, 999);
+      assertThat(c.get(key999, MDB_SET_KEY), is(false));
 
       // check MDB navigation operations
       assertThat(c.seek(MDB_LAST), is(true));
@@ -189,6 +193,8 @@ public class CursorTest {
       assertThat(c.get(key6, MDB_SET_RANGE), is(true));
       assertThat(txn.key().getInt(0), is(7));
       assertThat(txn.val().getInt(0), is(8));
+      final MutableDirectBuffer key999 = allocateMdb(txn, 999);
+      assertThat(c.get(key999, MDB_SET_KEY), is(false));
 
       // check MDB navigation operations
       assertThat(c.seek(MDB_LAST), is(true));
