@@ -18,7 +18,7 @@ package org.lmdbjava;
 /**
  * Environment information, as returned by {@link Env#info()}.
  */
-public class EnvInfo {
+public final class EnvInfo {
 
   /**
    * ID of the last used page.

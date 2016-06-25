@@ -52,7 +52,7 @@ public enum DbiFlags implements MaskedFlag {
 
   private final int mask;
 
-  private DbiFlags(final int mask) {
+  DbiFlags(final int mask) {
     this.mask = mask;
   }
 

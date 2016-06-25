@@ -18,7 +18,7 @@ package org.lmdbjava;
 /**
  * Environment statistics, as returned by {@link Env#stat()}.
  */
-public class EnvStat {
+public final class EnvStat {
 
   /**
    * Number of internal (non-leaf) pages.
