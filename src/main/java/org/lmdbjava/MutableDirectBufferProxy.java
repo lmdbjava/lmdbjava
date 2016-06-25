@@ -23,7 +23,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 import static org.lmdbjava.UnsafeAccess.UNSAFE;
 
 /**
- * A buffer proxy that backed by Agrona's {@link MutableDirectBuffer}.
+ * A buffer proxy backed by Agrona's {@link MutableDirectBuffer}.
  * <p>
  * This class requires {@link UnsafeAccess} and Agrona must be in the classpath.
  */
@@ -31,45 +31,30 @@ public final class MutableDirectBufferProxy implements
     BufferProxy<MutableDirectBuffer> {
 
   /**
-   * The {@link MutableDirectBuffer} proxy factory. Guaranteed to never be null,
+   * The {@link MutableDirectBuffer} proxy. Guaranteed to never be null,
    * although a class initialization exception will occur if an attempt is made
    * to access this field when unsafe or Agrona is unavailable.
    */
-  public static final BufferProxy<MutableDirectBuffer> FACTORY_MDB
+  public static final BufferProxy<MutableDirectBuffer> PROXY_MDB
       = new MutableDirectBufferProxy();
 
-  /**
-   *
-   */
-  public static MutableDirectBufferProxyFactory MDB_FACTORY
-      = new MutableDirectBufferProxyFactory();
-
-  private static MutableDirectBuffer alloc(int bytes) {
+  private static MutableDirectBuffer alloc(final int bytes) {
     ByteBuffer bb = allocateDirect(bytes);
     return new UnsafeBuffer(bb);
   }
-  final MutableDirectBuffer buffer;
-
-  MutableDirectBufferProxy() {
-    buffer = alloc(0);
-  }
 
   @Override
-  public MutableDirectBuffer allocate(int bytes) {
+  public MutableDirectBuffer allocate(final int bytes) {
     return alloc(bytes);
   }
 
-  /**
-   *
-   * @return
-   */
   @Override
-  public MutableDirectBuffer buffer() {
-    return buffer;
+  public void deallocate(final MutableDirectBuffer buff) {
   }
 
   @Override
-  public void in(MutableDirectBuffer buffer, Pointer ptr, long ptrAddr) {
+  public void in(final MutableDirectBuffer buffer, final Pointer ptr,
+                 final long ptrAddr) {
     final long addr = buffer.addressOffset();
     final long size = buffer.capacity();
     UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_DATA, addr);
@@ -77,34 +62,11 @@ public final class MutableDirectBufferProxy implements
   }
 
   @Override
-  public void out(Pointer ptr, long ptrAddr) {
+  public void out(final MutableDirectBuffer buffer, final Pointer ptr,
+                  final long ptrAddr) {
     final long addr = UNSAFE.getLong(ptrAddr + STRUCT_FIELD_OFFSET_DATA);
     final long size = UNSAFE.getLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE);
     buffer.wrap(addr, (int) size);
   }
 
-  /**
-   *
-   */
-  public static class MutableDirectBufferProxyFactory
-      implements BufferProxyFactory<MutableDirectBuffer> {
-
-    /**
-     *
-     * @return
-     */
-    @Override
-    public MutableDirectBufferProxy allocate() {
-      return new MutableDirectBufferProxy();
-    }
-
-    /**
-     *
-     * @param proxy
-     */
-    @Override
-    public void deallocate(BufferProxy proxy) {
-
-    }
-  }
 }

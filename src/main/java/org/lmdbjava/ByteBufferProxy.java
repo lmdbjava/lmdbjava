@@ -32,8 +32,8 @@ import static org.lmdbjava.UnsafeAccess.UNSAFE;
  * </ul>
  * <p>
  * Users nominate which implementation they prefer by referencing the
- * {@link #PROXY_OPTIMAL} or {@link #PROXY_SAFE} field when constructing
- * {@link Dbi}.
+ * {@link #PROXY_OPTIMAL} or {@link #PROXY_SAFE} field when invoking
+ * {@link Env#create(org.lmdbjava.BufferProxy)}.
  */
 public final class ByteBufferProxy {
 
@@ -88,7 +88,7 @@ public final class ByteBufferProxy {
    * A proxy that uses Java reflection to modify byte buffer fields, and
    * official JNR-FFF methods to manipulate native pointers.
    */
-  static final class ReflectiveProxy implements BufferProxy<ByteBuffer> {
+  private static final class ReflectiveProxy implements BufferProxy<ByteBuffer> {
 
     private static final Field ADDRESS_FIELD;
     private static final Field CAPACITY_FIELD;
@@ -97,31 +97,27 @@ public final class ByteBufferProxy {
       ADDRESS_FIELD = findField(Buffer.class, FIELD_NAME_ADDRESS);
       CAPACITY_FIELD = findField(Buffer.class, FIELD_NAME_CAPACITY);
     }
-    ByteBuffer buffer;
-
-    ReflectiveProxy() {
-      this.buffer = allocateDirect(0);
-    }
 
     @Override
-    public ByteBuffer allocate(int bytes) {
+    public ByteBuffer allocate(final int bytes) {
       return allocateDirect(bytes);
     }
 
     @Override
-    public ByteBuffer buffer() {
-      return buffer;
+    public void deallocate(final ByteBuffer buff) {
     }
 
     @Override
-    public void in(ByteBuffer buffer, Pointer ptr, long ptrAddr) {
+    public void in(final ByteBuffer buffer, final Pointer ptr,
+                   final long ptrAddr) {
       final long addr = ((sun.nio.ch.DirectBuffer) buffer).address();
       ptr.putLong(STRUCT_FIELD_OFFSET_SIZE, buffer.capacity());
       ptr.putLong(STRUCT_FIELD_OFFSET_DATA, addr);
     }
 
     @Override
-    public void out(Pointer ptr, long ptrAddr) {
+    public void out(final ByteBuffer buffer, final Pointer ptr,
+                    final long ptrAddr) {
       final long addr = ptr.getLong(STRUCT_FIELD_OFFSET_DATA);
       final long size = ptr.getLong(STRUCT_FIELD_OFFSET_SIZE);
       try {
@@ -132,16 +128,17 @@ public final class ByteBufferProxy {
       }
       buffer.clear();
     }
+
   }
 
   /**
    * A proxy that uses Java's "unsafe" class to directly manipulate byte buffer
    * fields and JNR-FFF allocated memory pointers.
    */
-  static final class UnsafeProxy implements BufferProxy<ByteBuffer> {
+  private static final class UnsafeProxy implements BufferProxy<ByteBuffer> {
 
-    static final long ADDRESS_OFFSET;
-    static final long CAPACITY_OFFSET;
+    private static final long ADDRESS_OFFSET;
+    private static final long CAPACITY_OFFSET;
 
     static {
       try {
@@ -153,31 +150,27 @@ public final class ByteBufferProxy {
         throw new RuntimeException(e);
       }
     }
-    ByteBuffer buffer;
-
-    UnsafeProxy() {
-      buffer = allocateDirect(0);
-    }
 
     @Override
-    public ByteBuffer allocate(int bytes) {
+    public ByteBuffer allocate(final int bytes) {
       return allocateDirect(bytes);
     }
 
     @Override
-    public ByteBuffer buffer() {
-      return buffer;
+    public void deallocate(final ByteBuffer buff) {
     }
 
     @Override
-    public void in(ByteBuffer buffer, Pointer ptr, long ptrAddr) {
+    public void in(final ByteBuffer buffer, final Pointer ptr,
+                   final long ptrAddr) {
       final long addr = ((sun.nio.ch.DirectBuffer) buffer).address();
       UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE, buffer.capacity());
       UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_DATA, addr);
     }
 
     @Override
-    public void out(Pointer ptr, long ptrAddr) {
+    public void out(final ByteBuffer buffer, final Pointer ptr,
+                    final long ptrAddr) {
       final long addr = UNSAFE.getLong(ptrAddr + STRUCT_FIELD_OFFSET_DATA);
       final long size = UNSAFE.getLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE);
       UNSAFE.putLong(buffer, ADDRESS_OFFSET, addr);

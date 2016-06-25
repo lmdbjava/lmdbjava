@@ -79,9 +79,9 @@ public class DbiTest {
   @Test(expected = KeyExistsException.class)
   public void keyExistsException() throws Exception {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
-    try (final Txn tx = env.txnWrite()) {
-      db.put(tx, createBb(5), createBb(5), MDB_NOOVERWRITE);
-      db.put(tx, createBb(5), createBb(5), MDB_NOOVERWRITE);
+    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
+      db.put(txn, createBb(5), createBb(5), MDB_NOOVERWRITE);
+      db.put(txn, createBb(5), createBb(5), MDB_NOOVERWRITE);
     }
   }
 
@@ -89,13 +89,13 @@ public class DbiTest {
   public void putAbortGet() throws Exception {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
 
-    try (final Txn tx = env.txnWrite()) {
-      db.put(tx, createBb(5), createBb(5));
-      tx.abort();
+    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
+      db.put(txn, createBb(5), createBb(5));
+      txn.abort();
     }
 
-    try (final Txn tx = env.txnWrite()) {
-      db.get(tx, createBb(5));
+    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
+      db.get(txn, createBb(5));
       fail("key does not exist");
     } catch (KeyNotFoundException e) {
     }
@@ -120,13 +120,13 @@ public class DbiTest {
   @Test
   public void putCommitGet() throws Exception {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
-    try (final Txn tx = env.txnWrite()) {
-      db.put(tx, createBb(5), createBb(5));
-      tx.commit();
+    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
+      db.put(txn, createBb(5), createBb(5));
+      txn.commit();
     }
 
-    try (final Txn tx = env.txnWrite()) {
-      final ByteBuffer result = db.get(tx, createBb(5));
+    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
+      final ByteBuffer result = db.get(txn, createBb(5));
       assertThat(result.getInt(), is(5));
     }
   }
@@ -135,16 +135,16 @@ public class DbiTest {
   public void putDelete() throws Exception {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
 
-    try (final Txn tx = env.txnWrite()) {
-      db.put(tx, createBb(5), createBb(5));
-      db.delete(tx, createBb(5));
+    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
+      db.put(txn, createBb(5), createBb(5));
+      db.delete(txn, createBb(5));
 
       try {
-        db.get(tx, createBb(5));
+        db.get(txn, createBb(5));
         fail("key does not exist");
       } catch (KeyNotFoundException e) {
       }
-      tx.abort();
+      txn.abort();
     }
   }
 
@@ -152,27 +152,27 @@ public class DbiTest {
   public void putDuplicateDelete() throws Exception {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
 
-    try (final Txn tx = env.txnWrite()) {
-      db.put(tx, createBb(5), createBb(5));
-      db.put(tx, createBb(5), createBb(6));
-      db.put(tx, createBb(5), createBb(7));
-      db.delete(tx, createBb(5), createBb(6));
+    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
+      db.put(txn, createBb(5), createBb(5));
+      db.put(txn, createBb(5), createBb(6));
+      db.put(txn, createBb(5), createBb(7));
+      db.delete(txn, createBb(5), createBb(6));
 
-      try (final Cursor<ByteBuffer> cursor = db.openCursor(tx)) {
-        final ByteBuffer key = allocateBb(db, 5);
+      try (final Cursor<ByteBuffer> cursor = db.openCursor(txn)) {
+        final ByteBuffer key = allocateBb(txn, 5);
         cursor.get(key, MDB_SET_KEY);
         assertThat(cursor.count(), is(2L));
       }
-      tx.abort();
+      txn.abort();
     }
   }
 
   @Test(expected = MapFullException.class)
   public void testMapFullException() throws Exception {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
-    try (final Txn tx = env.txnWrite()) {
+    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
       final ByteBuffer v = allocateDirect(1_024 * 1_024 * 1_024);
-      db.put(tx, createBb(1), v);
+      db.put(txn, createBb(1), v);
     }
   }
 

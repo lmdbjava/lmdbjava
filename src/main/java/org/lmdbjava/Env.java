@@ -1,18 +1,3 @@
-/*
- * Copyright 2016 The LmdbJava Project, http://lmdbjava.org/
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.lmdbjava;
 
 import java.io.File;
@@ -21,6 +6,7 @@ import java.nio.ByteBuffer;
 import static java.util.Objects.requireNonNull;
 import jnr.ffi.Pointer;
 import jnr.ffi.byref.PointerByReference;
+import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
 import static org.lmdbjava.Library.LIB;
 import org.lmdbjava.Library.MDB_envinfo;
 import org.lmdbjava.Library.MDB_stat;
@@ -28,12 +14,14 @@ import static org.lmdbjava.Library.RUNTIME;
 import static org.lmdbjava.MaskedFlag.mask;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
 import org.lmdbjava.Txn.CommittedException;
+import org.lmdbjava.Txn.IncompatibleParent;
+import org.lmdbjava.Txn.ReadWriteRequiredException;
 import static org.lmdbjava.TxnFlags.MDB_RDONLY;
 
 /**
  * LMDB environment.
  *
- * @param <T>
+ * @param <T> buffer type
  */
 public final class Env<T> implements AutoCloseable {
 
@@ -51,37 +39,31 @@ public final class Env<T> implements AutoCloseable {
   public static final boolean SHOULD_CHECK = !getBoolean(DISABLE_CHECKS_PROP);
 
   /**
+   * Create an {@link Env} using the {@link ByteBufferProxy#PROXY_OPTIMAL}.
    *
-   * @return @throws LmdbNativeException
+   * @return the environment (never null)
+   * @throws LmdbNativeException if a native C error occurred
    */
   public static Env<ByteBuffer> create() throws LmdbNativeException {
-    return new Env<>(new BufferProxyFactory<ByteBuffer>() {
-      @Override
-      public BufferProxy<ByteBuffer> allocate() {
-        return new ByteBufferProxy.ReflectiveProxy();
-      }
-
-      @Override
-      public void deallocate(BufferProxy<ByteBuffer> proxy) {
-      }
-    });
+    return new Env<>(PROXY_OPTIMAL);
   }
 
   /**
+   * Create an {@link Env} using the passed {@link BufferProxy}.
    *
    * @param <T>
-   * @param factory
-   * @return
-   * @throws LmdbNativeException
+   * @param proxy the proxy to use (required)
+   * @return the environment (never null)
+   * @throws LmdbNativeException if a native C error occurred
    */
-  public static <T> Env<T> create(BufferProxyFactory<T> factory) throws
-      LmdbNativeException {
-    return new Env<>(factory);
+  public static <T> Env<T> create(final BufferProxy<T> proxy) throws
+      LmdbException {
+    return new Env<>(proxy);
   }
 
   private boolean closed = false;
   private boolean open = false;
-  final BufferProxyFactory<T> factory;
+  private final BufferProxy<T> proxy;
   final Pointer ptr;
 
   /**
@@ -89,11 +71,12 @@ public final class Env<T> implements AutoCloseable {
    *
    * @throws LmdbNativeException if a native C error occurred
    */
-  Env(BufferProxyFactory<T> factory) throws LmdbNativeException {
+  private Env(final BufferProxy<T> proxy) throws LmdbNativeException {
+    requireNonNull(proxy);
+    this.proxy = proxy;
     final PointerByReference envPtr = new PointerByReference();
     checkRc(LIB.mdb_env_create(envPtr));
     ptr = envPtr.getValue();
-    this.factory = factory;
   }
 
   /**
@@ -282,23 +265,22 @@ public final class Env<T> implements AutoCloseable {
   }
 
   /**
-   * Open the {@link Dbi} using the provided {@link BufferProxy}.
+   * Open the {@link Dbi}.
    *
-   * @param <T>   buffer type that used by {@link Dbi} and its {@link Cursor}s
    * @param name  name of the database (or null if no name is required)
    * @param flags to open the database with
    * @return a database that is ready to use
    * @throws NotOpenException
    * @throws LmdbNativeException
    */
-  public <T> Dbi<T> openDbi(String name, DbiFlags... flags)
+  public Dbi<T> openDbi(final String name, final DbiFlags... flags)
       throws NotOpenException, LmdbNativeException {
-    try (Txn txn = txnWrite()) {
-      Dbi<T> dbi = (Dbi<T>) new Dbi<>(txn, name, factory, flags);
+    try (Txn<T> txn = txnWrite()) {
+      final Dbi<T> dbi = new Dbi<>(this, txn, name, flags);
       txn.commit();
       return dbi;
-    } catch (Txn.ReadWriteRequiredException | CommittedException e) {
-      throw new IllegalStateException(); // cannot happen (Txn is try scoped)
+    } catch (ReadWriteRequiredException | CommittedException e) {
+      throw new IllegalStateException(e); // cannot happen (Txn is try scoped)
     }
   }
 
@@ -353,22 +335,50 @@ public final class Env<T> implements AutoCloseable {
   }
 
   /**
+   * Obtain a transaction with the requested parent and flags.
    *
-   * @return @throws NotOpenException
-   * @throws LmdbNativeException
+   * @param parent parent transaction (may be null if no parent)
+   * @param flags  applicable flags (eg for a reusable, read-only transaction)
+   * @return a transaction (never null)
+   * @throws NotOpenException    if the environment is not currently open
+   * @throws IncompatibleParent  if the parent has a different read-write flags
+   *                             than the proposed child
+   * @throws LmdbNativeException if a native C error occurred
    */
-  public Txn txnRead() throws NotOpenException, LmdbNativeException {
-    return new Txn(this, factory, null, MDB_RDONLY);
+  public Txn<T> txn(final Txn<T> parent, final TxnFlags... flags) throws
+      NotOpenException, IncompatibleParent, LmdbNativeException {
+    return new Txn<>(this, parent, proxy, flags);
   }
 
   /**
+   * Obtain a read-only transaction.
    *
-   * @return @throws NotOpenException
-   * @throws LmdbNativeException
+   * @return
+   * @throws NotOpenException    if the environment is not currently open
+   * @throws LmdbNativeException if a native C error occurred
    */
-  public Txn txnWrite() throws NotOpenException,
-                               LmdbNativeException {
-    return new Txn(this, factory, null);
+  public Txn<T> txnRead() throws NotOpenException, LmdbNativeException {
+    return txn(MDB_RDONLY);
+  }
+
+  /**
+   * Obtain a read-write transaction.
+   *
+   * @return
+   * @throws NotOpenException    if the environment is not currently open
+   * @throws LmdbNativeException if a native C error occurred
+   */
+  public Txn<T> txnWrite() throws NotOpenException, LmdbNativeException {
+    return txn();
+  }
+
+  private Txn<T> txn(final TxnFlags... flags) throws NotOpenException,
+                                                     LmdbNativeException {
+    try {
+      return new Txn<>(this, null, proxy, flags);
+    } catch (IncompatibleParent e) {
+      throw new RuntimeException(e); // cannot occur as parent is null
+    }
   }
 
   /**

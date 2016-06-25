@@ -16,6 +16,7 @@
 package org.lmdbjava;
 
 import java.io.File;
+import java.nio.ByteBuffer;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -39,51 +40,51 @@ public class EnvTest {
 
   @Test
   public void canCloseBeforeOpen() throws Exception {
-    final Env env = create();
+    final Env<ByteBuffer> env = create();
     env.close();
     assertThat(env.isClosed(), is(true));
   }
 
   @Test(expected = NotOpenException.class)
   public void cannotInfoIfNeverOpen() throws Exception {
-    final Env e = create();
-    e.info();
+    final Env<ByteBuffer> env = create();
+    env.info();
   }
 
   @Test(expected = AlreadyClosedException.class)
   public void cannotInfoOnceClosed() throws Exception {
-    final Env env = create();
+    final Env<ByteBuffer> env = create();
     env.close();
     env.info();
   }
 
   @Test(expected = AlreadyClosedException.class)
   public void cannotOpenOnceClosed() throws Exception {
-    final Env e = create();
+    final Env<ByteBuffer> env = create();
     final File path = tmp.newFile();
-    e.open(path, POSIX_MODE, MDB_NOSUBDIR);
-    e.close();
-    e.open(path, POSIX_MODE, MDB_NOSUBDIR); // error
+    env.open(path, POSIX_MODE, MDB_NOSUBDIR);
+    env.close();
+    env.open(path, POSIX_MODE, MDB_NOSUBDIR); // error
   }
 
   @Test(expected = AlreadyOpenException.class)
   public void cannotOpenTwice() throws Exception {
-    final Env e = create();
+    final Env<ByteBuffer> env = create();
     final File path = tmp.newFile();
-    e.open(path, POSIX_MODE, MDB_NOSUBDIR);
-    e.open(path, POSIX_MODE, MDB_NOSUBDIR); // error
+    env.open(path, POSIX_MODE, MDB_NOSUBDIR);
+    env.open(path, POSIX_MODE, MDB_NOSUBDIR); // error
   }
 
   @Test(expected = AlreadyClosedException.class)
   public void cannotSetMapSizeOnceClosed() throws Exception {
-    final Env env = create();
+    final Env<ByteBuffer> env = create();
     env.close();
     env.setMapSize(1);
   }
 
   @Test(expected = AlreadyOpenException.class)
   public void cannotSetMapSizeOnceOpen() throws Exception {
-    final Env env = create();
+    final Env<ByteBuffer> env = create();
     final File path = tmp.newFile();
     env.open(path, POSIX_MODE, MDB_NOSUBDIR);
     env.setMapSize(1);
@@ -91,14 +92,14 @@ public class EnvTest {
 
   @Test(expected = AlreadyClosedException.class)
   public void cannotSetMaxDbsOnceClosed() throws Exception {
-    final Env env = create();
+    final Env<ByteBuffer> env = create();
     env.close();
     env.setMaxDbs(1);
   }
 
   @Test(expected = AlreadyOpenException.class)
   public void cannotSetMaxDbsOnceOpen() throws Exception {
-    final Env env = create();
+    final Env<ByteBuffer> env = create();
     final File path = tmp.newFile();
     env.open(path, POSIX_MODE, MDB_NOSUBDIR);
     env.setMaxDbs(1);
@@ -106,14 +107,14 @@ public class EnvTest {
 
   @Test(expected = AlreadyClosedException.class)
   public void cannotSetMaxReadersOnceClosed() throws Exception {
-    final Env env = create();
+    final Env<ByteBuffer> env = create();
     env.close();
     env.setMaxReaders(1);
   }
 
   @Test(expected = AlreadyOpenException.class)
   public void cannotSetMaxReadersOnceOpen() throws Exception {
-    final Env env = create();
+    final Env<ByteBuffer> env = create();
     final File path = tmp.newFile();
     env.open(path, POSIX_MODE, MDB_NOSUBDIR);
     env.setMaxReaders(1);
@@ -121,26 +122,26 @@ public class EnvTest {
 
   @Test(expected = NotOpenException.class)
   public void cannotStatIfNeverOpen() throws Exception {
-    final Env e = create();
-    e.stat();
+    final Env<ByteBuffer> env = create();
+    env.stat();
   }
 
   @Test(expected = AlreadyClosedException.class)
   public void cannotStatOnceClosed() throws Exception {
-    final Env env = create();
+    final Env<ByteBuffer> env = create();
     env.close();
     env.stat();
   }
 
   @Test(expected = NotOpenException.class)
   public void cannotSyncIfNotOpen() throws Exception {
-    final Env env = create();
+    final Env<ByteBuffer> env = create();
     env.sync(false);
   }
 
   @Test(expected = AlreadyClosedException.class)
   public void cannotSyncOnceClosed() throws Exception {
-    final Env env = create();
+    final Env<ByteBuffer> env = create();
     final File path = tmp.newFile();
     env.open(path, POSIX_MODE, MDB_NOSUBDIR);
     env.close();
@@ -154,7 +155,7 @@ public class EnvTest {
     assertThat(dest.exists(), is(true));
     assertThat(dest.isDirectory(), is(true));
     assertThat(dest.list().length, is(0));
-    try (Env env = create()) {
+    try (final Env<ByteBuffer> env = create()) {
       final File src = tmp.newFolder();
       env.open(src, POSIX_MODE);
       env.copy(dest, MDB_CP_COMPACT);
@@ -165,7 +166,7 @@ public class EnvTest {
   @Test(expected = InvalidCopyDestination.class)
   public void copyRejectsFileDestination() throws Exception {
     final File dest = tmp.newFile();
-    try (Env env = create()) {
+    try (final Env<ByteBuffer> env = create()) {
       final File src = tmp.newFolder();
       env.open(src, POSIX_MODE);
       env.copy(dest, MDB_CP_COMPACT);
@@ -176,7 +177,7 @@ public class EnvTest {
   public void copyRejectsMissingDestination() throws Exception {
     final File dest = tmp.newFolder();
     dest.delete();
-    try (Env env = create()) {
+    try (final Env<ByteBuffer> env = create()) {
       final File src = tmp.newFolder();
       env.open(src, POSIX_MODE);
       env.copy(dest, MDB_CP_COMPACT);
@@ -188,7 +189,7 @@ public class EnvTest {
     final File dest = tmp.newFolder();
     final File subDir = new File(dest, "hello");
     subDir.mkdir();
-    try (Env env = create()) {
+    try (final Env<ByteBuffer> env = create()) {
       final File src = tmp.newFolder();
       env.open(src, POSIX_MODE);
       env.copy(dest, MDB_CP_COMPACT);
@@ -197,7 +198,7 @@ public class EnvTest {
 
   @Test
   public void createAsDirectory() throws Exception {
-    final Env env = create();
+    final Env<ByteBuffer> env = create();
     assertThat(env, is(notNullValue()));
     assertThat(env.isOpen(), is(false));
     assertThat(env.isClosed(), is(false));
@@ -214,7 +215,7 @@ public class EnvTest {
 
   @Test
   public void createAsFile() throws Exception {
-    try (Env env = create()) {
+    try (final Env<ByteBuffer> env = create()) {
       assertThat(env, is(notNullValue()));
       assertThat(env.isOpen(), is(false));
       final File path = tmp.newFile();
@@ -230,7 +231,7 @@ public class EnvTest {
 
   @Test
   public void info() throws Exception {
-    final Env env = create();
+    final Env<ByteBuffer> env = create();
     final File path = tmp.newFile();
     env.setMaxReaders(4);
     env.setMapSize(123_456);
@@ -247,7 +248,7 @@ public class EnvTest {
 
   @Test
   public void stats() throws Exception {
-    final Env env = create();
+    final Env<ByteBuffer> env = create();
     final File path = tmp.newFile();
     env.open(path, POSIX_MODE, MDB_NOSUBDIR);
     EnvStat stat = env.stat();

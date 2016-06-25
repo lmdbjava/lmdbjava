@@ -20,8 +20,15 @@ import jnr.ffi.Pointer;
 
 /**
  * The strategy for mapping memory address to a given buffer type.
+ * <p>
+ * The proxy is passed to the {@link Env#create(org.lmdbjava.BufferProxy)}
+ * method and is subsequently used by every {@link Txn}, {@link Dbi} and
+ * {@link Cursor} associated with the {@link Env}.
+ * <p>
+ * Users must not call {@link BufferProxy} methods themselves. Instead use the
+ * buffer-related methods by {@link Txn}.
  *
- * @param <T> type of buffer managed by this proxy
+ * @param <T> buffer type
  */
 public interface BufferProxy<T> {
 
@@ -44,10 +51,11 @@ public interface BufferProxy<T> {
    * Called when the <code>MDB_val</code> may have changed and the passed buffer
    * should be modified to reflect the new <code>MDB_val</code>.
    *
+   * @param buffer  the buffer to write to <code>MDB_val</code>
    * @param ptr     the pointer to the <code>MDB_val</code>
    * @param ptrAddr the address of the <code>MDB_val</code> pointer
    */
-  void out(Pointer ptr, long ptrAddr);
+  void out(T buffer, Pointer ptr, long ptrAddr);
 
   /**
    * Called when the <code>MDB_val</code> should be set to reflect the passed
@@ -68,9 +76,10 @@ public interface BufferProxy<T> {
   T allocate(int bytes);
 
   /**
+   * Deallocate a buffer that was previously provided by {@link #allocate(int)}.
    *
-   * @return
+   * @param buff the buffer to deallocate (required)
    */
-  T buffer();
+  void deallocate(T buff);
 
 }

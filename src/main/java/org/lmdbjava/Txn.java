@@ -15,10 +15,14 @@
  */
 package org.lmdbjava;
 
+import java.util.ArrayList;
+import java.util.List;
 import static java.util.Objects.requireNonNull;
 import static jnr.ffi.Memory.allocateDirect;
 import static jnr.ffi.NativeType.ADDRESS;
 import jnr.ffi.Pointer;
+import jnr.ffi.provider.MemoryManager;
+import static org.lmdbjava.BufferProxy.MDB_VAL_STRUCT_SIZE;
 import org.lmdbjava.Env.NotOpenException;
 import static org.lmdbjava.Library.LIB;
 import static org.lmdbjava.Library.RUNTIME;
@@ -29,51 +33,57 @@ import static org.lmdbjava.TxnFlags.MDB_RDONLY;
 
 /**
  * LMDB transaction.
+ *
+ * @param <T> buffer type
  */
-public final class Txn implements AutoCloseable {
+public final class Txn<T> implements AutoCloseable {
 
+  private static final MemoryManager MEM_MGR = RUNTIME.getMemoryManager();
   private boolean committed = false;
+  private final Env<T> env;
+  private final T key;
+  private final Txn<T> parent;
+  private BufferProxy<T> proxy;
+  private final long ptrKeyAddr;
+  private final long ptrValAddr;
   private final boolean readOnly;
   private boolean reset = false;
-  final TxnContext ctx;
-
-  final Env env;
-  final Txn parent;
+  private final List<T> rwBuffs = new ArrayList<>();
+  private final T val;
   final Pointer ptr;
+  final Pointer ptrKey;
+  final Pointer ptrVal;
 
-  /**
-   * Create a transaction handle.
-   * <p>
-   * An transaction can be read-only or read-write, based on the passed
-   * transaction flags.
-   * <p>
-   * The environment must be open at the time of calling this constructor.
-   * <p>
-   * A transaction must be finalised by calling {@link #commit()} or
-   * {@link #abort()}.
-   *
-   * @param env    the owning environment (required)
-   * @param parent parent transaction (may be null if no parent)
-   * @param flags  applicable flags (eg for a reusable, read-only transaction)
-   * @throws NotOpenException    if the environment is not currently open
-   * @throws LmdbNativeException if a native C error occurred
-   */
-  Txn(final Env env, BufferProxyFactory factory, final Txn parent,
-      final TxnFlags... flags) throws NotOpenException,
-                                      LmdbNativeException {
+  Txn(final Env<T> env, final Txn<T> parent, final BufferProxy<T> proxy,
+      final TxnFlags... flags)
+      throws NotOpenException, IncompatibleParent, LmdbNativeException {
     requireNonNull(env);
+    requireNonNull(proxy);
     if (!env.isOpen() || env.isClosed()) {
       throw new NotOpenException();
     }
     this.env = env;
+    this.proxy = proxy;
     final int flagsMask = mask(flags);
     this.readOnly = isSet(flagsMask, MDB_RDONLY);
     this.parent = parent;
+    if (parent != null) {
+      if ((parent.readOnly && !this.readOnly)
+              || (!parent.readOnly && this.readOnly)) {
+        throw new IncompatibleParent();
+      }
+    }
     final Pointer txnPtr = allocateDirect(RUNTIME, ADDRESS);
     final Pointer txnParentPtr = parent == null ? null : parent.ptr;
     checkRc(LIB.mdb_txn_begin(env.ptr, txnParentPtr, flagsMask, txnPtr));
     ptr = txnPtr.getPointer(0);
-    this.ctx = new TxnContext(this, factory);
+
+    this.key = proxy.allocate(0);
+    this.val = proxy.allocate(0);
+    ptrKey = MEM_MGR.allocateTemporary(MDB_VAL_STRUCT_SIZE, false);
+    ptrKeyAddr = ptrKey.address();
+    ptrVal = MEM_MGR.allocateTemporary(MDB_VAL_STRUCT_SIZE, false);
+    ptrValAddr = ptrVal.address();
   }
 
   /**
@@ -90,14 +100,38 @@ public final class Txn implements AutoCloseable {
   }
 
   /**
-   * Closes this transaction by aborting if not already committed
+   * Allocate a new buffer suitable for read-write use.
+   * <p>
+   * This buffer must not be used after {@link Txn#close()}.
+   *
+   * @param bytes the size of the buffer
+   * @return a writable buffer suitable for use with buffer-requiring methods
+   */
+  public T allocate(final int bytes) {
+    final T buff = proxy.allocate(bytes);
+    rwBuffs.add(buff);
+    return buff;
+  }
+
+  /**
+   * Closes this transaction by aborting if not already committed.
+   * <p>
+   * Closing the transaction will invoke
+   * {@link BufferProxy#deallocate(java.lang.Object)} for each read-only buffer
+   * (ie the key and value) as well as any buffers allocated via
+   * {@link #allocate(int)}. As such these buffers must not be used after the
+   * transaction has closed.
    */
   @Override
   public void close() {
-    ctx.close();
     if (committed) {
       return;
     }
+    rwBuffs.forEach((buff) -> {
+      proxy.deallocate(buff);
+    });
+    proxy.deallocate(key);
+    proxy.deallocate(val);
     LIB.mdb_txn_abort(ptr);
     committed = true;
   }
@@ -130,7 +164,7 @@ public final class Txn implements AutoCloseable {
    *
    * @return the parent transaction (may be null)
    */
-  public Txn getParent() {
+  public Txn<T> getParent() {
     return parent;
   }
 
@@ -159,6 +193,18 @@ public final class Txn implements AutoCloseable {
    */
   public boolean isReset() {
     return reset;
+  }
+
+  /**
+   * Fetch the buffer which holds a read-only view of the LMDI allocated memory.
+   * Any use of this buffer must comply with the standard LMDB C "mdb_get"
+   * contract (ie do not modify, do not attempt to release the memory, do not
+   * use once the transaction or cursor closes, do not use after a write etc).
+   *
+   * @return the key buffer (never null)
+   */
+  public T key() {
+    return key;
   }
 
   /**
@@ -193,6 +239,18 @@ public final class Txn implements AutoCloseable {
     reset = true;
   }
 
+  /**
+   * Fetch the buffer which holds a read-only view of the LMDI allocated memory.
+   * Any use of this buffer must comply with the standard LMDB C "mdb_get"
+   * contract (ie do not modify, do not attempt to release the memory, do not
+   * use once the transaction or cursor closes, do not use after a write etc).
+   *
+   * @return the value buffer (never null)
+   */
+  public T val() {
+    return val;
+  }
+
   void checkNotCommitted() throws CommittedException {
     if (committed) {
       throw new CommittedException();
@@ -209,6 +267,22 @@ public final class Txn implements AutoCloseable {
     if (readOnly) {
       throw new ReadWriteRequiredException();
     }
+  }
+
+  void keyIn(T key) {
+    proxy.in(key, ptrKey, ptrKeyAddr);
+  }
+
+  void keyOut() {
+    proxy.out(key, ptrKey, ptrKeyAddr);
+  }
+
+  void valIn(T val) {
+    proxy.in(val, ptrVal, ptrValAddr);
+  }
+
+  void valOut() {
+    proxy.out(val, ptrVal, ptrValAddr);
   }
 
   /**
@@ -249,6 +323,21 @@ public final class Txn implements AutoCloseable {
      */
     public CommittedException() {
       super("Transaction has already been committed");
+    }
+  }
+
+  /**
+   * The proposed transaction is incompatible with its parent transaction.
+   */
+  public static class IncompatibleParent extends LmdbException {
+
+    private static final long serialVersionUID = 1L;
+
+    /**
+     * Creates a new instance.
+     */
+    public IncompatibleParent() {
+      super("Transaction incompatible with its parent transaction");
     }
   }
 

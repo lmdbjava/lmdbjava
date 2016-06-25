@@ -35,16 +35,18 @@ import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.POSIX_MODE;
 import static org.lmdbjava.TestUtils.createBb;
 import org.lmdbjava.Txn.CommittedException;
+import org.lmdbjava.Txn.IncompatibleParent;
 import org.lmdbjava.Txn.NotResetException;
 import org.lmdbjava.Txn.ReadOnlyRequiredException;
 import org.lmdbjava.Txn.ReadWriteRequiredException;
 import org.lmdbjava.Txn.ResetException;
+import static org.lmdbjava.TxnFlags.MDB_RDONLY;
 
 public class TxnTest {
 
   @Rule
   public final TemporaryFolder tmp = new TemporaryFolder();
-  private Env env;
+  private Env<ByteBuffer> env;
 
   @Before
   public void before() throws Exception {
@@ -60,21 +62,21 @@ public class TxnTest {
 
   @Test(expected = CommittedException.class)
   public void testCheckNotCommitted() throws Exception {
-    final Txn tx = env.txnRead();
-    tx.commit();
-    tx.checkNotCommitted();
+    final Txn<ByteBuffer> txn = env.txnRead();
+    txn.commit();
+    txn.checkNotCommitted();
   }
 
   @Test(expected = ReadOnlyRequiredException.class)
   public void testCheckReadOnly() throws Exception {
-    final Txn tx = env.txnWrite();
-    tx.checkReadOnly();
+    final Txn<ByteBuffer> txn = env.txnWrite();
+    txn.checkReadOnly();
   }
 
   @Test(expected = ReadWriteRequiredException.class)
   public void testCheckWritesAllowed() throws Exception {
-    final Txn tx = env.txnRead();
-    tx.checkWritesAllowed();
+    final Txn<ByteBuffer> txn = env.txnRead();
+    txn.checkWritesAllowed();
   }
 
   @Test
@@ -85,13 +87,13 @@ public class TxnTest {
     final AtomicLong txId1 = new AtomicLong();
     final AtomicLong txId2 = new AtomicLong();
 
-    try (Txn tx1 = env.txnRead()) {
+    try (final Txn<ByteBuffer> tx1 = env.txnRead()) {
       txId1.set(tx1.getId());
     }
 
     db.put(createBb(1), createBb(2));
 
-    try (Txn tx2 = env.txnRead()) {
+    try (final Txn<ByteBuffer> tx2 = env.txnRead()) {
       txId2.set(tx2.getId());
     }
     // should not see the same snapshot
@@ -100,28 +102,28 @@ public class TxnTest {
 
   @Test
   public void txCanCommitThenCloseWithoutError() throws Exception {
-    try (Txn tx = env.txnRead()) {
-      assertThat(tx.isCommitted(), is(false));
-      tx.commit();
-      assertThat(tx.isCommitted(), is(true));
+    try (final Txn<ByteBuffer> txn = env.txnRead()) {
+      assertThat(txn.isCommitted(), is(false));
+      txn.commit();
+      assertThat(txn.isCommitted(), is(true));
     }
   }
 
   @Test(expected = CommittedException.class)
   public void txCannotAbortIfAlreadyCommitted() throws Exception {
-    try (Txn tx = env.txnRead()) {
-      assertThat(tx.isCommitted(), is(false));
-      tx.commit();
-      assertThat(tx.isCommitted(), is(true));
-      tx.abort();
+    try (final Txn<ByteBuffer> txn = env.txnRead()) {
+      assertThat(txn.isCommitted(), is(false));
+      txn.commit();
+      assertThat(txn.isCommitted(), is(true));
+      txn.abort();
     }
   }
 
   @Test(expected = CommittedException.class)
   public void txCannotCommitTwice() throws Exception {
-    final Txn tx = env.txnRead();
-    tx.commit();
-    tx.commit(); // error
+    final Txn<ByteBuffer> txn = env.txnRead();
+    txn.commit();
+    txn.commit(); // error
   }
 
   @Test(expected = NotOpenException.class)
@@ -131,60 +133,73 @@ public class TxnTest {
     env.txnRead();
   }
 
-//  @Test
-//  public void txParent() throws Exception {
-//    final Txn txRoot = env.txnRead();
-//    final Txn txChild = new Txn(env, txRoot);
-//    assertThat(txRoot.getParent(), is(nullValue()));
-//    assertThat(txChild.getParent(), is(txRoot));
-//  }
+  @Test
+  public void txParent() throws Exception {
+    final Txn<ByteBuffer> txRoot = env.txnWrite();
+    final Txn<ByteBuffer> txChild = env.txn(txRoot);
+    assertThat(txRoot.getParent(), is(nullValue()));
+    assertThat(txChild.getParent(), is(txRoot));
+  }
+
+  @Test(expected = IncompatibleParent.class)
+  public void txParentROChildRWIncompatible() throws Exception {
+    final Txn<ByteBuffer> txRoot = env.txnRead();
+    env.txn(txRoot); // error
+  }
+
+  @Test(expected = IncompatibleParent.class)
+  public void txParentRWChildROIncompatible() throws Exception {
+    final Txn<ByteBuffer> txRoot = env.txnWrite();
+    env.txn(txRoot, MDB_RDONLY); // error
+  }
+
   @Test
   public void txReadOnly() throws Exception {
-    final Txn tx = env.txnRead();
-    assertThat(tx.getParent(), is(nullValue()));
-    assertThat(tx.isCommitted(), is(false));
-    assertThat(tx.isReadOnly(), is(true));
-    assertThat(tx.isReset(), is(false));
-    tx.checkNotCommitted();
-    tx.checkReadOnly();
-    tx.reset();
-    assertThat(tx.isReset(), is(true));
-    tx.renew();
-    assertThat(tx.isReset(), is(false));
-    tx.commit();
-    assertThat(tx.isCommitted(), is(true));
+    final Txn<ByteBuffer> txn = env.txnRead();
+    assertThat(txn.getParent(), is(nullValue()));
+    assertThat(txn.isCommitted(), is(false));
+    assertThat(txn.isReadOnly(), is(true));
+    assertThat(txn.isReset(), is(false));
+    txn.checkNotCommitted();
+    txn.checkReadOnly();
+    txn.reset();
+    assertThat(txn.isReset(), is(true));
+    txn.renew();
+    assertThat(txn.isReset(), is(false));
+    txn.commit();
+    assertThat(txn.isCommitted(), is(true));
   }
 
   @Test
   public void txReadWrite() throws Exception {
-    final Txn tx = env.txnWrite();
-    assertThat(tx.getParent(), is(nullValue()));
-    assertThat(tx.isCommitted(), is(false));
-    assertThat(tx.isReadOnly(), is(false));
-    tx.checkNotCommitted();
-    tx.checkWritesAllowed();
-    tx.commit();
-    assertThat(tx.isCommitted(), is(true));
+    final Txn<ByteBuffer> txn = env.txnWrite();
+    assertThat(txn.getParent(), is(nullValue()));
+    assertThat(txn.isCommitted(), is(false));
+    assertThat(txn.isReadOnly(), is(false));
+    txn.checkNotCommitted();
+    txn.checkWritesAllowed();
+    txn.commit();
+    assertThat(txn.isCommitted(), is(true));
   }
 
   @Test(expected = NotResetException.class)
   public void txRenewDeniedWithoutPriorReset() throws Exception {
-    final Txn tx = env.txnRead();
-    tx.renew();
+    final Txn<ByteBuffer> txn = env.txnRead();
+    txn.renew();
   }
 
   @Test(expected = ResetException.class)
   public void txResetDeniedForAlreadyResetTransaction() throws Exception {
-    final Txn tx = env.txnRead();
-    tx.reset();
-    tx.renew();
-    tx.reset();
-    tx.reset();
+    final Txn<ByteBuffer> txn = env.txnRead();
+    txn.reset();
+    txn.renew();
+    txn.reset();
+    txn.reset();
   }
 
   @Test(expected = ReadOnlyRequiredException.class)
   public void txResetDeniedForReadWriteTransaction() throws Exception {
-    final Txn tx = env.txnWrite();
-    tx.reset();
+    final Txn<ByteBuffer> txn = env.txnWrite();
+    txn.reset();
   }
 }

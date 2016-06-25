@@ -17,12 +17,14 @@ package org.lmdbjava;
 
 import java.io.File;
 import java.nio.ByteBuffer;
+import org.agrona.MutableDirectBuffer;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
+import static org.lmdbjava.ByteBufferProxy.PROXY_SAFE;
 import org.lmdbjava.Cursor.ClosedException;
 import static org.lmdbjava.CursorOp.MDB_FIRST;
 import static org.lmdbjava.CursorOp.MDB_LAST;
@@ -34,6 +36,7 @@ import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import static org.lmdbjava.DbiFlags.MDB_DUPSORT;
 import static org.lmdbjava.Env.create;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
+import static org.lmdbjava.MutableDirectBufferProxy.PROXY_MDB;
 import static org.lmdbjava.PutFlags.MDB_APPENDDUP;
 import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
 import static org.lmdbjava.TestUtils.*;
@@ -44,25 +47,15 @@ public class CursorTest {
 
   @Rule
   public final TemporaryFolder tmp = new TemporaryFolder();
-  private Env env;
-
-  @Before
-  public void before() throws Exception {
-    env = create();
-    final File path = tmp.newFile();
-    env.setMapSize(1_024 * 1_024);
-    env.setMaxDbs(1);
-    env.setMaxReaders(1);
-    env.open(path, POSIX_MODE, MDB_NOSUBDIR);
-  }
 
   @Test(expected = ClosedException.class)
   public void closedCursorRejectsSubsequentGets() throws Exception {
+    final Env<ByteBuffer> env = makeEnv(PROXY_OPTIMAL);
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
-    try (final Txn tx = env.txnWrite()) {
-      final Cursor<ByteBuffer> c = db.openCursor(tx);
-      final ByteBuffer key = allocateBb(db, 1);
-      final ByteBuffer val = allocateBb(db, 1);
+    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
+      final Cursor<ByteBuffer> c = db.openCursor(txn);
+      final ByteBuffer key = allocateBb(txn, 1);
+      final ByteBuffer val = allocateBb(txn, 1);
       c.close();
       c.get(key, MDB_FIRST);
     }
@@ -70,161 +63,218 @@ public class CursorTest {
 
   @Test
   public void count() throws Exception {
+    final Env<ByteBuffer> env = makeEnv(PROXY_OPTIMAL);
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
-    try (final Txn tx = env.txnWrite()) {
-      final Cursor<ByteBuffer> c = db.openCursor(tx);
-      c.put(allocateBb(db, 1), allocateBb(db, 2), MDB_APPENDDUP);
+    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
+      final Cursor<ByteBuffer> c = db.openCursor(txn);
+      c.put(allocateBb(txn, 1), allocateBb(txn, 2), MDB_APPENDDUP);
       assertThat(c.count(), is(1L));
-      c.put(allocateBb(db, 1), allocateBb(db, 4), MDB_APPENDDUP);
-      c.put(allocateBb(db, 1), allocateBb(db, 6), MDB_APPENDDUP);
+      c.put(allocateBb(txn, 1), allocateBb(txn, 4), MDB_APPENDDUP);
+      c.put(allocateBb(txn, 1), allocateBb(txn, 6), MDB_APPENDDUP);
       assertThat(c.count(), is(3L));
-      c.put(allocateBb(db, 2), allocateBb(db, 1), MDB_APPENDDUP);
-      c.put(allocateBb(db, 2), allocateBb(db, 2), MDB_APPENDDUP);
+      c.put(allocateBb(txn, 2), allocateBb(txn, 1), MDB_APPENDDUP);
+      c.put(allocateBb(txn, 2), allocateBb(txn, 2), MDB_APPENDDUP);
       assertThat(c.count(), is(2L));
+    }
+  }
+
+  @Test
+  public void cursorByteBufferOptimal() throws Exception {
+    final Env<ByteBuffer> env = makeEnv(PROXY_OPTIMAL);
+    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
+    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
+      // populate data
+      final Cursor<ByteBuffer> c = db.openCursor(txn);
+      c.put(allocateBb(txn, 1), allocateBb(txn, 2), MDB_NOOVERWRITE);
+      c.put(allocateBb(txn, 3), allocateBb(txn, 4));
+      c.put(allocateBb(txn, 5), allocateBb(txn, 6));
+      c.put(allocateBb(txn, 7), allocateBb(txn, 8));
+
+      // check MDB_SET operations
+      final ByteBuffer key3 = allocateBb(txn, 3);
+      assertThat(c.get(key3, MDB_SET_KEY), is(true));
+      assertThat(txn.key().getInt(0), is(3));
+      assertThat(txn.val().getInt(0), is(4));
+      final ByteBuffer key6 = allocateBb(txn, 6);
+      assertThat(c.get(key6, MDB_SET_RANGE), is(true));
+      assertThat(txn.key().getInt(0), is(7));
+      assertThat(txn.val().getInt(0), is(8));
+
+      // check MDB navigation operations
+      assertThat(c.get(null, MDB_LAST), is(true));
+      assertThat(txn.key().getInt(0), is(7));
+      assertThat(txn.val().getInt(0), is(8));
+      assertThat(c.get(null, MDB_PREV), is(true));
+      assertThat(txn.key().getInt(0), is(5));
+      assertThat(txn.val().getInt(0), is(6));
+      assertThat(c.get(null, MDB_NEXT), is(true));
+      assertThat(txn.key().getInt(0), is(7));
+      assertThat(txn.val().getInt(0), is(8));
+      assertThat(c.get(null, MDB_FIRST), is(true));
+      assertThat(txn.key().getInt(0), is(1));
+      assertThat(txn.val().getInt(0), is(2));
+    }
+  }
+
+  @Test
+  public void cursorByteBufferSafe() throws Exception {
+    final Env<ByteBuffer> env = makeEnv(PROXY_SAFE);
+    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
+    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
+      // populate data
+      final Cursor<ByteBuffer> c = db.openCursor(txn);
+      c.put(allocateBb(txn, 1), allocateBb(txn, 2), MDB_NOOVERWRITE);
+      c.put(allocateBb(txn, 3), allocateBb(txn, 4));
+      c.put(allocateBb(txn, 5), allocateBb(txn, 6));
+      c.put(allocateBb(txn, 7), allocateBb(txn, 8));
+
+      // check MDB_SET operations
+      final ByteBuffer key3 = allocateBb(txn, 3);
+      assertThat(c.get(key3, MDB_SET_KEY), is(true));
+      assertThat(txn.key().getInt(0), is(3));
+      assertThat(txn.val().getInt(0), is(4));
+      final ByteBuffer key6 = allocateBb(txn, 6);
+      assertThat(c.get(key6, MDB_SET_RANGE), is(true));
+      assertThat(txn.key().getInt(0), is(7));
+      assertThat(txn.val().getInt(0), is(8));
+
+      // check MDB navigation operations
+      assertThat(c.get(null, MDB_LAST), is(true));
+      assertThat(txn.key().getInt(0), is(7));
+      assertThat(txn.val().getInt(0), is(8));
+      assertThat(c.get(null, MDB_PREV), is(true));
+      assertThat(txn.key().getInt(0), is(5));
+      assertThat(txn.val().getInt(0), is(6));
+      assertThat(c.get(null, MDB_NEXT), is(true));
+      assertThat(txn.key().getInt(0), is(7));
+      assertThat(txn.val().getInt(0), is(8));
+      assertThat(c.get(null, MDB_FIRST), is(true));
+      assertThat(txn.key().getInt(0), is(1));
+      assertThat(txn.val().getInt(0), is(2));
     }
   }
 
   @Test(expected = CommittedException.class)
   public void cursorCannotCloseIfTransactionCommitted() throws Exception {
+    final Env<ByteBuffer> env = makeEnv(PROXY_OPTIMAL);
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
-    try (final Txn tx = env.txnWrite()) {
-      try (final Cursor<ByteBuffer> c = db.openCursor(tx);) {
-        c.put(allocateBb(db, 1), allocateBb(db, 2), MDB_APPENDDUP);
+    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
+      try (final Cursor<ByteBuffer> c = db.openCursor(txn);) {
+        c.put(allocateBb(txn, 1), allocateBb(txn, 2), MDB_APPENDDUP);
         assertThat(c.count(), is(1L));
-        c.put(allocateBb(db, 1), allocateBb(db, 4), MDB_APPENDDUP);
+        c.put(allocateBb(txn, 1), allocateBb(txn, 4), MDB_APPENDDUP);
         assertThat(c.count(), is(2L));
-        tx.commit();
+        txn.commit();
       }
     }
   }
 
   @Test
-  public void delete() throws Exception {
-    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
-    try (final Txn tx = env.txnWrite()) {
-      final Cursor<ByteBuffer> c = db.openCursor(tx);
-      c.put(allocateBb(db, 1), allocateBb(db, 2), MDB_NOOVERWRITE);
-      c.put(allocateBb(db, 3), allocateBb(db, 4));
+  public void cursorMutableDirectBuffer() throws Exception {
+    final Env<MutableDirectBuffer> env = makeEnv(PROXY_MDB);
+    final Dbi<MutableDirectBuffer> db = env.openDbi(DB_1, MDB_CREATE,
+                                                    MDB_DUPSORT);
+    try (final Txn<MutableDirectBuffer> txn = env.txnWrite()) {
+      // populate data
+      final Cursor<MutableDirectBuffer> c = db.openCursor(txn);
+      c.put(allocateMdb(txn, 1), allocateMdb(txn, 2), MDB_NOOVERWRITE);
+      c.put(allocateMdb(txn, 3), allocateMdb(txn, 4));
+      c.put(allocateMdb(txn, 5), allocateMdb(txn, 6));
+      c.put(allocateMdb(txn, 7), allocateMdb(txn, 8));
+
+      // check MDB_SET operations
+      final MutableDirectBuffer key3 = allocateMdb(txn, 3);
+      assertThat(c.get(key3, MDB_SET_KEY), is(true));
+      assertThat(txn.key().getInt(0), is(3));
+      assertThat(txn.val().getInt(0), is(4));
+      final MutableDirectBuffer key6 = allocateMdb(txn, 6);
+      assertThat(c.get(key6, MDB_SET_RANGE), is(true));
+      assertThat(txn.key().getInt(0), is(7));
+      assertThat(txn.val().getInt(0), is(8));
+
+      // check MDB navigation operations
+      assertThat(c.get(null, MDB_LAST), is(true));
+      assertThat(txn.key().getInt(0), is(7));
+      assertThat(txn.val().getInt(0), is(8));
+      assertThat(c.get(null, MDB_PREV), is(true));
+      assertThat(txn.key().getInt(0), is(5));
+      assertThat(txn.val().getInt(0), is(6));
+      assertThat(c.get(null, MDB_NEXT), is(true));
+      assertThat(txn.key().getInt(0), is(7));
+      assertThat(txn.val().getInt(0), is(8));
       assertThat(c.get(null, MDB_FIRST), is(true));
-      assertThat(c.key().getInt(), is(1));
-      assertThat(c.val().getInt(), is(2));
+      assertThat(txn.key().getInt(0), is(1));
+      assertThat(txn.val().getInt(0), is(2));
+    }
+  }
+
+  @Test
+  public void delete() throws Exception {
+    final Env<ByteBuffer> env = makeEnv(PROXY_OPTIMAL);
+    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
+    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
+      final Cursor<ByteBuffer> c = db.openCursor(txn);
+      c.put(allocateBb(txn, 1), allocateBb(txn, 2), MDB_NOOVERWRITE);
+      c.put(allocateBb(txn, 3), allocateBb(txn, 4));
+      assertThat(c.get(null, MDB_FIRST), is(true));
+      assertThat(txn.key().getInt(), is(1));
+      assertThat(txn.val().getInt(), is(2));
       c.delete();
       assertThat(c.get(null, MDB_FIRST), is(true));
-      assertThat(c.key().getInt(), is(3));
-      assertThat(c.val().getInt(), is(4));
+      assertThat(txn.key().getInt(), is(3));
+      assertThat(txn.val().getInt(), is(4));
       c.delete();
       assertThat(c.get(null, MDB_FIRST), is(false));
     }
   }
 
   @Test
-  public void getWithByteBufferOptimal() throws Exception {
-    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
-    try (final Txn tx = env.txnWrite()) {
-      // populate data
-      final Cursor<ByteBuffer> c = db.openCursor(tx);
-      c.put(allocateBb(db, 1), allocateBb(db, 2), MDB_NOOVERWRITE);
-      c.put(allocateBb(db, 3), allocateBb(db, 4));
-      c.put(allocateBb(db, 5), allocateBb(db, 6));
-      c.put(allocateBb(db, 7), allocateBb(db, 8));
-
-      // check MDB_SET operations
-      final ByteBuffer key3 = allocateBb(db, 3);
-      assertThat(c.get(key3, MDB_SET_KEY), is(true));
-      assertThat(c.key().getInt(0), is(3));
-      assertThat(c.val().getInt(0), is(4));
-      final ByteBuffer key6 = allocateBb(db, 6);
-      assertThat(c.get(key6, MDB_SET_RANGE), is(true));
-      assertThat(c.key().getInt(0), is(7));
-      assertThat(c.val().getInt(0), is(8));
-
-      // check MDB navigation operations
-      assertThat(c.get(null, MDB_LAST), is(true));
-      assertThat(c.key().getInt(0), is(7));
-      assertThat(c.val().getInt(0), is(8));
-      assertThat(c.get(null, MDB_PREV), is(true));
-      assertThat(c.key().getInt(0), is(5));
-      assertThat(c.val().getInt(0), is(6));
-      assertThat(c.get(null, MDB_NEXT), is(true));
-      assertThat(c.key().getInt(0), is(7));
-      assertThat(c.val().getInt(0), is(8));
-      assertThat(c.get(null, MDB_FIRST), is(true));
-      assertThat(c.key().getInt(0), is(1));
-      assertThat(c.val().getInt(0), is(2));
-    }
-  }
-
-  @Test
-  public void getWithByteBufferSafe() throws Exception {
-    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
-    try (final Txn tx = env.txnWrite()) {
-      // populate data
-      final Cursor<ByteBuffer> c = db.openCursor(tx);
-      c.put(allocateBb(db, 1), allocateBb(db, 2), MDB_NOOVERWRITE);
-      c.put(allocateBb(db, 3), allocateBb(db, 4));
-      c.put(allocateBb(db, 5), allocateBb(db, 6));
-      c.put(allocateBb(db, 7), allocateBb(db, 8));
-
-      // check MDB_SET operations
-      final ByteBuffer key3 = allocateBb(db, 3);
-      assertThat(c.get(key3, MDB_SET_KEY), is(true));
-      assertThat(c.key().getInt(0), is(3));
-      assertThat(c.val().getInt(0), is(4));
-      final ByteBuffer key6 = allocateBb(db, 6);
-      assertThat(c.get(key6, MDB_SET_RANGE), is(true));
-      assertThat(c.key().getInt(0), is(7));
-      assertThat(c.val().getInt(0), is(8));
-
-      // check MDB navigation operations
-      assertThat(c.get(null, MDB_LAST), is(true));
-      assertThat(c.key().getInt(0), is(7));
-      assertThat(c.val().getInt(0), is(8));
-      assertThat(c.get(null, MDB_PREV), is(true));
-      assertThat(c.key().getInt(0), is(5));
-      assertThat(c.val().getInt(0), is(6));
-      assertThat(c.get(null, MDB_NEXT), is(true));
-      assertThat(c.key().getInt(0), is(7));
-      assertThat(c.val().getInt(0), is(8));
-      assertThat(c.get(null, MDB_FIRST), is(true));
-      assertThat(c.key().getInt(0), is(1));
-      assertThat(c.val().getInt(0), is(2));
-    }
-  }
-
-  @Test
   public void renewTxRo() throws Exception {
+    final Env<ByteBuffer> env = makeEnv(PROXY_OPTIMAL);
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
 
     final Cursor<ByteBuffer> c;
-    try (final Txn tx = env.txnRead()) {
-      c = db.openCursor(tx);
-      tx.commit();
+    try (final Txn<ByteBuffer> txn = env.txnRead()) {
+      c = db.openCursor(txn);
+      txn.commit();
     }
 
-    try (final Txn tx = env.txnRead()) {
-      c.renew(tx);
-      tx.commit();
+    try (final Txn<ByteBuffer> txn = env.txnRead()) {
+      c.renew(txn);
+      txn.commit();
     }
   }
 
   @Test(expected = ReadOnlyRequiredException.class)
   public void renewTxRw() throws Exception {
+    final Env<ByteBuffer> env = makeEnv(PROXY_OPTIMAL);
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
-    try (final Txn tx = env.txnWrite()) {
-      assertThat(tx.isReadOnly(), is(false));
+    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
+      assertThat(txn.isReadOnly(), is(false));
 
-      final Cursor<ByteBuffer> c = db.openCursor(tx);
-      c.renew(tx);
+      final Cursor<ByteBuffer> c = db.openCursor(txn);
+      c.renew(txn);
     }
   }
 
   @Test
   public void repeatedCloseCausesNotError() throws Exception {
+    final Env<ByteBuffer> env = makeEnv(PROXY_OPTIMAL);
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
-    try (final Txn tx = env.txnWrite()) {
-      final Cursor<ByteBuffer> c = db.openCursor(tx);
+    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
+      final Cursor<ByteBuffer> c = db.openCursor(txn);
       c.close();
       c.close();
     }
+  }
+
+  private <T> Env<T> makeEnv(final BufferProxy<T> proxy) throws Exception {
+    final Env<T> env = create(proxy);
+    final File path = tmp.newFile();
+    env.setMapSize(1_024 * 1_024);
+    env.setMaxDbs(1);
+    env.setMaxReaders(1);
+    env.open(path, POSIX_MODE, MDB_NOSUBDIR);
+    return env;
   }
 }

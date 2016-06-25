@@ -39,15 +39,13 @@ public final class Cursor<T> implements AutoCloseable {
 
   private boolean closed;
   private final Pointer ptrCursor;
-  private final TxnContext<T> txc;
-  private final Txn txn;
+  private final Txn<T> txn;
 
-  Cursor(final Pointer ptr, final TxnContext<T> txc) {
+  Cursor(final Pointer ptr, final Txn<T> txn) {
     requireNonNull(ptr);
-    requireNonNull(txc);
+    requireNonNull(txn);
     this.ptrCursor = ptr;
-    this.txn = txc.txn;
-    this.txc = txc;
+    this.txn = txn;
   }
 
   /**
@@ -104,10 +102,9 @@ public final class Cursor<T> implements AutoCloseable {
    * @throws ClosedException            if the cursor is already closed
    * @throws ReadWriteRequiredException if cursor using a read-only transaction
    */
-  public void delete(PutFlags... f) throws LmdbNativeException,
-                                           CommittedException,
-                                           ClosedException,
-                                           ReadWriteRequiredException {
+  public void delete(final PutFlags... f)
+      throws LmdbNativeException, CommittedException, ClosedException,
+             ReadWriteRequiredException {
     if (SHOULD_CHECK) {
       checkNotClosed();
       txn.checkNotCommitted();
@@ -139,10 +136,10 @@ public final class Cursor<T> implements AutoCloseable {
       if (SHOULD_CHECK) {
         requireNonNull(key);
       }
-      txc.keyIn(key);
+      txn.keyIn(key);
     }
 
-    final int rc = LIB.mdb_cursor_get(ptrCursor, txc.ptrKey, txc.ptrVal,
+    final int rc = LIB.mdb_cursor_get(ptrCursor, txn.ptrKey, txn.ptrVal,
                                       op.getCode());
 
     if (rc == MDB_NOTFOUND) {
@@ -150,21 +147,9 @@ public final class Cursor<T> implements AutoCloseable {
     }
 
     checkRc(rc);
-    txc.keyOut();
-    txc.valOut();
+    txn.keyOut();
+    txn.valOut();
     return true;
-  }
-
-  /**
-   * Fetch the buffer which holds a read-only view of the LMDI allocated memory.
-   * Any use of this buffer must comply with the standard LMDB C "mdb_get"
-   * contract (ie do not modify, do not attempt to release the memory, do not
-   * use once the transaction or cursor closes, do not use after a write etc).
-   *
-   * @return the key buffer (never null)
-   */
-  public T key() {
-    return txc.key.buffer();
   }
 
   /**
@@ -181,8 +166,7 @@ public final class Cursor<T> implements AutoCloseable {
    * @throws ClosedException            if the cursor is already closed
    * @throws ReadWriteRequiredException if cursor using a read-only transaction
    */
-  public void put(final T key, final T val,
-                  final PutFlags... op)
+  public void put(final T key, final T val, final PutFlags... op)
       throws LmdbNativeException, CommittedException, ClosedException,
              ReadWriteRequiredException {
     if (SHOULD_CHECK) {
@@ -192,12 +176,12 @@ public final class Cursor<T> implements AutoCloseable {
       txn.checkNotCommitted();
       txn.checkWritesAllowed();
     }
-    txc.keyIn(key);
-    txc.valIn(val);
+    txn.keyIn(key);
+    txn.valIn(val);
     final int flags = mask(op);
-    checkRc(LIB.mdb_cursor_put(ptrCursor, txc.ptrKey, txc.ptrVal, flags));
-    txc.keyOut();
-    txc.valOut();
+    checkRc(LIB.mdb_cursor_put(ptrCursor, txn.ptrKey, txn.ptrVal, flags));
+    txn.keyOut();
+    txn.valOut();
   }
 
   /**
@@ -210,36 +194,23 @@ public final class Cursor<T> implements AutoCloseable {
    * created with. This may be done whether the previous transaction is live or
    * dead.
    *
-   * @param tx transaction handle
+   * @param txn transaction handle
    * @throws LmdbNativeException       if a native C error occurred
    * @throws ClosedException           if the cursor is already closed
    * @throws CommittedException        if the new transaction was committed
    * @throws ReadOnlyRequiredException if a R-W transaction was presented
    */
-  public void renew(final Txn tx)
-      throws LmdbNativeException, ClosedException,
-             ReadOnlyRequiredException,
+  public void renew(final Txn<T> txn)
+      throws LmdbNativeException, ClosedException, ReadOnlyRequiredException,
              CommittedException {
     if (SHOULD_CHECK) {
-      requireNonNull(tx);
+      requireNonNull(txn);
       checkNotClosed();
       this.txn.checkReadOnly(); // existing
-      tx.checkReadOnly(); // new
-      tx.checkNotCommitted(); // new
+      txn.checkReadOnly(); // new
+      txn.checkNotCommitted(); // new
     }
-    checkRc(LIB.mdb_cursor_renew(tx.ptr, ptrCursor));
-  }
-
-  /**
-   * Fetch the buffer which holds a read-only view of the LMDI allocated memory.
-   * Any use of this buffer must comply with the standard LMDB C "mdb_get"
-   * contract (ie do not modify, do not attempt to release the memory, do not
-   * use once the transaction or cursor closes, do not use after a write etc).
-   *
-   * @return the value buffer (never null)
-   */
-  public T val() {
-    return txc.val.buffer();
+    checkRc(LIB.mdb_cursor_renew(txn.ptr, ptrCursor));
   }
 
   private void checkNotClosed() throws ClosedException {
