@@ -57,7 +57,7 @@ public class TutorialTest {
   @Test
   public void tutorial1() throws Exception {
     // We always need an Env. There is one Env for each LMDB database on your
-    // system. So if you had two database files, you'd need two Envs instances.
+    // system. So if you had two database files, you'd need two Env instances.
     Env<ByteBuffer> env = create();
 
     // The Env isn't ready to use just yet. We need a storage directory first.
