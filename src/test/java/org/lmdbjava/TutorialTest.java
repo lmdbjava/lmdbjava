@@ -86,8 +86,7 @@ public class TutorialTest {
     key.put("greeting".getBytes());
     val.put("Hello world".getBytes());
 
-    // Now store it. This method also creates and commits a transaction.
-    // We do not generally recommend you store this way, but it will work...
+    // Now store it. Dbi.put() internally begins and commits a transaction (Txn).
     db.put(key, val);
 
     // To fetch any data from LMDB we need a Txn. A Txn is very important in
@@ -370,7 +369,6 @@ public class TutorialTest {
 
       // Agrona is not only faster than ByteBuffer, but its methods are nicer...
       val.putStringWithoutLengthUtf8(0, "The Value");
-
       key.putStringWithoutLengthUtf8(0, "xxx");
       c.put(key, val);
 
@@ -388,7 +386,7 @@ public class TutorialTest {
     }
   }
 
-  // You've finished! There are lots more neat things we could show you (like
+  // You've finished! There are lots of other neat things we could show you (eg
   // how to speed up inserts by appending them in key order, using integer
   // or reverse ordered keys, using Env.DISABLE_CHECKS_PROP etc), but you now
   // know enough to tackle the JavaDocs with confidence. Have fun!
