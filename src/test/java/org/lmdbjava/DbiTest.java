@@ -106,12 +106,15 @@ public class DbiTest {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
 
     db.put(createBb(5), createBb(5));
-    final ByteBuffer val = db.get(createBb(5));
-    assertThat(val.getInt(), is(5));
+    try (final Txn<ByteBuffer> txn = env.txnRead()) {
+      db.get(txn, createBb(5));
+      assertThat(txn.val().getInt(), is(5));
+    }
     db.delete(createBb(5));
 
-    try {
-      db.get(createBb(5));
+    try (final Txn<ByteBuffer> txn = env.txnRead()) {
+      db.get(txn, createBb(5));
+      assertThat(txn.val().getInt(), is(5));
       fail("should have been deleted");
     } catch (KeyNotFoundException e) {
     }

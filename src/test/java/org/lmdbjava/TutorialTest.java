@@ -114,8 +114,8 @@ public class TutorialTest {
     db.delete(key);
 
     // Now if we try to fetch the deleted row, it won't be present
-    try {
-      db.get(key);
+    try (Txn<ByteBuffer> txn = env.txnRead()) {
+      db.get(txn, key);
       throw new RuntimeException("We won't ever get to this line....");
     } catch (KeyNotFoundException expected) {
     }

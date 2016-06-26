@@ -136,24 +136,6 @@ public final class Dbi<T> {
   }
 
   /**
-   * Gets an item from the database.
-   *
-   * @param key key to get from the database (not null)
-   * @return the value found
-   * @throws CommittedException  if already committed
-   * @throws NotOpenException    if the environment is not currently open
-   * @throws LmdbNativeException if a native C error occurred
-   * @see #get(Txn, ByteBuffer)
-   */
-  public T get(final T key) throws
-      CommittedException, LmdbNativeException,
-      NotOpenException {
-    try (final Txn<T> txn = env.txnRead()) {
-      return get(txn, key);
-    }
-  }
-
-  /**
    * Get items from a database, pointing the passed value buffer at the result.
    * <p>
    * This function retrieves key/data pairs from the database. The address and
