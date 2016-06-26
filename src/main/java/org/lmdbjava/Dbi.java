@@ -229,38 +229,6 @@ public final class Dbi<T> {
   }
 
   /**
-   * Reserve space for data of the given size, but don't copy the given val.
-   * Instead, return a pointer to the reserved space, which the caller can fill in later -
-   * before the next update operation or the transaction ends. This saves an extra memcpy
-   * if the data is being generated later. LMDB does nothing else with this memory,
-   * the caller is expected to modify all of the space requested.
-   *
-   * This flag must not be specified if the database was opened with MDB_DUPSORT
-   *
-   * @param txn transaction handle (not null; not committed; must be R-W)
-   * @param key key to store in the database (not null)
-   * @param val size of the value to be stored in the database (not null)
-   * @throws CommittedException
-   * @throws LmdbNativeException
-   * @throws ReadWriteRequiredException
-   */
-  public void reserve(Txn<T> txn, final T key, final T val)
-    throws CommittedException, LmdbNativeException,
-    ReadWriteRequiredException {
-    if (SHOULD_CHECK) {
-      requireNonNull(txn);
-      requireNonNull(key);
-      txn.checkNotCommitted();
-      txn.checkWritesAllowed();
-    }
-    txn.keyIn(key);
-    txn.valIn(val);
-    final int mask = mask(MDB_RESERVE);
-    checkRc(LIB.mdb_put(txn.ptr, dbi, txn.ptrKey, txn.ptrVal, mask));
-    txn.valOut(val); // marked as in,out in LMDB C docs
-  }
-
-  /**
    * Store a key/value pair in the database.
    * <p>
    * This function stores key/data pairs in the database. The default behavior
@@ -292,6 +260,39 @@ public final class Dbi<T> {
     final int mask = mask(flags);
     checkRc(LIB.mdb_put(txn.ptr, dbi, txn.ptrKey, txn.ptrVal, mask));
     txn.valOut(); // marked as in,out in LMDB C docs
+  }
+
+  /**
+   * Reserve space for data of the given size, but don't copy the given val.
+   * Instead, return a pointer to the reserved space, which the caller can fill
+   * in later - before the next update operation or the transaction ends. This
+   * saves an extra memcpy if the data is being generated later. LMDB does
+   * nothing else with this memory, the caller is expected to modify all of the
+   * space requested.
+   * <p>
+   * This flag must not be specified if the database was opened with MDB_DUPSORT
+   *
+   * @param txn transaction handle (not null; not committed; must be R-W)
+   * @param key key to store in the database (not null)
+   * @param val size of the value to be stored in the database (not null)
+   * @throws CommittedException         if already committed
+   * @throws LmdbNativeException        if a native C error occurred
+   * @throws ReadWriteRequiredException if a read-only transaction presented
+   */
+  public void reserve(Txn<T> txn, final T key, final T val)
+      throws CommittedException, LmdbNativeException,
+             ReadWriteRequiredException {
+    if (SHOULD_CHECK) {
+      requireNonNull(txn);
+      requireNonNull(key);
+      txn.checkNotCommitted();
+      txn.checkWritesAllowed();
+    }
+    txn.keyIn(key);
+    txn.valIn(val);
+    final int mask = mask(MDB_RESERVE);
+    checkRc(LIB.mdb_put(txn.ptr, dbi, txn.ptrKey, txn.ptrVal, mask));
+    txn.valOut(val); // marked as in,out in LMDB C docs
   }
 
   /**

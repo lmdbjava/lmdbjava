@@ -22,15 +22,14 @@ import static java.util.Collections.nCopies;
 import java.util.Random;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.lmdbjava.Dbi.DbFullException;
 import org.lmdbjava.Dbi.KeyExistsException;
-
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import static org.lmdbjava.DbiFlags.MDB_DUPSORT;
 import org.lmdbjava.Env.MapFullException;
@@ -145,23 +144,6 @@ public class DbiTest {
   }
 
   @Test
-  public void putReserve() throws Exception {
-    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
-
-    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
-      ByteBuffer in = createBb(16);
-      db.reserve(txn, createBb(5), in);
-      in.putInt(16).flip();
-      assertNotNull(db.get(txn, createBb(5)));
-      txn.commit();
-    }
-    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
-      ByteBuffer byteBuffer = db.get(txn, createBb(5));
-      assertThat(byteBuffer.getInt(), is(16));
-    }
-  }
-
-  @Test
   public void putDuplicateDelete() throws Exception {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
 
@@ -177,6 +159,23 @@ public class DbiTest {
         assertThat(cursor.count(), is(2L));
       }
       txn.abort();
+    }
+  }
+
+  @Test
+  public void putReserve() throws Exception {
+    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
+
+    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
+      ByteBuffer in = createBb(16);
+      db.reserve(txn, createBb(5), in);
+      in.putInt(16).flip();
+      assertNotNull(db.get(txn, createBb(5)));
+      txn.commit();
+    }
+    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
+      ByteBuffer byteBuffer = db.get(txn, createBb(5));
+      assertThat(byteBuffer.getInt(), is(16));
     }
   }
 

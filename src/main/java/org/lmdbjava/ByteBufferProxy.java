@@ -1,11 +1,11 @@
 /*
- * Copyright 2016 The LmdbJava Project, http://lmdbjava.org/.
+ * Copyright 2016 The LmdbJava Project, http://lmdbjava.org/
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,15 +15,13 @@
  */
 package org.lmdbjava;
 
+import static java.lang.ThreadLocal.withInitial;
 import java.lang.reflect.Field;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
-import java.util.ArrayDeque;
-
 import static java.nio.ByteBuffer.allocateDirect;
-
+import java.util.ArrayDeque;
 import jnr.ffi.Pointer;
-
 import static org.lmdbjava.UnsafeAccess.UNSAFE;
 
 /**
@@ -42,13 +40,6 @@ import static org.lmdbjava.UnsafeAccess.UNSAFE;
 public final class ByteBufferProxy {
 
   /**
-   * A thread-safe pool for a given length. If the buffer found is bigger then the
-   * buffer in the pool creates a new buffer. If no buffer is found creates a new buffer.
-   */
-  private static final ThreadLocal<ArrayDeque<ByteBuffer>> BUFFERS
-    = ThreadLocal.withInitial(() -> new ArrayDeque<>(16));
-
-  /**
    * The fastest {@link ByteBuffer} proxy that is available on this platform.
    * This will always be the same instance as {@link #PROXY_SAFE} if the
    * {@link UnsafeAccess#DISABLE_UNSAFE_PROP} has been set to <code>true</code>
@@ -61,6 +52,13 @@ public final class ByteBufferProxy {
    * to never be null.
    */
   public static final BufferProxy<ByteBuffer> PROXY_SAFE;
+  /**
+   * A thread-safe pool for a given length. If the buffer found is bigger then
+   * the buffer in the pool creates a new buffer. If no buffer is found creates
+   * a new buffer.
+   */
+  private static final ThreadLocal<ArrayDeque<ByteBuffer>> BUFFERS
+      = withInitial(() -> new ArrayDeque<>(16));
 
   private static final String FIELD_NAME_ADDRESS = "address";
   private static final String FIELD_NAME_CAPACITY = "capacity";

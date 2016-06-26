@@ -1,11 +1,11 @@
 /*
- * Copyright 2016 The LmdbJava Project, http://lmdbjava.org/.
+ * Copyright 2016 The LmdbJava Project, http://lmdbjava.org/
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,15 +15,13 @@
  */
 package org.lmdbjava;
 
+import static java.lang.ThreadLocal.withInitial;
 import java.nio.ByteBuffer;
-
 import static java.nio.ByteBuffer.allocateDirect;
-
 import jnr.ffi.Pointer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.OneToOneConcurrentArrayQueue;
 import org.agrona.concurrent.UnsafeBuffer;
-
 import static org.lmdbjava.UnsafeAccess.UNSAFE;
 
 /**
@@ -32,14 +30,7 @@ import static org.lmdbjava.UnsafeAccess.UNSAFE;
  * This class requires {@link UnsafeAccess} and Agrona must be in the classpath.
  */
 public final class MutableDirectBufferProxy extends
-  BufferProxy<MutableDirectBuffer> {
-
-  /**
-   * A thread-safe pool for a given length. If the buffer found is bigger then the
-   * buffer in the pool creates a new buffer. If no buffer is found creates a new buffer.
-   */
-  private static final ThreadLocal<OneToOneConcurrentArrayQueue<MutableDirectBuffer>> BUFFERS
-    = ThreadLocal.withInitial(() -> new OneToOneConcurrentArrayQueue<>(16));
+    BufferProxy<MutableDirectBuffer> {
 
   /**
    * The {@link MutableDirectBuffer} proxy. Guaranteed to never be null,
@@ -47,7 +38,14 @@ public final class MutableDirectBufferProxy extends
    * to access this field when unsafe or Agrona is unavailable.
    */
   public static final BufferProxy<MutableDirectBuffer> PROXY_MDB
-    = new MutableDirectBufferProxy();
+      = new MutableDirectBufferProxy();
+  /**
+   * A thread-safe pool for a given length. If the buffer found is bigger then
+   * the buffer in the pool creates a new buffer. If no buffer is found creates
+   * a new buffer.
+   */
+  private static final ThreadLocal<OneToOneConcurrentArrayQueue<MutableDirectBuffer>> BUFFERS
+      = withInitial(() -> new OneToOneConcurrentArrayQueue<>(16));
 
   @Override
   protected MutableDirectBuffer allocate() {

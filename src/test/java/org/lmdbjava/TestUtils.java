@@ -15,14 +15,13 @@
  */
 package org.lmdbjava;
 
+import io.netty.buffer.ByteBuf;
+import static io.netty.buffer.PooledByteBufAllocator.DEFAULT;
 import static java.lang.Integer.BYTES;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
 import static java.nio.ByteBuffer.allocateDirect;
-
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.PooledByteBufAllocator;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
@@ -36,7 +35,7 @@ final class TestUtils {
   public static final int POSIX_MODE = 0664;
 
   static ByteBuf allocateNb(final Txn<ByteBuf> txn, final int value) {
-    final ByteBuf b = PooledByteBufAllocator.DEFAULT.directBuffer(BYTES);
+    final ByteBuf b = DEFAULT.directBuffer(BYTES);
     b.writeInt(value);
     return b;
   }
