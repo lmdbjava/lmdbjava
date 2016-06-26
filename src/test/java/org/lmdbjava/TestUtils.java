@@ -20,6 +20,9 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
 import static java.nio.ByteBuffer.allocateDirect;
+
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import org.agrona.MutableDirectBuffer;
 
 /**
@@ -34,6 +37,12 @@ final class TestUtils {
   static ByteBuffer allocateBb(final Txn<ByteBuffer> txn, final int value) {
     final ByteBuffer b = txn.allocate(BYTES);
     b.putInt(value).flip();
+    return b;
+  }
+
+  static ByteBuf allocateNb(final Txn<ByteBuf> txn, final int value) {
+    final ByteBuf b = txn.allocate(BYTES).writerIndex(0);
+    b.writeInt(value);
     return b;
   }
 

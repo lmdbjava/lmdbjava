@@ -17,6 +17,8 @@ package org.lmdbjava;
 
 import java.io.File;
 import java.nio.ByteBuffer;
+
+import io.netty.buffer.ByteBuf;
 import org.agrona.MutableDirectBuffer;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -211,6 +213,47 @@ public class CursorTest {
       assertThat(txn.val().getInt(0), is(2));
     }
   }
+
+  @Test
+  public void cursorByteBufProxy() throws Exception {
+    final Env<ByteBuf> env = makeEnv(new ByteBufProxy());
+    final Dbi<ByteBuf> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
+    try (final Txn<ByteBuf> txn = env.txnWrite()) {
+      // populate data
+      final Cursor<ByteBuf> c = db.openCursor(txn);
+      c.put(allocateNb(txn, 1), allocateNb(txn, 2), MDB_NOOVERWRITE);
+      c.put(allocateNb(txn, 3), allocateNb(txn, 4));
+      c.put(allocateNb(txn, 5), allocateNb(txn, 6));
+      c.put(allocateNb(txn, 7), allocateNb(txn, 8));
+
+      // check MDB_SET operations
+      final ByteBuf key3 = allocateNb(txn, 3);
+      assertThat(c.get(key3, MDB_SET_KEY), is(true));
+      assertThat(txn.key().getInt(0), is(3));
+      assertThat(txn.val().getInt(0), is(4));
+      final ByteBuf key6 = allocateNb(txn, 6);
+      assertThat(c.get(key6, MDB_SET_RANGE), is(true));
+      assertThat(txn.key().getInt(0), is(7));
+      assertThat(txn.val().getInt(0), is(8));
+      final ByteBuf key999 = allocateNb(txn, 999);
+      assertThat(c.get(key999, MDB_SET_KEY), is(false));
+
+      // check MDB navigation operations
+      assertThat(c.seek(MDB_LAST), is(true));
+      assertThat(txn.key().getInt(0), is(7));
+      assertThat(txn.val().getInt(0), is(8));
+      assertThat(c.seek(MDB_PREV), is(true));
+      assertThat(txn.key().getInt(0), is(5));
+      assertThat(txn.val().getInt(0), is(6));
+      assertThat(c.seek(MDB_NEXT), is(true));
+      assertThat(txn.key().getInt(0), is(7));
+      assertThat(txn.val().getInt(0), is(8));
+      assertThat(c.seek(MDB_FIRST), is(true));
+      assertThat(txn.key().getInt(0), is(1));
+      assertThat(txn.val().getInt(0), is(2));
+    }
+  }
+
 
   @Test
   public void delete() throws Exception {
