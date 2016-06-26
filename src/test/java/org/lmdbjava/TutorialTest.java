@@ -183,7 +183,7 @@ public class TutorialTest {
     rtx.renew();
     db.get(rtx, key);
 
-    // Don't forget to close the read Txn now we're completly finished. We could
+    // Don't forget to close the read Txn now we're completely finished. We could
     // have avoided this if we used a try-with-resources block, but we wanted to
     // play around with multiple concurrent Txns to demonstrate the "I" in ACID.
     rtx.close();
