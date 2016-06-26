@@ -177,6 +177,39 @@ public final class Cursor<T> implements AutoCloseable {
   }
 
   /**
+   * Reserve space for data of the given size, but don't copy the given val.
+   * Instead, return a pointer to the reserved space, which the caller can fill in later -
+   * before the next update operation or the transaction ends. This saves an extra memcpy
+   * if the data is being generated later. LMDB does nothing else with this memory,
+   * the caller is expected to modify all of the space requested.
+   *
+   * This flag must not be specified if the database was opened with MDB_DUPSORT
+   *
+   * @param key key to store in the database (not null)
+   * @param val size of the value to be stored in the database (not null)
+   * @throws CommittedException
+   * @throws LmdbNativeException
+   * @throws ReadWriteRequiredException
+   */
+  public void reserve(final T key, final T val)
+    throws LmdbNativeException, CommittedException, ClosedException,
+    ReadWriteRequiredException {
+    if (SHOULD_CHECK) {
+      requireNonNull(key);
+      requireNonNull(val);
+      checkNotClosed();
+      txn.checkNotCommitted();
+      txn.checkWritesAllowed();
+    }
+    txn.keyIn(key);
+    txn.valIn(val);
+    final int flags = mask(PutFlags.MDB_RESERVE);
+    checkRc(LIB.mdb_cursor_put(ptrCursor, txn.ptrKey, txn.ptrVal, flags));
+    txn.keyOut();
+    txn.valOut();
+  }
+
+  /**
    * Renew a cursor handle.
    * <p>
    * A cursor is associated with a specific transaction and database. Cursors

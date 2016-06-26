@@ -25,6 +25,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+
+import static org.junit.Assert.assertNotNull;
 import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
 import static org.lmdbjava.ByteBufferProxy.PROXY_SAFE;
 import org.lmdbjava.Cursor.ClosedException;
@@ -254,6 +256,22 @@ public class CursorTest {
     }
   }
 
+  @Test
+  public void reserve() throws Exception {
+    final Env<ByteBuffer> env = makeEnv(PROXY_OPTIMAL);
+    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
+    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
+      ByteBuffer in = createBb(22);
+      db.reserve(txn, createBb(5), in);
+      in.putInt(22).flip();
+      assertNotNull(db.get(txn, createBb(5)));
+      txn.commit();
+    }
+    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
+      ByteBuffer byteBuffer = db.get(txn, createBb(5));
+      assertThat(byteBuffer.getInt(), is(22));
+    }
+  }
 
   @Test
   public void delete() throws Exception {
