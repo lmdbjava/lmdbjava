@@ -180,6 +180,7 @@ public class TutorialTest {
     // Reset/renew is also important to avoid long-lived read Txns, as these
     // prevent the re-use of free pages by write Txns (ie the DB will grow).
     rtx.reset();
+    // ... potentially long operation here ...
     rtx.renew();
     db.get(rtx, key);
 
@@ -253,21 +254,25 @@ public class TutorialTest {
       txn.commit();
     }
 
-    // A read-only Cursor can adopt a different read-only Txn, too...
+    // A read-only Cursor can survive its original Txn being closed. This is
+    // useful if you want to close the original Txn (eg maybe you created the
+    // Cursor during the constructor of a singleton with a throw-away Txn). Of
+    // course, you cannot use the Cursor if its Txn is closed or currently reset.
     Txn<ByteBuffer> tx1 = env.txnRead();
     Cursor<ByteBuffer> c = db.openCursor(tx1);
     tx1.close();
 
-    // As our read Txn closed, we cannot currently use the Cursor.
-    // But we can use the Cursor again by providing it an active read Txn.
+    // The Cursor becomes usable again by "renewing" it with an active read Txn.
     Txn<ByteBuffer> tx2 = env.txnRead();
     c.renew(tx2);
     c.seek(MDB_FIRST);
 
-    // As usual with read Txns, we can freely reset and renew them.
+    // As usual with read Txns, we can reset and renew them. The Cursor does
+    // not need any special handling if we do this.
     tx2.reset();
+    // ... potentially long operation here ...
     tx2.renew();
-    c.seek(MDB_FIRST);
+    c.seek(MDB_LAST);
 
     tx2.close();
   }
