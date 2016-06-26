@@ -34,7 +34,11 @@ import static org.lmdbjava.UnsafeAccess.UNSAFE;
 public final class MutableDirectBufferProxy extends
   BufferProxy<MutableDirectBuffer> {
 
-  private static final ThreadLocal<OneToOneConcurrentArrayQueue<MutableDirectBuffer>> unsafeBuffers
+  /**
+   * A thread-safe pool for a given length. If the buffer found is bigger then the
+   * buffer in the pool creates a new buffer. If no buffer is found creates a new buffer.
+   */
+  private static final ThreadLocal<OneToOneConcurrentArrayQueue<MutableDirectBuffer>> BUFFERS
     = ThreadLocal.withInitial(() -> new OneToOneConcurrentArrayQueue<>(16));
 
   /**
@@ -47,7 +51,7 @@ public final class MutableDirectBufferProxy extends
 
   @Override
   protected MutableDirectBuffer allocate() {
-    OneToOneConcurrentArrayQueue<MutableDirectBuffer> queue = unsafeBuffers.get();
+    OneToOneConcurrentArrayQueue<MutableDirectBuffer> queue = BUFFERS.get();
     MutableDirectBuffer buffer = queue.poll();
 
     if (buffer != null && buffer.capacity() >= 0) {
@@ -60,7 +64,7 @@ public final class MutableDirectBufferProxy extends
 
   @Override
   protected void deallocate(final MutableDirectBuffer buff) {
-    OneToOneConcurrentArrayQueue<MutableDirectBuffer> queue = unsafeBuffers.get();
+    OneToOneConcurrentArrayQueue<MutableDirectBuffer> queue = BUFFERS.get();
     queue.offer(buff);
   }
 

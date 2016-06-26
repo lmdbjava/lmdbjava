@@ -19,14 +19,10 @@ import java.lang.reflect.Field;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.util.ArrayDeque;
-import java.util.Deque;
 
 import static java.nio.ByteBuffer.allocateDirect;
 
 import jnr.ffi.Pointer;
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.OneToOneConcurrentArrayQueue;
-import org.agrona.concurrent.UnsafeBuffer;
 
 import static org.lmdbjava.UnsafeAccess.UNSAFE;
 
@@ -45,7 +41,11 @@ import static org.lmdbjava.UnsafeAccess.UNSAFE;
  */
 public final class ByteBufferProxy {
 
-  private static final ThreadLocal<ArrayDeque<ByteBuffer>> unsafeBuffers
+  /**
+   * A thread-safe pool for a given length. If the buffer found is bigger then the
+   * buffer in the pool creates a new buffer. If no buffer is found creates a new buffer.
+   */
+  private static final ThreadLocal<ArrayDeque<ByteBuffer>> BUFFERS
     = ThreadLocal.withInitial(() -> new ArrayDeque<>(16));
 
   /**
@@ -111,7 +111,7 @@ public final class ByteBufferProxy {
 
     @Override
     protected ByteBuffer allocate() {
-      ArrayDeque<ByteBuffer> queue = unsafeBuffers.get();
+      ArrayDeque<ByteBuffer> queue = BUFFERS.get();
       ByteBuffer buffer = queue.poll();
 
       if (buffer != null && buffer.capacity() >= 0) {
@@ -124,7 +124,7 @@ public final class ByteBufferProxy {
 
     @Override
     protected void deallocate(final ByteBuffer buff) {
-      ArrayDeque<ByteBuffer> queue = unsafeBuffers.get();
+      ArrayDeque<ByteBuffer> queue = BUFFERS.get();
       queue.offer(buff);
     }
 
@@ -174,7 +174,7 @@ public final class ByteBufferProxy {
 
     @Override
     protected ByteBuffer allocate() {
-      ArrayDeque<ByteBuffer> queue = unsafeBuffers.get();
+      ArrayDeque<ByteBuffer> queue = BUFFERS.get();
       ByteBuffer buffer = queue.poll();
 
       if (buffer != null && buffer.capacity() >= 0) {
@@ -187,7 +187,7 @@ public final class ByteBufferProxy {
 
     @Override
     protected void deallocate(final ByteBuffer buff) {
-      ArrayDeque<ByteBuffer> queue = unsafeBuffers.get();
+      ArrayDeque<ByteBuffer> queue = BUFFERS.get();
       queue.offer(buff);
     }
 
