@@ -36,7 +36,7 @@ public final class Cursor<T> implements AutoCloseable {
 
   private boolean closed;
   private final Pointer ptrCursor;
-  private final Txn<T> txn;
+  private Txn<T> txn;
 
   Cursor(final Pointer ptr, final Txn<T> txn) {
     requireNonNull(ptr);
@@ -203,6 +203,7 @@ public final class Cursor<T> implements AutoCloseable {
       txn.checkNotCommitted(); // new
     }
     checkRc(LIB.mdb_cursor_renew(txn.ptr, ptrCursor));
+    this.txn = txn;
   }
 
   /**
