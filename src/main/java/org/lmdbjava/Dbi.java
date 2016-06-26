@@ -20,6 +20,7 @@ import static jnr.ffi.Memory.allocateDirect;
 import static jnr.ffi.NativeType.ADDRESS;
 import jnr.ffi.Pointer;
 import jnr.ffi.byref.PointerByReference;
+import static org.lmdbjava.Dbi.KeyNotFoundException.MDB_NOTFOUND;
 import org.lmdbjava.Env.NotOpenException;
 import static org.lmdbjava.Env.SHOULD_CHECK;
 import static org.lmdbjava.Library.LIB;
@@ -136,7 +137,7 @@ public final class Dbi<T> {
   }
 
   /**
-   * Get items from a database, pointing the passed value buffer at the result.
+   * Get items from a database, moving the {@link Txn#val()} to the value.
    * <p>
    * This function retrieves key/data pairs from the database. The address and
    * length of the data associated with the specified \b key are returned in the
@@ -147,11 +148,11 @@ public final class Dbi<T> {
    *
    * @param txn transaction handle (not null; not committed)
    * @param key key to search for in the database (not null)
-   * @return
+   * @return true if the data was found
    * @throws CommittedException  if already committed
    * @throws LmdbNativeException if a native C error occurred
    */
-  public T get(final Txn<T> txn, final T key)
+  public boolean get(final Txn<T> txn, final T key)
       throws
       CommittedException, LmdbNativeException {
     if (SHOULD_CHECK) {
@@ -160,9 +161,13 @@ public final class Dbi<T> {
       txn.checkNotCommitted();
     }
     txn.keyIn(key);
-    checkRc(LIB.mdb_get(txn.ptr, dbi, txn.ptrKey, txn.ptrVal));
+    final int rc = LIB.mdb_get(txn.ptr, dbi, txn.ptrKey, txn.ptrVal);
+    if (rc == MDB_NOTFOUND) {
+      return false;
+    }
+    checkRc(rc);
     txn.valOut(); // marked as out in LMDB C docs
-    return txn.val();
+    return true;
   }
 
   /**

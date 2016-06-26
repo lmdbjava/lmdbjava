@@ -25,7 +25,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import org.lmdbjava.Dbi.KeyNotFoundException;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import static org.lmdbjava.DbiFlags.MDB_DUPSORT;
 import static org.lmdbjava.Env.create;
@@ -97,7 +96,8 @@ public class TutorialTest {
     // valid only until the Txn is released or the next Dbi or Cursor call. If
     // you need data afterwards, you should copy the bytes to your own buffer.
     try (Txn<ByteBuffer> txn = env.txnRead()) {
-      db.get(txn, key);
+      boolean found = db.get(txn, key);
+      assertThat(found, is(true));
 
       // The fetchedVal is read-only and points to LMDB memory
       ByteBuffer fetchedVal = txn.val();
@@ -115,9 +115,8 @@ public class TutorialTest {
 
     // Now if we try to fetch the deleted row, it won't be present
     try (Txn<ByteBuffer> txn = env.txnRead()) {
-      db.get(txn, key);
-      throw new RuntimeException("We won't ever get to this line....");
-    } catch (KeyNotFoundException expected) {
+      boolean found = db.get(txn, key);
+      assertThat(found, is(false));
     }
   }
 
@@ -148,7 +147,8 @@ public class TutorialTest {
       db.put(txn, key, val);
 
       // We can read data too, even though this is a write Txn.
-      db.get(txn, key);
+      boolean found = db.get(txn, key);
+      assertThat(found, is(true));
 
       // An explicit commit is required, otherwise Txn.close() rolls it back.
       txn.commit();
@@ -158,7 +158,8 @@ public class TutorialTest {
     Txn<ByteBuffer> rtx = env.txnRead();
 
     // Our read Txn can fetch key1 without problem, as it existed at Txn creation.
-    db.get(rtx, key);
+    boolean found = db.get(rtx, key);
+    assertThat(found, is(true));
 
     // Let's write out a "key2" via a new write Txn.
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
@@ -169,11 +170,8 @@ public class TutorialTest {
     }
 
     // Even though key2 has been committed, our read Txn still can't see it.
-    try {
-      db.get(rtx, key);
-      throw new RuntimeException("We won't ever get to this line....");
-    } catch (KeyNotFoundException expected) {
-    }
+    found = db.get(rtx, key);
+    assertThat(found, is(false));
 
     // To see key2, we could create a new Txn. But a reset/renew is much faster.
     // Reset/renew is also important to avoid long-lived read Txns, as these
@@ -181,7 +179,8 @@ public class TutorialTest {
     rtx.reset();
     // ... potentially long operation here ...
     rtx.renew();
-    db.get(rtx, key);
+    found = db.get(rtx, key);
+    assertThat(found, is(true));
 
     // Don't forget to close the read Txn now we're completely finished. We could
     // have avoided this if we used a try-with-resources block, but we wanted to

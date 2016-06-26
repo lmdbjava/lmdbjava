@@ -20,7 +20,6 @@ import java.nio.ByteBuffer;
 import static java.nio.ByteBuffer.allocateDirect;
 import static java.util.Collections.nCopies;
 import java.util.Random;
-import static junit.framework.TestCase.fail;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import org.junit.Before;
@@ -29,7 +28,6 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.lmdbjava.Dbi.DbFullException;
 import org.lmdbjava.Dbi.KeyExistsException;
-import org.lmdbjava.Dbi.KeyNotFoundException;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import static org.lmdbjava.DbiFlags.MDB_DUPSORT;
 import org.lmdbjava.Env.MapFullException;
@@ -95,9 +93,8 @@ public class DbiTest {
     }
 
     try (final Txn<ByteBuffer> txn = env.txnWrite()) {
-      db.get(txn, createBb(5));
-      fail("key does not exist");
-    } catch (KeyNotFoundException e) {
+      final boolean found = db.get(txn, createBb(5));
+      assertThat(found, is(false));
     }
   }
 
@@ -107,16 +104,15 @@ public class DbiTest {
 
     db.put(createBb(5), createBb(5));
     try (final Txn<ByteBuffer> txn = env.txnRead()) {
-      db.get(txn, createBb(5));
+      final boolean found = db.get(txn, createBb(5));
+      assertThat(found, is(true));
       assertThat(txn.val().getInt(), is(5));
     }
     db.delete(createBb(5));
 
     try (final Txn<ByteBuffer> txn = env.txnRead()) {
-      db.get(txn, createBb(5));
-      assertThat(txn.val().getInt(), is(5));
-      fail("should have been deleted");
-    } catch (KeyNotFoundException e) {
+      final boolean found = db.get(txn, createBb(5));
+      assertThat(found, is(false));
     }
   }
 
@@ -129,8 +125,9 @@ public class DbiTest {
     }
 
     try (final Txn<ByteBuffer> txn = env.txnWrite()) {
-      final ByteBuffer result = db.get(txn, createBb(5));
-      assertThat(result.getInt(), is(5));
+      final boolean found = db.get(txn, createBb(5));
+      assertThat(found, is(true));
+      assertThat(txn.val().getInt(), is(5));
     }
   }
 
@@ -142,11 +139,8 @@ public class DbiTest {
       db.put(txn, createBb(5), createBb(5));
       db.delete(txn, createBb(5));
 
-      try {
-        db.get(txn, createBb(5));
-        fail("key does not exist");
-      } catch (KeyNotFoundException e) {
-      }
+      final boolean found = db.get(txn, createBb(5));
+      assertThat(found, is(false));
       txn.abort();
     }
   }
