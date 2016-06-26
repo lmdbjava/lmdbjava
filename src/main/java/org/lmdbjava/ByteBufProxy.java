@@ -5,6 +5,7 @@ import io.netty.buffer.PooledByteBufAllocator;
 import jnr.ffi.Pointer;
 
 import java.lang.reflect.Field;
+import java.util.ArrayDeque;
 
 import static org.lmdbjava.UnsafeAccess.UNSAFE;
 
@@ -14,6 +15,14 @@ import static org.lmdbjava.UnsafeAccess.UNSAFE;
  * This class requires {@link UnsafeAccess} and netty-buffer must be in the classpath.
  */
 public class ByteBufProxy extends BufferProxy<ByteBuf> {
+
+  /**
+   * A thread-safe pool for a given length. If the buffer found is bigger then the
+   * buffer in the pool creates a new buffer. If no buffer is found creates a new buffer.
+   */
+  private static final ThreadLocal<ArrayDeque<ByteBuf>> BUFFERS
+    = ThreadLocal.withInitial(() -> new ArrayDeque<>(16));
+
   private static final String FIELD_NAME_ADDRESS = "memoryAddress";
   private static final String FIELD_NAME_LENGTH = "length";
 
@@ -52,12 +61,22 @@ public class ByteBufProxy extends BufferProxy<ByteBuf> {
 
   @Override
   protected ByteBuf allocate() {
-    return PooledByteBufAllocator.DEFAULT.directBuffer(0);
+    ArrayDeque<ByteBuf> queue = BUFFERS.get();
+    ByteBuf buffer = queue.poll();
+
+    if (buffer != null && buffer.capacity() >= 0) {
+      return buffer;
+    } else {
+      return PooledByteBufAllocator.DEFAULT.directBuffer(0);
+    }
   }
 
   @Override
   protected void deallocate(ByteBuf buff) {
-    buff.release();
+    ArrayDeque<ByteBuf> queue = BUFFERS.get();
+    if (!queue.offer(buff)) {
+      buff.release();
+    }
   }
 
   @Override
