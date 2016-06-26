@@ -28,6 +28,9 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.lmdbjava.Dbi.DbFullException;
 import org.lmdbjava.Dbi.KeyExistsException;
+
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import static org.lmdbjava.DbiFlags.MDB_DUPSORT;
 import org.lmdbjava.Env.MapFullException;
@@ -92,8 +95,7 @@ public class DbiTest {
     }
 
     try (final Txn<ByteBuffer> txn = env.txnWrite()) {
-      final boolean found = db.get(txn, createBb(5));
-      assertThat(found, is(false));
+      assertNull(db.get(txn, createBb(5)));
     }
   }
 
@@ -103,15 +105,14 @@ public class DbiTest {
 
     db.put(createBb(5), createBb(5));
     try (final Txn<ByteBuffer> txn = env.txnRead()) {
-      final boolean found = db.get(txn, createBb(5));
-      assertThat(found, is(true));
+      final ByteBuffer found = db.get(txn, createBb(5));
+      assertNotNull(found);
       assertThat(txn.val().getInt(), is(5));
     }
     db.delete(createBb(5));
 
     try (final Txn<ByteBuffer> txn = env.txnRead()) {
-      final boolean found = db.get(txn, createBb(5));
-      assertThat(found, is(false));
+      assertNull(db.get(txn, createBb(5)));
     }
   }
 
@@ -124,8 +125,8 @@ public class DbiTest {
     }
 
     try (final Txn<ByteBuffer> txn = env.txnWrite()) {
-      final boolean found = db.get(txn, createBb(5));
-      assertThat(found, is(true));
+      final ByteBuffer found = db.get(txn, createBb(5));
+      assertNotNull(found);
       assertThat(txn.val().getInt(), is(5));
     }
   }
@@ -138,8 +139,7 @@ public class DbiTest {
       db.put(txn, createBb(5), createBb(5));
       db.delete(txn, createBb(5));
 
-      final boolean found = db.get(txn, createBb(5));
-      assertThat(found, is(false));
+      assertNull(db.get(txn, createBb(5)));
       txn.abort();
     }
   }

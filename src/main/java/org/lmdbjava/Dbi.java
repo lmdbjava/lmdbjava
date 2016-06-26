@@ -148,11 +148,11 @@ public final class Dbi<T> {
    *
    * @param txn transaction handle (not null; not committed)
    * @param key key to search for in the database (not null)
-   * @return true if the data was found
+   * @return the data or null if not found
    * @throws CommittedException  if already committed
    * @throws LmdbNativeException if a native C error occurred
    */
-  public boolean get(final Txn<T> txn, final T key)
+  public T get(final Txn<T> txn, final T key)
       throws
       CommittedException, LmdbNativeException {
     if (SHOULD_CHECK) {
@@ -163,11 +163,11 @@ public final class Dbi<T> {
     txn.keyIn(key);
     final int rc = LIB.mdb_get(txn.ptr, dbi, txn.ptrKey, txn.ptrVal);
     if (rc == MDB_NOTFOUND) {
-      return false;
+      return null;
     }
     checkRc(rc);
     txn.valOut(); // marked as out in LMDB C docs
-    return true;
+    return txn.val();
   }
 
   /**
