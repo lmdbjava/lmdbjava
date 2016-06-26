@@ -99,8 +99,8 @@ public final class ByteBufferProxy {
     }
 
     @Override
-    protected ByteBuffer allocate(final int bytes) {
-      return allocateDirect(bytes);
+    protected ByteBuffer allocate() {
+      return allocateDirect(0);
     }
 
     @Override
@@ -152,8 +152,8 @@ public final class ByteBufferProxy {
     }
 
     @Override
-    protected ByteBuffer allocate(final int bytes) {
-      return allocateDirect(bytes);
+    protected ByteBuffer allocate() {
+      return allocateDirect(0);
     }
 
     @Override

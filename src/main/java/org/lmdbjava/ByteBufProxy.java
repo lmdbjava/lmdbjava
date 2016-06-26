@@ -51,8 +51,8 @@ public class ByteBufProxy extends BufferProxy<ByteBuf> {
   }
 
   @Override
-  protected ByteBuf allocate(int bytes) {
-    return PooledByteBufAllocator.DEFAULT.directBuffer(bytes);
+  protected ByteBuf allocate() {
+    return PooledByteBufAllocator.DEFAULT.directBuffer(0);
   }
 
   @Override

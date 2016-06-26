@@ -38,7 +38,6 @@ import static org.lmdbjava.GetOp.MDB_SET_KEY;
 import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
 import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.POSIX_MODE;
-import static org.lmdbjava.TestUtils.allocateBb;
 import static org.lmdbjava.TestUtils.createBb;
 import org.lmdbjava.Txn.CommittedException;
 import org.lmdbjava.Txn.ReadWriteRequiredException;
@@ -156,7 +155,7 @@ public class DbiTest {
       db.delete(txn, createBb(5), createBb(6));
 
       try (final Cursor<ByteBuffer> cursor = db.openCursor(txn)) {
-        final ByteBuffer key = allocateBb(txn, 5);
+        final ByteBuffer key = createBb(5);
         cursor.get(key, MDB_SET_KEY);
         assertThat(cursor.count(), is(2L));
       }

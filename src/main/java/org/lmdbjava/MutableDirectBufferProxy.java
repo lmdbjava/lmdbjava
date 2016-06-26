@@ -39,8 +39,8 @@ public final class MutableDirectBufferProxy extends
       = new MutableDirectBufferProxy();
 
   @Override
-  protected MutableDirectBuffer allocate(final int bytes) {
-    ByteBuffer bb = allocateDirect(bytes);
+  protected MutableDirectBuffer allocate() {
+    ByteBuffer bb = allocateDirect(0);
     return new UnsafeBuffer(bb);
   }
 

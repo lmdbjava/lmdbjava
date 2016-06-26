@@ -22,8 +22,9 @@ import java.nio.ByteBuffer;
 import static java.nio.ByteBuffer.allocateDirect;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
+import io.netty.buffer.PooledByteBufAllocator;
 import org.agrona.MutableDirectBuffer;
+import org.agrona.concurrent.UnsafeBuffer;
 
 /**
  * Static constants and methods that are convenient when writing LMDB-related
@@ -34,22 +35,10 @@ final class TestUtils {
   public static final String DB_1 = "test-db-1";
   public static final int POSIX_MODE = 0664;
 
-  static ByteBuffer allocateBb(final Txn<ByteBuffer> txn, final int value) {
-    final ByteBuffer b = txn.allocate(BYTES);
-    b.putInt(value).flip();
-    return b;
-  }
-
   static ByteBuf allocateNb(final Txn<ByteBuf> txn, final int value) {
-    final ByteBuf b = txn.allocate(BYTES).writerIndex(0);
+    final ByteBuf b = PooledByteBufAllocator.DEFAULT.directBuffer(BYTES);
+    b.writerIndex(0);
     b.writeInt(value);
-    return b;
-  }
-
-  static MutableDirectBuffer allocateMdb(final Txn<MutableDirectBuffer> txn,
-                                         final int value) {
-    final MutableDirectBuffer b = txn.allocate(BYTES);
-    b.putInt(0, value);
     return b;
   }
 
@@ -57,6 +46,12 @@ final class TestUtils {
     final ByteBuffer bb = allocateDirect(BYTES);
     bb.putInt(value).flip();
     return bb;
+  }
+
+  static MutableDirectBuffer createMdb(final int value) {
+    final MutableDirectBuffer b = new UnsafeBuffer(allocateDirect(BYTES));
+    b.putInt(0, value);
+    return b;
   }
 
   static void invokePrivateConstructor(final Class<?> clazz) throws

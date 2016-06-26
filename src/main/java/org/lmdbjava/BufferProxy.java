@@ -45,15 +45,15 @@ public abstract class BufferProxy<T> {
   protected static final int STRUCT_FIELD_OFFSET_SIZE = 0;
 
   /**
-   * Allocate a new buffer suitable for read-write use.
+   * Allocate a new buffer suitable for passing to
+   * {@link #out(java.lang.Object, jnr.ffi.Pointer, long)}.
    *
-   * @param bytes the size of the buffer
-   * @return a writable buffer suitable for use with buffer-requiring methods
+   * @return a buffer for passing to the <code>out</code> method
    */
-  protected abstract T allocate(int bytes);
+  protected abstract T allocate();
 
   /**
-   * Deallocate a buffer that was previously provided by {@link #allocate(int)}.
+   * Deallocate a buffer that was previously provided by {@link #allocate()}.
    *
    * @param buff the buffer to deallocate (required)
    */
@@ -61,7 +61,8 @@ public abstract class BufferProxy<T> {
 
   /**
    * Called when the <code>MDB_val</code> should be set to reflect the passed
-   * buffer.
+   * buffer. This buffer will have been created by end users, not
+   * {@link #allocate()}.
    *
    * @param buffer  the buffer to write to <code>MDB_val</code>
    * @param ptr     the pointer to the <code>MDB_val</code>

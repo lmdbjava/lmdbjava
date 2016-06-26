@@ -15,8 +15,6 @@
  */
 package org.lmdbjava;
 
-import java.util.ArrayList;
-import java.util.List;
 import static java.util.Objects.requireNonNull;
 import static jnr.ffi.Memory.allocateDirect;
 import static jnr.ffi.NativeType.ADDRESS;
@@ -48,7 +46,6 @@ public final class Txn<T> implements AutoCloseable {
   private final long ptrValAddr;
   private final boolean readOnly;
   private boolean reset = false;
-  private final List<T> rwBuffs = new ArrayList<>();
   private final T val;
   final Pointer ptr;
   final Pointer ptrKey;
@@ -78,8 +75,8 @@ public final class Txn<T> implements AutoCloseable {
     checkRc(LIB.mdb_txn_begin(env.ptr, txnParentPtr, flagsMask, txnPtr));
     ptr = txnPtr.getPointer(0);
 
-    this.key = proxy.allocate(0);
-    this.val = proxy.allocate(0);
+    this.key = proxy.allocate();
+    this.val = proxy.allocate();
     ptrKey = MEM_MGR.allocateTemporary(MDB_VAL_STRUCT_SIZE, false);
     ptrKeyAddr = ptrKey.address();
     ptrVal = MEM_MGR.allocateTemporary(MDB_VAL_STRUCT_SIZE, false);
@@ -100,20 +97,6 @@ public final class Txn<T> implements AutoCloseable {
   }
 
   /**
-   * Allocate a new buffer suitable for read-write use.
-   * <p>
-   * This buffer must not be used after {@link Txn#close()}.
-   *
-   * @param bytes the size of the buffer
-   * @return a writable buffer suitable for use with buffer-requiring methods
-   */
-  public T allocate(final int bytes) {
-    final T buff = proxy.allocate(bytes);
-    rwBuffs.add(buff);
-    return buff;
-  }
-
-  /**
    * Closes this transaction by aborting if not already committed.
    * <p>
    * Closing the transaction will invoke
@@ -127,9 +110,6 @@ public final class Txn<T> implements AutoCloseable {
     if (committed) {
       return;
     }
-    rwBuffs.forEach((buff) -> {
-      proxy.deallocate(buff);
-    });
     proxy.deallocate(key);
     proxy.deallocate(val);
     LIB.mdb_txn_abort(ptr);

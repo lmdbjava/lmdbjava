@@ -19,6 +19,7 @@ import java.io.File;
 import java.nio.ByteBuffer;
 import static java.nio.ByteBuffer.allocateDirect;
 import org.agrona.MutableDirectBuffer;
+import org.agrona.concurrent.UnsafeBuffer;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -337,8 +338,7 @@ public class TutorialTest {
   }
 
   /**
-   * In this final tutorial we'll look at using Agrona's MutableDirectBuffer,
-   * and also see how we can have the Txn provide us with writable buffers.
+   * In this final tutorial we'll look at using Agrona's MutableDirectBuffer.
    *
    * @throws Exception
    */
@@ -356,15 +356,11 @@ public class TutorialTest {
     env.open(path, 0664);
     Dbi<MutableDirectBuffer> db = env.openDbi("my DB", MDB_CREATE);
 
+    MutableDirectBuffer key = new UnsafeBuffer(allocateDirect(511));
+    MutableDirectBuffer val = new UnsafeBuffer(allocateDirect(700));
+
     try (Txn<MutableDirectBuffer> txn = env.txnWrite()) {
       Cursor<MutableDirectBuffer> c = db.openCursor(txn);
-
-      // In this tutorial we'll fetch our write buffers from the Txn. Most of
-      // the time it's more efficient to create write buffers yourself and use
-      // them across different Txns, but this might be more convenient in some
-      // situations. Note these buffers are deallocated upon Txn.close().
-      MutableDirectBuffer key = txn.allocate(511);
-      MutableDirectBuffer val = txn.allocate(700);
 
       // Agrona is not only faster than ByteBuffer, but its methods are nicer...
       val.putStringWithoutLengthUtf8(0, "The Value");
