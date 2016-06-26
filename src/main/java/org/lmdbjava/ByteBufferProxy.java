@@ -18,8 +18,16 @@ package org.lmdbjava;
 import java.lang.reflect.Field;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
+import java.util.ArrayDeque;
+import java.util.Deque;
+
 import static java.nio.ByteBuffer.allocateDirect;
+
 import jnr.ffi.Pointer;
+import org.agrona.MutableDirectBuffer;
+import org.agrona.concurrent.OneToOneConcurrentArrayQueue;
+import org.agrona.concurrent.UnsafeBuffer;
+
 import static org.lmdbjava.UnsafeAccess.UNSAFE;
 
 /**
@@ -36,6 +44,9 @@ import static org.lmdbjava.UnsafeAccess.UNSAFE;
  * {@link Env#create(org.lmdbjava.BufferProxy)}.
  */
 public final class ByteBufferProxy {
+
+  private static final ThreadLocal<ArrayDeque<ByteBuffer>> unsafeBuffers
+    = ThreadLocal.withInitial(() -> new ArrayDeque<>(16));
 
   /**
    * The fastest {@link ByteBuffer} proxy that is available on this platform.
@@ -100,11 +111,21 @@ public final class ByteBufferProxy {
 
     @Override
     protected ByteBuffer allocate() {
-      return allocateDirect(0);
+      ArrayDeque<ByteBuffer> queue = unsafeBuffers.get();
+      ByteBuffer buffer = queue.poll();
+
+      if (buffer != null && buffer.capacity() >= 0) {
+        return buffer;
+      } else {
+        ByteBuffer bb = allocateDirect(0);
+        return bb;
+      }
     }
 
     @Override
     protected void deallocate(final ByteBuffer buff) {
+      ArrayDeque<ByteBuffer> queue = unsafeBuffers.get();
+      queue.offer(buff);
     }
 
     @Override
@@ -153,11 +174,21 @@ public final class ByteBufferProxy {
 
     @Override
     protected ByteBuffer allocate() {
-      return allocateDirect(0);
+      ArrayDeque<ByteBuffer> queue = unsafeBuffers.get();
+      ByteBuffer buffer = queue.poll();
+
+      if (buffer != null && buffer.capacity() >= 0) {
+        return buffer;
+      } else {
+        ByteBuffer bb = allocateDirect(0);
+        return bb;
+      }
     }
 
     @Override
     protected void deallocate(final ByteBuffer buff) {
+      ArrayDeque<ByteBuffer> queue = unsafeBuffers.get();
+      queue.offer(buff);
     }
 
     @Override
