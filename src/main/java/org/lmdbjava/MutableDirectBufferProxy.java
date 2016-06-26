@@ -16,10 +16,14 @@
 package org.lmdbjava;
 
 import java.nio.ByteBuffer;
+
 import static java.nio.ByteBuffer.allocateDirect;
+
 import jnr.ffi.Pointer;
 import org.agrona.MutableDirectBuffer;
+import org.agrona.concurrent.OneToOneConcurrentArrayQueue;
 import org.agrona.concurrent.UnsafeBuffer;
+
 import static org.lmdbjava.UnsafeAccess.UNSAFE;
 
 /**
@@ -28,7 +32,10 @@ import static org.lmdbjava.UnsafeAccess.UNSAFE;
  * This class requires {@link UnsafeAccess} and Agrona must be in the classpath.
  */
 public final class MutableDirectBufferProxy extends
-    BufferProxy<MutableDirectBuffer> {
+  BufferProxy<MutableDirectBuffer> {
+
+  private static final ThreadLocal<OneToOneConcurrentArrayQueue<MutableDirectBuffer>> unsafeBuffers
+    = ThreadLocal.withInitial(() -> new OneToOneConcurrentArrayQueue<>(16));
 
   /**
    * The {@link MutableDirectBuffer} proxy. Guaranteed to never be null,
@@ -36,16 +43,25 @@ public final class MutableDirectBufferProxy extends
    * to access this field when unsafe or Agrona is unavailable.
    */
   public static final BufferProxy<MutableDirectBuffer> PROXY_MDB
-      = new MutableDirectBufferProxy();
+    = new MutableDirectBufferProxy();
 
   @Override
   protected MutableDirectBuffer allocate() {
-    ByteBuffer bb = allocateDirect(0);
-    return new UnsafeBuffer(bb);
+    OneToOneConcurrentArrayQueue<MutableDirectBuffer> queue = unsafeBuffers.get();
+    MutableDirectBuffer buffer = queue.poll();
+
+    if (buffer != null && buffer.capacity() >= 0) {
+      return buffer;
+    } else {
+      ByteBuffer bb = allocateDirect(0);
+      return new UnsafeBuffer(bb);
+    }
   }
 
   @Override
   protected void deallocate(final MutableDirectBuffer buff) {
+    OneToOneConcurrentArrayQueue<MutableDirectBuffer> queue = unsafeBuffers.get();
+    queue.offer(buff);
   }
 
   @Override
