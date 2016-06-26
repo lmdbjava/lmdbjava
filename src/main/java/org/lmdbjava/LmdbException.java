@@ -18,7 +18,7 @@ package org.lmdbjava;
 /**
  * Superclass for all LmdbJava custom exceptions.
  */
-public class LmdbException extends Exception {
+public class LmdbException extends RuntimeException {
 
   private static final long serialVersionUID = 1L;
 

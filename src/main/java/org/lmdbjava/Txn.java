@@ -85,10 +85,8 @@ public final class Txn<T> implements AutoCloseable {
 
   /**
    * Aborts this transaction.
-   *
-   * @throws CommittedException if already committed
    */
-  public void abort() throws CommittedException {
+  public void abort() {
     if (committed) {
       throw new CommittedException();
     }
@@ -118,11 +116,8 @@ public final class Txn<T> implements AutoCloseable {
 
   /**
    * Commits this transaction.
-   *
-   * @throws CommittedException  if already committed
-   * @throws LmdbNativeException if a native C error occurred
    */
-  public void commit() throws CommittedException, LmdbNativeException {
+  public void commit() {
     if (committed) {
       throw new CommittedException();
     }
@@ -189,11 +184,8 @@ public final class Txn<T> implements AutoCloseable {
 
   /**
    * Renews a read-only transaction previously released by {@link #reset()}.
-   *
-   * @throws NotResetException   if reset not called
-   * @throws LmdbNativeException if a native C error occurred
    */
-  public void renew() throws NotResetException, LmdbNativeException {
+  public void renew() {
     if (!reset) {
       throw new NotResetException();
     }
@@ -204,11 +196,8 @@ public final class Txn<T> implements AutoCloseable {
   /**
    * Aborts this read-only transaction and resets the transaction handle so it
    * can be reused upon calling {@link #renew()}.
-   *
-   * @throws ReadOnlyRequiredException if a read-write transaction
-   * @throws ResetException            if reset already performed
    */
-  public void reset() throws ReadOnlyRequiredException, ResetException {
+  public void reset() {
     if (!isReadOnly()) {
       throw new ReadOnlyRequiredException();
     }

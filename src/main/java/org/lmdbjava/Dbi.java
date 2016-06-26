@@ -21,7 +21,6 @@ import static jnr.ffi.NativeType.ADDRESS;
 import jnr.ffi.Pointer;
 import jnr.ffi.byref.PointerByReference;
 import static org.lmdbjava.Dbi.KeyNotFoundException.MDB_NOTFOUND;
-import org.lmdbjava.Env.NotOpenException;
 import static org.lmdbjava.Env.SHOULD_CHECK;
 import static org.lmdbjava.Library.LIB;
 import static org.lmdbjava.Library.RUNTIME;
@@ -33,11 +32,6 @@ import org.lmdbjava.Txn.ReadWriteRequiredException;
 
 /**
  * LMDB Database.
- * <p>
- * All accessor and mutator methods on this class use <code>ByteBuffer</code>.
- * This is solely for end user convenience and use of these methods is strongly
- * discouraged. Instead use the more flexible buffer API and lower latency
- * operating modes available via {@link #openCursor(org.lmdbjava.Txn)}.
  *
  * @param <T> buffer type
  */
@@ -66,15 +60,9 @@ public final class Dbi<T> {
    * Starts a new read-write transaction and deletes the key.
    *
    * @param key key to delete from the database (not null)
-   * @throws CommittedException         if already committed
-   * @throws NotOpenException           if the environment is not currently open
-   * @throws LmdbNativeException        if a native C error occurred
-   * @throws ReadWriteRequiredException if a read-only transaction presented
-   * @see #delete(Txn, ByteBuffer, ByteBuffer)
+   * @see #delete(org.lmdbjava.Txn, java.lang.Object, java.lang.Object)
    */
-  public void delete(final T key) throws
-      CommittedException, LmdbNativeException,
-      NotOpenException, ReadWriteRequiredException {
+  public void delete(final T key) {
     try (final Txn<T> txn = env.txnWrite()) {
       delete(txn, key);
       txn.commit();
@@ -86,14 +74,9 @@ public final class Dbi<T> {
    *
    * @param txn transaction handle (not null; not committed; must be R-W)
    * @param key key to delete from the database (not null)
-   * @throws CommittedException         if already committed
-   * @throws LmdbNativeException        if a native C error occurred
-   * @throws ReadWriteRequiredException if a read-only transaction presented
-   * @see #delete(Txn, ByteBuffer, ByteBuffer)
+   * @see #delete(org.lmdbjava.Txn, java.lang.Object, java.lang.Object)
    */
-  public void delete(final Txn<T> txn, final T key) throws
-      CommittedException, LmdbNativeException,
-      ReadWriteRequiredException {
+  public void delete(final Txn<T> txn, final T key) {
     delete(txn, key, null);
   }
 
@@ -112,14 +95,8 @@ public final class Dbi<T> {
    * @param txn transaction handle (not null; not committed; must be R-W)
    * @param key key to delete from the database (not null)
    * @param val value to delete from the database (null permitted)
-   * @throws CommittedException         if already committed
-   * @throws LmdbNativeException        if a native C error occurred
-   * @throws ReadWriteRequiredException if a read-only transaction presented
    */
-  public void delete(final Txn<T> txn, final T key, final T val)
-      throws
-      CommittedException, LmdbNativeException,
-      ReadWriteRequiredException {
+  public void delete(final Txn<T> txn, final T key, final T val) {
     if (SHOULD_CHECK) {
       requireNonNull(txn);
       requireNonNull(key);
@@ -150,12 +127,8 @@ public final class Dbi<T> {
    * @param txn transaction handle (not null; not committed)
    * @param key key to search for in the database (not null)
    * @return the data or null if not found
-   * @throws CommittedException  if already committed
-   * @throws LmdbNativeException if a native C error occurred
    */
-  public T get(final Txn<T> txn, final T key)
-      throws
-      CommittedException, LmdbNativeException {
+  public T get(final Txn<T> txn, final T key) {
     if (SHOULD_CHECK) {
       requireNonNull(txn);
       requireNonNull(key);
@@ -194,11 +167,8 @@ public final class Dbi<T> {
    *
    * @param txn transaction handle (not null; not committed)
    * @return cursor handle
-   * @throws LmdbNativeException if a native C error occurred
-   * @throws CommittedException  if already committed
    */
-  public Cursor<T> openCursor(final Txn<T> txn)
-      throws LmdbNativeException, CommittedException {
+  public Cursor<T> openCursor(final Txn<T> txn) {
     if (SHOULD_CHECK) {
       requireNonNull(txn);
       txn.checkNotCommitted();
@@ -213,15 +183,10 @@ public final class Dbi<T> {
    *
    * @param key key to store in the database (not null)
    * @param val value to store in the database (not null)
-   * @throws CommittedException         if already committed
-   * @throws NotOpenException           if the environment is not currently open
-   * @throws LmdbNativeException        if a native C error occurred
-   * @throws ReadWriteRequiredException if a read-only transaction presented
-   * @see Dbi#put(Txn, ByteBuffer, ByteBuffer, PutFlags...)
+   * @see #put(org.lmdbjava.Txn, java.lang.Object, java.lang.Object,
+   * org.lmdbjava.PutFlags...)
    */
-  public void put(final T key, final T val) throws
-      CommittedException, LmdbNativeException,
-      NotOpenException, ReadWriteRequiredException {
+  public void put(final T key, final T val) {
     try (final Txn<T> txn = env.txnWrite()) {
       put(txn, key, val);
       txn.commit();
@@ -240,14 +205,9 @@ public final class Dbi<T> {
    * @param key   key to store in the database (not null)
    * @param val   value to store in the database (not null)
    * @param flags Special options for this operation
-   * @throws CommittedException         if already committed
-   * @throws LmdbNativeException        if a native C error occurred
-   * @throws ReadWriteRequiredException if a read-only transaction presented
    */
   public void put(final Txn<T> txn, final T key, final T val,
-                  final PutFlags... flags)
-      throws CommittedException, LmdbNativeException,
-             ReadWriteRequiredException {
+                  final PutFlags... flags) {
     if (SHOULD_CHECK) {
       requireNonNull(txn);
       requireNonNull(key);
@@ -275,13 +235,8 @@ public final class Dbi<T> {
    * @param txn transaction handle (not null; not committed; must be R-W)
    * @param key key to store in the database (not null)
    * @param val size of the value to be stored in the database (not null)
-   * @throws CommittedException         if already committed
-   * @throws LmdbNativeException        if a native C error occurred
-   * @throws ReadWriteRequiredException if a read-only transaction presented
    */
-  public void reserve(Txn<T> txn, final T key, final T val)
-      throws CommittedException, LmdbNativeException,
-             ReadWriteRequiredException {
+  public void reserve(Txn<T> txn, final T key, final T val) {
     if (SHOULD_CHECK) {
       requireNonNull(txn);
       requireNonNull(key);

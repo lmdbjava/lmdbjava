@@ -63,7 +63,7 @@ final class ResultCodeMapper {
    * Checks the result code and raises an exception is not {@link #MDB_SUCCESS}.
    *
    * @param rc the LMDB result code
-   * @throws org.lmdbjava.LmdbNativeException
+   * @throws LmdbNativeException the resolved exception
    */
   static void checkRc(final int rc) throws LmdbNativeException {
     if (rc == MDB_SUCCESS) {
@@ -92,7 +92,7 @@ final class ResultCodeMapper {
    * returned.
    *
    * @param rc the non-zero LMDB result code
-   * @return the exception (may be null if not an LMDB result code)
+   * @return the resolved exception (may be null if not an LMDB result code)
    */
   static LmdbNativeException rcException(final int rc) throws
       IllegalArgumentException {

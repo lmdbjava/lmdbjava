@@ -43,5 +43,11 @@
  * doing so would impose locking overhead on use cases that may not require it
  * or have already carefully implemented application threading (as most low
  * latency applications do to optimize the memory hierarchy, core pinning etc).
+ * <p>
+ * Most methods in this package will throw a standard Java exception for failing
+ * preconditions (eg {@link NullPointerException} if a mandatory argument was
+ * missing) or a subclass of {@link LmdbException} for precondition or LMDB C
+ * failures. The majority of LMDB exceptions indicate an API usage or
+ * {@link Env} configuration issues, and as such are typically unrecoverable.
  */
 package org.lmdbjava;

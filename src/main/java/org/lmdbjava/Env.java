@@ -57,9 +57,8 @@ public final class Env<T> implements AutoCloseable {
    * Create an {@link Env} using the {@link ByteBufferProxy#PROXY_OPTIMAL}.
    *
    * @return the environment (never null)
-   * @throws LmdbNativeException if a native C error occurred
    */
-  public static Env<ByteBuffer> create() throws LmdbNativeException {
+  public static Env<ByteBuffer> create() {
     return new Env<>(PROXY_OPTIMAL);
   }
 
@@ -69,10 +68,8 @@ public final class Env<T> implements AutoCloseable {
    * @param <T>
    * @param proxy the proxy to use (required)
    * @return the environment (never null)
-   * @throws LmdbNativeException if a native C error occurred
    */
-  public static <T> Env<T> create(final BufferProxy<T> proxy) throws
-      LmdbException {
+  public static <T> Env<T> create(final BufferProxy<T> proxy) {
     return new Env<>(proxy);
   }
 
@@ -83,10 +80,8 @@ public final class Env<T> implements AutoCloseable {
 
   /**
    * Creates a new environment handle.
-   *
-   * @throws LmdbNativeException if a native C error occurred
    */
-  private Env(final BufferProxy<T> proxy) throws LmdbNativeException {
+  private Env(final BufferProxy<T> proxy) {
     requireNonNull(proxy);
     this.proxy = proxy;
     final PointerByReference envPtr = new PointerByReference();
@@ -123,11 +118,8 @@ public final class Env<T> implements AutoCloseable {
    *
    * @param path  destination directory, which must exist, be writable and empty
    * @param flags special options for this copy
-   * @throws InvalidCopyDestination if the destination path is unsuitable
-   * @throws LmdbNativeException    if a native C error occurred
    */
-  public void copy(final File path, final CopyFlags... flags) throws
-      InvalidCopyDestination, LmdbNativeException {
+  public void copy(final File path, final CopyFlags... flags) {
     requireNonNull(path);
     if (!path.exists()) {
       throw new InvalidCopyDestination("Path must exist");
@@ -146,13 +138,8 @@ public final class Env<T> implements AutoCloseable {
    * Sets the map size.
    *
    * @param mapSize new limit in bytes
-   * @throws AlreadyOpenException   if the environment has already been opened
-   * @throws AlreadyClosedException if already closed
-   * @throws LmdbNativeException    if a native C error occurred
    */
-  public void setMapSize(final long mapSize) throws AlreadyOpenException,
-                                                    AlreadyClosedException,
-                                                    LmdbNativeException {
+  public void setMapSize(final long mapSize) {
     if (open) {
       throw new AlreadyOpenException();
     }
@@ -163,16 +150,11 @@ public final class Env<T> implements AutoCloseable {
   }
 
   /**
-   * Sets the maximum number of databases permitted.
+   * Sets the maximum number of databases (ie {@link Dbi}s permitted.
    *
    * @param dbs new limit
-   * @throws AlreadyOpenException   if the environment has already been opened
-   * @throws AlreadyClosedException if already closed
-   * @throws LmdbNativeException    if a native C error occurred
    */
-  public void setMaxDbs(final int dbs) throws AlreadyOpenException,
-                                              AlreadyClosedException,
-                                              LmdbNativeException {
+  public void setMaxDbs(final int dbs) {
     if (open) {
       throw new AlreadyOpenException();
     }
@@ -186,13 +168,8 @@ public final class Env<T> implements AutoCloseable {
    * Sets the maximum number of databases permitted.
    *
    * @param readers new limit
-   * @throws AlreadyOpenException   if the environment has already been opened
-   * @throws AlreadyClosedException if already closed
-   * @throws LmdbNativeException    if a native C error occurred
    */
-  public void setMaxReaders(final int readers) throws AlreadyOpenException,
-                                                      AlreadyClosedException,
-                                                      LmdbNativeException {
+  public void setMaxReaders(final int readers) {
     if (open) {
       throw new AlreadyOpenException();
     }
@@ -206,12 +183,8 @@ public final class Env<T> implements AutoCloseable {
    * Return information about this environment.
    *
    * @return an immutable information object.
-   * @throws NotOpenException       if the env has not been opened
-   * @throws LmdbNativeException    if a native C error occurred
-   * @throws AlreadyClosedException if already closed
    */
-  public EnvInfo info() throws NotOpenException, LmdbNativeException,
-                               AlreadyClosedException {
+  public EnvInfo info() {
     if (closed) {
       throw new AlreadyClosedException();
     }
@@ -261,12 +234,8 @@ public final class Env<T> implements AutoCloseable {
    * @param path  file system destination
    * @param mode  Unix permissions to set on created files and semaphores
    * @param flags the flags for this new environment
-   * @throws AlreadyOpenException   if already open
-   * @throws AlreadyClosedException if already closed
-   * @throws LmdbNativeException    if a native C error occurred
    */
-  public void open(final File path, final int mode, final EnvFlags... flags)
-      throws AlreadyOpenException, AlreadyClosedException, LmdbNativeException {
+  public void open(final File path, final int mode, final EnvFlags... flags) {
     requireNonNull(path);
     if (closed) {
       throw new AlreadyClosedException();
@@ -285,11 +254,8 @@ public final class Env<T> implements AutoCloseable {
    * @param name  name of the database (or null if no name is required)
    * @param flags to open the database with
    * @return a database that is ready to use
-   * @throws NotOpenException
-   * @throws LmdbNativeException
    */
-  public Dbi<T> openDbi(final String name, final DbiFlags... flags)
-      throws NotOpenException, LmdbNativeException {
+  public Dbi<T> openDbi(final String name, final DbiFlags... flags) {
     try (Txn<T> txn = txnWrite()) {
       final Dbi<T> dbi = new Dbi<>(this, txn, name, flags);
       txn.commit();
@@ -303,12 +269,8 @@ public final class Env<T> implements AutoCloseable {
    * Return statistics about this environment.
    *
    * @return an immutable statistics object.
-   * @throws NotOpenException       if the env has not been opened
-   * @throws LmdbNativeException    if a native C error occurred
-   * @throws AlreadyClosedException if already closed
    */
-  public EnvStat stat() throws NotOpenException, LmdbNativeException,
-                               AlreadyClosedException {
+  public EnvStat stat() {
     if (closed) {
       throw new AlreadyClosedException();
     }
@@ -332,13 +294,8 @@ public final class Env<T> implements AutoCloseable {
    * @param force force a synchronous flush (otherwise if the environment has
    *              the MDB_NOSYNC flag set the flushes will be omitted, and with
    *              MDB_MAPASYNC they will be asynchronous)
-   * @throws AlreadyClosedException if already closed
-   * @throws NotOpenException       if the env has not been opened
-   * @throws LmdbNativeException    if a native C error occurred
    */
-  public void sync(final boolean force) throws AlreadyClosedException,
-                                               NotOpenException,
-                                               LmdbNativeException {
+  public void sync(final boolean force) {
     if (closed) {
       throw new AlreadyClosedException();
     }
@@ -355,13 +312,8 @@ public final class Env<T> implements AutoCloseable {
    * @param parent parent transaction (may be null if no parent)
    * @param flags  applicable flags (eg for a reusable, read-only transaction)
    * @return a transaction (never null)
-   * @throws NotOpenException    if the environment is not currently open
-   * @throws IncompatibleParent  if the parent has a different read-write flags
-   *                             than the proposed child
-   * @throws LmdbNativeException if a native C error occurred
    */
-  public Txn<T> txn(final Txn<T> parent, final TxnFlags... flags) throws
-      NotOpenException, IncompatibleParent, LmdbNativeException {
+  public Txn<T> txn(final Txn<T> parent, final TxnFlags... flags) {
     return new Txn<>(this, parent, proxy, flags);
   }
 
@@ -369,10 +321,8 @@ public final class Env<T> implements AutoCloseable {
    * Obtain a read-only transaction.
    *
    * @return
-   * @throws NotOpenException    if the environment is not currently open
-   * @throws LmdbNativeException if a native C error occurred
    */
-  public Txn<T> txnRead() throws NotOpenException, LmdbNativeException {
+  public Txn<T> txnRead() {
     return txn(MDB_RDONLY);
   }
 
@@ -380,15 +330,12 @@ public final class Env<T> implements AutoCloseable {
    * Obtain a read-write transaction.
    *
    * @return
-   * @throws NotOpenException    if the environment is not currently open
-   * @throws LmdbNativeException if a native C error occurred
    */
-  public Txn<T> txnWrite() throws NotOpenException, LmdbNativeException {
+  public Txn<T> txnWrite() {
     return txn();
   }
 
-  private Txn<T> txn(final TxnFlags... flags) throws NotOpenException,
-                                                     LmdbNativeException {
+  private Txn<T> txn(final TxnFlags... flags) {
     try {
       return new Txn<>(this, null, proxy, flags);
     } catch (IncompatibleParent e) {

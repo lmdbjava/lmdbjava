@@ -25,8 +25,6 @@ import static org.lmdbjava.MaskedFlag.mask;
 import static org.lmdbjava.PutFlags.MDB_RESERVE;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
 import org.lmdbjava.Txn.CommittedException;
-import org.lmdbjava.Txn.ReadOnlyRequiredException;
-import org.lmdbjava.Txn.ReadWriteRequiredException;
 
 /**
  * A cursor handle.
@@ -51,12 +49,9 @@ public final class Cursor<T> implements AutoCloseable {
    * <p>
    * The cursor handle will be freed and must not be used again after this call.
    * Its transaction must still be live if it is a write-transaction.
-   *
-   * @throws CommittedException if the transaction was read-write and has
-   *                            already been closed
    */
   @Override
-  public void close() throws CommittedException {
+  public void close() {
     if (closed) {
       return;
     }
@@ -74,12 +69,8 @@ public final class Cursor<T> implements AutoCloseable {
    * items {@link DbiFlags#MDB_DUPSORT}.
    *
    * @return count of duplicates for current key
-   * @throws LmdbNativeException if a native C error occurred
-   * @throws CommittedException  if the transaction was committed
-   * @throws ClosedException     if the cursor is already closed
    */
-  public long count() throws LmdbNativeException, CommittedException,
-                             ClosedException {
+  public long count() {
     if (SHOULD_CHECK) {
       checkNotClosed();
       txn.checkNotCommitted();
@@ -95,14 +86,8 @@ public final class Cursor<T> implements AutoCloseable {
    * This function deletes the key/data pair to which the cursor refers.
    *
    * @param f flags (either null or {@link PutFlags#MDB_NODUPDATA}
-   * @throws LmdbNativeException        if a native C error occurred
-   * @throws CommittedException         if the transaction was committed
-   * @throws ClosedException            if the cursor is already closed
-   * @throws ReadWriteRequiredException if cursor using a read-only transaction
    */
-  public void delete(final PutFlags... f)
-      throws LmdbNativeException, CommittedException, ClosedException,
-             ReadWriteRequiredException {
+  public void delete(final PutFlags... f) {
     if (SHOULD_CHECK) {
       checkNotClosed();
       txn.checkNotCommitted();
@@ -118,12 +103,8 @@ public final class Cursor<T> implements AutoCloseable {
    * @param key to search for
    * @param op  options for this operation
    * @return false if key not found
-   * @throws LmdbNativeException if a native C error occurred
-   * @throws CommittedException  if the transaction was committed
-   * @throws ClosedException     if the cursor is already closed
    */
-  public boolean get(final T key, final GetOp op)
-      throws LmdbNativeException, CommittedException, ClosedException {
+  public boolean get(final T key, final GetOp op) {
     if (SHOULD_CHECK) {
       requireNonNull(key);
       requireNonNull(op);
@@ -154,14 +135,8 @@ public final class Cursor<T> implements AutoCloseable {
    * @param key key to store
    * @param val data to store
    * @param op  options for this operation
-   * @throws LmdbNativeException        if a native C error occurred
-   * @throws CommittedException         if the transaction was committed
-   * @throws ClosedException            if the cursor is already closed
-   * @throws ReadWriteRequiredException if cursor using a read-only transaction
    */
-  public void put(final T key, final T val, final PutFlags... op)
-      throws LmdbNativeException, CommittedException, ClosedException,
-             ReadWriteRequiredException {
+  public void put(final T key, final T val, final PutFlags... op) {
     if (SHOULD_CHECK) {
       requireNonNull(key);
       requireNonNull(val);
@@ -188,14 +163,8 @@ public final class Cursor<T> implements AutoCloseable {
    * dead.
    *
    * @param txn transaction handle
-   * @throws LmdbNativeException       if a native C error occurred
-   * @throws ClosedException           if the cursor is already closed
-   * @throws CommittedException        if the new transaction was committed
-   * @throws ReadOnlyRequiredException if a R-W transaction was presented
    */
-  public void renew(final Txn<T> txn)
-      throws LmdbNativeException, ClosedException, ReadOnlyRequiredException,
-             CommittedException {
+  public void renew(final Txn<T> txn) {
     if (SHOULD_CHECK) {
       requireNonNull(txn);
       checkNotClosed();
@@ -219,16 +188,8 @@ public final class Cursor<T> implements AutoCloseable {
    *
    * @param key key to store in the database (not null)
    * @param val size of the value to be stored in the database (not null)
-   * @throws CommittedException         if already committed
-   * @throws LmdbNativeException        if a native C error occurred
-   * @throws ClosedException            if the cursor is already closed
-   * @throws ReadWriteRequiredException if cursor using a read-only transaction
    */
-  public void reserve(final T key, final T val) throws
-      LmdbNativeException,
-      CommittedException,
-      ClosedException,
-      ReadWriteRequiredException {
+  public void reserve(final T key, final T val) {
     if (SHOULD_CHECK) {
       requireNonNull(key);
       requireNonNull(val);
@@ -249,12 +210,8 @@ public final class Cursor<T> implements AutoCloseable {
    *
    * @param op options for this operation
    * @return false if requested position not found
-   * @throws LmdbNativeException if a native C error occurred
-   * @throws CommittedException  if the transaction was committed
-   * @throws ClosedException     if the cursor is already closed
    */
-  public boolean seek(final SeekOp op)
-      throws LmdbNativeException, CommittedException, ClosedException {
+  public boolean seek(final SeekOp op) {
     if (SHOULD_CHECK) {
       requireNonNull(op);
       checkNotClosed();
