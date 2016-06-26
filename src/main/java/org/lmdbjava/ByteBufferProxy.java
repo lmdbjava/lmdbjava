@@ -52,10 +52,11 @@ public final class ByteBufferProxy {
    * to never be null.
    */
   public static final BufferProxy<ByteBuffer> PROXY_SAFE;
+
   /**
-   * A thread-safe pool for a given length. If the buffer found is bigger then
-   * the buffer in the pool creates a new buffer. If no buffer is found creates
-   * a new buffer.
+   * A thread-safe pool for a given length. If the buffer found is valid (ie not
+   * of a negative length) then that buffer is used. If no valid buffer is
+   * found, a new buffer is created.
    */
   private static final ThreadLocal<ArrayDeque<ByteBuffer>> BUFFERS
       = withInitial(() -> new ArrayDeque<>(16));
@@ -109,20 +110,20 @@ public final class ByteBufferProxy {
 
     @Override
     protected ByteBuffer allocate() {
-      ArrayDeque<ByteBuffer> queue = BUFFERS.get();
-      ByteBuffer buffer = queue.poll();
+      final ArrayDeque<ByteBuffer> queue = BUFFERS.get();
+      final ByteBuffer buffer = queue.poll();
 
       if (buffer != null && buffer.capacity() >= 0) {
         return buffer;
       } else {
-        ByteBuffer bb = allocateDirect(0);
+        final ByteBuffer bb = allocateDirect(0);
         return bb;
       }
     }
 
     @Override
     protected void deallocate(final ByteBuffer buff) {
-      ArrayDeque<ByteBuffer> queue = BUFFERS.get();
+      final ArrayDeque<ByteBuffer> queue = BUFFERS.get();
       queue.offer(buff);
     }
 
@@ -172,20 +173,20 @@ public final class ByteBufferProxy {
 
     @Override
     protected ByteBuffer allocate() {
-      ArrayDeque<ByteBuffer> queue = BUFFERS.get();
-      ByteBuffer buffer = queue.poll();
+      final ArrayDeque<ByteBuffer> queue = BUFFERS.get();
+      final ByteBuffer buffer = queue.poll();
 
       if (buffer != null && buffer.capacity() >= 0) {
         return buffer;
       } else {
-        ByteBuffer bb = allocateDirect(0);
+        final ByteBuffer bb = allocateDirect(0);
         return bb;
       }
     }
 
     @Override
     protected void deallocate(final ByteBuffer buff) {
-      ArrayDeque<ByteBuffer> queue = BUFFERS.get();
+      final ArrayDeque<ByteBuffer> queue = BUFFERS.get();
       queue.offer(buff);
     }
 

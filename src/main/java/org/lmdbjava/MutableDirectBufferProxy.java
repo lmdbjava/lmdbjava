@@ -39,31 +39,32 @@ public final class MutableDirectBufferProxy extends
    */
   public static final BufferProxy<MutableDirectBuffer> PROXY_MDB
       = new MutableDirectBufferProxy();
+
   /**
-   * A thread-safe pool for a given length. If the buffer found is bigger then
-   * the buffer in the pool creates a new buffer. If no buffer is found creates
-   * a new buffer.
+   * A thread-safe pool for a given length. If the buffer found is valid (ie not
+   * of a negative length) then that buffer is used. If no valid buffer is
+   * found, a new buffer is created.
    */
   private static final ThreadLocal<OneToOneConcurrentArrayQueue<MutableDirectBuffer>> BUFFERS
       = withInitial(() -> new OneToOneConcurrentArrayQueue<>(16));
 
   @Override
   protected MutableDirectBuffer allocate() {
-    OneToOneConcurrentArrayQueue<MutableDirectBuffer> queue = BUFFERS.get();
-    MutableDirectBuffer buffer = queue.poll();
+    final OneToOneConcurrentArrayQueue<MutableDirectBuffer> q = BUFFERS.get();
+    final MutableDirectBuffer buffer = q.poll();
 
     if (buffer != null && buffer.capacity() >= 0) {
       return buffer;
     } else {
-      ByteBuffer bb = allocateDirect(0);
+      final ByteBuffer bb = allocateDirect(0);
       return new UnsafeBuffer(bb);
     }
   }
 
   @Override
   protected void deallocate(final MutableDirectBuffer buff) {
-    OneToOneConcurrentArrayQueue<MutableDirectBuffer> queue = BUFFERS.get();
-    queue.offer(buff);
+    final OneToOneConcurrentArrayQueue<MutableDirectBuffer> q = BUFFERS.get();
+    q.offer(buff);
   }
 
   @Override
