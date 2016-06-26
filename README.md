@@ -21,14 +21,9 @@ workloads that require strong latency and operational robustness outcomes.
 
 ## Usage
 
-1. Install `liblmdb` for your platform (eg Arch Linux: `pacman -S lmdb`)
-2. Clone this repository and `mvn clean install` (Maven Central coming soon)
-3. Add the `lmdbjava` artifact to your project POM
-4. Browse the [LMDB Documentation](http://lmdb.tech/doc/) (especially the
-   [Getting Started](http://lmdb.tech/doc/starting.html) page)
-5. Take a look at our 
-   [tests](https://github.com/lmdbjava/lmdbjava/tree/master/src/test/java/org/lmdbjava)
-   (the LmdbJava class names and contracts closely match the LMDB C API)
+Have a read through the
+[tutorial](https://github.com/lmdbjava/lmdbjava/tree/master/src/test/java/org/lmdbjava/TutorialTest.java)
+to learn how to use LmdbJava.
 
 ## Support
 
