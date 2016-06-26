@@ -56,11 +56,12 @@ public class TutorialTest {
    */
   @Test
   public void tutorial1() throws Exception {
-    // We always need an Env. There is one Env for each LMDB database on your
-    // system. So if you had two database files, you'd need two Env instances.
+    // We always need an Env. An Env owns a physical on-disk storage file. One
+    // Env can store many different databases (ie sorted maps).
     Env<ByteBuffer> env = create();
 
     // The Env isn't ready to use just yet. We need a storage directory first.
+    // The path cannot be on a remote file system.
     File path = tmp.newFolder();
 
     // LMDB also needs to know how large our DB might be. Over-estimating is OK.
@@ -70,6 +71,8 @@ public class TutorialTest {
     env.setMaxDbs(1);
 
     // Now let's open the Env. The 0664 is the POSIX mode of the created files.
+    // The same path can be concurrently opened and used in different processes,
+    // but do not open the same path twice in the same process at the same time.
     env.open(path, 0664);
 
     // We need a Dbi for each DB. A Dbi roughly equates to a sorted map. The
@@ -138,6 +141,8 @@ public class TutorialTest {
     ByteBuffer val = allocateDirect(700);
 
     // Let's write and commit "key1" via a Txn. A Txn can include multiple Dbis.
+    // Note write Txns block other write Txns, due to writes being serialized.
+    // It's therefore important to avoid unnecessarily long-lived write Txns.
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
       key.put("key1".getBytes());
       val.put("lmdb".getBytes());
@@ -172,6 +177,8 @@ public class TutorialTest {
     }
 
     // To see key2, we could create a new Txn. But a reset/renew is much faster.
+    // Reset/renew is also important to avoid long-lived read Txns, as these
+    // prevent the re-use of free pages by write Txns (ie the DB will grow).
     rtx.reset();
     rtx.renew();
     db.get(rtx, key);
