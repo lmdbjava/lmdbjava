@@ -81,8 +81,8 @@ public class ByteBufProxy extends BufferProxy<ByteBuf> {
 
   @Override
   protected void in(ByteBuf buffer, Pointer ptr, long ptrAddr) {
-    UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE, buffer.capacity());
-    UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_DATA, buffer.memoryAddress());
+    UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE, buffer.writerIndex() - buffer.readerIndex());
+    UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_DATA, buffer.memoryAddress() + buffer.readerIndex());
   }
 
   @Override

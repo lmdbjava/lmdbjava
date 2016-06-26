@@ -37,7 +37,6 @@ final class TestUtils {
 
   static ByteBuf allocateNb(final Txn<ByteBuf> txn, final int value) {
     final ByteBuf b = PooledByteBufAllocator.DEFAULT.directBuffer(BYTES);
-    b.writerIndex(0);
     b.writeInt(value);
     return b;
   }
