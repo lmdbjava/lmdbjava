@@ -145,6 +145,23 @@ public class DbiTest {
   }
 
   @Test
+  public void putReserve() throws Exception {
+    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
+
+    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
+      ByteBuffer in = createBb(16);
+      db.reserve(txn, createBb(5), in);
+      in.putInt(16).flip();
+      assertNotNull(db.get(txn, createBb(5)));
+      txn.commit();
+    }
+    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
+      ByteBuffer byteBuffer = db.get(txn, createBb(5));
+      assertThat(byteBuffer.getInt(), is(16));
+    }
+  }
+
+  @Test
   public void putDuplicateDelete() throws Exception {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
 
