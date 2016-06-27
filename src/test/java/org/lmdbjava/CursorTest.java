@@ -18,11 +18,13 @@ package org.lmdbjava;
 import io.netty.buffer.ByteBuf;
 import java.io.File;
 import java.io.IOException;
+import static java.lang.Integer.MAX_VALUE;
 import java.nio.ByteBuffer;
 import org.agrona.MutableDirectBuffer;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -318,17 +320,20 @@ public class CursorTest {
   @Test
   public void reserve() {
     final Env<ByteBuffer> env = makeEnv(PROXY_OPTIMAL);
-    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
-    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
-      ByteBuffer in = createBb(22);
-      db.reserve(txn, createBb(5), in);
-      in.putInt(22).flip();
-      assertNotNull(db.get(txn, createBb(5)));
+    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
+    final ByteBuffer key = createBb(5);
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
+      final Cursor<ByteBuffer> c = db.openCursor(txn);
+      final ByteBuffer val = createBb(MAX_VALUE);
+      assertNull(db.get(txn, key));
+      c.reserve(key, val);
+      assertNotNull(db.get(txn, key));
+      val.putInt(16).flip();
       txn.commit();
     }
     try (final Txn<ByteBuffer> txn = env.txnWrite()) {
-      ByteBuffer byteBuffer = db.get(txn, createBb(5));
-      assertThat(byteBuffer.getInt(), is(22));
+      final ByteBuffer val = db.get(txn, key);
+      assertThat(val.getInt(), is(16));
     }
   }
 

@@ -201,8 +201,7 @@ public final class Cursor<T> implements AutoCloseable {
     txn.valIn(val);
     final int flags = mask(MDB_RESERVE);
     checkRc(LIB.mdb_cursor_put(ptrCursor, txn.ptrKey, txn.ptrVal, flags));
-    txn.keyOut();
-    txn.valOut();
+    txn.valOut(val);
   }
 
   /**
