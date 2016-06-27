@@ -40,20 +40,20 @@ public class EnvTest {
   public final TemporaryFolder tmp = new TemporaryFolder();
 
   @Test
-  public void canCloseBeforeOpen()  {
+  public void canCloseBeforeOpen() {
     final Env<ByteBuffer> env = create();
     env.close();
     assertThat(env.isClosed(), is(true));
   }
 
   @Test(expected = NotOpenException.class)
-  public void cannotInfoIfNeverOpen()  {
+  public void cannotInfoIfNeverOpen() {
     final Env<ByteBuffer> env = create();
     env.info();
   }
 
   @Test(expected = AlreadyClosedException.class)
-  public void cannotInfoOnceClosed()  {
+  public void cannotInfoOnceClosed() {
     final Env<ByteBuffer> env = create();
     env.close();
     env.info();
@@ -77,7 +77,7 @@ public class EnvTest {
   }
 
   @Test(expected = AlreadyClosedException.class)
-  public void cannotSetMapSizeOnceClosed()  {
+  public void cannotSetMapSizeOnceClosed() {
     final Env<ByteBuffer> env = create();
     env.close();
     env.setMapSize(1);
@@ -92,7 +92,7 @@ public class EnvTest {
   }
 
   @Test(expected = AlreadyClosedException.class)
-  public void cannotSetMaxDbsOnceClosed()  {
+  public void cannotSetMaxDbsOnceClosed() {
     final Env<ByteBuffer> env = create();
     env.close();
     env.setMaxDbs(1);
@@ -107,7 +107,7 @@ public class EnvTest {
   }
 
   @Test(expected = AlreadyClosedException.class)
-  public void cannotSetMaxReadersOnceClosed()  {
+  public void cannotSetMaxReadersOnceClosed() {
     final Env<ByteBuffer> env = create();
     env.close();
     env.setMaxReaders(1);
@@ -122,20 +122,20 @@ public class EnvTest {
   }
 
   @Test(expected = NotOpenException.class)
-  public void cannotStatIfNeverOpen()  {
+  public void cannotStatIfNeverOpen() {
     final Env<ByteBuffer> env = create();
     env.stat();
   }
 
   @Test(expected = AlreadyClosedException.class)
-  public void cannotStatOnceClosed()  {
+  public void cannotStatOnceClosed() {
     final Env<ByteBuffer> env = create();
     env.close();
     env.stat();
   }
 
   @Test(expected = NotOpenException.class)
-  public void cannotSyncIfNotOpen()  {
+  public void cannotSyncIfNotOpen() {
     final Env<ByteBuffer> env = create();
     env.sync(false);
   }
