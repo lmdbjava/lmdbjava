@@ -17,6 +17,7 @@ package org.lmdbjava;
 
 import io.netty.buffer.ByteBuf;
 import java.io.File;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import org.agrona.MutableDirectBuffer;
 import static org.hamcrest.CoreMatchers.is;
@@ -51,7 +52,7 @@ public class CursorTest {
   public final TemporaryFolder tmp = new TemporaryFolder();
 
   @Test(expected = ClosedException.class)
-  public void closedCursorRejectsSubsequentGets() throws Exception {
+  public void closedCursorRejectsSubsequentGets() {
     final Env<ByteBuffer> env = makeEnv(PROXY_OPTIMAL);
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
     try (final Txn<ByteBuffer> txn = env.txnWrite()) {
@@ -62,7 +63,7 @@ public class CursorTest {
   }
 
   @Test
-  public void count() throws Exception {
+  public void count() {
     final Env<ByteBuffer> env = makeEnv(PROXY_OPTIMAL);
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
     try (final Txn<ByteBuffer> txn = env.txnWrite()) {
@@ -79,7 +80,7 @@ public class CursorTest {
   }
 
   @Test
-  public void cursorByteBufProxy() throws Exception {
+  public void cursorByteBufProxy() {
     final Env<ByteBuf> env = makeEnv(new ByteBufProxy());
     final Dbi<ByteBuf> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
     try (final Txn<ByteBuf> txn = env.txnWrite()) {
@@ -119,7 +120,7 @@ public class CursorTest {
   }
 
   @Test
-  public void cursorByteBufferOptimal() throws Exception {
+  public void cursorByteBufferOptimal() {
     final Env<ByteBuffer> env = makeEnv(PROXY_OPTIMAL);
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
     try (final Txn<ByteBuffer> txn = env.txnWrite()) {
@@ -159,7 +160,7 @@ public class CursorTest {
   }
 
   @Test
-  public void cursorByteBufferSafe() throws Exception {
+  public void cursorByteBufferSafe() {
     final Env<ByteBuffer> env = makeEnv(PROXY_SAFE);
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
     try (final Txn<ByteBuffer> txn = env.txnWrite()) {
@@ -199,7 +200,7 @@ public class CursorTest {
   }
 
   @Test(expected = CommittedException.class)
-  public void cursorCannotCloseIfTransactionCommitted() throws Exception {
+  public void cursorCannotCloseIfTransactionCommitted() {
     final Env<ByteBuffer> env = makeEnv(PROXY_OPTIMAL);
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
     try (final Txn<ByteBuffer> txn = env.txnWrite()) {
@@ -214,7 +215,7 @@ public class CursorTest {
   }
 
   @Test
-  public void cursorMutableDirectBuffer() throws Exception {
+  public void cursorMutableDirectBuffer() {
     final Env<MutableDirectBuffer> env = makeEnv(PROXY_MDB);
     final Dbi<MutableDirectBuffer> db = env.openDbi(DB_1, MDB_CREATE,
                                                     MDB_DUPSORT);
@@ -255,7 +256,7 @@ public class CursorTest {
   }
 
   @Test
-  public void delete() throws Exception {
+  public void delete() {
     final Env<ByteBuffer> env = makeEnv(PROXY_OPTIMAL);
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
     try (final Txn<ByteBuffer> txn = env.txnWrite()) {
@@ -275,7 +276,7 @@ public class CursorTest {
   }
 
   @Test
-  public void renewTxRo() throws Exception {
+  public void renewTxRo() {
     final Env<ByteBuffer> env = makeEnv(PROXY_OPTIMAL);
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
 
@@ -292,7 +293,7 @@ public class CursorTest {
   }
 
   @Test(expected = ReadOnlyRequiredException.class)
-  public void renewTxRw() throws Exception {
+  public void renewTxRw() {
     final Env<ByteBuffer> env = makeEnv(PROXY_OPTIMAL);
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
     try (final Txn<ByteBuffer> txn = env.txnWrite()) {
@@ -304,7 +305,7 @@ public class CursorTest {
   }
 
   @Test
-  public void repeatedCloseCausesNotError() throws Exception {
+  public void repeatedCloseCausesNotError() {
     final Env<ByteBuffer> env = makeEnv(PROXY_OPTIMAL);
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
     try (final Txn<ByteBuffer> txn = env.txnWrite()) {
@@ -315,7 +316,7 @@ public class CursorTest {
   }
 
   @Test
-  public void reserve() throws Exception {
+  public void reserve() {
     final Env<ByteBuffer> env = makeEnv(PROXY_OPTIMAL);
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
     try (final Txn<ByteBuffer> txn = env.txnWrite()) {
@@ -331,13 +332,17 @@ public class CursorTest {
     }
   }
 
-  private <T> Env<T> makeEnv(final BufferProxy<T> proxy) throws Exception {
-    final Env<T> env = create(proxy);
-    final File path = tmp.newFile();
-    env.setMapSize(1_024 * 1_024);
-    env.setMaxDbs(1);
-    env.setMaxReaders(1);
-    env.open(path, POSIX_MODE, MDB_NOSUBDIR);
-    return env;
+  private <T> Env<T> makeEnv(final BufferProxy<T> proxy) {
+    try {
+      final Env<T> env = create(proxy);
+      final File path = tmp.newFile();
+      env.setMapSize(1_024 * 1_024);
+      env.setMaxDbs(1);
+      env.setMaxReaders(1);
+      env.open(path, POSIX_MODE, MDB_NOSUBDIR);
+      return env;
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 }

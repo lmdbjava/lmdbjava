@@ -39,7 +39,7 @@ public class MetaTest {
   }
 
   @Test
-  public void version() throws Exception {
+  public void version() {
     final Version v = Meta.version();
     assertThat(v, not(nullValue()));
     assertThat(v.major, is(0));

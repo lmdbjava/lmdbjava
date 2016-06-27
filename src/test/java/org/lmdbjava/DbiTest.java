@@ -63,7 +63,7 @@ public class DbiTest {
 
   @Test(expected = DbFullException.class)
   @SuppressWarnings("ResultOfObjectAllocationIgnored")
-  public void dbOpenMaxDatabases() throws Exception {
+  public void dbOpenMaxDatabases() {
     env.openDbi("db1 is OK", MDB_CREATE);
     env.openDbi("db2 is OK", MDB_CREATE);
     env.openDbi("db3 fails", MDB_CREATE);
@@ -85,7 +85,7 @@ public class DbiTest {
   }
 
   @Test
-  public void putAbortGet() throws Exception {
+  public void putAbortGet() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
 
     try (final Txn<ByteBuffer> txn = env.txnWrite()) {
@@ -99,7 +99,7 @@ public class DbiTest {
   }
 
   @Test
-  public void putAndGetAndDeleteWithInternalTx() throws Exception {
+  public void putAndGetAndDeleteWithInternalTx() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
 
     db.put(createBb(5), createBb(5));
@@ -116,7 +116,7 @@ public class DbiTest {
   }
 
   @Test
-  public void putCommitGet() throws Exception {
+  public void putCommitGet() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
     try (final Txn<ByteBuffer> txn = env.txnWrite()) {
       db.put(txn, createBb(5), createBb(5));
@@ -131,7 +131,7 @@ public class DbiTest {
   }
 
   @Test
-  public void putDelete() throws Exception {
+  public void putDelete() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
 
     try (final Txn<ByteBuffer> txn = env.txnWrite()) {
@@ -144,7 +144,7 @@ public class DbiTest {
   }
 
   @Test
-  public void putDuplicateDelete() throws Exception {
+  public void putDuplicateDelete() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
 
     try (final Txn<ByteBuffer> txn = env.txnWrite()) {
@@ -163,7 +163,7 @@ public class DbiTest {
   }
 
   @Test
-  public void putReserve() throws Exception {
+  public void putReserve() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
 
     try (final Txn<ByteBuffer> txn = env.txnWrite()) {
@@ -180,7 +180,7 @@ public class DbiTest {
   }
 
   @Test(expected = MapFullException.class)
-  public void testMapFullException() throws Exception {
+  public void testMapFullException() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
     try (final Txn<ByteBuffer> txn = env.txnWrite()) {
       final ByteBuffer v = allocateDirect(1_024 * 1_024 * 1_024);
@@ -189,7 +189,7 @@ public class DbiTest {
   }
 
   @Test
-  public void testParallelWritesStress() throws Exception {
+  public void testParallelWritesStress() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
 
     // Travis CI has 1.5 cores for legacy builds

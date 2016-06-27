@@ -16,6 +16,7 @@
 package org.lmdbjava;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import static java.nio.ByteBuffer.allocateDirect;
 import org.agrona.MutableDirectBuffer;
@@ -57,7 +58,7 @@ public class TutorialTest {
    * @throws Exception
    */
   @Test
-  public void tutorial1() throws Exception {
+  public void tutorial1() throws IOException {
     // We always need an Env. An Env owns a physical on-disk storage file. One
     // Env can store many different databases (ie sorted maps).
     Env<ByteBuffer> env = create();
@@ -129,7 +130,7 @@ public class TutorialTest {
    */
   @Test
   @SuppressWarnings("ConvertToTryWithResources")
-  public void tutorial2() throws Exception {
+  public void tutorial2() throws IOException {
     // As per tutorial1...
     Env<ByteBuffer> env = create();
     File path = tmp.newFolder();
@@ -199,7 +200,7 @@ public class TutorialTest {
    */
   @Test
   @SuppressWarnings("ConvertToTryWithResources")
-  public void tutorial3() throws Exception {
+  public void tutorial3() throws IOException {
     // As per tutorial1...
     Env<ByteBuffer> env = create();
     File path = tmp.newFolder();
@@ -284,7 +285,7 @@ public class TutorialTest {
    */
   @Test
   @SuppressWarnings("ConvertToTryWithResources")
-  public void tutorial4() throws Exception {
+  public void tutorial4() throws IOException {
     // As per tutorial1...
     Env<ByteBuffer> env = create();
     File path = tmp.newFolder();
@@ -345,7 +346,7 @@ public class TutorialTest {
    */
   @Test
   @SuppressWarnings("ConvertToTryWithResources")
-  public void tutorial5() throws Exception {
+  public void tutorial5() throws IOException {
     // The critical difference is we pass the PROXY_MDB field to Env.create().
     // There's also a PROXY_SAFE if you want to stop ByteBuffer's Unsafe use.
     Env<MutableDirectBuffer> env = create(PROXY_MDB);

@@ -37,24 +37,24 @@ public class ByteBufferProxyTest {
   }
 
   @Test(expected = RuntimeException.class)
-  public void fieldNeverFound() throws Exception {
+  public void fieldNeverFound() {
     final Field f = findField(Exception.class, "notARealField");
   }
 
   @Test
-  public void fieldSuperclassScan() throws Exception {
+  public void fieldSuperclassScan() {
     final Field f = findField(Exception.class, "detailMessage");
     assertThat(f, is(notNullValue()));
   }
 
   @Test
-  public void optimalAlwaysAvailable() throws Exception {
+  public void optimalAlwaysAvailable() {
     final BufferProxy<ByteBuffer> v = PROXY_OPTIMAL;
     assertThat(v, is(notNullValue()));
   }
 
   @Test
-  public void safeCanBeForced() throws Exception {
+  public void safeCanBeForced() {
     final BufferProxy<ByteBuffer> v = PROXY_SAFE;
     assertThat(v, is(notNullValue()));
     assertThat(v.getClass().getSimpleName(), startsWith("Reflect"));
