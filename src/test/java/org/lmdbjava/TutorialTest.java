@@ -55,7 +55,7 @@ public class TutorialTest {
   /**
    * In this first tutorial we will use LmdbJava with some basic defaults.
    *
-   * @throws Exception
+   * @throws java.io.IOException
    */
   @Test
   public void tutorial1() throws IOException {
@@ -126,7 +126,7 @@ public class TutorialTest {
   /**
    * In this second tutorial we'll learn more about LMDB's ACID Txns.
    *
-   * @throws Exception
+   * @throws java.io.IOException
    */
   @Test
   @SuppressWarnings("ConvertToTryWithResources")
@@ -196,7 +196,7 @@ public class TutorialTest {
    * just used Dbi, which is good enough for simple cases but unsuitable if you
    * don't know the key to fetch, or want to iterate over all the data etc.
    *
-   * @throws Exception
+   * @throws java.io.IOException
    */
   @Test
   @SuppressWarnings("ConvertToTryWithResources")
@@ -281,7 +281,7 @@ public class TutorialTest {
   /**
    * In this fourth tutorial we'll explore multiple values sharing a single key.
    *
-   * @throws Exception
+   * @throws java.io.IOException
    */
   @Test
   @SuppressWarnings("ConvertToTryWithResources")
@@ -342,7 +342,7 @@ public class TutorialTest {
   /**
    * In this final tutorial we'll look at using Agrona's MutableDirectBuffer.
    *
-   * @throws Exception
+   * @throws java.io.IOException
    */
   @Test
   @SuppressWarnings("ConvertToTryWithResources")
