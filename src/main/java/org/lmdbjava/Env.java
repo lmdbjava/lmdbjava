@@ -29,7 +29,6 @@ import static org.lmdbjava.Library.RUNTIME;
 import static org.lmdbjava.MaskedFlag.mask;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
 import org.lmdbjava.Txn.CommittedException;
-import org.lmdbjava.Txn.IncompatibleParent;
 import org.lmdbjava.Txn.ReadWriteRequiredException;
 import static org.lmdbjava.TxnFlags.MDB_RDONLY;
 
@@ -323,7 +322,7 @@ public final class Env<T> implements AutoCloseable {
    * @return
    */
   public Txn<T> txnRead() {
-    return txn(MDB_RDONLY);
+    return new Txn<>(this, null, proxy, MDB_RDONLY);
   }
 
   /**
@@ -332,15 +331,7 @@ public final class Env<T> implements AutoCloseable {
    * @return
    */
   public Txn<T> txnWrite() {
-    return txn();
-  }
-
-  private Txn<T> txn(final TxnFlags... flags) {
-    try {
-      return new Txn<>(this, null, proxy, flags);
-    } catch (IncompatibleParent e) {
-      throw new RuntimeException(e); // cannot occur as parent is null
-    }
+    return new Txn<>(this, null, proxy);
   }
 
   /**
