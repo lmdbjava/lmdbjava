@@ -27,6 +27,8 @@ import static org.lmdbjava.Library.RUNTIME;
 import static org.lmdbjava.MaskedFlag.mask;
 import static org.lmdbjava.PutFlags.MDB_RESERVE;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
+
+import org.lmdbjava.CursorIterator.IteratorType;
 import org.lmdbjava.Txn.CommittedException;
 import org.lmdbjava.Txn.ReadWriteRequiredException;
 
@@ -178,16 +180,42 @@ public final class Dbi<T> {
     return new Cursor<>(ptr.getValue(), txn);
   }
 
-  public CursorIterator<T> iterate(final Txn<T> txn, T key, CursorIterator.IteratorType type) {
+  /**
+   * Iterate the database from the first item and forwards.
+   *
+   * @param txn transaction handle (not null; not committed)
+   * @return iterator
+   */
+  public CursorIterator<T> iterate(final Txn<T> txn) {
+    return iterate(txn, null, IteratorType.FORWARD);
+  }
+
+  /**
+   * Iterate the database from the first/last item and forwards/backwards.
+   *
+   * @param txn  transaction handle (not null; not committed)
+   * @param type direction of iterator
+   * @return iterator
+   */
+  public CursorIterator<T> iterate(final Txn<T> txn, IteratorType type) {
+    return iterate(txn, null, type);
+  }
+
+  /**
+   * Iterate the database from the first/last item and forwards/backwards by first
+   * seeking to the provided key.
+   *
+   * @param txn transaction handle (not null; not committed)
+   * @param key the key to search from.
+   * @param type direction of iterator
+   * @return iterator
+   */
+  public CursorIterator<T> iterate(final Txn<T> txn, T key, IteratorType type) {
     if (SHOULD_CHECK) {
       requireNonNull(txn);
       txn.checkNotCommitted();
     }
     return new CursorIterator<>(openCursor(txn), key, type);
-  }
-
-  public CursorIterator<T> iterate(final Txn<T> txn, CursorIterator.IteratorType type) {
-    return iterate(txn, null, type);
   }
 
   /**

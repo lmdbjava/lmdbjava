@@ -55,6 +55,19 @@ public class CursorIteratorTest {
     }
   }
 
+  @Test
+  public void iterate() {
+    final Env<ByteBuffer> env = makeEnv();
+
+    try (final Txn<ByteBuffer> txn = env.txnRead()) {
+      try (CursorIterator<ByteBuffer> c = db.iterate(txn)) {
+        for (KeyVal<ByteBuffer> kv : c.iterable()) {
+          assertThat(kv.key.getInt(), is(list.pollFirst()));
+          assertThat(kv.val.getInt(), is(list.pollFirst()));
+        }
+      }
+    }
+  }
 
   @Test
   public void forward() {
