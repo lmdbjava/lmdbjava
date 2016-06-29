@@ -170,15 +170,16 @@ public class DbiTest {
     final ByteBuffer key = createBb(5);
     try (final Txn<ByteBuffer> txn = env.txnWrite()) {
       assertNull(db.get(txn, key));
-      final ByteBuffer val = db.reserve(txn, key, 8);
+      final ByteBuffer val = db.reserve(txn, key, 32);
       val.putLong(Long.MAX_VALUE);
       assertNotNull(db.get(txn, key));
       txn.commit();
     }
     try (final Txn<ByteBuffer> txn = env.txnWrite()) {
       final ByteBuffer val = db.get(txn, key);
-      assertThat(val.capacity(), is(8));
+      assertThat(val.capacity(), is(32));
       assertThat(val.getLong(), is(Long.MAX_VALUE));
+      assertThat(val.getLong(8), is(0L));
     }
   }
 
