@@ -149,6 +149,16 @@ public final class Env<T> implements AutoCloseable {
   }
 
   /**
+   * Sets the map size.
+   *
+   * @param size the size in given unit.
+   * @param unit the unit to use for the size.
+   */
+  public void setMapSize(final int size, ByteUnit unit) {
+    setMapSize(unit.toBytes(size));
+  }
+
+  /**
    * Sets the maximum number of databases (ie {@link Dbi}s permitted.
    *
    * @param dbs new limit

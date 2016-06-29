@@ -248,6 +248,16 @@ public class EnvTest {
   }
 
   @Test
+  public void byteUnit() throws IOException {
+    final Env<ByteBuffer> env = create();
+    final File path = tmp.newFile();
+    env.setMapSize(1, ByteUnit.MEBIBYTES);
+    env.open(path, POSIX_MODE, MDB_NOSUBDIR);
+    EnvInfo info = env.info();
+    assertThat(info.mapSize, is(ByteUnit.MEBIBYTES.toBytes(1)));
+  }
+
+  @Test
   public void stats() throws IOException {
     final Env<ByteBuffer> env = create();
     final File path = tmp.newFile();
