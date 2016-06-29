@@ -230,6 +230,34 @@ public final class Cursor<T> implements AutoCloseable {
     return true;
   }
 
+  /**
+   * Position at first key/data item
+   */
+  public boolean first() {
+    return seek(SeekOp.MDB_FIRST);
+  }
+
+  /**
+   * Position at last key/data item
+   */
+  public boolean last() {
+    return seek(SeekOp.MDB_LAST);
+  }
+
+  /**
+   * Position at next data item
+   */
+  public boolean next() {
+    return seek(SeekOp.MDB_NEXT);
+  }
+
+  /**
+   * Position at previous data item
+   */
+  public boolean prev() {
+    return seek(SeekOp.MDB_PREV);
+  }
+
   private void checkNotClosed() throws ClosedException {
     if (closed) {
       throw new ClosedException();

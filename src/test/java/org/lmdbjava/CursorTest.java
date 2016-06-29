@@ -350,4 +350,35 @@ public class CursorTest {
       throw new RuntimeException(e);
     }
   }
+
+  @Test
+  public void cursorFirstLastNextPrev() {
+    final Env<ByteBuffer> env = makeEnv(PROXY_OPTIMAL);
+    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
+    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
+      // populate data
+      final Cursor<ByteBuffer> c = db.openCursor(txn);
+      c.put(createBb(1), createBb(2), MDB_NOOVERWRITE);
+      c.put(createBb(3), createBb(4));
+      c.put(createBb(5), createBb(6));
+      c.put(createBb(7), createBb(8));
+
+      assertThat(c.first(), is(true));
+      assertThat(txn.key().getInt(0), is(1));
+      assertThat(txn.val().getInt(0), is(2));
+
+      assertThat(c.last(), is(true));
+      assertThat(txn.key().getInt(0), is(7));
+      assertThat(txn.val().getInt(0), is(8));
+
+      assertThat(c.prev(), is(true));
+      assertThat(txn.key().getInt(0), is(5));
+      assertThat(txn.val().getInt(0), is(6));
+
+      assertThat(c.first(), is(true));
+      assertThat(c.next(), is(true));
+      assertThat(txn.key().getInt(0), is(3));
+      assertThat(txn.val().getInt(0), is(4));
+    }
+  }
 }
