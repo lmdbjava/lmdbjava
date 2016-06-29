@@ -231,6 +231,20 @@ public final class Cursor<T> implements AutoCloseable {
   }
 
   /**
+   * @return the key that the cursor is located at.
+   */
+  public T key() {
+    return txn.key();
+  }
+
+  /**
+   * @return the value that the cursor is located at.
+   */
+  public T val() {
+    return txn.val();
+  }
+
+  /**
    * Position at first key/data item
    */
   public boolean first() {

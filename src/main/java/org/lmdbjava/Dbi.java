@@ -178,6 +178,18 @@ public final class Dbi<T> {
     return new Cursor<>(ptr.getValue(), txn);
   }
 
+  public CursorIterator<T> iterate(final Txn<T> txn, T key, CursorIterator.IteratorType type) {
+    if (SHOULD_CHECK) {
+      requireNonNull(txn);
+      txn.checkNotCommitted();
+    }
+    return new CursorIterator<>(openCursor(txn), key, type);
+  }
+
+  public CursorIterator<T> iterate(final Txn<T> txn, CursorIterator.IteratorType type) {
+    return iterate(txn, null, type);
+  }
+
   /**
    * Starts a new read-write transaction and puts the key/data pair.
    *
