@@ -77,6 +77,13 @@ public final class MutableDirectBufferProxy extends
   }
 
   @Override
+  protected void in(MutableDirectBuffer buffer, int size, Pointer ptr, long ptrAddr) {
+    final long addr = buffer.addressOffset();
+    UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_DATA, addr);
+    UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE, size);
+  }
+
+  @Override
   protected void out(final MutableDirectBuffer buffer, final Pointer ptr,
                      final long ptrAddr) {
     final long addr = UNSAFE.getLong(ptrAddr + STRUCT_FIELD_OFFSET_DATA);

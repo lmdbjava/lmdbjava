@@ -187,21 +187,21 @@ public final class Cursor<T> implements AutoCloseable {
    * This flag must not be specified if the database was opened with MDB_DUPSORT
    *
    * @param key key to store in the database (not null)
-   * @param val size of the value to be stored in the database (not null)
+   * @param size size of the value to be stored in the database (not null)
    */
-  public void reserve(final T key, final T val) {
+  public T reserve(final T key, final int size) {
     if (SHOULD_CHECK) {
       requireNonNull(key);
-      requireNonNull(val);
       checkNotClosed();
       txn.checkNotCommitted();
       txn.checkWritesAllowed();
     }
     txn.keyIn(key);
-    txn.valIn(val);
+    txn.valIn(size);
     final int flags = mask(MDB_RESERVE);
     checkRc(LIB.mdb_cursor_put(ptrCursor, txn.ptrKey, txn.ptrVal, flags));
-    txn.valOut(val);
+    txn.valOut();
+    return txn.val();
   }
 
   /**

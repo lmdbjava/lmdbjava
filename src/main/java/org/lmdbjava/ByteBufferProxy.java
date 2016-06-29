@@ -136,6 +136,13 @@ public final class ByteBufferProxy {
     }
 
     @Override
+    protected void in(ByteBuffer buffer, int size, Pointer ptr, long ptrAddr) {
+      final long addr = ((sun.nio.ch.DirectBuffer) buffer).address();
+      ptr.putLong(STRUCT_FIELD_OFFSET_SIZE, size);
+      ptr.putLong(STRUCT_FIELD_OFFSET_DATA, addr);
+    }
+
+    @Override
     protected void out(final ByteBuffer buffer, final Pointer ptr,
                        final long ptrAddr) {
       final long addr = ptr.getLong(STRUCT_FIELD_OFFSET_DATA);
@@ -195,6 +202,13 @@ public final class ByteBufferProxy {
                       final long ptrAddr) {
       final long addr = ((sun.nio.ch.DirectBuffer) buffer).address();
       UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE, buffer.capacity());
+      UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_DATA, addr);
+    }
+
+    @Override
+    protected void in(ByteBuffer buffer, int size, Pointer ptr, long ptrAddr) {
+      final long addr = ((sun.nio.ch.DirectBuffer) buffer).address();
+      UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE, size);
       UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_DATA, addr);
     }
 

@@ -250,6 +250,10 @@ public final class Txn<T> implements AutoCloseable {
     proxy.in(val, ptrVal, ptrValAddr);
   }
 
+  void valIn(int size) {
+    proxy.in(val, size, ptrVal, ptrValAddr);
+  }
+
   void valOut() {
     proxy.out(val, ptrVal, ptrValAddr);
   }

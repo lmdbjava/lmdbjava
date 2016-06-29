@@ -234,9 +234,9 @@ public final class Dbi<T> {
    *
    * @param txn transaction handle (not null; not committed; must be R-W)
    * @param key key to store in the database (not null)
-   * @param val size of the value to be stored in the database (not null)
+   * @param size size of the value to be stored in the database
    */
-  public void reserve(Txn<T> txn, final T key, final T val) {
+  public T reserve(Txn<T> txn, final T key, int size) {
     if (SHOULD_CHECK) {
       requireNonNull(txn);
       requireNonNull(key);
@@ -244,10 +244,11 @@ public final class Dbi<T> {
       txn.checkWritesAllowed();
     }
     txn.keyIn(key);
-    txn.valIn(val);
+    txn.valIn(size);
     final int mask = mask(MDB_RESERVE);
     checkRc(LIB.mdb_put(txn.ptr, dbi, txn.ptrKey, txn.ptrVal, mask));
-    txn.valOut(val); // marked as in,out in LMDB C docs
+    txn.valOut(); // marked as in,out in LMDB C docs
+    return txn.val();
   }
 
   /**

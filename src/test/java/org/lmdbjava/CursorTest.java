@@ -324,16 +324,16 @@ public class CursorTest {
     final ByteBuffer key = createBb(5);
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
       final Cursor<ByteBuffer> c = db.openCursor(txn);
-      final ByteBuffer val = createBb(MAX_VALUE);
       assertNull(db.get(txn, key));
-      c.reserve(key, val);
+      final ByteBuffer val = c.reserve(key, Long.BYTES * 2);
       assertNotNull(db.get(txn, key));
-      val.putInt(16).flip();
+      val.putLong(Long.MIN_VALUE).flip();
       txn.commit();
     }
     try (final Txn<ByteBuffer> txn = env.txnWrite()) {
       final ByteBuffer val = db.get(txn, key);
-      assertThat(val.getInt(), is(16));
+      assertThat(val.capacity(), is(Long.BYTES * 2));
+      assertThat(val.getLong(), is(Long.MIN_VALUE));
     }
   }
 

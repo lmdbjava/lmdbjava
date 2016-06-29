@@ -71,6 +71,18 @@ public abstract class BufferProxy<T> {
   protected abstract void in(T buffer, Pointer ptr, long ptrAddr);
 
   /**
+   * Called when the <code>MDB_val</code> should be set to reflect the passed
+   * buffer. This buffer will have been created by end users, not
+   * {@link #allocate()}.
+   *
+   * @param buffer  the buffer to write to <code>MDB_val</code>
+   * @param size    the buffer size to write to <code>MDB_val</code>
+   * @param ptr     the pointer to the <code>MDB_val</code>
+   * @param ptrAddr the address of the <code>MDB_val</code> pointer
+   */
+  protected abstract void in(T buffer, int size, Pointer ptr, long ptrAddr);
+
+  /**
    * Called when the <code>MDB_val</code> may have changed and the passed buffer
    * should be modified to reflect the new <code>MDB_val</code>.
    *
