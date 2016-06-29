@@ -106,12 +106,7 @@ public class CursorIterator<T> implements Iterator<CursorIterator.KeyVal<T>>, Au
   }
 
   public Iterable<KeyVal<T>> iterable() {
-    return new Iterable<KeyVal<T>>() {
-      @Override
-      public Iterator<KeyVal<T>> iterator() {
-        return CursorIterator.this;
-      }
-    };
+    return () -> CursorIterator.this;
   }
 
   @Override
