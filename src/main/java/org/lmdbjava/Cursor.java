@@ -36,7 +36,6 @@ public final class Cursor<T> implements AutoCloseable {
   private boolean closed;
   private final Pointer ptrCursor;
   private Txn<T> txn;
-  private KeyVal<T> keyVal = new KeyVal<>(null, null);
 
   Cursor(final Pointer ptr, final Txn<T> txn) {
     requireNonNull(ptr);
@@ -249,8 +248,7 @@ public final class Cursor<T> implements AutoCloseable {
    * @return the key and value that the cursor is located at.
    */
   public KeyVal<T> keyVal() {
-    keyVal.wrap(key(), val());
-    return keyVal;
+    return new KeyVal<>(key(), val());
   }
 
   /**
