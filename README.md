@@ -31,6 +31,10 @@ apt-get install liblmdb-dev
 ```bash
 pacman -S lmdb
 ```
+- RHEL / Fedora / CentOS
+```bash
+sudo yum install lmdb-devel
+```
 - OSX
 ```bash
 brew install lmdb
