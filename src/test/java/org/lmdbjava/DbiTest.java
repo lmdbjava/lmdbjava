@@ -16,7 +16,6 @@
 package org.lmdbjava;
 
 import java.io.File;
-import static java.lang.Integer.MAX_VALUE;
 import java.nio.ByteBuffer;
 import static java.nio.ByteBuffer.allocateDirect;
 import static java.util.Collections.nCopies;
@@ -40,8 +39,7 @@ import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.GetOp.MDB_SET_KEY;
 import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
 import static org.lmdbjava.TestUtils.DB_1;
-import static org.lmdbjava.TestUtils.POSIX_MODE;
-import static org.lmdbjava.TestUtils.createBb;
+import static org.lmdbjava.TestUtils.bb;
 import org.lmdbjava.Txn.CommittedException;
 import org.lmdbjava.Txn.ReadWriteRequiredException;
 
@@ -79,8 +77,8 @@ public class DbiTest {
   public void keyExistsException() throws Exception {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
     try (final Txn<ByteBuffer> txn = env.txnWrite()) {
-      db.put(txn, createBb(5), createBb(5), MDB_NOOVERWRITE);
-      db.put(txn, createBb(5), createBb(5), MDB_NOOVERWRITE);
+      db.put(txn, bb(5), bb(5), MDB_NOOVERWRITE);
+      db.put(txn, bb(5), bb(5), MDB_NOOVERWRITE);
     }
   }
 
@@ -89,12 +87,12 @@ public class DbiTest {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
 
     try (final Txn<ByteBuffer> txn = env.txnWrite()) {
-      db.put(txn, createBb(5), createBb(5));
+      db.put(txn, bb(5), bb(5));
       txn.abort();
     }
 
     try (final Txn<ByteBuffer> txn = env.txnWrite()) {
-      assertNull(db.get(txn, createBb(5)));
+      assertNull(db.get(txn, bb(5)));
     }
   }
 
@@ -102,16 +100,16 @@ public class DbiTest {
   public void putAndGetAndDeleteWithInternalTx() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
 
-    db.put(createBb(5), createBb(5));
+    db.put(bb(5), bb(5));
     try (final Txn<ByteBuffer> txn = env.txnRead()) {
-      final ByteBuffer found = db.get(txn, createBb(5));
+      final ByteBuffer found = db.get(txn, bb(5));
       assertNotNull(found);
       assertThat(txn.val().getInt(), is(5));
     }
-    db.delete(createBb(5));
+    db.delete(bb(5));
 
     try (final Txn<ByteBuffer> txn = env.txnRead()) {
-      assertNull(db.get(txn, createBb(5)));
+      assertNull(db.get(txn, bb(5)));
     }
   }
 
@@ -119,12 +117,12 @@ public class DbiTest {
   public void putCommitGet() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
     try (final Txn<ByteBuffer> txn = env.txnWrite()) {
-      db.put(txn, createBb(5), createBb(5));
+      db.put(txn, bb(5), bb(5));
       txn.commit();
     }
 
     try (final Txn<ByteBuffer> txn = env.txnWrite()) {
-      final ByteBuffer found = db.get(txn, createBb(5));
+      final ByteBuffer found = db.get(txn, bb(5));
       assertNotNull(found);
       assertThat(txn.val().getInt(), is(5));
     }
@@ -135,10 +133,10 @@ public class DbiTest {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
 
     try (final Txn<ByteBuffer> txn = env.txnWrite()) {
-      db.put(txn, createBb(5), createBb(5));
-      db.delete(txn, createBb(5));
+      db.put(txn, bb(5), bb(5));
+      db.delete(txn, bb(5));
 
-      assertNull(db.get(txn, createBb(5)));
+      assertNull(db.get(txn, bb(5)));
       txn.abort();
     }
   }
@@ -148,13 +146,13 @@ public class DbiTest {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
 
     try (final Txn<ByteBuffer> txn = env.txnWrite()) {
-      db.put(txn, createBb(5), createBb(5));
-      db.put(txn, createBb(5), createBb(6));
-      db.put(txn, createBb(5), createBb(7));
-      db.delete(txn, createBb(5), createBb(6));
+      db.put(txn, bb(5), bb(5));
+      db.put(txn, bb(5), bb(6));
+      db.put(txn, bb(5), bb(7));
+      db.delete(txn, bb(5), bb(6));
 
       try (final Cursor<ByteBuffer> cursor = db.openCursor(txn)) {
-        final ByteBuffer key = createBb(5);
+        final ByteBuffer key = bb(5);
         cursor.get(key, MDB_SET_KEY);
         assertThat(cursor.count(), is(2L));
       }
@@ -166,7 +164,7 @@ public class DbiTest {
   public void putReserve() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
 
-    final ByteBuffer key = createBb(5);
+    final ByteBuffer key = bb(5);
     try (final Txn<ByteBuffer> txn = env.txnWrite()) {
       assertNull(db.get(txn, key));
       final ByteBuffer val = db.reserve(txn, key, 32);
@@ -187,7 +185,7 @@ public class DbiTest {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
     try (final Txn<ByteBuffer> txn = env.txnWrite()) {
       final ByteBuffer v = allocateDirect(1_024 * 1_024 * 1_024);
-      db.put(txn, createBb(1), v);
+      db.put(txn, bb(1), v);
     }
   }
 
@@ -201,7 +199,7 @@ public class DbiTest {
           Random random = new Random();
           for (int i = 0; i < 15_000; i++) {
             try {
-              db.put(createBb(random.nextInt()), createBb(random.nextInt()));
+              db.put(bb(random.nextInt()), bb(random.nextInt()));
             } catch (CommittedException | LmdbNativeException | NotOpenException |
                      ReadWriteRequiredException e) {
               throw new RuntimeException(e);

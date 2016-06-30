@@ -3,7 +3,6 @@ package org.lmdbjava;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import org.lmdbjava.CursorIterator.IteratorType;
 import org.lmdbjava.CursorIterator.KeyVal;
 
 import java.io.File;
@@ -14,17 +13,14 @@ import java.util.LinkedList;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
 import static org.lmdbjava.CursorIterator.IteratorType.BACKWARD;
 import static org.lmdbjava.CursorIterator.IteratorType.FORWARD;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import static org.lmdbjava.Env.create;
-import static org.lmdbjava.Env.open;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
-import static org.lmdbjava.TestUtils.*;
 import static org.lmdbjava.TestUtils.DB_1;
-import static org.lmdbjava.TestUtils.createBb;
+import static org.lmdbjava.TestUtils.bb;
 
 public class CursorIteratorTest {
 
@@ -42,10 +38,10 @@ public class CursorIteratorTest {
       list.addAll(Arrays.asList(1, 2, 3, 4, 5, 6, 7, 8));
       try (final Txn<ByteBuffer> txn = env.txnWrite()) {
         final Cursor<ByteBuffer> c = db.openCursor(txn);
-        c.put(createBb(1), createBb(2), MDB_NOOVERWRITE);
-        c.put(createBb(3), createBb(4));
-        c.put(createBb(5), createBb(6));
-        c.put(createBb(7), createBb(8));
+        c.put(bb(1), bb(2), MDB_NOOVERWRITE);
+        c.put(bb(3), bb(4));
+        c.put(bb(5), bb(6));
+        c.put(bb(7), bb(8));
         txn.commit();
       }
       return env;
@@ -86,7 +82,7 @@ public class CursorIteratorTest {
   public void forwardSeek() {
     final Env<ByteBuffer> env = makeEnv();
 
-    ByteBuffer key = createBb(3);
+    ByteBuffer key = bb(3);
     list.pollFirst();
     list.pollFirst();
 
@@ -118,7 +114,7 @@ public class CursorIteratorTest {
   @Test
   public void backwardSeek() {
     final Env<ByteBuffer> env = makeEnv();
-    ByteBuffer key = createBb(5);
+    ByteBuffer key = bb(5);
     list.pollLast();
     list.pollLast();
     try (final Txn<ByteBuffer> txn = env.txnRead()) {

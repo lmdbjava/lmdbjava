@@ -34,7 +34,7 @@ import static org.lmdbjava.Env.create;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.POSIX_MODE;
-import static org.lmdbjava.TestUtils.createBb;
+import static org.lmdbjava.TestUtils.bb;
 import org.lmdbjava.Txn.CommittedException;
 import org.lmdbjava.Txn.IncompatibleParent;
 import org.lmdbjava.Txn.NotResetException;
@@ -90,7 +90,7 @@ public class TxnTest {
       txId1.set(tx1.getId());
     }
 
-    db.put(createBb(1), createBb(2));
+    db.put(bb(1), bb(2));
 
     try (final Txn<ByteBuffer> tx2 = env.txnRead()) {
       txId2.set(tx2.getId());
