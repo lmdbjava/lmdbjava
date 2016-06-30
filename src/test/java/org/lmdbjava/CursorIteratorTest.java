@@ -15,8 +15,11 @@ import java.util.LinkedList;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
+import static org.lmdbjava.CursorIterator.IteratorType.BACKWARD;
+import static org.lmdbjava.CursorIterator.IteratorType.FORWARD;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import static org.lmdbjava.Env.create;
+import static org.lmdbjava.Env.open;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
 import static org.lmdbjava.TestUtils.*;
@@ -34,11 +37,7 @@ public class CursorIteratorTest {
   private Env<ByteBuffer> makeEnv() {
     try {
       final File path = tmp.newFile();
-      env = create(PROXY_OPTIMAL)
-        .setMapSize(1_024 * 1_024)
-        .setMaxDbs(1)
-        .setMaxReaders(1)
-        .open(path, POSIX_MODE, MDB_NOSUBDIR);
+      env = Env.open(path, 10, MDB_NOSUBDIR);
       db = env.openDbi(DB_1, MDB_CREATE);
       list.addAll(Arrays.asList(1, 2, 3, 4, 5, 6, 7, 8));
       try (final Txn<ByteBuffer> txn = env.txnWrite()) {
@@ -74,7 +73,7 @@ public class CursorIteratorTest {
     final Env<ByteBuffer> env = makeEnv();
 
     try (final Txn<ByteBuffer> txn = env.txnRead()) {
-      try (CursorIterator<ByteBuffer> c = db.iterate(txn, IteratorType.FORWARD)) {
+      try (CursorIterator<ByteBuffer> c = db.iterate(txn, FORWARD)) {
         for (KeyVal<ByteBuffer> kv : c.iterable()) {
           assertThat(kv.key.getInt(), is(list.pollFirst()));
           assertThat(kv.val.getInt(), is(list.pollFirst()));
@@ -92,7 +91,7 @@ public class CursorIteratorTest {
     list.pollFirst();
 
     try (final Txn<ByteBuffer> txn = env.txnRead()) {
-      try (CursorIterator<ByteBuffer> c = db.iterate(txn, key, IteratorType.FORWARD)) {
+      try (CursorIterator<ByteBuffer> c = db.iterate(txn, key, FORWARD)) {
         for (KeyVal<ByteBuffer> kv : c.iterable()) {
           assertThat(kv.key.getInt(), is(list.pollFirst()));
           assertThat(kv.val.getInt(), is(list.pollFirst()));
@@ -107,7 +106,7 @@ public class CursorIteratorTest {
     final Env<ByteBuffer> env = makeEnv();
 
     try (final Txn<ByteBuffer> txn = env.txnRead()) {
-      try (CursorIterator<ByteBuffer> c = db.iterate(txn, IteratorType.BACKWARD)) {
+      try (CursorIterator<ByteBuffer> c = db.iterate(txn, BACKWARD)) {
         for (KeyVal<ByteBuffer> kv : c.iterable()) {
           assertThat(kv.val.getInt(), is(list.pollLast()));
           assertThat(kv.key.getInt(), is(list.pollLast()));
@@ -123,7 +122,7 @@ public class CursorIteratorTest {
     list.pollLast();
     list.pollLast();
     try (final Txn<ByteBuffer> txn = env.txnRead()) {
-      try (CursorIterator<ByteBuffer> c = db.iterate(txn, key, IteratorType.BACKWARD)) {
+      try (CursorIterator<ByteBuffer> c = db.iterate(txn, key, BACKWARD)) {
         for (KeyVal<ByteBuffer> kv : c.iterable()) {
           assertThat(kv.val.getInt(), is(list.pollLast()));
           assertThat(kv.key.getInt(), is(list.pollLast()));
