@@ -63,6 +63,17 @@ public final class Env<T> implements AutoCloseable {
   }
 
   /**
+   * Create an {@link Env} using the passed {@link BufferProxy}.
+   *
+   * @param <T>
+   * @param proxy the proxy to use (required)
+   * @return the environment (never null)
+   */
+  public static <T> Builder<T> create(final BufferProxy<T> proxy) {
+    return new Builder<>(new Env<>(proxy));
+  }
+
+  /**
    * Opens an environment with a single default database in 0664 mode
    * using the {@link ByteBufferProxy#PROXY_OPTIMAL}.
    *
@@ -78,17 +89,6 @@ public final class Env<T> implements AutoCloseable {
       .setMaxDbs(1)
       .setMapSize(size, ByteUnit.MEBIBYTES)
       .open(path, flags);
-  }
-
-  /**
-   * Create an {@link Env} using the passed {@link BufferProxy}.
-   *
-   * @param <T>
-   * @param proxy the proxy to use (required)
-   * @return the environment (never null)
-   */
-  public static <T> Builder<T> create(final BufferProxy<T> proxy) {
-    return new Builder<>(new Env<>(proxy));
   }
 
   private boolean closed = false;
