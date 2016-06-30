@@ -19,23 +19,40 @@ No journal files. No corruption. No startup time. No dependencies. No config
 tuning. LMDB is the perfect foundation for large, read-centric, single node
 workloads that require strong latency and operational robustness outcomes.
 
-## Usage
+### Installation
+
+LMDB isn't packaged with LmdbJava, so use your operating system's package manager to install it.
+
+- Ubuntu
+```bash
+apt-get install liblmdb-dev
+```
+- Arch Linux
+```bash
+pacman -S lmdb
+```
+- OSX
+```bash
+brew install lmdb
+```
+
+### Usage
 
 Have a read through the
 [tutorial](https://github.com/lmdbjava/lmdbjava/tree/master/src/test/java/org/lmdbjava/TutorialTest.java)
 to learn how to use LmdbJava.
 
-## Support
+### Support
 
 We're happy to help you use LmdbJava. Simply
 [open a GitHub issue](https://github.com/lmdbjava/lmdbjava/issues) if you have
 any questions.
 
-## Contributing
+### Contributing
 
 Contributions are welcome! Please see the [Contributing Guidelines](CONTRIBUTING.md).
 
-## History
+### History
 
 For years Java users have been able to access LMDB via
 [LMDBJNI](https://github.com/deephacks/lmdbjni). Its public API is mature and
@@ -51,7 +68,7 @@ now requiring it (and there is an automatic reflective fallback if `Unsafe` isn'
 available). Overall these changes make LmdbJava the optimal choice for projects
 targeting server-class JVMs, and it will be easy to support Java 9 when released.
 
-## License
+### License
 
 This project is licensed under the
 [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.html).
