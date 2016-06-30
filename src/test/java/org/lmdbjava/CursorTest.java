@@ -88,21 +88,21 @@ public class CursorTest {
     try (final Txn<ByteBuf> txn = env.txnWrite()) {
       // populate data
       final Cursor<ByteBuf> c = db.openCursor(txn);
-      c.put(allocateNb(txn, 1), allocateNb(txn, 2), MDB_NOOVERWRITE);
-      c.put(allocateNb(txn, 3), allocateNb(txn, 4));
-      c.put(allocateNb(txn, 5), allocateNb(txn, 6));
-      c.put(allocateNb(txn, 7), allocateNb(txn, 8));
+      c.put(allocateNb(1), allocateNb(2), MDB_NOOVERWRITE);
+      c.put(allocateNb(3), allocateNb(4));
+      c.put(allocateNb(5), allocateNb(6));
+      c.put(allocateNb(7), allocateNb(8));
 
       // check MDB_SET operations
-      final ByteBuf key3 = allocateNb(txn, 3);
+      final ByteBuf key3 = allocateNb(3);
       assertThat(c.get(key3, MDB_SET_KEY), is(true));
       assertThat(txn.key().getInt(0), is(3));
       assertThat(txn.val().getInt(0), is(4));
-      final ByteBuf key6 = allocateNb(txn, 6);
+      final ByteBuf key6 = allocateNb(6);
       assertThat(c.get(key6, MDB_SET_RANGE), is(true));
       assertThat(txn.key().getInt(0), is(7));
       assertThat(txn.val().getInt(0), is(8));
-      final ByteBuf key999 = allocateNb(txn, 999);
+      final ByteBuf key999 = allocateNb(999);
       assertThat(c.get(key999, MDB_SET_KEY), is(false));
 
       // check MDB navigation operations

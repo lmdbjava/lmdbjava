@@ -34,7 +34,7 @@ final class TestUtils {
   public static final String DB_1 = "test-db-1";
   public static final int POSIX_MODE = 0664;
 
-  static ByteBuf allocateNb(final Txn<ByteBuf> txn, final int value) {
+  static ByteBuf allocateNb(final int value) {
     final ByteBuf b = DEFAULT.directBuffer(BYTES);
     b.writeInt(value);
     return b;
