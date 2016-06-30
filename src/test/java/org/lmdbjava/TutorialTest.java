@@ -72,7 +72,7 @@ public class TutorialTest {
     // Env can store many different databases (ie sorted maps).
     Env<ByteBuffer> env = create()
       // LMDB also needs to know how large our DB might be. Over-estimating is OK.
-      .setMapSize(700 * 700)
+      .setMapSize(10, ByteUnit.MEBIBYTES)
       // LMDB also needs to know how many DBs (Dbi) we want to store in this Env.
       .setMaxDbs(1)
       // Now let's open the Env. The 0664 is the POSIX mode of the created files.
@@ -136,7 +136,7 @@ public class TutorialTest {
     // As per tutorial1...
     File path = tmp.newFolder();
     Env<ByteBuffer> env = create()
-      .setMapSize(700 * 700)
+      .setMapSize(10, ByteUnit.MEBIBYTES)
       .setMaxDbs(1)
       .open(path, 0664);
     Dbi<ByteBuffer> db = env.openDbi("my DB", MDB_CREATE);
@@ -206,7 +206,7 @@ public class TutorialTest {
     // As per tutorial1...
     File path = tmp.newFolder();
     Env<ByteBuffer> env = create()
-      .setMapSize(700 * 700)
+      .setMapSize(10, ByteUnit.MEBIBYTES)
       .setMaxDbs(1)
       .open(path, 0664);
     Dbi<ByteBuffer> db = env.openDbi("my DB", MDB_CREATE);
@@ -291,7 +291,7 @@ public class TutorialTest {
     // As per tutorial1...
     File path = tmp.newFolder();
     Env<ByteBuffer> env = create()
-      .setMapSize(700 * 700)
+      .setMapSize(10, ByteUnit.MEBIBYTES)
       .setMaxDbs(1)
       .open(path, 0664);
 
@@ -354,7 +354,7 @@ public class TutorialTest {
     // Aside from that and a different type argument, it's the same as usual...
     File path = tmp.newFolder();
     Env<MutableDirectBuffer> env = create(PROXY_MDB)
-      .setMapSize(700 * 700)
+      .setMapSize(10, ByteUnit.MEBIBYTES)
       .setMaxDbs(1)
       .open(path, 0664);
 
