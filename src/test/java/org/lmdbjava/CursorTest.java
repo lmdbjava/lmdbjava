@@ -242,17 +242,47 @@ public class CursorTest {
 
       // check MDB navigation operations
       assertThat(c.seek(MDB_LAST), is(true));
-      assertThat(txn.key().getInt(0), is(7));
-      assertThat(txn.val().getInt(0), is(8));
+      MutableDirectBuffer mdb1 = mdb(0);
+      MutableDirectBuffer mdb2 = mdb(0);
+      mdb1.wrap(txn.key());
+      mdb2.wrap(txn.val());
+
       assertThat(c.seek(MDB_PREV), is(true));
-      assertThat(txn.key().getInt(0), is(5));
-      assertThat(txn.val().getInt(0), is(6));
+      MutableDirectBuffer mdb3 = mdb(0);
+      MutableDirectBuffer mdb4 = mdb(0);
+      mdb3.wrap(txn.key());
+      mdb4.wrap(txn.val());
+
       assertThat(c.seek(MDB_NEXT), is(true));
-      assertThat(txn.key().getInt(0), is(7));
-      assertThat(txn.val().getInt(0), is(8));
+      MutableDirectBuffer mdb5 = mdb(0);
+      MutableDirectBuffer mdb6 = mdb(0);
+      mdb5.wrap(txn.key());
+      mdb6.wrap(txn.val());
+
       assertThat(c.seek(MDB_FIRST), is(true));
-      assertThat(txn.key().getInt(0), is(1));
-      assertThat(txn.val().getInt(0), is(2));
+      MutableDirectBuffer mdb7 = mdb(0);
+      MutableDirectBuffer mdb8 = mdb(0);
+      mdb7.wrap(txn.key());
+      mdb8.wrap(txn.val());
+
+      // assert afterwards to ensure memory address from LMDB
+      // are valid within same txn and across cursor movement
+
+      // MDB_LAST
+      assertThat(mdb1.getInt(0), is(7));
+      assertThat(mdb2.getInt(0), is(8));
+
+      // MDB_PREV
+      assertThat(mdb3.getInt(0), is(5));
+      assertThat(mdb4.getInt(0), is(6));
+
+      // MDB_NEXT
+      assertThat(mdb5.getInt(0), is(7));
+      assertThat(mdb6.getInt(0), is(8));
+
+      // MDB_FIRST
+      assertThat(mdb7.getInt(0), is(1));
+      assertThat(mdb8.getInt(0), is(2));
     }
   }
 
