@@ -58,7 +58,7 @@ public class DbiTest {
       .setMapSize(1, ByteUnit.MEBIBYTES)
       .setMaxReaders(1)
       .setMaxDbs(2)
-      .open(path, POSIX_MODE, MDB_NOSUBDIR);
+      .open(path, MDB_NOSUBDIR);
   }
 
   @Test(expected = DbFullException.class)

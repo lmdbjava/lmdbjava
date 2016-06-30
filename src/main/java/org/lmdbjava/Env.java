@@ -416,6 +416,16 @@ public final class Env<T> implements AutoCloseable {
     }
 
     /**
+     * Opens the environment in read write mode.
+     *
+     * @param path  file system destination
+     * @param flags the flags for this new environment
+     */
+    public Env<T> open(final File path, final EnvFlags... flags) {
+      return open(path, 0664, flags);
+    }
+
+    /**
      * Sets the map size.
      *
      * @param mapSize new limit in bytes
