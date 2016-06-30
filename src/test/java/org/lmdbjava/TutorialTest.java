@@ -21,6 +21,7 @@ import java.nio.ByteBuffer;
 
 import static java.nio.ByteBuffer.allocateDirect;
 
+import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
@@ -383,18 +384,18 @@ public class TutorialTest {
     // There's also a PROXY_SAFE if you want to stop ByteBuffer's Unsafe use.
     // Aside from that and a different type argument, it's the same as usual...
     File path = tmp.newFolder();
-    Env<MutableDirectBuffer> env = Env.create(MutableDirectBufferProxy.PROXY_MDB)
+    Env<DirectBuffer> env = Env.create(DirectBufferProxy.PROXY_MDB)
       .setMapSize(10, ByteUnit.MEBIBYTES)
       .setMaxDbs(1)
       .open(path, 0664);
 
-    Dbi<MutableDirectBuffer> db = env.openDbi("my DB", MDB_CREATE);
+    Dbi<DirectBuffer> db = env.openDbi("my DB", MDB_CREATE);
 
     MutableDirectBuffer key = new UnsafeBuffer(ByteBuffer.allocateDirect(511));
     MutableDirectBuffer val = new UnsafeBuffer(ByteBuffer.allocateDirect(700));
 
-    try (Txn<MutableDirectBuffer> txn = env.txnWrite()) {
-      Cursor<MutableDirectBuffer> c = db.openCursor(txn);
+    try (Txn<DirectBuffer> txn = env.txnWrite()) {
+      Cursor<DirectBuffer> c = db.openCursor(txn);
 
       // Agrona is not only faster than ByteBuffer, but its methods are nicer...
       val.putStringWithoutLengthUtf8(0, "The Value");

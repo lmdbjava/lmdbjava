@@ -19,6 +19,8 @@ import io.netty.buffer.ByteBuf;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+
+import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -36,7 +38,7 @@ import static org.lmdbjava.Env.create;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.GetOp.MDB_SET_KEY;
 import static org.lmdbjava.GetOp.MDB_SET_RANGE;
-import static org.lmdbjava.MutableDirectBufferProxy.PROXY_MDB;
+import static org.lmdbjava.DirectBufferProxy.PROXY_MDB;
 import static org.lmdbjava.PutFlags.MDB_APPENDDUP;
 import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
 import static org.lmdbjava.SeekOp.MDB_FIRST;
@@ -217,12 +219,12 @@ public class CursorTest {
 
   @Test
   public void cursorMutableDirectBuffer() {
-    final Env<MutableDirectBuffer> env = makeEnv(PROXY_MDB);
-    final Dbi<MutableDirectBuffer> db = env.openDbi(DB_1, MDB_CREATE,
+    final Env<DirectBuffer> env = makeEnv(PROXY_MDB);
+    final Dbi<DirectBuffer> db = env.openDbi(DB_1, MDB_CREATE,
                                                     MDB_DUPSORT);
-    try (final Txn<MutableDirectBuffer> txn = env.txnWrite()) {
+    try (final Txn<DirectBuffer> txn = env.txnWrite()) {
       // populate data
-      final Cursor<MutableDirectBuffer> c = db.openCursor(txn);
+      final Cursor<DirectBuffer> c = db.openCursor(txn);
       c.put(mdb(1), mdb(2), MDB_NOOVERWRITE);
       c.put(mdb(3), mdb(4));
       c.put(mdb(5), mdb(6));

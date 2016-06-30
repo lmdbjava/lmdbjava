@@ -19,6 +19,7 @@ import static java.lang.ThreadLocal.withInitial;
 import java.nio.ByteBuffer;
 import static java.nio.ByteBuffer.allocateDirect;
 import jnr.ffi.Pointer;
+import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.OneToOneConcurrentArrayQueue;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -29,29 +30,29 @@ import static org.lmdbjava.UnsafeAccess.UNSAFE;
  * <p>
  * This class requires {@link UnsafeAccess} and Agrona must be in the classpath.
  */
-public final class MutableDirectBufferProxy extends
-    BufferProxy<MutableDirectBuffer> {
+public final class DirectBufferProxy extends
+    BufferProxy<DirectBuffer> {
 
   /**
    * The {@link MutableDirectBuffer} proxy. Guaranteed to never be null,
    * although a class initialization exception will occur if an attempt is made
    * to access this field when unsafe or Agrona is unavailable.
    */
-  public static final BufferProxy<MutableDirectBuffer> PROXY_MDB
-      = new MutableDirectBufferProxy();
+  public static final BufferProxy<DirectBuffer> PROXY_MDB
+      = new DirectBufferProxy();
 
   /**
    * A thread-safe pool for a given length. If the buffer found is valid (ie not
    * of a negative length) then that buffer is used. If no valid buffer is
    * found, a new buffer is created.
    */
-  private static final ThreadLocal<OneToOneConcurrentArrayQueue<MutableDirectBuffer>> BUFFERS
+  private static final ThreadLocal<OneToOneConcurrentArrayQueue<DirectBuffer>> BUFFERS
       = withInitial(() -> new OneToOneConcurrentArrayQueue<>(16));
 
   @Override
-  protected MutableDirectBuffer allocate() {
-    final OneToOneConcurrentArrayQueue<MutableDirectBuffer> q = BUFFERS.get();
-    final MutableDirectBuffer buffer = q.poll();
+  protected DirectBuffer allocate() {
+    final OneToOneConcurrentArrayQueue<DirectBuffer> q = BUFFERS.get();
+    final DirectBuffer buffer = q.poll();
 
     if (buffer != null && buffer.capacity() >= 0) {
       return buffer;
@@ -62,13 +63,13 @@ public final class MutableDirectBufferProxy extends
   }
 
   @Override
-  protected void deallocate(final MutableDirectBuffer buff) {
-    final OneToOneConcurrentArrayQueue<MutableDirectBuffer> q = BUFFERS.get();
+  protected void deallocate(final DirectBuffer buff) {
+    final OneToOneConcurrentArrayQueue<DirectBuffer> q = BUFFERS.get();
     q.offer(buff);
   }
 
   @Override
-  protected void in(final MutableDirectBuffer buffer, final Pointer ptr,
+  protected void in(final DirectBuffer buffer, final Pointer ptr,
                     final long ptrAddr) {
     final long addr = buffer.addressOffset();
     final long size = buffer.capacity();
@@ -77,14 +78,14 @@ public final class MutableDirectBufferProxy extends
   }
 
   @Override
-  protected void in(MutableDirectBuffer buffer, int size, Pointer ptr, long ptrAddr) {
+  protected void in(DirectBuffer buffer, int size, Pointer ptr, long ptrAddr) {
     final long addr = buffer.addressOffset();
     UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_DATA, addr);
     UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE, size);
   }
 
   @Override
-  protected void out(final MutableDirectBuffer buffer, final Pointer ptr,
+  protected void out(final DirectBuffer buffer, final Pointer ptr,
                      final long ptrAddr) {
     final long addr = UNSAFE.getLong(ptrAddr + STRUCT_FIELD_OFFSET_DATA);
     final long size = UNSAFE.getLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE);
