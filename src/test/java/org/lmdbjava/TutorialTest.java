@@ -33,7 +33,11 @@ import static org.junit.Assert.assertNull;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.lmdbjava.CursorIterator.IteratorType;
+import org.lmdbjava.CursorIterator.KeyVal;
 
+import static org.lmdbjava.CursorIterator.IteratorType.BACKWARD;
+import static org.lmdbjava.CursorIterator.IteratorType.FORWARD;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import static org.lmdbjava.DbiFlags.MDB_DUPSORT;
 import static org.lmdbjava.Env.create;
@@ -255,6 +259,38 @@ public class TutorialTest {
 
       c.close();
       txn.commit();
+    }
+
+    // Iterators are provided as a convenience. Each iterator
+    // uses a cursor and must be closed when finished.
+
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
+
+      // iterate forward in terms of key ordering starting with the first key
+      try (CursorIterator<ByteBuffer> it = db.iterate(txn, FORWARD)) {
+        for (KeyVal<ByteBuffer> kv : it.iterable()) {
+          ByteBuffer k = kv.key;
+          ByteBuffer v = kv.val;
+        }
+      }
+
+      // iterate backward in terms of key ordering starting with the first key
+      try (CursorIterator<ByteBuffer> it = db.iterate(txn, BACKWARD)) {
+        for (KeyVal<ByteBuffer> kv : it.iterable()) {
+          ByteBuffer k = kv.key;
+          ByteBuffer v = kv.val;
+        }
+      }
+
+      // search for key and iterate forwards/backward from there til the last/first key.
+      ByteBuffer searchKey = allocateDirect(511);
+      searchKey.putLong(100L);
+      try (CursorIterator<ByteBuffer> it = db.iterate(txn, searchKey, FORWARD)) {
+        for (KeyVal<ByteBuffer> kv : it.iterable()) {
+          ByteBuffer k = kv.key;
+          ByteBuffer v = kv.val;
+        }
+      }
     }
 
     // A read-only Cursor can survive its original Txn being closed. This is
