@@ -33,7 +33,7 @@ pacman -S lmdb
 ```
 - RHEL / Fedora / CentOS
 ```bash
-sudo yum install lmdb-devel
+yum install lmdb-devel
 ```
 - OSX
 ```bash
