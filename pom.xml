@@ -127,6 +127,7 @@
         <configuration>
           <excludes>
             <exclude>**/Exception*</exclude>
+            <exclude>**/ByteUnit*</exclude>
           </excludes>
         </configuration>
       </plugin>
