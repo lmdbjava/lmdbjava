@@ -48,7 +48,7 @@ public class EnvTest {
   public void cannotInfoOnceClosed() throws IOException {
     final File path = tmp.newFile();
     final Env<ByteBuffer> env = create()
-      .open(path, POSIX_MODE, MDB_NOSUBDIR);
+      .open(path, MDB_NOSUBDIR);
     env.close();
     env.info();
   }
@@ -57,7 +57,7 @@ public class EnvTest {
   public void cannotStatOnceClosed() throws IOException {
     final File path = tmp.newFile();
     final Env<ByteBuffer> env = create()
-      .open(path, POSIX_MODE, MDB_NOSUBDIR);
+      .open(path, MDB_NOSUBDIR);
     env.close();
     env.stat();
   }
@@ -66,7 +66,7 @@ public class EnvTest {
   public void cannotSyncOnceClosed() throws IOException {
     final File path = tmp.newFile();
     final Env<ByteBuffer> env = create()
-      .open(path, POSIX_MODE, MDB_NOSUBDIR);
+      .open(path, MDB_NOSUBDIR);
     env.close();
     env.sync(false);
   }
@@ -79,7 +79,7 @@ public class EnvTest {
     assertThat(dest.isDirectory(), is(true));
     assertThat(dest.list().length, is(0));
     final File src = tmp.newFolder();
-    try (final Env<ByteBuffer> env = create().open(src, POSIX_MODE)) {
+    try (final Env<ByteBuffer> env = create().open(src)) {
       env.copy(dest, MDB_CP_COMPACT);
       assertThat(dest.list().length, is(1));
     }
@@ -89,7 +89,7 @@ public class EnvTest {
   public void copyRejectsFileDestination() throws IOException {
     final File dest = tmp.newFile();
     final File src = tmp.newFolder();
-    try (final Env<ByteBuffer> env = create().open(src, POSIX_MODE)) {
+    try (final Env<ByteBuffer> env = create().open(src)) {
       env.copy(dest, MDB_CP_COMPACT);
     }
   }
@@ -99,7 +99,7 @@ public class EnvTest {
     final File dest = tmp.newFolder();
     dest.delete();
     final File src = tmp.newFolder();
-    try (final Env<ByteBuffer> env = create().open(src, POSIX_MODE)) {
+    try (final Env<ByteBuffer> env = create().open(src)) {
       env.copy(dest, MDB_CP_COMPACT);
     }
   }
@@ -110,7 +110,7 @@ public class EnvTest {
     final File subDir = new File(dest, "hello");
     subDir.mkdir();
     final File src = tmp.newFolder();
-    try (final Env<ByteBuffer> env = create().open(src, POSIX_MODE)) {
+    try (final Env<ByteBuffer> env = create().open(src)) {
       env.copy(dest, MDB_CP_COMPACT);
     }
   }
@@ -118,7 +118,7 @@ public class EnvTest {
   @Test
   public void createAsDirectory() throws IOException {
     final File path = tmp.newFolder();
-    final Env<ByteBuffer> env = create().open(path, POSIX_MODE);
+    final Env<ByteBuffer> env = create().open(path);
     assertThat(env.isOpen(), is(true));
     assertThat(path.isDirectory(), is(true));
     env.sync(false);
@@ -134,7 +134,7 @@ public class EnvTest {
       .setMapSize(1_024 * 1_024)
       .setMaxDbs(1)
       .setMaxReaders(1)
-      .open(path, POSIX_MODE, MDB_NOSUBDIR)) {
+      .open(path, MDB_NOSUBDIR)) {
       env.sync(true);
       assertThat(env.isOpen(), is(true));
       assertThat(path.isFile(), is(true));
@@ -147,7 +147,7 @@ public class EnvTest {
     final Env<ByteBuffer> env = create()
       .setMaxReaders(4)
       .setMapSize(123_456)
-      .open(path, POSIX_MODE, MDB_NOSUBDIR);
+      .open(path, MDB_NOSUBDIR);
     EnvInfo info = env.info();
     assertThat(info, is(notNullValue()));
     assertThat(info.lastPageNumber, is(1L));
@@ -163,7 +163,7 @@ public class EnvTest {
     final File path = tmp.newFile();
     final Env<ByteBuffer> env = create()
       .setMapSize(1, ByteUnit.MEBIBYTES)
-      .open(path, POSIX_MODE, MDB_NOSUBDIR);
+      .open(path, MDB_NOSUBDIR);
     EnvInfo info = env.info();
     assertThat(info.mapSize, is(ByteUnit.MEBIBYTES.toBytes(1)));
   }
@@ -172,7 +172,7 @@ public class EnvTest {
   public void stats() throws IOException {
     final File path = tmp.newFile();
     final Env<ByteBuffer> env = create()
-      .open(path, POSIX_MODE, MDB_NOSUBDIR);
+      .open(path, MDB_NOSUBDIR);
     EnvStat stat = env.stat();
     assertThat(stat, is(notNullValue()));
     assertThat(stat.branchPages, is(0L));
