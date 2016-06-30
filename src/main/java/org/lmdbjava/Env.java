@@ -63,6 +63,24 @@ public final class Env<T> implements AutoCloseable {
   }
 
   /**
+   * Opens an environment with a single default database in 0664 mode
+   * using the {@link ByteBufferProxy#PROXY_OPTIMAL}.
+   *
+   * @param path  file system destination
+   * @param size  size in ByteUnit.MEBIBYTES
+   * @param flags the flags for this new environment
+   * @return env
+   */
+  public static Env<ByteBuffer> open(
+    File path, int size, EnvFlags... flags) {
+    Env<ByteBuffer> env = new Env<>(PROXY_OPTIMAL);
+    return new Builder<>(env)
+      .setMaxDbs(1)
+      .setMapSize(size, ByteUnit.MEBIBYTES)
+      .open(path, flags);
+  }
+
+  /**
    * Create an {@link Env} using the passed {@link BufferProxy}.
    *
    * @param <T>

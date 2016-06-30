@@ -159,6 +159,14 @@ public class EnvTest {
   }
 
   @Test
+  public void testDefaultOpen() {
+    try (Env<ByteBuffer> env = Env.open(new File("/tmp"), 10)) {
+      Dbi<ByteBuffer> db = env.openDbi("test", DbiFlags.MDB_CREATE);
+      db.put(ByteBuffer.allocateDirect(1), ByteBuffer.allocateDirect(1));
+    }
+  }
+
+  @Test
   public void byteUnit() throws IOException {
     final File path = tmp.newFile();
     final Env<ByteBuffer> env = create()
