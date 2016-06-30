@@ -139,10 +139,8 @@ public class TutorialTest {
   public void tutorial2() throws IOException {
     // As per tutorial1...
     File path = tmp.newFolder();
-    Env<ByteBuffer> env = Env.create()
-      .setMapSize(10, ByteUnit.MEBIBYTES)
-      .setMaxDbs(1)
-      .open(path, 0664);
+    // open 10 mb environment with one database.
+    Env<ByteBuffer> env = Env.open(path, 10);
     Dbi<ByteBuffer> db = env.openDbi("my DB", MDB_CREATE);
     ByteBuffer key = ByteBuffer.allocateDirect(511);
     ByteBuffer val = ByteBuffer.allocateDirect(700);
