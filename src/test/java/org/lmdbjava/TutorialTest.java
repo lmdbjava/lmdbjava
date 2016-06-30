@@ -139,13 +139,13 @@ public class TutorialTest {
   public void tutorial2() throws IOException {
     // As per tutorial1...
     File path = tmp.newFolder();
-    Env<ByteBuffer> env = create()
+    Env<ByteBuffer> env = Env.create()
       .setMapSize(10, ByteUnit.MEBIBYTES)
       .setMaxDbs(1)
       .open(path, 0664);
     Dbi<ByteBuffer> db = env.openDbi("my DB", MDB_CREATE);
-    ByteBuffer key = allocateDirect(511);
-    ByteBuffer val = allocateDirect(700);
+    ByteBuffer key = ByteBuffer.allocateDirect(511);
+    ByteBuffer val = ByteBuffer.allocateDirect(700);
 
     // Let's write and commit "key1" via a Txn. A Txn can include multiple Dbis.
     // Note write Txns block other write Txns, due to writes being serialized.
@@ -209,13 +209,13 @@ public class TutorialTest {
   public void tutorial3() throws IOException {
     // As per tutorial1...
     File path = tmp.newFolder();
-    Env<ByteBuffer> env = create()
+    Env<ByteBuffer> env = Env.create()
       .setMapSize(10, ByteUnit.MEBIBYTES)
       .setMaxDbs(1)
       .open(path, 0664);
     Dbi<ByteBuffer> db = env.openDbi("my DB", MDB_CREATE);
-    ByteBuffer key = allocateDirect(511);
-    ByteBuffer val = allocateDirect(700);
+    ByteBuffer key = ByteBuffer.allocateDirect(511);
+    ByteBuffer val = ByteBuffer.allocateDirect(700);
 
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
       // A cursor always belongs to a particular Dbi.
@@ -326,7 +326,7 @@ public class TutorialTest {
   public void tutorial4() throws IOException {
     // As per tutorial1...
     File path = tmp.newFolder();
-    Env<ByteBuffer> env = create()
+    Env<ByteBuffer> env = Env.create()
       .setMapSize(10, ByteUnit.MEBIBYTES)
       .setMaxDbs(1)
       .open(path, 0664);
@@ -336,8 +336,8 @@ public class TutorialTest {
     Dbi<ByteBuffer> db = env.openDbi("my DB", MDB_CREATE, MDB_DUPSORT);
 
     // Duplicate support requires both keys and values to be <= 511 bytes.
-    ByteBuffer key = allocateDirect(511);
-    ByteBuffer val = allocateDirect(511);
+    ByteBuffer key = ByteBuffer.allocateDirect(511);
+    ByteBuffer val = ByteBuffer.allocateDirect(511);
 
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
       Cursor<ByteBuffer> c = db.openCursor(txn);
@@ -389,15 +389,15 @@ public class TutorialTest {
     // There's also a PROXY_SAFE if you want to stop ByteBuffer's Unsafe use.
     // Aside from that and a different type argument, it's the same as usual...
     File path = tmp.newFolder();
-    Env<MutableDirectBuffer> env = create(PROXY_MDB)
+    Env<MutableDirectBuffer> env = Env.create(MutableDirectBufferProxy.PROXY_MDB)
       .setMapSize(10, ByteUnit.MEBIBYTES)
       .setMaxDbs(1)
       .open(path, 0664);
 
     Dbi<MutableDirectBuffer> db = env.openDbi("my DB", MDB_CREATE);
 
-    MutableDirectBuffer key = new UnsafeBuffer(allocateDirect(511));
-    MutableDirectBuffer val = new UnsafeBuffer(allocateDirect(700));
+    MutableDirectBuffer key = new UnsafeBuffer(ByteBuffer.allocateDirect(511));
+    MutableDirectBuffer val = new UnsafeBuffer(ByteBuffer.allocateDirect(700));
 
     try (Txn<MutableDirectBuffer> txn = env.txnWrite()) {
       Cursor<MutableDirectBuffer> c = db.openCursor(txn);
