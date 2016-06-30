@@ -156,6 +156,13 @@ public final class Dbi<T> {
   }
 
   /**
+   * @return the environment this database belongs to.
+   */
+  public Env getEnv() {
+    return env;
+  }
+
+  /**
    * Create a cursor handle.
    * <p>
    * A cursor is associated with a specific transaction and database. A cursor
