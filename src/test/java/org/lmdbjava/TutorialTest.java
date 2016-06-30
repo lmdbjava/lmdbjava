@@ -74,7 +74,7 @@ public class TutorialTest {
 
     // We always need an Env. An Env owns a physical on-disk storage file. One
     // Env can store many different databases (ie sorted maps).
-    Env<ByteBuffer> env = create()
+    Env<ByteBuffer> env = Env.create()
       // LMDB also needs to know how large our DB might be. Over-estimating is OK.
       .setMapSize(10, ByteUnit.MEBIBYTES)
       // LMDB also needs to know how many DBs (Dbi) we want to store in this Env.
@@ -90,8 +90,8 @@ public class TutorialTest {
 
     // We want to store some data, so we will need a direct ByteBuffer.
     // Note that LMDB keys cannot exceed 511 bytes. Values can be larger.
-    ByteBuffer key = allocateDirect(511);
-    ByteBuffer val = allocateDirect(700);
+    ByteBuffer key = ByteBuffer.allocateDirect(511);
+    ByteBuffer val = ByteBuffer.allocateDirect(700);
     key.put("greeting".getBytes());
     val.put("Hello world".getBytes());
 
