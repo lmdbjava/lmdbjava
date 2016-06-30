@@ -33,16 +33,12 @@ import static org.junit.Assert.assertNull;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import org.lmdbjava.CursorIterator.IteratorType;
-import org.lmdbjava.CursorIterator.KeyVal;
 
 import static org.lmdbjava.CursorIterator.IteratorType.BACKWARD;
 import static org.lmdbjava.CursorIterator.IteratorType.FORWARD;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import static org.lmdbjava.DbiFlags.MDB_DUPSORT;
-import static org.lmdbjava.Env.create;
 import static org.lmdbjava.GetOp.MDB_SET;
-import static org.lmdbjava.MutableDirectBufferProxy.PROXY_MDB;
 import static org.lmdbjava.SeekOp.MDB_FIRST;
 import static org.lmdbjava.SeekOp.MDB_LAST;
 import static org.lmdbjava.SeekOp.MDB_PREV;

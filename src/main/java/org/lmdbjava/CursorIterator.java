@@ -22,8 +22,7 @@ import java.util.NoSuchElementException;
  * Iterator for entries that follow the same semantics as Cursors
  * with regards to read and write transactions and how they are closed.
  */
-public class CursorIterator<T> implements
-  Iterator<CursorIterator.KeyVal<T>>, AutoCloseable {
+public class CursorIterator<T> implements Iterator<KeyVal<T>>, AutoCloseable {
   private final Cursor<T> cursor;
   private final IteratorType type;
   private final T key;
@@ -39,7 +38,7 @@ public class CursorIterator<T> implements
     READY, NOT_READY, DONE, FAILED,
   }
 
-  private KeyVal<T> holder = new KeyVal<>();
+  private KeyVal<T> holder = new KeyVal<>(null, null);
   private KeyVal<T> entry;
   private boolean first = true;
 
@@ -126,15 +125,5 @@ public class CursorIterator<T> implements
    */
   enum IteratorType {
     FORWARD, BACKWARD
-  }
-
-  /**
-   * Holder for the current key and value of CursorIterator.
-   *
-   * @param <T> buffer type
-   */
-  public static class KeyVal<T> {
-    T key;
-    T val;
   }
 }
