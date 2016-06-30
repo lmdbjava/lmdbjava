@@ -53,13 +53,12 @@ public class DbiTest {
 
   @Before
   public void before() throws Exception {
-    env = create();
     final File path = tmp.newFile();
-
-    env.setMapSize(1_024 * 1_024 * 1_024);
-    env.setMaxDbs(2);
-    env.setMaxReaders(1);
-    env.open(path, POSIX_MODE, MDB_NOSUBDIR);
+    env = create()
+      .setMapSize(1, ByteUnit.MEBIBYTES)
+      .setMaxReaders(1)
+      .setMaxDbs(2)
+      .open(path, POSIX_MODE, MDB_NOSUBDIR);
   }
 
   @Test(expected = DbFullException.class)

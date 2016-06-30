@@ -51,14 +51,12 @@ public class TxnTest {
 
   @Before
   public void before() throws IOException {
-    env = create();
     final File path = tmp.newFile();
-
-    env.setMapSize(1_024 * 1_024);
-    env.setMaxDbs(1);
-    env.setMaxReaders(1);
-    env.open(path, POSIX_MODE, MDB_NOSUBDIR);
-
+    env = create()
+      .setMapSize(1, ByteUnit.KIBIBYTES)
+      .setMaxReaders(1)
+      .setMaxDbs(2)
+      .open(path, POSIX_MODE, MDB_NOSUBDIR);
   }
 
   @Test(expected = CommittedException.class)

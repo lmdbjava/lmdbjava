@@ -33,12 +33,12 @@ public class CursorIteratorTest {
 
   private Env<ByteBuffer> makeEnv() {
     try {
-      env = create(PROXY_OPTIMAL);
       final File path = tmp.newFile();
-      env.setMapSize(1_024 * 1_024);
-      env.setMaxDbs(1);
-      env.setMaxReaders(1);
-      env.open(path, POSIX_MODE, MDB_NOSUBDIR);
+      env = create(PROXY_OPTIMAL)
+        .setMapSize(1_024 * 1_024)
+        .setMaxDbs(1)
+        .setMaxReaders(1)
+        .open(path, POSIX_MODE, MDB_NOSUBDIR);
       db = env.openDbi(DB_1, MDB_CREATE);
       list.addAll(Arrays.asList(1, 2, 3, 4, 5, 6, 7, 8));
       try (final Txn<ByteBuffer> txn = env.txnWrite()) {

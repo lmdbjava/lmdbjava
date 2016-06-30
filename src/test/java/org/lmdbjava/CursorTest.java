@@ -339,12 +339,12 @@ public class CursorTest {
 
   private <T> Env<T> makeEnv(final BufferProxy<T> proxy) {
     try {
-      final Env<T> env = create(proxy);
       final File path = tmp.newFile();
-      env.setMapSize(1_024 * 1_024);
-      env.setMaxDbs(1);
-      env.setMaxReaders(1);
-      env.open(path, POSIX_MODE, MDB_NOSUBDIR);
+      final Env<T> env = create(proxy)
+        .setMapSize(1_024, ByteUnit.KIBIBYTES)
+        .setMaxReaders(1)
+        .setMaxDbs(1)
+        .open(path, POSIX_MODE, MDB_NOSUBDIR);
       return env;
     } catch (IOException e) {
       throw new RuntimeException(e);
