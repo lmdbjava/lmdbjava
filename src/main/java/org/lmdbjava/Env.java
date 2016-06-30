@@ -305,7 +305,7 @@ public final class Env<T> implements AutoCloseable {
     }
 
     /**
-     * Opens the environment in read write mode.
+     * Opens the environment with 0664 mode.
      *
      * @param path  file system destination
      * @param flags the flags for this new environment
