@@ -20,7 +20,7 @@ package org.lmdbjava;
  *
  * @param <T> buffer type
  */
-public class KeyVal<T> {
+public final class KeyVal<T> {
 
   /**
    *

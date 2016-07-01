@@ -238,7 +238,7 @@ public final class Txn<T> implements AutoCloseable {
     }
   }
 
-  void keyIn(T key) {
+  void keyIn(final T key) {
     proxy.in(key, ptrKey, ptrKeyAddr);
   }
 
@@ -246,11 +246,11 @@ public final class Txn<T> implements AutoCloseable {
     proxy.out(key, ptrKey, ptrKeyAddr);
   }
 
-  void valIn(T val) {
+  void valIn(final T val) {
     proxy.in(val, ptrVal, ptrValAddr);
   }
 
-  void valIn(int size) {
+  void valIn(final int size) {
     proxy.in(val, size, ptrVal, ptrValAddr);
   }
 
@@ -258,7 +258,7 @@ public final class Txn<T> implements AutoCloseable {
     proxy.out(val, ptrVal, ptrValAddr);
   }
 
-  void valOut(T val) {
+  void valOut(final T val) {
     proxy.out(val, ptrVal, ptrValAddr);
   }
 

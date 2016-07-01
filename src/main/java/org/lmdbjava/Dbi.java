@@ -179,7 +179,7 @@ public final class Dbi<T> {
    * @param type direction of iterator
    * @return iterator
    */
-  public CursorIterator<T> iterate(final Txn<T> txn, IteratorType type) {
+  public CursorIterator<T> iterate(final Txn<T> txn, final IteratorType type) {
     return iterate(txn, null, type);
   }
 
@@ -192,7 +192,8 @@ public final class Dbi<T> {
    * @param type direction of iterator
    * @return iterator
    */
-  public CursorIterator<T> iterate(final Txn<T> txn, T key, IteratorType type) {
+  public CursorIterator<T> iterate(final Txn<T> txn, final T key,
+                                   final IteratorType type) {
     if (SHOULD_CHECK) {
       requireNonNull(txn);
       txn.checkNotCommitted();
@@ -284,7 +285,7 @@ public final class Dbi<T> {
    * @param size size of the value to be stored in the database
    * @return
    */
-  public T reserve(Txn<T> txn, final T key, int size) {
+  public T reserve(Txn<T> txn, final T key, final int size) {
     if (SHOULD_CHECK) {
       requireNonNull(txn);
       requireNonNull(key);
