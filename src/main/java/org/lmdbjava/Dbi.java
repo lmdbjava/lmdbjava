@@ -20,6 +20,8 @@ import static jnr.ffi.Memory.allocateDirect;
 import static jnr.ffi.NativeType.ADDRESS;
 import jnr.ffi.Pointer;
 import jnr.ffi.byref.PointerByReference;
+import org.lmdbjava.CursorIterator.IteratorType;
+import static org.lmdbjava.CursorIterator.IteratorType.FORWARD;
 import static org.lmdbjava.Dbi.KeyNotFoundException.MDB_NOTFOUND;
 import static org.lmdbjava.Env.SHOULD_CHECK;
 import static org.lmdbjava.Library.LIB;
@@ -27,8 +29,6 @@ import static org.lmdbjava.Library.RUNTIME;
 import static org.lmdbjava.MaskedFlag.mask;
 import static org.lmdbjava.PutFlags.MDB_RESERVE;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
-
-import org.lmdbjava.CursorIterator.IteratorType;
 import org.lmdbjava.Txn.CommittedException;
 import org.lmdbjava.Txn.ReadWriteRequiredException;
 
@@ -147,6 +147,13 @@ public final class Dbi<T> {
   }
 
   /**
+   * @return the environment this database belongs to.
+   */
+  public Env<T> getEnv() {
+    return env;
+  }
+
+  /**
    * Obtains the name of this database.
    *
    * @return the name (may be null or empty)
@@ -156,10 +163,41 @@ public final class Dbi<T> {
   }
 
   /**
-   * @return the environment this database belongs to.
+   * Iterate the database from the first item and forwards.
+   *
+   * @param txn transaction handle (not null; not committed)
+   * @return iterator
    */
-  public Env<T> getEnv() {
-    return env;
+  public CursorIterator<T> iterate(final Txn<T> txn) {
+    return iterate(txn, null, FORWARD);
+  }
+
+  /**
+   * Iterate the database from the first/last item and forwards/backwards.
+   *
+   * @param txn  transaction handle (not null; not committed)
+   * @param type direction of iterator
+   * @return iterator
+   */
+  public CursorIterator<T> iterate(final Txn<T> txn, IteratorType type) {
+    return iterate(txn, null, type);
+  }
+
+  /**
+   * Iterate the database from the first/last item and forwards/backwards by
+   * first seeking to the provided key.
+   *
+   * @param txn  transaction handle (not null; not committed)
+   * @param key  the key to search from.
+   * @param type direction of iterator
+   * @return iterator
+   */
+  public CursorIterator<T> iterate(final Txn<T> txn, T key, IteratorType type) {
+    if (SHOULD_CHECK) {
+      requireNonNull(txn);
+      txn.checkNotCommitted();
+    }
+    return new CursorIterator<>(openCursor(txn), key, type);
   }
 
   /**
@@ -185,44 +223,6 @@ public final class Dbi<T> {
     final PointerByReference ptr = new PointerByReference();
     checkRc(LIB.mdb_cursor_open(txn.ptr, dbi, ptr));
     return new Cursor<>(ptr.getValue(), txn);
-  }
-
-  /**
-   * Iterate the database from the first item and forwards.
-   *
-   * @param txn transaction handle (not null; not committed)
-   * @return iterator
-   */
-  public CursorIterator<T> iterate(final Txn<T> txn) {
-    return iterate(txn, null, IteratorType.FORWARD);
-  }
-
-  /**
-   * Iterate the database from the first/last item and forwards/backwards.
-   *
-   * @param txn  transaction handle (not null; not committed)
-   * @param type direction of iterator
-   * @return iterator
-   */
-  public CursorIterator<T> iterate(final Txn<T> txn, IteratorType type) {
-    return iterate(txn, null, type);
-  }
-
-  /**
-   * Iterate the database from the first/last item and forwards/backwards by first
-   * seeking to the provided key.
-   *
-   * @param txn transaction handle (not null; not committed)
-   * @param key the key to search from.
-   * @param type direction of iterator
-   * @return iterator
-   */
-  public CursorIterator<T> iterate(final Txn<T> txn, T key, IteratorType type) {
-    if (SHOULD_CHECK) {
-      requireNonNull(txn);
-      txn.checkNotCommitted();
-    }
-    return new CursorIterator<>(openCursor(txn), key, type);
   }
 
   /**
@@ -279,9 +279,10 @@ public final class Dbi<T> {
    * <p>
    * This flag must not be specified if the database was opened with MDB_DUPSORT
    *
-   * @param txn transaction handle (not null; not committed; must be R-W)
-   * @param key key to store in the database (not null)
+   * @param txn  transaction handle (not null; not committed; must be R-W)
+   * @param key  key to store in the database (not null)
    * @param size size of the value to be stored in the database
+   * @return
    */
   public T reserve(Txn<T> txn, final T key, int size) {
     if (SHOULD_CHECK) {

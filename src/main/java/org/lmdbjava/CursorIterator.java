@@ -17,16 +17,27 @@ package org.lmdbjava;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+import static org.lmdbjava.CursorIterator.IteratorType.FORWARD;
+import static org.lmdbjava.CursorIterator.State.DONE;
+import static org.lmdbjava.CursorIterator.State.NOT_READY;
+import static org.lmdbjava.CursorIterator.State.READY;
+import static org.lmdbjava.GetOp.MDB_SET_RANGE;
 
 /**
- * Iterator for entries that follow the same semantics as Cursors
- * with regards to read and write transactions and how they are closed.
+ * Iterator for entries that follow the same semantics as Cursors with regards
+ * to read and write transactions and how they are closed.
+ *
+ * @param <T>
  */
 public class CursorIterator<T> implements Iterator<KeyVal<T>>, AutoCloseable {
+
   private final Cursor<T> cursor;
-  private final IteratorType type;
+  private KeyVal<T> entry;
+  private boolean first = true;
+  private final KeyVal<T> holder = new KeyVal<>(null, null);
   private final T key;
-  private State state = State.NOT_READY;
+  private State state = NOT_READY;
+  private final IteratorType type;
 
   CursorIterator(Cursor<T> cursor, T key, IteratorType type) {
     this.cursor = cursor;
@@ -34,13 +45,10 @@ public class CursorIterator<T> implements Iterator<KeyVal<T>>, AutoCloseable {
     this.key = key;
   }
 
-  private enum State {
-    READY, NOT_READY, DONE, FAILED,
+  @Override
+  public void close() {
+    cursor.close();
   }
-
-  private KeyVal<T> holder = new KeyVal<>(null, null);
-  private KeyVal<T> entry;
-  private boolean first = true;
 
   @Override
   public boolean hasNext() {
@@ -54,35 +62,28 @@ public class CursorIterator<T> implements Iterator<KeyVal<T>>, AutoCloseable {
     return tryToComputeNext();
   }
 
-  private boolean tryToComputeNext() {
-    if (first) {
-      if (key != null) {
-          setEntry(cursor.get(key, GetOp.MDB_SET_RANGE));
-      } else {
-        if (type == IteratorType.FORWARD) {
-          setEntry(cursor.first());
-        } else {
-          setEntry(cursor.last());
-        }
-      }
-      first = false;
-      if (entry == null) {
-        state = State.DONE;
-        return false;
-      }
-    } else {
-      if (type == IteratorType.FORWARD) {
-        setEntry(cursor.next());
-      } else {
-        setEntry(cursor.prev());
-      }
-      if (entry == null) {
-        state = State.DONE;
-        return false;
-      }
+  /**
+   *
+   * @return
+   */
+  public Iterable<KeyVal<T>> iterable() {
+    return () -> CursorIterator.this;
+  }
+
+  @Override
+  public KeyVal<T> next() throws NoSuchElementException {
+    if (!hasNext()) {
+      throw new NoSuchElementException();
     }
-    state = State.READY;
-    return true;
+    state = NOT_READY;
+    KeyVal<T> result = entry;
+    entry = null;
+    return result;
+  }
+
+  @Override
+  public void remove() {
+    throw new UnsupportedOperationException();
   }
 
   private void setEntry(boolean success) {
@@ -95,29 +96,37 @@ public class CursorIterator<T> implements Iterator<KeyVal<T>>, AutoCloseable {
     }
   }
 
-  @Override
-  public KeyVal<T> next() throws NoSuchElementException {
-    if (!hasNext()) {
-      throw new NoSuchElementException();
+  private boolean tryToComputeNext() {
+    if (first) {
+      if (key != null) {
+        setEntry(cursor.get(key, MDB_SET_RANGE));
+      } else if (type == FORWARD) {
+        setEntry(cursor.first());
+      } else {
+        setEntry(cursor.last());
+      }
+      first = false;
+      if (entry == null) {
+        state = DONE;
+        return false;
+      }
+    } else {
+      if (type == FORWARD) {
+        setEntry(cursor.next());
+      } else {
+        setEntry(cursor.prev());
+      }
+      if (entry == null) {
+        state = DONE;
+        return false;
+      }
     }
-    state = State.NOT_READY;
-    KeyVal<T> result = entry;
-    entry = null;
-    return result;
+    state = READY;
+    return true;
   }
 
-  @Override
-  public void remove() {
-    throw new UnsupportedOperationException();
-  }
-
-  public Iterable<KeyVal<T>> iterable() {
-    return () -> CursorIterator.this;
-  }
-
-  @Override
-  public void close() {
-    cursor.close();
+  enum State {
+    READY, NOT_READY, DONE, FAILED,
   }
 
   /**

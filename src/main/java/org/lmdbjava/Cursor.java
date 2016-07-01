@@ -24,6 +24,10 @@ import static org.lmdbjava.Library.LIB;
 import static org.lmdbjava.MaskedFlag.mask;
 import static org.lmdbjava.PutFlags.MDB_RESERVE;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
+import static org.lmdbjava.SeekOp.MDB_FIRST;
+import static org.lmdbjava.SeekOp.MDB_LAST;
+import static org.lmdbjava.SeekOp.MDB_NEXT;
+import static org.lmdbjava.SeekOp.MDB_PREV;
 import org.lmdbjava.Txn.CommittedException;
 
 /**
@@ -98,6 +102,15 @@ public final class Cursor<T> implements AutoCloseable {
   }
 
   /**
+   * Position at first key/data item
+   *
+   * @return
+   */
+  public boolean first() {
+    return seek(MDB_FIRST);
+  }
+
+  /**
    * Reposition the key/value buffers based on the passed key and operation.
    *
    * @param key to search for
@@ -124,6 +137,40 @@ public final class Cursor<T> implements AutoCloseable {
     txn.keyOut();
     txn.valOut();
     return true;
+  }
+
+  /**
+   * @return the key that the cursor is located at.
+   */
+  public T key() {
+    return txn.key();
+  }
+
+  /**
+   * Position at last key/data item
+   *
+   * @return
+   */
+  public boolean last() {
+    return seek(MDB_LAST);
+  }
+
+  /**
+   * Position at next data item
+   *
+   * @return
+   */
+  public boolean next() {
+    return seek(MDB_NEXT);
+  }
+
+  /**
+   * Position at previous data item
+   *
+   * @return
+   */
+  public boolean prev() {
+    return seek(MDB_PREV);
   }
 
   /**
@@ -186,8 +233,9 @@ public final class Cursor<T> implements AutoCloseable {
    * <p>
    * This flag must not be specified if the database was opened with MDB_DUPSORT
    *
-   * @param key key to store in the database (not null)
+   * @param key  key to store in the database (not null)
    * @param size size of the value to be stored in the database (not null)
+   * @return
    */
   public T reserve(final T key, final int size) {
     if (SHOULD_CHECK) {
@@ -231,45 +279,10 @@ public final class Cursor<T> implements AutoCloseable {
   }
 
   /**
-   * @return the key that the cursor is located at.
-   */
-  public T key() {
-    return txn.key();
-  }
-
-  /**
    * @return the value that the cursor is located at.
    */
   public T val() {
     return txn.val();
-  }
-
-  /**
-   * Position at first key/data item
-   */
-  public boolean first() {
-    return seek(SeekOp.MDB_FIRST);
-  }
-
-  /**
-   * Position at last key/data item
-   */
-  public boolean last() {
-    return seek(SeekOp.MDB_LAST);
-  }
-
-  /**
-   * Position at next data item
-   */
-  public boolean next() {
-    return seek(SeekOp.MDB_NEXT);
-  }
-
-  /**
-   * Position at previous data item
-   */
-  public boolean prev() {
-    return seek(SeekOp.MDB_PREV);
   }
 
   private void checkNotClosed() throws ClosedException {

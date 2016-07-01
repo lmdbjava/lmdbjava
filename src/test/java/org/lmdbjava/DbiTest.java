@@ -16,6 +16,7 @@
 package org.lmdbjava;
 
 import java.io.File;
+import static java.lang.Long.MAX_VALUE;
 import java.nio.ByteBuffer;
 import static java.nio.ByteBuffer.allocateDirect;
 import static java.util.Collections.nCopies;
@@ -28,6 +29,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import static org.lmdbjava.ByteUnit.MEBIBYTES;
 import org.lmdbjava.Dbi.DbFullException;
 import org.lmdbjava.Dbi.KeyExistsException;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
@@ -53,10 +55,10 @@ public class DbiTest {
   public void before() throws Exception {
     final File path = tmp.newFile();
     env = create()
-      .setMapSize(1, ByteUnit.MEBIBYTES)
-      .setMaxReaders(1)
-      .setMaxDbs(2)
-      .open(path, MDB_NOSUBDIR);
+        .setMapSize(1, MEBIBYTES)
+        .setMaxReaders(1)
+        .setMaxDbs(2)
+        .open(path, MDB_NOSUBDIR);
   }
 
   @Test(expected = DbFullException.class)
@@ -168,14 +170,14 @@ public class DbiTest {
     try (final Txn<ByteBuffer> txn = env.txnWrite()) {
       assertNull(db.get(txn, key));
       final ByteBuffer val = db.reserve(txn, key, 32);
-      val.putLong(Long.MAX_VALUE);
+      val.putLong(MAX_VALUE);
       assertNotNull(db.get(txn, key));
       txn.commit();
     }
     try (final Txn<ByteBuffer> txn = env.txnWrite()) {
       final ByteBuffer val = db.get(txn, key);
       assertThat(val.capacity(), is(32));
-      assertThat(val.getLong(), is(Long.MAX_VALUE));
+      assertThat(val.getLong(), is(MAX_VALUE));
       assertThat(val.getLong(8), is(0L));
     }
   }

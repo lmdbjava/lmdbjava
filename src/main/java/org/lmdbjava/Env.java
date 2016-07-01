@@ -22,6 +22,7 @@ import static java.util.Objects.requireNonNull;
 import jnr.ffi.Pointer;
 import jnr.ffi.byref.PointerByReference;
 import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
+import static org.lmdbjava.ByteUnit.MEBIBYTES;
 import static org.lmdbjava.Library.LIB;
 import org.lmdbjava.Library.MDB_envinfo;
 import org.lmdbjava.Library.MDB_stat;
@@ -74,8 +75,8 @@ public final class Env<T> implements AutoCloseable {
   }
 
   /**
-   * Opens an environment with a single default database in 0664 mode
-   * using the {@link ByteBufferProxy#PROXY_OPTIMAL}.
+   * Opens an environment with a single default database in 0664 mode using the
+   * {@link ByteBufferProxy#PROXY_OPTIMAL}.
    *
    * @param path  file system destination
    * @param size  size in ByteUnit.MEBIBYTES
@@ -83,12 +84,12 @@ public final class Env<T> implements AutoCloseable {
    * @return env
    */
   public static Env<ByteBuffer> open(
-    File path, int size, EnvFlags... flags) {
+      File path, int size, EnvFlags... flags) {
     Env<ByteBuffer> env = new Env<>(PROXY_OPTIMAL);
     return new Builder<>(env)
-      .setMaxDbs(1)
-      .setMapSize(size, ByteUnit.MEBIBYTES)
-      .open(path, flags);
+        .setMaxDbs(1)
+        .setMapSize(size, MEBIBYTES)
+        .open(path, flags);
   }
 
   private boolean closed = false;
@@ -151,7 +152,6 @@ public final class Env<T> implements AutoCloseable {
     final int flagsMask = mask(flags);
     checkRc(LIB.mdb_env_copy2(ptr, path.getAbsolutePath(), flagsMask));
   }
-
 
   /**
    * Return information about this environment.
@@ -290,108 +290,6 @@ public final class Env<T> implements AutoCloseable {
   }
 
   /**
-   * Builder for configuring and opening Env.
-   *
-   * @param <T> buffer type
-   */
-  public static final class Builder<T> {
-    Env<T> env;
-
-    private Builder(Env<T> env) {
-      this.env = env;
-    }
-
-    /**
-     * Opens the environment.
-     *
-     * @param path  file system destination
-     * @param mode  Unix permissions to set on created files and semaphores
-     * @param flags the flags for this new environment
-     */
-    public Env<T> open(final File path, final int mode, final EnvFlags... flags) {
-      requireNonNull(path);
-      if (env.closed) {
-        throw new AlreadyClosedException();
-      }
-      if (env.open) {
-        throw new AlreadyOpenException();
-      }
-      final int flagsMask = mask(flags);
-      checkRc(LIB.mdb_env_open(env.ptr, path.getAbsolutePath(), flagsMask, mode));
-      this.env.open = true;
-      return this.env;
-    }
-
-    /**
-     * Opens the environment with 0664 mode.
-     *
-     * @param path  file system destination
-     * @param flags the flags for this new environment
-     */
-    public Env<T> open(final File path, final EnvFlags... flags) {
-      return open(path, 0664, flags);
-    }
-
-    /**
-     * Sets the map size.
-     *
-     * @param mapSize new limit in bytes
-     */
-    public Builder<T> setMapSize(final long mapSize) {
-      if (env.open) {
-        throw new AlreadyOpenException();
-      }
-      if (env.closed) {
-        throw new AlreadyClosedException();
-      }
-      checkRc(LIB.mdb_env_set_mapsize(env.ptr, mapSize));
-      return this;
-    }
-
-    /**
-     * Sets the map size.
-     *
-     * @param size the size in given unit.
-     * @param unit the unit to use for the size.
-     */
-    public Builder<T> setMapSize(final int size, ByteUnit unit) {
-      return setMapSize(unit.toBytes(size));
-    }
-
-    /**
-     * Sets the maximum number of databases (ie {@link Dbi}s permitted.
-     *
-     * @param dbs new limit
-     */
-    public Builder<T> setMaxDbs(final int dbs) {
-      if (env.open) {
-        throw new AlreadyOpenException();
-      }
-      if (env.closed) {
-        throw new AlreadyClosedException();
-      }
-      checkRc(LIB.mdb_env_set_maxdbs(env.ptr, dbs));
-      return this;
-    }
-
-    /**
-     * Sets the maximum number of databases permitted.
-     *
-     * @param readers new limit
-     */
-    public Builder<T> setMaxReaders(final int readers) {
-      if (env.open) {
-        throw new AlreadyOpenException();
-      }
-      if (env.closed) {
-        throw new AlreadyClosedException();
-      }
-      checkRc(LIB.mdb_env_set_maxreaders(env.ptr, readers));
-      return this;
-    }
-  }
-
-  /**
    * Object has already been closed and the operation is therefore prohibited.
    */
   public static final class AlreadyClosedException extends LmdbException {
@@ -418,6 +316,116 @@ public final class Env<T> implements AutoCloseable {
      */
     public AlreadyOpenException() {
       super("Environment has already been opened");
+    }
+  }
+
+  /**
+   * Builder for configuring and opening Env.
+   *
+   * @param <T> buffer type
+   */
+  public static final class Builder<T> {
+
+    Env<T> env;
+
+    private Builder(Env<T> env) {
+      this.env = env;
+    }
+
+    /**
+     * Opens the environment.
+     *
+     * @param path  file system destination
+     * @param mode  Unix permissions to set on created files and semaphores
+     * @param flags the flags for this new environment
+     * @return
+     */
+    public Env<T> open(final File path, final int mode,
+                       final EnvFlags... flags) {
+      requireNonNull(path);
+      if (env.closed) {
+        throw new AlreadyClosedException();
+      }
+      if (env.open) {
+        throw new AlreadyOpenException();
+      }
+      final int flagsMask = mask(flags);
+      checkRc(LIB.mdb_env_open(env.ptr, path.getAbsolutePath(), flagsMask, mode));
+      this.env.open = true;
+      return this.env;
+    }
+
+    /**
+     * Opens the environment with 0664 mode.
+     *
+     * @param path  file system destination
+     * @param flags the flags for this new environment
+     * @return
+     */
+    public Env<T> open(final File path, final EnvFlags... flags) {
+      return open(path, 0664, flags);
+    }
+
+    /**
+     * Sets the map size.
+     *
+     * @param mapSize new limit in bytes
+     * @return
+     */
+    public Builder<T> setMapSize(final long mapSize) {
+      if (env.open) {
+        throw new AlreadyOpenException();
+      }
+      if (env.closed) {
+        throw new AlreadyClosedException();
+      }
+      checkRc(LIB.mdb_env_set_mapsize(env.ptr, mapSize));
+      return this;
+    }
+
+    /**
+     * Sets the map size.
+     *
+     * @param size the size in given unit.
+     * @param unit the unit to use for the size.
+     * @return
+     */
+    public Builder<T> setMapSize(final int size, ByteUnit unit) {
+      return setMapSize(unit.toBytes(size));
+    }
+
+    /**
+     * Sets the maximum number of databases (ie {@link Dbi}s permitted.
+     *
+     * @param dbs new limit
+     * @return
+     */
+    public Builder<T> setMaxDbs(final int dbs) {
+      if (env.open) {
+        throw new AlreadyOpenException();
+      }
+      if (env.closed) {
+        throw new AlreadyClosedException();
+      }
+      checkRc(LIB.mdb_env_set_maxdbs(env.ptr, dbs));
+      return this;
+    }
+
+    /**
+     * Sets the maximum number of databases permitted.
+     *
+     * @param readers new limit
+     * @return
+     */
+    public Builder<T> setMaxReaders(final int readers) {
+      if (env.open) {
+        throw new AlreadyOpenException();
+      }
+      if (env.closed) {
+        throw new AlreadyClosedException();
+      }
+      checkRc(LIB.mdb_env_set_maxreaders(env.ptr, readers));
+      return this;
     }
   }
 

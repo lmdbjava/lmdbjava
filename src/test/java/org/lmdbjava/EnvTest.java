@@ -18,37 +18,42 @@ package org.lmdbjava;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-
+import static java.nio.ByteBuffer.allocateDirect;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
-
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-
+import static org.lmdbjava.ByteUnit.MEBIBYTES;
 import static org.lmdbjava.CopyFlags.MDB_CP_COMPACT;
-
+import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import org.lmdbjava.Env.AlreadyClosedException;
-import org.lmdbjava.Env.AlreadyOpenException;
 import org.lmdbjava.Env.InvalidCopyDestination;
-import org.lmdbjava.Env.NotOpenException;
-
 import static org.lmdbjava.Env.create;
+import static org.lmdbjava.Env.open;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
-import static org.lmdbjava.TestUtils.POSIX_MODE;
 
 public class EnvTest {
 
   @Rule
   public final TemporaryFolder tmp = new TemporaryFolder();
 
+  @Test
+  public void byteUnit() throws IOException {
+    final File path = tmp.newFile();
+    final Env<ByteBuffer> env
+        = create().setMapSize(1, MEBIBYTES).open(path, MDB_NOSUBDIR);
+    EnvInfo info = env.info();
+    assertThat(info.mapSize, is(MEBIBYTES.toBytes(1)));
+  }
+
   @Test(expected = AlreadyClosedException.class)
   public void cannotInfoOnceClosed() throws IOException {
     final File path = tmp.newFile();
     final Env<ByteBuffer> env = create()
-      .open(path, MDB_NOSUBDIR);
+        .open(path, MDB_NOSUBDIR);
     env.close();
     env.info();
   }
@@ -57,7 +62,7 @@ public class EnvTest {
   public void cannotStatOnceClosed() throws IOException {
     final File path = tmp.newFile();
     final Env<ByteBuffer> env = create()
-      .open(path, MDB_NOSUBDIR);
+        .open(path, MDB_NOSUBDIR);
     env.close();
     env.stat();
   }
@@ -66,7 +71,7 @@ public class EnvTest {
   public void cannotSyncOnceClosed() throws IOException {
     final File path = tmp.newFile();
     final Env<ByteBuffer> env = create()
-      .open(path, MDB_NOSUBDIR);
+        .open(path, MDB_NOSUBDIR);
     env.close();
     env.sync(false);
   }
@@ -131,10 +136,10 @@ public class EnvTest {
   public void createAsFile() throws IOException {
     final File path = tmp.newFile();
     try (final Env<ByteBuffer> env = create()
-      .setMapSize(1_024 * 1_024)
-      .setMaxDbs(1)
-      .setMaxReaders(1)
-      .open(path, MDB_NOSUBDIR)) {
+        .setMapSize(1_024 * 1_024)
+        .setMaxDbs(1)
+        .setMaxReaders(1)
+        .open(path, MDB_NOSUBDIR)) {
       env.sync(true);
       assertThat(env.isOpen(), is(true));
       assertThat(path.isFile(), is(true));
@@ -145,9 +150,9 @@ public class EnvTest {
   public void info() throws IOException {
     final File path = tmp.newFile();
     final Env<ByteBuffer> env = create()
-      .setMaxReaders(4)
-      .setMapSize(123_456)
-      .open(path, MDB_NOSUBDIR);
+        .setMaxReaders(4)
+        .setMapSize(123_456)
+        .open(path, MDB_NOSUBDIR);
     EnvInfo info = env.info();
     assertThat(info, is(notNullValue()));
     assertThat(info.lastPageNumber, is(1L));
@@ -159,28 +164,10 @@ public class EnvTest {
   }
 
   @Test
-  public void testDefaultOpen() {
-    try (Env<ByteBuffer> env = Env.open(new File("/tmp"), 10)) {
-      Dbi<ByteBuffer> db = env.openDbi("test", DbiFlags.MDB_CREATE);
-      db.put(ByteBuffer.allocateDirect(1), ByteBuffer.allocateDirect(1));
-    }
-  }
-
-  @Test
-  public void byteUnit() throws IOException {
-    final File path = tmp.newFile();
-    final Env<ByteBuffer> env = create()
-      .setMapSize(1, ByteUnit.MEBIBYTES)
-      .open(path, MDB_NOSUBDIR);
-    EnvInfo info = env.info();
-    assertThat(info.mapSize, is(ByteUnit.MEBIBYTES.toBytes(1)));
-  }
-
-  @Test
   public void stats() throws IOException {
     final File path = tmp.newFile();
     final Env<ByteBuffer> env = create()
-      .open(path, MDB_NOSUBDIR);
+        .open(path, MDB_NOSUBDIR);
     EnvStat stat = env.stat();
     assertThat(stat, is(notNullValue()));
     assertThat(stat.branchPages, is(0L));
@@ -189,5 +176,13 @@ public class EnvTest {
     assertThat(stat.leafPages, is(0L));
     assertThat(stat.overflowPages, is(0L));
     assertThat(stat.pageSize, is(4_096));
+  }
+
+  @Test
+  public void testDefaultOpen() {
+    try (final Env<ByteBuffer> env = open(new File("/tmp"), 10)) {
+      Dbi<ByteBuffer> db = env.openDbi("test", MDB_CREATE);
+      db.put(allocateDirect(1), allocateDirect(1));
+    }
   }
 }

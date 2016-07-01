@@ -18,27 +18,26 @@ package org.lmdbjava;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-
 import static java.nio.ByteBuffer.allocateDirect;
-
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
-
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-
+import static org.lmdbjava.ByteUnit.MEBIBYTES;
 import static org.lmdbjava.CursorIterator.IteratorType.BACKWARD;
 import static org.lmdbjava.CursorIterator.IteratorType.FORWARD;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import static org.lmdbjava.DbiFlags.MDB_DUPSORT;
+import static org.lmdbjava.DirectBufferProxy.PROXY_MDB;
+import static org.lmdbjava.Env.create;
+import static org.lmdbjava.Env.open;
 import static org.lmdbjava.GetOp.MDB_SET;
 import static org.lmdbjava.SeekOp.MDB_FIRST;
 import static org.lmdbjava.SeekOp.MDB_LAST;
@@ -71,15 +70,15 @@ public class TutorialTest {
 
     // We always need an Env. An Env owns a physical on-disk storage file. One
     // Env can store many different databases (ie sorted maps).
-    Env<ByteBuffer> env = Env.create()
-      // LMDB also needs to know how large our DB might be. Over-estimating is OK.
-      .setMapSize(10, ByteUnit.MEBIBYTES)
-      // LMDB also needs to know how many DBs (Dbi) we want to store in this Env.
-      .setMaxDbs(1)
-      // Now let's open the Env. The 0664 is the POSIX mode of the created files.
-      // The same path can be concurrently opened and used in different processes,
-      // but do not open the same path twice in the same process at the same time.
-      .open(path, 0664);
+    Env<ByteBuffer> env = create()
+        // LMDB also needs to know how large our DB might be. Over-estimating is OK.
+        .setMapSize(10, MEBIBYTES)
+        // LMDB also needs to know how many DBs (Dbi) we want to store in this Env.
+        .setMaxDbs(1)
+        // Now let's open the Env. The 0664 is the POSIX mode of the created files.
+        // The same path can be concurrently opened and used in different processes,
+        // but do not open the same path twice in the same process at the same time.
+        .open(path, 0664);
 
     // We need a Dbi for each DB. A Dbi roughly equates to a sorted map. The
     // MDB_CREATE flag causes the DB to be created if it doesn't already exist.
@@ -87,8 +86,8 @@ public class TutorialTest {
 
     // We want to store some data, so we will need a direct ByteBuffer.
     // Note that LMDB keys cannot exceed 511 bytes. Values can be larger.
-    ByteBuffer key = ByteBuffer.allocateDirect(511);
-    ByteBuffer val = ByteBuffer.allocateDirect(700);
+    ByteBuffer key = allocateDirect(511);
+    ByteBuffer val = allocateDirect(700);
     key.put("greeting".getBytes());
     val.put("Hello world".getBytes());
 
@@ -137,10 +136,10 @@ public class TutorialTest {
     // As per tutorial1...
     File path = tmp.newFolder();
     // open 10 mb environment with one database.
-    Env<ByteBuffer> env = Env.open(path, 10);
+    Env<ByteBuffer> env = open(path, 10);
     Dbi<ByteBuffer> db = env.openDbi("my DB", MDB_CREATE);
-    ByteBuffer key = ByteBuffer.allocateDirect(511);
-    ByteBuffer val = ByteBuffer.allocateDirect(700);
+    ByteBuffer key = allocateDirect(511);
+    ByteBuffer val = allocateDirect(700);
 
     // Let's write and commit "key1" via a Txn. A Txn can include multiple Dbis.
     // Note write Txns block other write Txns, due to writes being serialized.
@@ -204,13 +203,13 @@ public class TutorialTest {
   public void tutorial3() throws IOException {
     // As per tutorial1...
     File path = tmp.newFolder();
-    Env<ByteBuffer> env = Env.create()
-      .setMapSize(10, ByteUnit.MEBIBYTES)
-      .setMaxDbs(1)
-      .open(path, 0664);
+    Env<ByteBuffer> env = create()
+        .setMapSize(10, MEBIBYTES)
+        .setMaxDbs(1)
+        .open(path, 0664);
     Dbi<ByteBuffer> db = env.openDbi("my DB", MDB_CREATE);
-    ByteBuffer key = ByteBuffer.allocateDirect(511);
-    ByteBuffer val = ByteBuffer.allocateDirect(700);
+    ByteBuffer key = allocateDirect(511);
+    ByteBuffer val = allocateDirect(700);
 
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
       // A cursor always belongs to a particular Dbi.
@@ -258,7 +257,6 @@ public class TutorialTest {
 
     // Iterators are provided as a convenience. Each iterator
     // uses a cursor and must be closed when finished.
-
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
 
       // iterate forward in terms of key ordering starting with the first key
@@ -321,18 +319,18 @@ public class TutorialTest {
   public void tutorial4() throws IOException {
     // As per tutorial1...
     File path = tmp.newFolder();
-    Env<ByteBuffer> env = Env.create()
-      .setMapSize(10, ByteUnit.MEBIBYTES)
-      .setMaxDbs(1)
-      .open(path, 0664);
+    Env<ByteBuffer> env = create()
+        .setMapSize(10, MEBIBYTES)
+        .setMaxDbs(1)
+        .open(path, 0664);
 
     // This time we're going to tell the Dbi it can store > 1 value per key.
     // There are other flags available if we're storing integers etc.
     Dbi<ByteBuffer> db = env.openDbi("my DB", MDB_CREATE, MDB_DUPSORT);
 
     // Duplicate support requires both keys and values to be <= 511 bytes.
-    ByteBuffer key = ByteBuffer.allocateDirect(511);
-    ByteBuffer val = ByteBuffer.allocateDirect(511);
+    ByteBuffer key = allocateDirect(511);
+    ByteBuffer val = allocateDirect(511);
 
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
       Cursor<ByteBuffer> c = db.openCursor(txn);
@@ -384,15 +382,15 @@ public class TutorialTest {
     // There's also a PROXY_SAFE if you want to stop ByteBuffer's Unsafe use.
     // Aside from that and a different type argument, it's the same as usual...
     File path = tmp.newFolder();
-    Env<DirectBuffer> env = Env.create(DirectBufferProxy.PROXY_MDB)
-      .setMapSize(10, ByteUnit.MEBIBYTES)
-      .setMaxDbs(1)
-      .open(path, 0664);
+    Env<DirectBuffer> env = create(PROXY_MDB)
+        .setMapSize(10, MEBIBYTES)
+        .setMaxDbs(1)
+        .open(path, 0664);
 
     Dbi<DirectBuffer> db = env.openDbi("my DB", MDB_CREATE);
 
-    MutableDirectBuffer key = new UnsafeBuffer(ByteBuffer.allocateDirect(511));
-    MutableDirectBuffer val = new UnsafeBuffer(ByteBuffer.allocateDirect(700));
+    MutableDirectBuffer key = new UnsafeBuffer(allocateDirect(511));
+    MutableDirectBuffer val = new UnsafeBuffer(allocateDirect(700));
 
     try (Txn<DirectBuffer> txn = env.txnWrite()) {
       Cursor<DirectBuffer> c = db.openCursor(txn);

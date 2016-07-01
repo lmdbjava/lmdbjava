@@ -77,7 +77,6 @@ public enum SeekOp {
    * Position at first data item of next key
    */
   MDB_NEXT_NODUP(11),
-
   /**
    * Position at previous data item
    */

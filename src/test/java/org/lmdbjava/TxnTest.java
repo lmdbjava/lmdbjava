@@ -28,6 +28,7 @@ import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import static org.lmdbjava.ByteUnit.KIBIBYTES;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import org.lmdbjava.Env.NotOpenException;
 import static org.lmdbjava.Env.create;
@@ -53,10 +54,10 @@ public class TxnTest {
   public void before() throws IOException {
     final File path = tmp.newFile();
     env = create()
-      .setMapSize(10, ByteUnit.KIBIBYTES)
-      .setMaxReaders(1)
-      .setMaxDbs(2)
-      .open(path, POSIX_MODE, MDB_NOSUBDIR);
+        .setMapSize(10, KIBIBYTES)
+        .setMaxReaders(1)
+        .setMaxDbs(2)
+        .open(path, POSIX_MODE, MDB_NOSUBDIR);
   }
 
   @Test(expected = CommittedException.class)
