@@ -38,7 +38,7 @@ public final class DirectBufferProxy extends
    * although a class initialization exception will occur if an attempt is made
    * to access this field when unsafe or Agrona is unavailable.
    */
-  public static final BufferProxy<DirectBuffer> PROXY_MDB
+  public static final BufferProxy<DirectBuffer> PROXY_DB
       = new DirectBufferProxy();
 
   /**

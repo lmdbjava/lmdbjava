@@ -37,7 +37,7 @@ import static org.lmdbjava.CursorIterator.IteratorType.BACKWARD;
 import static org.lmdbjava.CursorIterator.IteratorType.FORWARD;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import static org.lmdbjava.DbiFlags.MDB_DUPSORT;
-import static org.lmdbjava.DirectBufferProxy.PROXY_MDB;
+import static org.lmdbjava.DirectBufferProxy.PROXY_DB;
 import static org.lmdbjava.Env.create;
 import static org.lmdbjava.Env.open;
 import static org.lmdbjava.GetOp.MDB_SET;
@@ -380,11 +380,11 @@ public class TutorialTest {
   @Test
   @SuppressWarnings("ConvertToTryWithResources")
   public void tutorial5() throws IOException {
-    // The critical difference is we pass the PROXY_MDB field to Env.create().
+    // The critical difference is we pass the PROXY_DB field to Env.create().
     // There's also a PROXY_SAFE if you want to stop ByteBuffer's Unsafe use.
     // Aside from that and a different type argument, it's the same as usual...
     File path = tmp.newFolder();
-    Env<DirectBuffer> env = create(PROXY_MDB)
+    Env<DirectBuffer> env = create(PROXY_DB)
         .setMapSize(10, MEBIBYTES)
         .setMaxDbs(1)
         .open(path, 0664);
