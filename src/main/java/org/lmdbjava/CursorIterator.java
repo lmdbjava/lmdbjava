@@ -29,13 +29,12 @@ import static org.lmdbjava.GetOp.MDB_SET_RANGE;
  *
  * @param <T>
  */
-public final class CursorIterator<T> implements Iterator<KeyVal<T>>,
+public final class CursorIterator<T> implements Iterator<CursorIterator.KeyVal<T>>,
                                                 AutoCloseable {
 
   private final Cursor<T> cursor;
   private KeyVal<T> entry;
   private boolean first = true;
-  private final KeyVal<T> holder = new KeyVal<>(null, null);
   private final T key;
   private State state = NOT_READY;
   private final IteratorType type;
@@ -89,9 +88,7 @@ public final class CursorIterator<T> implements Iterator<KeyVal<T>>,
 
   private void setEntry(final boolean success) {
     if (success) {
-      holder.key = cursor.key();
-      holder.val = cursor.val();
-      this.entry = holder;
+      this.entry = new KeyVal<>(cursor.key(), cursor.val());
     } else {
       this.entry = null;
     }
@@ -135,5 +132,22 @@ public final class CursorIterator<T> implements Iterator<KeyVal<T>>,
    */
   enum IteratorType {
     FORWARD, BACKWARD
+  }
+
+  /**
+   * Holder for a key and value pair.
+   *
+   * @param <T> buffer type
+   */
+  public static final class KeyVal<T> {
+
+    public final T key;
+
+    public final T val;
+
+    public KeyVal(T key, T val) {
+      this.key = key;
+      this.val = val;
+    }
   }
 }

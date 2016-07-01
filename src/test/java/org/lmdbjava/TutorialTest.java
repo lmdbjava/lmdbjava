@@ -30,6 +30,8 @@ import static org.junit.Assert.assertNull;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.lmdbjava.CursorIterator.KeyVal;
+
 import static org.lmdbjava.ByteUnit.MEBIBYTES;
 import static org.lmdbjava.CursorIterator.IteratorType.BACKWARD;
 import static org.lmdbjava.CursorIterator.IteratorType.FORWARD;

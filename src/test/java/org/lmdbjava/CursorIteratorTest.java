@@ -25,6 +25,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.lmdbjava.CursorIterator.KeyVal;
+
 import static org.lmdbjava.CursorIterator.IteratorType.BACKWARD;
 import static org.lmdbjava.CursorIterator.IteratorType.FORWARD;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
