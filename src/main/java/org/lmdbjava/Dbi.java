@@ -158,7 +158,7 @@ public final class Dbi<T> {
   /**
    * @return the environment this database belongs to.
    */
-  public Env getEnv() {
+  public Env<T> getEnv() {
     return env;
   }
 
