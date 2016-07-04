@@ -179,8 +179,9 @@ public class EnvTest {
   }
 
   @Test
-  public void testDefaultOpen() {
-    try (final Env<ByteBuffer> env = open(new File("/tmp"), 10)) {
+  public void testDefaultOpen() throws IOException {
+    final File path = tmp.newFolder();
+    try (final Env<ByteBuffer> env = open(path, 10)) {
       Dbi<ByteBuffer> db = env.openDbi("test", MDB_CREATE);
       db.put(allocateDirect(1), allocateDirect(1));
     }
