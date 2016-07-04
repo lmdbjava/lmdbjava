@@ -17,6 +17,7 @@ package org.lmdbjava;
 
 import java.io.File;
 import static java.lang.Long.MAX_VALUE;
+import static java.lang.System.getProperty;
 import java.nio.ByteBuffer;
 import static java.nio.ByteBuffer.allocateDirect;
 import static java.util.Collections.nCopies;
@@ -194,6 +195,10 @@ public class DbiTest {
   @Test
   public void testParallelWritesStress() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
+
+    if (getProperty("os.name").startsWith("Windows")) {
+      return; // Windows VMs run this test too slowly
+    }
 
     // Travis CI has 1.5 cores for legacy builds
     nCopies(2, null).parallelStream()
