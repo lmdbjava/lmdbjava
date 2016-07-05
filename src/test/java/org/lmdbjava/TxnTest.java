@@ -24,7 +24,6 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -54,7 +53,7 @@ public class TxnTest {
   public void before() throws IOException {
     final File path = tmp.newFile();
     env = create()
-        .setMapSize(10, KIBIBYTES)
+        .setMapSize(100, KIBIBYTES)
         .setMaxReaders(1)
         .setMaxDbs(2)
         .open(path, POSIX_MODE, MDB_NOSUBDIR);
@@ -80,7 +79,6 @@ public class TxnTest {
   }
 
   @Test
-  @Ignore("Travis CI failure; suspect older liblmdb version")
   public void testGetId() {
     Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
 

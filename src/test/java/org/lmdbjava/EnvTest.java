@@ -22,7 +22,6 @@ import static java.nio.ByteBuffer.allocateDirect;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -77,7 +76,6 @@ public class EnvTest {
   }
 
   @Test
-  @Ignore("Travis CI failure; suspect older liblmdb version")
   public void copy() throws IOException {
     final File dest = tmp.newFolder();
     assertThat(dest.exists(), is(true));
