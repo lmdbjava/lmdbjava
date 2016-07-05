@@ -21,24 +21,15 @@ workloads that require strong latency and operational robustness outcomes.
 
 ### Installation
 
-LMDB isn't packaged with LmdbJava, so use your operating system's package manager to install it.
+Windows, Linux and OS X users can simply add the LmdbJava JAR to their classpath
+and start using the LmdbJava API (we bundle the LMDB libraries inside the JAR).
+If you prefer to use a shared system library, set the `lmdbjava.disable.extract`
+[Library](https://github.com/lmdbjava/lmdbjava/tree/master/src/main/java/org/lmdbjava/Library.java) property to `true`.
 
-- Ubuntu
-```bash
-apt-get install liblmdb-dev
-```
-- Arch Linux
-```bash
-pacman -S lmdb
-```
-- RHEL / Fedora / CentOS
-```bash
-yum install lmdb-devel
-```
-- OSX
-```bash
-brew install lmdb
-```
+Other operating systems will need to install the LMDB system library separately.
+The standard operating system package manager will likely work, but if you'd
+rather a up-to-date, tested, better-supported integration, try adapting the
+[LmdbJava Native](https://github.com/lmdbjava/native) cross-compile targets.
 
 ### Usage
 

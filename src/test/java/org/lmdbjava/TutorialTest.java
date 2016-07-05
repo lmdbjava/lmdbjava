@@ -49,9 +49,11 @@ import static org.lmdbjava.SeekOp.MDB_PREV;
  * <p>
  * This short tutorial will walk you through using LmdbJava step-by-step.
  * <p>
- * To complete this tutorial you will need to have installed the LMDB shared
- * library on your system. It isn't packaged with LmdbJava, so use your
- * operating system's package manager to install it.
+ * If you are using a 64-bit Windows, Linux or OS X machine, you can simply run
+ * this tutorial by adding the LmdbJava JAR to your classpath. It includes the
+ * required system libraries. If you are using another 64-bit platform, you'll
+ * need to install the LMDB system library yourself. 32-bit platforms are not
+ * supported.
  */
 public class TutorialTest {
 
