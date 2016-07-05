@@ -10,9 +10,16 @@ matrix:
     osx_image: xcode8
 before_install:
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then export JAVA_HOME=$(/usr/libexec/java_home); fi
+env:
+  global:
+  - BINTRAY_USER=benalexau
+  - secure: kwumBXr701jsiO9SbLAFXZdjs5hqE9al7mWavlhxf+w/L4yGe8MoREr6pzDKZfuBpGcw74xRDYZBvsYMYpYU6vhILsr0TkwaQ7iY5imzYA+SMpjWzUtk+jlKQdqidc/hdJz8ADbEmfTPlUPvLdZk9miH16FNJqAy/usgLnHfuXEaCpyf85F815HudNuAMCy8iU408Lp47WDhkX1hepZ/KLeWhRTIXEte3c7JOBFAszT8wezsqXxDsrEr9PtgHbR7XEqF/nN2k+1S5gD/suJqFF/v3RW2LG8eW68OfbWfTECxAwwd+u+hCkzae7LopbqqFSLk7KkxxfMfQvaRNoKJwZMNezrMCiwUj5dC61beQTkr9jmZ6IGOmZZl0OeFYjGlgrc0MaR6HZkfjY59KRDzuZ0rP4IBVoNtx1NqWXTmX+1bOgTlXirVsFCni4wBJIHAMccXW0BOR9iHTZjbpLKqvzDynD9CrXjbqZnaEsHeRzRXZ81AEMrhujrCRjd5tlQ4L11LvI9TyVD4mX+NSwbJDMY5TwCtP3/bLl6U3Et+8oyLLGYJgkU7Y+JdKRKlNunp1MJzko0q1jZXNFkwp5NanKWU042FMuCrDRoPKeMYdMNAhA4Xy3AchcmNup19AekoU790DEhLuMpIF5lUl4Lzw4bzhauhpftVMc4cPlKP1LQ=
 after_success:
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then mvn clean test jacoco:report coveralls:report; fi
 notifications:
   email:
     - ben.alex@acegi.com.au
     - stoffe@gmail.com
+after_success:
+  - echo "<settings><servers><server><id>bintray-lmdbjava-maven</id><username>\${env.BINTRAY_USER}</username><password>\${env.BINTRAY_PASS}</password></server></servers></settings>" > ~/settings.xml
+  - if [ "$TRAVIS_OS_NAME" == "linux" ] && [ "$TRAVIS_PULL_REQUEST" == "false" ] && [ "$TRAVIS_TAG" != "" ]; then mvn deploy --settings ~/settings.xml; fi

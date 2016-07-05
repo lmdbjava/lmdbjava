@@ -36,13 +36,10 @@
   </repositories>
   <distributionManagement>
     <repository>
-      <id>ossrh</id>
-      <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+      <id>bintray-lmdbjava-maven</id>
+      <name>lmdbjava-maven</name>
+      <url>https://api.bintray.com/maven/lmdbjava/maven/lmdbjava/;publish=1</url>
     </repository>
-    <snapshotRepository>
-      <id>ossrh</id>
-      <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-    </snapshotRepository>
   </distributionManagement>
   <licenses>
     <license>
