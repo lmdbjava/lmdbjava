@@ -99,9 +99,7 @@ public final class Txn<T> implements AutoCloseable {
    * <p>
    * Closing the transaction will invoke
    * {@link BufferProxy#deallocate(java.lang.Object)} for each read-only buffer
-   * (ie the key and value) as well as any buffers allocated via
-   * {@link #allocate(int)}. As such these buffers must not be used after the
-   * transaction has closed.
+   * (ie the key and value).
    */
   @Override
   public void close() {

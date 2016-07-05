@@ -66,7 +66,7 @@ public final class Env<T> implements AutoCloseable {
   /**
    * Create an {@link Env} using the passed {@link BufferProxy}.
    *
-   * @param <T>
+   * @param <T>   buffer type
    * @param proxy the proxy to use (required)
    * @return the environment (never null)
    */
@@ -274,7 +274,7 @@ public final class Env<T> implements AutoCloseable {
   /**
    * Obtain a read-only transaction.
    *
-   * @return
+   * @return a read-only transaction
    */
   public Txn<T> txnRead() {
     return new Txn<>(this, null, proxy, MDB_RDONLY);
@@ -283,7 +283,7 @@ public final class Env<T> implements AutoCloseable {
   /**
    * Obtain a read-write transaction.
    *
-   * @return
+   * @return a read-write transaction
    */
   public Txn<T> txnWrite() {
     return new Txn<>(this, null, proxy);
@@ -338,7 +338,7 @@ public final class Env<T> implements AutoCloseable {
      * @param path  file system destination
      * @param mode  Unix permissions to set on created files and semaphores
      * @param flags the flags for this new environment
-     * @return
+     * @return an environment ready for use
      */
     public Env<T> open(final File path, final int mode,
                        final EnvFlags... flags) {
@@ -360,7 +360,7 @@ public final class Env<T> implements AutoCloseable {
      *
      * @param path  file system destination
      * @param flags the flags for this new environment
-     * @return
+     * @return an environment ready for use
      */
     public Env<T> open(final File path, final EnvFlags... flags) {
       return open(path, 0664, flags);
@@ -370,7 +370,7 @@ public final class Env<T> implements AutoCloseable {
      * Sets the map size.
      *
      * @param mapSize new limit in bytes
-     * @return
+     * @return the builder
      */
     public Builder<T> setMapSize(final long mapSize) {
       if (env.open) {
@@ -388,7 +388,7 @@ public final class Env<T> implements AutoCloseable {
      *
      * @param size the size in given unit.
      * @param unit the unit to use for the size.
-     * @return
+     * @return the builder
      */
     public Builder<T> setMapSize(final int size, ByteUnit unit) {
       return setMapSize(unit.toBytes(size));
@@ -398,7 +398,7 @@ public final class Env<T> implements AutoCloseable {
      * Sets the maximum number of databases (ie {@link Dbi}s permitted.
      *
      * @param dbs new limit
-     * @return
+     * @return the builder
      */
     public Builder<T> setMaxDbs(final int dbs) {
       if (env.open) {
@@ -415,7 +415,7 @@ public final class Env<T> implements AutoCloseable {
      * Sets the maximum number of databases permitted.
      *
      * @param readers new limit
-     * @return
+     * @return the builder
      */
     public Builder<T> setMaxReaders(final int readers) {
       if (env.open) {

@@ -104,7 +104,7 @@ public final class Cursor<T> implements AutoCloseable {
   /**
    * Position at first key/data item
    *
-   * @return
+   * @return false if requested position not found
    */
   public boolean first() {
     return seek(MDB_FIRST);
@@ -149,7 +149,7 @@ public final class Cursor<T> implements AutoCloseable {
   /**
    * Position at last key/data item
    *
-   * @return
+   * @return false if requested position not found
    */
   public boolean last() {
     return seek(MDB_LAST);
@@ -158,7 +158,7 @@ public final class Cursor<T> implements AutoCloseable {
   /**
    * Position at next data item
    *
-   * @return
+   * @return false if requested position not found
    */
   public boolean next() {
     return seek(MDB_NEXT);
@@ -167,7 +167,7 @@ public final class Cursor<T> implements AutoCloseable {
   /**
    * Position at previous data item
    *
-   * @return
+   * @return false if requested position not found
    */
   public boolean prev() {
     return seek(MDB_PREV);
@@ -224,10 +224,10 @@ public final class Cursor<T> implements AutoCloseable {
   }
 
   /**
-   * Reserve space for data of the given size, but don't copy the given
-   * val.Instead, return a pointer to the reserved space, which the caller can
-   * fill in later - before the next update operation or the transaction ends.
-   * This saves an extra memcpy if the data is being generated later. LMDB does
+   * Reserve space for data of the given size, but don't copy the given val.
+   * Instead, return a pointer to the reserved space, which the caller can fill
+   * in later - before the next update operation or the transaction ends. This
+   * saves an extra memcpy if the data is being generated later. LMDB does
    * nothing else with this memory, the caller is expected to modify all of the
    * space requested.
    * <p>
@@ -235,7 +235,7 @@ public final class Cursor<T> implements AutoCloseable {
    *
    * @param key  key to store in the database (not null)
    * @param size size of the value to be stored in the database (not null)
-   * @return
+   * @return a buffer that can be used to modify the value
    */
   public T reserve(final T key, final int size) {
     if (SHOULD_CHECK) {

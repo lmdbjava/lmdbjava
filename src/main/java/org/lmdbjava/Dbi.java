@@ -283,7 +283,7 @@ public final class Dbi<T> {
    * @param txn  transaction handle (not null; not committed; must be R-W)
    * @param key  key to store in the database (not null)
    * @param size size of the value to be stored in the database
-   * @return
+   * @return a buffer that can be used to modify the value
    */
   public T reserve(Txn<T> txn, final T key, final int size) {
     if (SHOULD_CHECK) {

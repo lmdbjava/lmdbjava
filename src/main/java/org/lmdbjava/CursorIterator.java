@@ -27,7 +27,7 @@ import static org.lmdbjava.GetOp.MDB_SET_RANGE;
  * Iterator for entries that follow the same semantics as Cursors with regards
  * to read and write transactions and how they are closed.
  *
- * @param <T>
+ * @param <T> buffer type
  */
 public final class CursorIterator<T> implements
     Iterator<CursorIterator.KeyVal<T>>,
@@ -65,7 +65,7 @@ public final class CursorIterator<T> implements
 
   /**
    *
-   * @return
+   * @return an iterator
    */
   public Iterable<KeyVal<T>> iterable() {
     return () -> CursorIterator.this;
@@ -132,19 +132,19 @@ public final class CursorIterator<T> implements
   public static final class KeyVal<T> {
 
     /**
-     *
+     * The key.
      */
     public final T key;
 
     /**
-     *
+     * The value.
      */
     public final T val;
 
     /**
      *
-     * @param key
-     * @param val
+     * @param key the key
+     * @param val the value
      */
     public KeyVal(T key, T val) {
       this.key = key;

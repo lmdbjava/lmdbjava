@@ -338,8 +338,8 @@ public enum ByteUnit {
    * will use a default {@link DecimalFormat} instance for formatting the
    * number.
    *
-   * @param bytes
-   * @return
+   * @param bytes number of bytes
+   * @return a human-readable size string
    */
   public static String format(long bytes) {
     return format(bytes, new DecimalFormat(DEFAULT_FORMAT_PATTERN));
@@ -350,9 +350,9 @@ public enum ByteUnit {
    * will use a {@link DecimalFormat} instance with {@code pattern} for
    * formatting the number.
    *
-   * @param bytes
-   * @param pattern
-   * @return
+   * @param bytes   number of bytes
+   * @param pattern decimal format pattern
+   * @return a human-readable size string
    */
   public static String format(long bytes, String pattern) {
     return format(bytes, new DecimalFormat(pattern));
@@ -363,9 +363,9 @@ public enum ByteUnit {
    * will use {@code
    * format} for formatting the number.
    *
-   * @param bytes
-   * @param format
-   * @return
+   * @param bytes  number of bytes
+   * @param format number format object
+   * @return a human-readable size string
    */
   public static String format(long bytes, NumberFormat format) {
     if (bytes < 0) {
