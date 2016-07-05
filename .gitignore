@@ -11,4 +11,6 @@ bin
 *.log
 *.tag
 *.next
-*.attach*
+*.attach
+dependency-reduced-pom.xml
+

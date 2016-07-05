@@ -27,6 +27,13 @@
     <system>travis-ci</system>
     <url>https://travis-ci.org/lmdbjava/lmdbjava</url>
   </ciManagement>
+  <repositories>
+    <repository>
+      <id>bintray-lmdbjava-maven</id>
+      <name>bintray</name>
+      <url>http://dl.bintray.com/lmdbjava/maven</url>
+    </repository>
+  </repositories>
   <distributionManagement>
     <repository>
       <id>ossrh</id>
@@ -109,6 +116,24 @@
       <version>1.10.19</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.lmdbjava</groupId>
+      <artifactId>native-linux-x86_64</artifactId>
+      <version>0.9.70-1</version>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.lmdbjava</groupId>
+      <artifactId>native-windows-x86_64</artifactId>
+      <version>0.9.70-1</version>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.lmdbjava</groupId>
+      <artifactId>native-osx-x86_64</artifactId>
+      <version>0.9.70-1</version>
+      <optional>true</optional>
+    </dependency>
   </dependencies>
   <build>
     <plugins>
@@ -146,6 +171,45 @@
           <releaseProfiles>release</releaseProfiles>
           <goals>deploy site-deploy</goals>
         </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>2.4.3</version>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <artifactSet>
+                <includes>
+                  <include>org.lmdbjava:native-linux-x86_64</include>
+                  <include>org.lmdbjava:native-windows-x86_64</include>
+                  <include>org.lmdbjava:native-osx-x86_64</include>
+                </includes>
+              </artifactSet>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>au.com.acegi</groupId>
+        <artifactId>xml-format-maven-plugin</artifactId>
+        <version>3.0.1</version>
+        <executions>
+          <execution>
+            <id>xml-format</id>
+            <phase>package</phase>
+            <goals>
+              <goal>xml-format</goal>
+            </goals>
+            <configuration>
+              <indentSize>2</indentSize>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>

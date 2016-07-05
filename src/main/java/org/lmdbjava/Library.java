@@ -15,6 +15,14 @@
  */
 package org.lmdbjava;
 
+import java.io.File;
+import static java.io.File.createTempFile;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import static java.lang.Boolean.getBoolean;
+import static java.lang.System.getProperty;
 import static jnr.ffi.LibraryLoader.create;
 import jnr.ffi.Pointer;
 import static jnr.ffi.Runtime.getRuntime;
@@ -34,13 +42,80 @@ import jnr.ffi.byref.PointerByReference;
  */
 final class Library {
 
+  /**
+   * Java system property name that can be set to disable automatic extraction
+   * of the LMDB system library from the LmdbJava JAR. This may be desirable if
+   * an operating system-provided LMDB system library is preferred (eg operating
+   * system package management, vendor support, special compiler flags, security
+   * auditing, profile guided optimization builds, faster startup time by
+   * avoiding the library copy etc).
+   */
+  public static final String DISABLE_EXTRACT_PROP = "lmdbjava.disable.extract";
+
+  /**
+   * Indicates whether automatic extraction of the LMDB system library is
+   * permitted.
+   */
+  public static final boolean SHOULD_EXTRACT = !getBoolean(DISABLE_EXTRACT_PROP);
+
   private static final String LIB_NAME = "lmdb";
   static final Lmdb LIB;
   static final jnr.ffi.Runtime RUNTIME;
 
   static {
-    LIB = create(Lmdb.class).load(LIB_NAME);
+    final String libToLoad;
+
+    final String arch = getProperty("os.arch");
+    final boolean arch64 = arch.equals("x64") || arch.equals("amd64")
+                               || arch.equals("x86_64");
+
+    final String os = getProperty("os.name");
+    final boolean linux = os.toLowerCase().startsWith("linux");
+    final boolean osx = os.startsWith("Mac OS X");
+    final boolean windows = os.startsWith("Windows");
+
+    if (!SHOULD_EXTRACT || !arch64) {
+      libToLoad = LIB_NAME;
+    } else if (linux) {
+      libToLoad = extract("org/lmdbjava/native-linux-x86_64.so");
+    } else if (osx) {
+      libToLoad = extract("org/lmdbjava/native-osx-x86_64.so");
+    } else if (windows) {
+      libToLoad = extract("org/lmdbjava/native-windows-x86_64.dll");
+    } else {
+      libToLoad = LIB_NAME;
+    }
+
+    LIB = create(Lmdb.class).load(libToLoad);
     RUNTIME = getRuntime(LIB);
+  }
+
+  @SuppressWarnings("NestedAssignment")
+  private static String extract(String name) {
+    final String suffix = name.substring(name.lastIndexOf('.'));
+    final File file;
+    try {
+      file = createTempFile("lmdbJava-lib-", suffix);
+    } catch (IOException ioe) {
+      throw new RuntimeException("Library extraction unavailable.", ioe);
+    }
+    file.deleteOnExit();
+    final ClassLoader cl = Library.class.getClassLoader();
+    try (final InputStream in = cl.getResourceAsStream(name);
+         final OutputStream out = new FileOutputStream(file);) {
+      if (in == null) {
+        throw new RuntimeException("Classpath " + name + " not found");
+      }
+
+      int bytes;
+      final byte[] buffer = new byte[4_096];
+      while (-1 != (bytes = in.read(buffer))) {
+        out.write(buffer, 0, bytes);
+      }
+    } catch (IOException ioe) {
+      throw new RuntimeException("Library extraction copy failure", ioe);
+    }
+    return file.getAbsolutePath();
   }
 
   private Library() {
