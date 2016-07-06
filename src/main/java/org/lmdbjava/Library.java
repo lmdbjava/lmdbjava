@@ -77,11 +77,11 @@ final class Library {
     if (!SHOULD_EXTRACT || !arch64) {
       libToLoad = LIB_NAME;
     } else if (linux) {
-      libToLoad = extract("org/lmdbjava/native-linux-x86_64.so");
+      libToLoad = extract("org/lmdbjava/lmdbjava-native-linux-x86_64.so");
     } else if (osx) {
-      libToLoad = extract("org/lmdbjava/native-osx-x86_64.dylib");
+      libToLoad = extract("org/lmdbjava/lmdbjava-native-osx-x86_64.dylib");
     } else if (windows) {
-      libToLoad = extract("org/lmdbjava/native-windows-x86_64.dll");
+      libToLoad = extract("org/lmdbjava/lmdbjava-native-windows-x86_64.dll");
     } else {
       libToLoad = LIB_NAME;
     }
@@ -95,7 +95,7 @@ final class Library {
     final String suffix = name.substring(name.lastIndexOf('.'));
     final File file;
     try {
-      file = createTempFile("lmdbJava-lib-", suffix);
+      file = createTempFile("lmdbjava-native-library-", suffix);
     } catch (IOException ioe) {
       throw new RuntimeException("Library extraction unavailable.", ioe);
     }
