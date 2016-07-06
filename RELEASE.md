@@ -102,11 +102,10 @@ has group ID deployment permission. The steps to use a new GPG key are:
   "private_key": "the text EXACTLY as contained in key.txt"
 }
 ```
-8. `rm public.txt key.txt`
 
 After the JSON files are created, the `secrets.jar.enc` must be updated:
 
-1. `rm -f secrets.tar.enc secrets.tar`
+1. `rm -f key.txt public.txt secrets.tar.enc secrets.tar`
 2. `tar cvf secrets.tar *.json`
 3. `travis encrypt-file secrets.tar`
 4. `git add secrets.tar.enc`
