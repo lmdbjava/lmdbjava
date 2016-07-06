@@ -29,9 +29,12 @@
   </ciManagement>
   <repositories>
     <repository>
-      <id>bintray-lmdbjava-maven</id>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+      <id>bintray</id>
       <name>bintray</name>
-      <url>http://dl.bintray.com/lmdbjava/maven</url>
+      <url>http://jcenter.bintray.com</url>
     </repository>
   </repositories>
   <distributionManagement>
