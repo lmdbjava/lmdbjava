@@ -79,7 +79,7 @@ final class Library {
     } else if (linux) {
       libToLoad = extract("org/lmdbjava/native-linux-x86_64.so");
     } else if (osx) {
-      libToLoad = extract("org/lmdbjava/native-osx-x86_64.so");
+      libToLoad = extract("org/lmdbjava/native-osx-x86_64.dylib");
     } else if (windows) {
       libToLoad = extract("org/lmdbjava/native-windows-x86_64.dll");
     } else {
