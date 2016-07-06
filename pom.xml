@@ -64,9 +64,6 @@
       <organization>Acegi Technology Pty Limited</organization>
     </developer>
   </developers>
-  <prerequisites>
-    <maven>3.2.1</maven>
-  </prerequisites>
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.source>1.8</maven.compiler.source>
