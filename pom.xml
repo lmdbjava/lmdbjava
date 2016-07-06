@@ -38,7 +38,7 @@
     <repository>
       <id>bintray-lmdbjava-maven</id>
       <name>lmdbjava-maven</name>
-      <url>https://api.bintray.com/maven/lmdbjava/maven/lmdbjava/;publish=1</url>
+      <url>https://api.bintray.com/maven/lmdbjava/maven/org.lmdbjava:lmdbjava/;publish=1</url>
     </repository>
   </distributionManagement>
   <licenses>
