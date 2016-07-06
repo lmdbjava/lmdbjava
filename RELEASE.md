@@ -52,8 +52,8 @@ select the username, Profile, User Token, Reset User Token.
 If the `secrets.tar`-hosted `gpg-sign.json` is compromised, the risk is limited
 to signing untrusted artifacts. The GPG key cannot be used to login anywhere,
 but the GPG key should be revoked as soon as possible. Use
-`gpg --list-secret-keys` to find the key ID then `gpg --edit-key THE_ID`,
-`revuid`, `save`, `quit` then `gpg --send-keys THE_ID`.
+`gpg --list-secret-keys` to find the key ID then `gpg --edit-key KEY_ID`,
+`revuid`, `save`, `quit` then `gpg --send-keys KEY_ID`.
 
 ### New Credential Setup
 
@@ -89,11 +89,11 @@ has group ID deployment permission. The steps to use a new GPG key are:
 
 1. Generate a key (matching the Jira account email address) via `gpg --gen-key`
 2. Find the key ID (`gpg --list-secret-keys`)
-3. Publish the public key `gpg --send-keys THE_ID`
-4. Run `gpg --export -a THE_ID > ~/public.txt`
+3. Publish the public key `gpg --send-keys KEY_ID`
+4. Run `gpg --export -a KEY_ID > ~/public.txt`
 5. Login to BinTray, select the organisation, Edit, GPG Signing and paste all
    `~/public.txt` contents into the "Public Key"
-6. Run `gpg --export-secret-keys -a THE_ID | awk -vRS='\n' -vORS='\\r\\n' '1' > ~/key.txt`
+6. Run `gpg --export-secret-keys -a KEY_ID | awk -vRS='\n' -vORS='\\r\\n' '1' > ~/key.txt`
 7. Create `gpg-sign.json` file with the following format (4 lines total):
 
 ``` json
