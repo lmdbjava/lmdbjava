@@ -68,5 +68,5 @@ targeting server-class JVMs, and it will be easy to support Java 9 when released
 This project is licensed under the
 [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.html).
 
-You must separately install the LMDB library. LMDB is currently licensed under
+This project distribution JAR includes LMDB, which is licensed under
 [The OpenLDAP Public License](http://www.openldap.org/software/release/license.html).
