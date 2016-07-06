@@ -91,8 +91,8 @@ has group ID deployment permission. The steps to use a new GPG key are:
 2. Find the key ID (`gpg --list-secret-keys`)
 3. Publish the public key `gpg --send-keys THE_ID`
 4. Run `gpg --export -a THE_ID > ~/public.txt`
-5. Login to BinTray, then select the organisation, Edit, GPG Signing and replace
-   the "Public Key" field with `~/public.txt` (do not add any private key here)
+5. Login to BinTray, select the organisation, Edit, GPG Signing and paste all
+   `~/public.txt` contents into the "Public Key"
 6. Run `gpg --export-secret-keys -a THE_ID | awk -vRS='\n' -vORS='\\r\\n' '1' > ~/key.txt`
 7. Create `gpg-sign.json` file with the following format (4 lines total):
 
