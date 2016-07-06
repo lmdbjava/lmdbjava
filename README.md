@@ -28,7 +28,7 @@ If you prefer to use a shared system library, set the `lmdbjava.disable.extract`
 
 Other operating systems will need to install the LMDB system library separately.
 The standard operating system package manager will likely work, but if you'd
-rather a up-to-date, tested, better-supported integration, try adapting the
+rather an up-to-date, tested, better-supported integration, try adapting the
 [LmdbJava Native](https://github.com/lmdbjava/native) cross-compile targets.
 
 ### Usage
