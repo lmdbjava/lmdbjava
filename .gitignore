@@ -13,4 +13,6 @@ bin
 *.next
 *.attach
 dependency-reduced-pom.xml
-
+gpg-sign.json
+mvn-central-sync.json
+secrets.tar
