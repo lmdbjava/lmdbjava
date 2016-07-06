@@ -90,22 +90,22 @@ has group ID deployment permission. The steps to use a new GPG key are:
 1. Generate a key (matching the Jira account email address) via `gpg --gen-key`
 2. Find the key ID (`gpg --list-secret-keys`)
 3. Publish the public key `gpg --send-keys THE_ID`
-4. Run `gpg --export -a THE_ID > public.txt`
+4. Run `gpg --export -a THE_ID > ~/public.txt`
 5. Login to BinTray, then select the organisation, Edit, GPG Signing and replace
-   the "Public Key" (there is no need to add any private key here)
-6. Run `gpg --export-secret-keys -a THE_ID | awk -vRS='\n' -vORS='\\r\\n' '1' > key.txt`
+   the "Public Key" field with `~/public.txt` (do not add any private key here)
+6. Run `gpg --export-secret-keys -a THE_ID | awk -vRS='\n' -vORS='\\r\\n' '1' > ~/key.txt`
 7. Create `gpg-sign.json` file with the following format (4 lines total):
 
 ``` json
 {
   "passphrase": "gpg password used when creating the key",
-  "private_key": "the text EXACTLY as contained in key.txt"
+  "private_key": "the text EXACTLY as contained in ~/key.txt"
 }
 ```
 
 After the JSON files are created, the `secrets.jar.enc` must be updated:
 
-1. `rm -f key.txt public.txt secrets.tar.enc secrets.tar`
+1. `rm -f ~/key.txt ~/public.txt secrets.tar.enc secrets.tar`
 2. `tar cvf secrets.tar *.json`
 3. `travis encrypt-file secrets.tar`
 4. `git add secrets.tar.enc`
