@@ -63,15 +63,6 @@ now requiring it (and there is an automatic reflective fallback if `Unsafe` isn'
 available). Overall these changes make LmdbJava the optimal choice for projects
 targeting server-class JVMs, and it will be easy to support Java 9 when released.
 
-### Releasing
-
-Any tagged commit will cause Travis CI to build a release and deploy it to the
-BinTray Maven repository. BinTray will GPG sign the release.
-
-Project maintainers can run `mvn release:clean release:prepare` to update the
-POMs to a formal release version number, Git tag, and increment the version
-number for ongoing development. Travis will perform the actual release.
-
 ### License
 
 This project is licensed under the
