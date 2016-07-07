@@ -179,9 +179,9 @@
             <configuration>
               <artifactSet>
                 <includes>
-                  <include>org.lmdbjava:native-linux-x86_64</include>
-                  <include>org.lmdbjava:native-windows-x86_64</include>
-                  <include>org.lmdbjava:native-osx-x86_64</include>
+                  <include>org.lmdbjava:lmdbjava-native-linux-x86_64</include>
+                  <include>org.lmdbjava:lmdbjava-native-windows-x86_64</include>
+                  <include>org.lmdbjava:lmdbjava-native-osx-x86_64</include>
                 </includes>
               </artifactSet>
             </configuration>
