@@ -21,8 +21,7 @@ the Travis CI environment.
 
 The Travis CI environment declares the `BINTRAY_USER` in plain text, as this is
 already public information. It also declares the `BINTRAY_PASS` (BinTray API
-key), but this is included as a Travis encrypted variable. It is never made
-available to pull request (PR) builds.
+key) as a Travis encrypted variable.
 
 Once `mvn deploy` is complete, the artifacts are available to end users via
 [JCenter](https://bintray.com/bintray/jcenter). The artifacts are not GPG signed
@@ -36,7 +35,8 @@ Security Action Plan shown below.
 
 Travis executes a BinTray REST call to GPG sign the version. Finally, Travis
 runs a BinTray REST call to push the version to Maven Central and close the
-release. Maven Central will validate the upload and publish them.
+release. Maven Central will validate the upload and publish them. The GPG
+signatures are also automatically made visible via JCenter.
 
 ### Security Action Plan
 
@@ -121,7 +121,7 @@ If a new GitHub repository is set up, three steps are needed:
 
 1. Create a new Travis CI project (out of the scope of this document)
 2. Create a newly-encrypted `secret.tar.enc` and the `secure:` variable in
-   `.travis.yml` (use the commands described in the previous section)
+   `.travis.yml` (see above)
 3. Create a new BinTray package (see below)
 
 The second step is needed because every Travis project is unique and has its
