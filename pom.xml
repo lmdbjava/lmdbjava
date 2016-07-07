@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.lmdbjava</groupId>
   <artifactId>lmdbjava</artifactId>
-  <version>0.0.1-SNAPSHOT</version>
+  <version>0.0.1</version>
   <packaging>jar</packaging>
   <name>LmdbJava</name>
   <description>Low latency Java API for the ultra-fast, embedded Symas Lightning Database (LMDB)</description>
@@ -17,7 +17,7 @@
     <connection>scm:git:git@github.com:lmdbjava/lmdbjava.git</connection>
     <developerConnection>scm:git:git@github.com:lmdbjava/lmdbjava.git</developerConnection>
     <url>git@github.com:lmdbjava/lmdbjava.git</url>
-    <tag>HEAD</tag>
+    <tag>lmdbjava-0.0.1</tag>
   </scm>
   <issueManagement>
     <system>GitHub Issues</system>
