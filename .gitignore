@@ -14,5 +14,5 @@ bin
 *.attach
 dependency-reduced-pom.xml
 gpg-sign.json
-mvn-central-sync.json
+mvn-sync.json
 secrets.tar

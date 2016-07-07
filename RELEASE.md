@@ -16,12 +16,13 @@ ongoing development. Travis will perform the actual release.
 At the end of the Travis build, the presence of a Git tag will cause Travis to
 use `mvn deploy`. The `mvn deploy` command deploys to the project's BinTray
 repository. The `mvn deploy` uses the Git-hosted `.settings.xml`, which in
-turn refers to the BinTray username and API key from the Travis CI environment.
+turn refers to the BinTray username and BinTray password (API key) from the
+Travis CI environment.
 
 The Travis CI environment declares the `BINTRAY_USER` in plain text, as this is
-already public information. It also declares the `BINTRAY_PASS`, but this is
-included as a Travis encrypted variable. It is never made available to pull
-request (PR) builds.
+already public information. It also declares the `BINTRAY_PASS` (BinTray API
+key), but this is included as a Travis encrypted variable. It is never made
+available to pull request (PR) builds.
 
 Travis next decrypts the `secrets.tar.enc`. Inside the resulting `secrets.tar`
 is two JSON files, both of which are used when executing HTTP POST methods
@@ -29,12 +30,9 @@ against the BinTray REST API. It is critical these files are not displayed (eg
 do not `cat` them to the console or similar), as doing so will necessitate the
 Security Action Plan shown below.
 
-Travis executes a BinTray REST call to GPG sign the version. The GPG signature
-is embedded in one of the JSON files contained in the `secrets.tar` file.
-
-Finally, Travis runs a BinTray REST call to push the version to Maven Central
-and close the release. Maven Central will validate the uploads and eventually
-index and mirror them.
+Travis executes a BinTray REST call to GPG sign the version. Finally, Travis
+runs a BinTray REST call to push the version to Maven Central and close the
+release. Maven Central will validate the upload and publish them.
 
 ### Security Action Plan
 
@@ -43,7 +41,7 @@ API key (it does not allow login to the BinTray UI). To revoke the API key,
 login to BinTray, then select Your Profile,
 [Edit](https://bintray.com/profile/edit), API Key, Revoke It.
 
-If the `secrets.tar`-hosted `mvn-central-sync.json` is compromised, the risk is
+If the `secrets.tar`-hosted `mvn-sync.json` is compromised, the risk is
 limited to misuse of the API key (it does not allow login to the Sonatype OSS or
 Jira instance). To revoke the API key, login to
 [OSS SonaType](https://oss.sonatype.org/) then in the top right-hand corner
@@ -73,7 +71,7 @@ API key. To change the effective BinTray user:
 Any OSS Sonatype user with deploy rights to the Maven Central group ID can be
 used for the Maven Central sync operation. Login to OSS Sonatype and generate
 an API key (username, Profile, User Token, Create User Token). Then create a
-`mvn-central-sync.json` file in the following form:
+`mvn-sync.json` file in the following form:
 
 ``` json
 {
