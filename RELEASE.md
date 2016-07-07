@@ -48,7 +48,7 @@ login to BinTray, then select Your Profile,
 If the `secrets.tar`-hosted `mvn-sync.json` is compromised, the risk is
 limited to misuse of the API key (it does not allow login to the Sonatype OSS or
 Jira instance). To revoke the API key, login to
-[OSS SonaType](https://oss.sonatype.org/) then in the top right-hand corner
+[OSS Sonatype](https://oss.sonatype.org/) then in the top right-hand corner
 select the username, Profile, User Token, Reset User Token.
 
 If the `secrets.tar`-hosted `gpg-sign.json` is compromised, the risk is limited
