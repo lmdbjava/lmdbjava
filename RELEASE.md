@@ -16,13 +16,17 @@ ongoing development. Travis will perform the actual release.
 At the end of the Travis build, the presence of a Git tag will cause Travis to
 use `mvn deploy`. The `mvn deploy` command deploys to the project's BinTray
 repository. The `mvn deploy` uses the Git-hosted `.settings.xml`, which in
-turn refers to the BinTray username and BinTray password (API key) from the
-Travis CI environment.
+turn refers to the BinTray username and BinTray password (BinTray API key) from
+the Travis CI environment.
 
 The Travis CI environment declares the `BINTRAY_USER` in plain text, as this is
 already public information. It also declares the `BINTRAY_PASS` (BinTray API
 key), but this is included as a Travis encrypted variable. It is never made
 available to pull request (PR) builds.
+
+Once `mvn deploy` is complete, the artifacts are available to end users via
+[JCenter](https://bintray.com/bintray/jcenter). The artifacts are not GPG signed
+at that stage, as JCenter does not require such signatures.
 
 Travis next decrypts the `secrets.tar.enc`. Inside the resulting `secrets.tar`
 is two JSON files, both of which are used when executing HTTP POST methods
