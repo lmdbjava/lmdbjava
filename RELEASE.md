@@ -15,13 +15,17 @@ ongoing development. Travis will perform the actual release.
 
 At the end of the Travis build, the presence of a Git tag will cause Travis to
 use `mvn deploy`. The `mvn deploy` command deploys to the project's BinTray
-repository. The `mvn deploy` uses the Git-hosted `.settings.xml`, which in
-turn refers to the BinTray username and BinTray password (BinTray API key) from
-the Travis CI environment.
+repository. Some projects also perform a `mvn site-deploy`, but only if they use
+Maven-generated GitHub Pages sites. These `mvn` goals both use a Git-hosted
+`.settings.xml`, with this file simply referring to authentication-related
+environment variables that were exposed by Travis CI.
 
-The Travis CI environment declares the `BINTRAY_USER` in plain text, as this is
-already public information. It also declares the `BINTRAY_PASS` (BinTray API
-key) as a Travis encrypted variable.
+The Travis CI environment variables are all configured in `.travis.yml`:
+
+* `BINTRAY_USER`, which is in plain text (being already public information)
+* `BINTRAY_PASS`, which is the BinTray API key and is encrypted by Travis
+* `GITHUB_PASS`, which is the GitHub personal access token needed for any
+  `mvn site-deploy` and is also encrypted by Travis
 
 Once `mvn deploy` is complete, the artifacts are available to end users via
 [JCenter](https://bintray.com/bintray/jcenter). The artifacts are not GPG signed
@@ -44,6 +48,12 @@ If the `BINTRAY_PASS` is compromised, the risk is limited to misuse of the
 API key (it does not allow login to the BinTray UI). To revoke the API key,
 login to BinTray, then select Your Profile,
 [Edit](https://bintray.com/profile/edit), API Key, Revoke It.
+
+If the `GITHUB_PASS` is compromised, the risk is limited to performing
+public repository changes and reading the owner's email addresses (it does not
+allow any other GitHub operations or login). To revoke the personal access
+token, login to GitHub, then select Your Profile > Personal Access Tokens >
+the token > Delete.
 
 If the `secrets.tar`-hosted `mvn-sync.json` is compromised, the risk is
 limited to misuse of the API key (it does not allow login to the Sonatype OSS or
@@ -71,6 +81,11 @@ API key. To change the effective BinTray user:
 2. Delete the existing `.travis.yml` `env` `secure:` line (which is the BinTray
    password)
 3. Use `travis encrypt BINTRAY_PASS=the_api_key` and update `.travis.yml`
+
+Any GitHub user with commit rights to the proejct's repository can use their
+personal access token for Maven-based site updates. Login to GitHub and create a
+new personal access token with two scopes only: `public_repo, user:email`. Then
+use `travis encrypt GITHUB_PASS=the_access_token` and update `.travis.yml`.
 
 Any OSS Sonatype user with deploy rights to the Maven Central group ID can be
 used for the Maven Central sync operation. Login to OSS Sonatype and generate
