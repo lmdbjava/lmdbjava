@@ -23,6 +23,7 @@ import static java.lang.Long.MIN_VALUE;
 import java.nio.ByteBuffer;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
+import org.agrona.concurrent.UnsafeBuffer;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertNotNull;
@@ -134,7 +135,8 @@ public class CursorTest {
       c.put(bb(1), bb(2), MDB_NOOVERWRITE);
       c.put(bb(3), bb(4));
       c.put(bb(5), bb(6));
-      c.put(bb(7), bb(8));
+      final ByteBuffer valForKey7 = c.reserve(bb(7), BYTES);
+      valForKey7.putInt(8).flip();
 
       // check MDB_SET operations
       final ByteBuffer key3 = bb(3);
@@ -174,7 +176,8 @@ public class CursorTest {
       c.put(bb(1), bb(2), MDB_NOOVERWRITE);
       c.put(bb(3), bb(4));
       c.put(bb(5), bb(6));
-      c.put(bb(7), bb(8));
+      final ByteBuffer valForKey7 = c.reserve(bb(7), BYTES);
+      valForKey7.putInt(8).flip();
 
       // check MDB_SET operations
       final ByteBuffer key3 = bb(3);
@@ -253,15 +256,15 @@ public class CursorTest {
   @Test
   public void cursorMutableDirectBuffer() {
     final Env<DirectBuffer> env = makeEnv(PROXY_DB);
-    final Dbi<DirectBuffer> db = env.openDbi(DB_1, MDB_CREATE,
-                                             MDB_DUPSORT);
+    final Dbi<DirectBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
     try (final Txn<DirectBuffer> txn = env.txnWrite()) {
       // populate data
       final Cursor<DirectBuffer> c = db.openCursor(txn);
       c.put(mdb(1), mdb(2), MDB_NOOVERWRITE);
       c.put(mdb(3), mdb(4));
       c.put(mdb(5), mdb(6));
-      c.put(mdb(7), mdb(8));
+      final DirectBuffer valForKey7 = c.reserve(mdb(7), BYTES);
+      new UnsafeBuffer(valForKey7).putInt(0, 8);
 
       // check MDB_SET operations
       final MutableDirectBuffer key3 = mdb(3);
