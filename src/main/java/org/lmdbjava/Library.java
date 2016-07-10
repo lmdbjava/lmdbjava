@@ -23,6 +23,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import static java.lang.Boolean.getBoolean;
 import static java.lang.System.getProperty;
+import static java.util.Objects.requireNonNull;
 import static jnr.ffi.LibraryLoader.create;
 import jnr.ffi.Pointer;
 import static jnr.ffi.Runtime.getRuntime;
@@ -74,13 +75,11 @@ final class Library {
     final boolean osx = os.startsWith("Mac OS X");
     final boolean windows = os.startsWith("Windows");
 
-    if (!SHOULD_EXTRACT || !arch64) {
-      libToLoad = LIB_NAME;
-    } else if (linux) {
+    if (SHOULD_EXTRACT && arch64 && linux) {
       libToLoad = extract("org/lmdbjava/lmdbjava-native-linux-x86_64.so");
-    } else if (osx) {
+    } else if (SHOULD_EXTRACT && arch64 && osx) {
       libToLoad = extract("org/lmdbjava/lmdbjava-native-osx-x86_64.dylib");
-    } else if (windows) {
+    } else if (SHOULD_EXTRACT && arch64 && windows) {
       libToLoad = extract("org/lmdbjava/lmdbjava-native-windows-x86_64.dll");
     } else {
       libToLoad = LIB_NAME;
@@ -96,26 +95,21 @@ final class Library {
     final File file;
     try {
       file = createTempFile("lmdbjava-native-library-", suffix);
-    } catch (IOException ioe) {
-      throw new RuntimeException("Library extraction unavailable.", ioe);
-    }
-    file.deleteOnExit();
-    final ClassLoader cl = Library.class.getClassLoader();
-    try (final InputStream in = cl.getResourceAsStream(name);
-         final OutputStream out = new FileOutputStream(file);) {
-      if (in == null) {
-        throw new RuntimeException("Classpath " + name + " not found");
+      file.deleteOnExit();
+      final ClassLoader cl = Library.class.getClassLoader();
+      try (final InputStream in = cl.getResourceAsStream(name);
+           final OutputStream out = new FileOutputStream(file);) {
+        requireNonNull(in, "Classpath resource not found");
+        int bytes;
+        final byte[] buffer = new byte[4_096];
+        while (-1 != (bytes = in.read(buffer))) {
+          out.write(buffer, 0, bytes);
+        }
       }
-
-      int bytes;
-      final byte[] buffer = new byte[4_096];
-      while (-1 != (bytes = in.read(buffer))) {
-        out.write(buffer, 0, bytes);
-      }
+      return file.getAbsolutePath();
     } catch (IOException ioe) {
-      throw new RuntimeException("Library extraction copy failure", ioe);
+      throw new RuntimeException("Failed to extract " + name, ioe);
     }
-    return file.getAbsolutePath();
   }
 
   private Library() {
