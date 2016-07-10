@@ -93,13 +93,9 @@ public final class Env<T> implements AutoCloseable {
   }
 
   private boolean closed = false;
-  private boolean open = false;
   private final BufferProxy<T> proxy;
   final Pointer ptr;
 
-  /**
-   * Creates a new environment handle.
-   */
   private Env(final BufferProxy<T> proxy) {
     requireNonNull(proxy);
     this.proxy = proxy;
@@ -119,9 +115,6 @@ public final class Env<T> implements AutoCloseable {
       return;
     }
     closed = true;
-    if (!open) {
-      return;
-    }
     LIB.mdb_env_close(ptr);
   }
 
@@ -162,9 +155,6 @@ public final class Env<T> implements AutoCloseable {
     if (closed) {
       throw new AlreadyClosedException();
     }
-    if (!open) {
-      throw new NotOpenException();
-    }
     final MDB_envinfo info = new MDB_envinfo(RUNTIME);
     checkRc(LIB.mdb_env_info(ptr, info));
 
@@ -194,15 +184,6 @@ public final class Env<T> implements AutoCloseable {
   }
 
   /**
-   * Indicates whether this environment has been opened.
-   *
-   * @return true if opened
-   */
-  public boolean isOpen() {
-    return open;
-  }
-
-  /**
    * Open the {@link Dbi}.
    *
    * @param name  name of the database (or null if no name is required)
@@ -228,9 +209,6 @@ public final class Env<T> implements AutoCloseable {
     if (closed) {
       throw new AlreadyClosedException();
     }
-    if (!open) {
-      throw new NotOpenException();
-    }
     final MDB_stat stat = new MDB_stat(RUNTIME);
     checkRc(LIB.mdb_env_stat(ptr, stat));
     return new EnvStat(
@@ -252,9 +230,6 @@ public final class Env<T> implements AutoCloseable {
   public void sync(final boolean force) {
     if (closed) {
       throw new AlreadyClosedException();
-    }
-    if (!open) {
-      throw new NotOpenException();
     }
     final int f = force ? 1 : 0;
     checkRc(LIB.mdb_env_sync(ptr, f));
@@ -326,7 +301,8 @@ public final class Env<T> implements AutoCloseable {
    */
   public static final class Builder<T> {
 
-    Env<T> env;
+    private final Env<T> env;
+    private boolean opened = false;
 
     private Builder(Env<T> env) {
       this.env = env;
@@ -346,12 +322,12 @@ public final class Env<T> implements AutoCloseable {
       if (env.closed) {
         throw new AlreadyClosedException();
       }
-      if (env.open) {
+      if (opened) {
         throw new AlreadyOpenException();
       }
       final int flagsMask = mask(flags);
       checkRc(LIB.mdb_env_open(env.ptr, path.getAbsolutePath(), flagsMask, mode));
-      this.env.open = true;
+      opened = true;
       return this.env;
     }
 
@@ -373,11 +349,8 @@ public final class Env<T> implements AutoCloseable {
      * @return the builder
      */
     public Builder<T> setMapSize(final long mapSize) {
-      if (env.open) {
+      if (opened) {
         throw new AlreadyOpenException();
-      }
-      if (env.closed) {
-        throw new AlreadyClosedException();
       }
       checkRc(LIB.mdb_env_set_mapsize(env.ptr, mapSize));
       return this;
@@ -401,11 +374,8 @@ public final class Env<T> implements AutoCloseable {
      * @return the builder
      */
     public Builder<T> setMaxDbs(final int dbs) {
-      if (env.open) {
+      if (opened) {
         throw new AlreadyOpenException();
-      }
-      if (env.closed) {
-        throw new AlreadyClosedException();
       }
       checkRc(LIB.mdb_env_set_maxdbs(env.ptr, dbs));
       return this;
@@ -418,11 +388,8 @@ public final class Env<T> implements AutoCloseable {
      * @return the builder
      */
     public Builder<T> setMaxReaders(final int readers) {
-      if (env.open) {
+      if (opened) {
         throw new AlreadyOpenException();
-      }
-      if (env.closed) {
-        throw new AlreadyClosedException();
       }
       checkRc(LIB.mdb_env_set_maxreaders(env.ptr, readers));
       return this;
@@ -469,21 +436,6 @@ public final class Env<T> implements AutoCloseable {
 
     MapFullException() {
       super(MDB_MAP_FULL, "Environment mapsize reached");
-    }
-  }
-
-  /**
-   * Object has is not open (eg never opened, or since closed).
-   */
-  public static class NotOpenException extends LmdbException {
-
-    private static final long serialVersionUID = 1L;
-
-    /**
-     * Creates a new instance.
-     */
-    public NotOpenException() {
-      super("Environment is not open");
     }
   }
 

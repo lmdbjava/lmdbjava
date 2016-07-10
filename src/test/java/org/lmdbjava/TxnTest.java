@@ -29,7 +29,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import static org.lmdbjava.ByteUnit.KIBIBYTES;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
-import org.lmdbjava.Env.NotOpenException;
+import org.lmdbjava.Env.AlreadyClosedException;
 import static org.lmdbjava.Env.create;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.TestUtils.DB_1;
@@ -124,7 +124,7 @@ public class TxnTest {
     txn.commit(); // error
   }
 
-  @Test(expected = NotOpenException.class)
+  @Test(expected = AlreadyClosedException.class)
   @SuppressWarnings("ResultOfObjectAllocationIgnored")
   public void txConstructionDeniedIfEnvClosed() {
     env.close();

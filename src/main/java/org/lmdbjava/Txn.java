@@ -21,7 +21,7 @@ import static jnr.ffi.NativeType.ADDRESS;
 import jnr.ffi.Pointer;
 import jnr.ffi.provider.MemoryManager;
 import static org.lmdbjava.BufferProxy.MDB_VAL_STRUCT_SIZE;
-import org.lmdbjava.Env.NotOpenException;
+import org.lmdbjava.Env.AlreadyClosedException;
 import static org.lmdbjava.Library.LIB;
 import static org.lmdbjava.Library.RUNTIME;
 import static org.lmdbjava.MaskedFlag.isSet;
@@ -52,12 +52,11 @@ public final class Txn<T> implements AutoCloseable {
   final Pointer ptrVal;
 
   Txn(final Env<T> env, final Txn<T> parent, final BufferProxy<T> proxy,
-      final TxnFlags... flags)
-      throws NotOpenException, IncompatibleParent, LmdbNativeException {
+      final TxnFlags... flags) {
     requireNonNull(env);
     requireNonNull(proxy);
-    if (!env.isOpen() || env.isClosed()) {
-      throw new NotOpenException();
+    if (env.isClosed()) {
+      throw new AlreadyClosedException();
     }
     this.env = env;
     this.proxy = proxy;

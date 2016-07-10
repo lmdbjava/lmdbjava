@@ -36,15 +36,12 @@ import org.lmdbjava.Dbi.KeyExistsException;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import static org.lmdbjava.DbiFlags.MDB_DUPSORT;
 import org.lmdbjava.Env.MapFullException;
-import org.lmdbjava.Env.NotOpenException;
 import static org.lmdbjava.Env.create;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.GetOp.MDB_SET_KEY;
 import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
 import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.bb;
-import org.lmdbjava.Txn.CommittedException;
-import org.lmdbjava.Txn.ReadWriteRequiredException;
 
 public class DbiTest {
 
@@ -211,12 +208,7 @@ public class DbiTest {
         .forEach(ignored -> {
           Random random = new Random();
           for (int i = 0; i < 15_000; i++) {
-            try {
-              db.put(bb(random.nextInt()), bb(random.nextInt()));
-            } catch (CommittedException | LmdbNativeException | NotOpenException |
-                     ReadWriteRequiredException e) {
-              throw new RuntimeException(e);
-            }
+            db.put(bb(random.nextInt()), bb(random.nextInt()));
           }
         });
   }

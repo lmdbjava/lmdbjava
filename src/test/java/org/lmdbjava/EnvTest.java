@@ -122,7 +122,6 @@ public class EnvTest {
   public void createAsDirectory() throws IOException {
     final File path = tmp.newFolder();
     final Env<ByteBuffer> env = create().open(path);
-    assertThat(env.isOpen(), is(true));
     assertThat(path.isDirectory(), is(true));
     env.sync(false);
     env.close();
@@ -139,7 +138,6 @@ public class EnvTest {
         .setMaxReaders(1)
         .open(path, MDB_NOSUBDIR)) {
       env.sync(true);
-      assertThat(env.isOpen(), is(true));
       assertThat(path.isFile(), is(true));
     }
   }
