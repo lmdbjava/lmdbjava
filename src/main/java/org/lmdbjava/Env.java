@@ -29,8 +29,6 @@ import org.lmdbjava.Library.MDB_stat;
 import static org.lmdbjava.Library.RUNTIME;
 import static org.lmdbjava.MaskedFlag.mask;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
-import org.lmdbjava.Txn.CommittedException;
-import org.lmdbjava.Txn.ReadWriteRequiredException;
 import static org.lmdbjava.TxnFlags.MDB_RDONLY;
 
 /**
@@ -195,8 +193,6 @@ public final class Env<T> implements AutoCloseable {
       final Dbi<T> dbi = new Dbi<>(this, txn, name, flags);
       txn.commit();
       return dbi;
-    } catch (ReadWriteRequiredException | CommittedException e) {
-      throw new IllegalStateException(e); // cannot happen (Txn is try scoped)
     }
   }
 
