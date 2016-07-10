@@ -3,7 +3,7 @@
 [![Dependency Status](https://www.versioneye.com/user/projects/57552e137757a00041b3a6f4/badge.svg?style=flat)](https://www.versioneye.com/user/projects/57552e137757a00041b3a6f4)
 [![Javadocs](http://www.javadoc.io/badge/org.lmdbjava/lmdbjava.svg)](http://www.javadoc.io/doc/org.lmdbjava/lmdbjava)
 [![Download](https://api.bintray.com/packages/lmdbjava/maven/org.lmdbjava:lmdbjava/images/download.svg)](https://bintray.com/lmdbjava/maven/org.lmdbjava:lmdbjava/_latestVersion)
-[![Maven Central](https://img.shields.io/maven-central/v/org.lmdbjava/lmdbjava?maxAge=3600)](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22org.lmdbjava%22%20AND%20a%3A%22lmdbjava%22)
+[![Maven Central](https://img.shields.io/maven-central/v/org.lmdbjava/lmdbjava.svg?maxAge=3600)](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22org.lmdbjava%22%20AND%20a%3A%22lmdbjava%22)
 [![License](https://img.shields.io/hexpm/l/plug.svg?maxAge=2592000)](http://www.apache.org/licenses/LICENSE-2.0.txt)
 ![Size](https://reposs.herokuapp.com/?path=lmdbjava/lmdbjava)
 
