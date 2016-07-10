@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import static java.util.Arrays.asList;
 import java.util.LinkedList;
+import java.util.NoSuchElementException;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import org.junit.Before;
@@ -51,6 +52,7 @@ public class CursorIteratorTest {
       for (KeyVal<ByteBuffer> kv : c.iterable()) {
         assertThat(kv.val.getInt(), is(list.pollLast()));
         assertThat(kv.key.getInt(), is(list.pollLast()));
+        assertThat(c.hasNext(), is(list.peekFirst() != null));
       }
     }
   }
@@ -93,6 +95,7 @@ public class CursorIteratorTest {
       for (KeyVal<ByteBuffer> kv : c.iterable()) {
         assertThat(kv.key.getInt(), is(list.pollFirst()));
         assertThat(kv.val.getInt(), is(list.pollFirst()));
+        assertThat(c.hasNext(), is(list.peekFirst() != null));
       }
     }
   }
@@ -120,6 +123,27 @@ public class CursorIteratorTest {
         assertThat(kv.key.getInt(), is(list.pollFirst()));
         assertThat(kv.val.getInt(), is(list.pollFirst()));
       }
+    }
+  }
+
+  @Test(expected = NoSuchElementException.class)
+  public void nextThrowsNoSuchElementExceptionIfNoMoreElements() {
+    try (final Txn<ByteBuffer> txn = env.txnRead();
+         CursorIterator<ByteBuffer> c = db.iterate(txn)) {
+      for (KeyVal<ByteBuffer> kv : c.iterable()) {
+        assertThat(kv.key.getInt(), is(list.pollFirst()));
+        assertThat(kv.val.getInt(), is(list.pollFirst()));
+      }
+      assertThat(c.hasNext(), is(false));
+      c.next();
+    }
+  }
+
+  @Test(expected = UnsupportedOperationException.class)
+  public void removeUnsupported() {
+    try (final Txn<ByteBuffer> txn = env.txnRead();
+         CursorIterator<ByteBuffer> c = db.iterate(txn)) {
+      c.remove();
     }
   }
 
