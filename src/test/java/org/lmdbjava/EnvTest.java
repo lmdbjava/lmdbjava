@@ -29,6 +29,8 @@ import static org.lmdbjava.ByteUnit.MEBIBYTES;
 import static org.lmdbjava.CopyFlags.MDB_CP_COMPACT;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import org.lmdbjava.Env.AlreadyClosedException;
+import org.lmdbjava.Env.AlreadyOpenException;
+import org.lmdbjava.Env.Builder;
 import org.lmdbjava.Env.InvalidCopyDestination;
 import static org.lmdbjava.Env.create;
 import static org.lmdbjava.Env.open;
@@ -48,6 +50,30 @@ public class EnvTest {
     assertThat(info.mapSize, is(MEBIBYTES.toBytes(1)));
   }
 
+  @Test(expected = AlreadyOpenException.class)
+  public void cannotChangeMapSizeAfterOpen() throws IOException {
+    final File path = tmp.newFile();
+    Builder<ByteBuffer> builder = create();
+    builder.open(path, MDB_NOSUBDIR);
+    builder.setMapSize(1);
+  }
+
+  @Test(expected = AlreadyOpenException.class)
+  public void cannotChangeMaxDbsAfterOpen() throws IOException {
+    final File path = tmp.newFile();
+    Builder<ByteBuffer> builder = create();
+    builder.open(path, MDB_NOSUBDIR);
+    builder.setMaxDbs(1);
+  }
+
+  @Test(expected = AlreadyOpenException.class)
+  public void cannotChangeMaxReadersAfterOpen() throws IOException {
+    final File path = tmp.newFile();
+    Builder<ByteBuffer> builder = create();
+    builder.open(path, MDB_NOSUBDIR);
+    builder.setMaxReaders(1);
+  }
+
   @Test(expected = AlreadyClosedException.class)
   public void cannotInfoOnceClosed() throws IOException {
     final File path = tmp.newFile();
@@ -55,6 +81,14 @@ public class EnvTest {
         .open(path, MDB_NOSUBDIR);
     env.close();
     env.info();
+  }
+
+  @Test(expected = AlreadyOpenException.class)
+  public void cannotOpenTwice() throws IOException {
+    final File path = tmp.newFile();
+    Builder<ByteBuffer> builder = create();
+    builder.open(path, MDB_NOSUBDIR);
+    builder.open(path, MDB_NOSUBDIR);
   }
 
   @Test(expected = AlreadyClosedException.class)

@@ -314,9 +314,6 @@ public final class Env<T> implements AutoCloseable {
     public Env<T> open(final File path, final int mode,
                        final EnvFlags... flags) {
       requireNonNull(path);
-      if (env.closed) {
-        throw new AlreadyClosedException();
-      }
       if (opened) {
         throw new AlreadyOpenException();
       }
