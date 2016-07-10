@@ -79,10 +79,9 @@ public final class Env<T> implements AutoCloseable {
    * @param path  file system destination
    * @param size  size in ByteUnit.MEBIBYTES
    * @param flags the flags for this new environment
-   * @return env
+   * @return env the environment (never null)
    */
-  public static Env<ByteBuffer> open(
-      File path, int size, EnvFlags... flags) {
+  public static Env<ByteBuffer> open(File path, int size, EnvFlags... flags) {
     Env<ByteBuffer> env = new Env<>(PROXY_OPTIMAL);
     return new Builder<>(env)
         .setMaxDbs(1)
