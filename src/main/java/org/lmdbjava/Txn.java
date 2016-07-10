@@ -256,10 +256,6 @@ public final class Txn<T> implements AutoCloseable {
     proxy.out(val, ptrVal, ptrValAddr);
   }
 
-  void valOut(final T val) {
-    proxy.out(val, ptrVal, ptrValAddr);
-  }
-
   /**
    * Transaction must abort, has a child, or is invalid.
    */
