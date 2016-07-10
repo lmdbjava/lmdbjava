@@ -24,8 +24,8 @@ The Travis CI environment variables are all configured in `.travis.yml`:
 
 * `BINTRAY_USER`, which is in plain text (being already public information)
 * `BINTRAY_PASS`, which is the BinTray API key and is encrypted by Travis
-* `GITHUB_PASS`, which is the GitHub personal access token needed for any
-  `mvn site-deploy` and is also encrypted by Travis
+* `GITHUB_PASS`, which is the GitHub personal access token for
+  `mvn site-deploy` and is encrypted by Travis
 
 Once `mvn deploy` is complete, the artifacts are available to end users via
 [JCenter](https://bintray.com/bintray/jcenter). The artifacts are not GPG signed
@@ -78,14 +78,18 @@ Any BinTray user with administrative access to the repository can use their
 API key. To change the effective BinTray user:
 
 1. Set the`BINTRAY_USER` in `.travis.yml` to the new BinTray username
-2. Delete the existing `.travis.yml` `env` `secure:` line (which is the BinTray
-   password)
+2. Delete the existing `.travis.yml` `env` `secure:` line (it's the first one)
 3. Use `travis encrypt BINTRAY_PASS=the_api_key` and update `.travis.yml`
 
 Any GitHub user with commit rights to the proejct's repository can use their
-personal access token for Maven-based site updates. Login to GitHub and create a
-new personal access token with two scopes only: `public_repo, user:email`. Then
-use `travis encrypt GITHUB_PASS=the_access_token` and update `.travis.yml`.
+personal access token for Maven-based site updates. To change the effective
+GitHub personal access token:
+
+1. Login to GitHub and create a new personal access token with two scopes only:
+   `public_repo, user:email`.
+2. Delete the existing `.travis.yml` `env` `secure:` line (it's the second one)
+3. Use `travis encrypt GITHUB_PASS=the_access_token` and update `.travis.yml`,
+   ensuring you add it as the second encrypted line to simplify identification
 
 Any OSS Sonatype user with deploy rights to the Maven Central group ID can be
 used for the Maven Central sync operation. Login to OSS Sonatype and generate
