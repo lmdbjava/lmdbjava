@@ -22,6 +22,7 @@ import static java.util.Arrays.asList;
 import java.util.LinkedList;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -39,103 +40,87 @@ public class CursorIteratorTest {
 
   @Rule
   public final TemporaryFolder tmp = new TemporaryFolder();
-  Dbi<ByteBuffer> db;
-  Env<ByteBuffer> env;
-  LinkedList<Integer> list = new LinkedList<>();
+  private Dbi<ByteBuffer> db;
+  private Env<ByteBuffer> env;
+  private LinkedList<Integer> list;
 
   @Test
   public void backward() {
-    final Env<ByteBuffer> env = makeEnv();
-
-    try (final Txn<ByteBuffer> txn = env.txnRead()) {
-      try (CursorIterator<ByteBuffer> c = db.iterate(txn, BACKWARD)) {
-        for (KeyVal<ByteBuffer> kv : c.iterable()) {
-          assertThat(kv.val.getInt(), is(list.pollLast()));
-          assertThat(kv.key.getInt(), is(list.pollLast()));
-        }
+    try (final Txn<ByteBuffer> txn = env.txnRead();
+         CursorIterator<ByteBuffer> c = db.iterate(txn, BACKWARD)) {
+      for (KeyVal<ByteBuffer> kv : c.iterable()) {
+        assertThat(kv.val.getInt(), is(list.pollLast()));
+        assertThat(kv.key.getInt(), is(list.pollLast()));
       }
     }
   }
 
   @Test
   public void backwardSeek() {
-    final Env<ByteBuffer> env = makeEnv();
     ByteBuffer key = bb(5);
     list.pollLast();
     list.pollLast();
-    try (final Txn<ByteBuffer> txn = env.txnRead()) {
-      try (CursorIterator<ByteBuffer> c = db.iterate(txn, key, BACKWARD)) {
-        for (KeyVal<ByteBuffer> kv : c.iterable()) {
-          assertThat(kv.val.getInt(), is(list.pollLast()));
-          assertThat(kv.key.getInt(), is(list.pollLast()));
-        }
+    try (final Txn<ByteBuffer> txn = env.txnRead();
+         CursorIterator<ByteBuffer> c = db.iterate(txn, key, BACKWARD)) {
+      for (KeyVal<ByteBuffer> kv : c.iterable()) {
+        assertThat(kv.val.getInt(), is(list.pollLast()));
+        assertThat(kv.key.getInt(), is(list.pollLast()));
       }
+    }
+  }
+
+  @Before
+  public void before() throws IOException {
+    final File path = tmp.newFile();
+    env = open(path, 10, MDB_NOSUBDIR);
+    db = env.openDbi(DB_1, MDB_CREATE);
+    list = new LinkedList<>();
+    list.addAll(asList(1, 2, 3, 4, 5, 6, 7, 8));
+    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
+      final Cursor<ByteBuffer> c = db.openCursor(txn);
+      c.put(bb(1), bb(2), MDB_NOOVERWRITE);
+      c.put(bb(3), bb(4));
+      c.put(bb(5), bb(6));
+      c.put(bb(7), bb(8));
+      txn.commit();
     }
   }
 
   @Test
   public void forward() {
-    final Env<ByteBuffer> env = makeEnv();
-
-    try (final Txn<ByteBuffer> txn = env.txnRead()) {
-      try (CursorIterator<ByteBuffer> c = db.iterate(txn, FORWARD)) {
-        for (KeyVal<ByteBuffer> kv : c.iterable()) {
-          assertThat(kv.key.getInt(), is(list.pollFirst()));
-          assertThat(kv.val.getInt(), is(list.pollFirst()));
-        }
+    try (final Txn<ByteBuffer> txn = env.txnRead();
+         CursorIterator<ByteBuffer> c = db.iterate(txn, FORWARD)) {
+      for (KeyVal<ByteBuffer> kv : c.iterable()) {
+        assertThat(kv.key.getInt(), is(list.pollFirst()));
+        assertThat(kv.val.getInt(), is(list.pollFirst()));
       }
     }
   }
 
   @Test
   public void forwardSeek() {
-    final Env<ByteBuffer> env = makeEnv();
-
     ByteBuffer key = bb(3);
     list.pollFirst();
     list.pollFirst();
 
-    try (final Txn<ByteBuffer> txn = env.txnRead()) {
-      try (CursorIterator<ByteBuffer> c = db.iterate(txn, key, FORWARD)) {
-        for (KeyVal<ByteBuffer> kv : c.iterable()) {
-          assertThat(kv.key.getInt(), is(list.pollFirst()));
-          assertThat(kv.val.getInt(), is(list.pollFirst()));
-        }
+    try (final Txn<ByteBuffer> txn = env.txnRead();
+         CursorIterator<ByteBuffer> c = db.iterate(txn, key, FORWARD)) {
+      for (KeyVal<ByteBuffer> kv : c.iterable()) {
+        assertThat(kv.key.getInt(), is(list.pollFirst()));
+        assertThat(kv.val.getInt(), is(list.pollFirst()));
       }
     }
   }
 
   @Test
   public void iterate() {
-    final Env<ByteBuffer> env = makeEnv();
-
-    try (final Txn<ByteBuffer> txn = env.txnRead()) {
-      try (CursorIterator<ByteBuffer> c = db.iterate(txn)) {
-        for (KeyVal<ByteBuffer> kv : c.iterable()) {
-          assertThat(kv.key.getInt(), is(list.pollFirst()));
-          assertThat(kv.val.getInt(), is(list.pollFirst()));
-        }
+    try (final Txn<ByteBuffer> txn = env.txnRead();
+         CursorIterator<ByteBuffer> c = db.iterate(txn)) {
+      for (KeyVal<ByteBuffer> kv : c.iterable()) {
+        assertThat(kv.key.getInt(), is(list.pollFirst()));
+        assertThat(kv.val.getInt(), is(list.pollFirst()));
       }
     }
   }
 
-  private Env<ByteBuffer> makeEnv() {
-    try {
-      final File path = tmp.newFile();
-      env = open(path, 10, MDB_NOSUBDIR);
-      db = env.openDbi(DB_1, MDB_CREATE);
-      list.addAll(asList(1, 2, 3, 4, 5, 6, 7, 8));
-      try (final Txn<ByteBuffer> txn = env.txnWrite()) {
-        final Cursor<ByteBuffer> c = db.openCursor(txn);
-        c.put(bb(1), bb(2), MDB_NOOVERWRITE);
-        c.put(bb(3), bb(4));
-        c.put(bb(5), bb(6));
-        c.put(bb(7), bb(8));
-        txn.commit();
-      }
-      return env;
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
-  }
 }
