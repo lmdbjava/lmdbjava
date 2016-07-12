@@ -6,38 +6,44 @@
 [![Maven Central](https://img.shields.io/maven-central/v/org.lmdbjava/lmdbjava.svg?maxAge=3600)](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22org.lmdbjava%22%20AND%20a%3A%22lmdbjava%22)
 [![License](https://img.shields.io/hexpm/l/plug.svg?maxAge=2592000)](http://www.apache.org/licenses/LICENSE-2.0.txt)
 
-# LmdbJava
+# LMDB for Java
 
-LmdbJava provides an extremely low latency
-[JNR-FFI](https://github.com/jnr/jnr-ffi)-based binding to the
-[LMDB](http://symas.com/mdb/) native library. LMDB is an ultra-fast,
-ultra-compact, b-tree ordered, embedded, key-value store developed by Symas for
-the OpenLDAP Project.
+[LMDB](http://symas.com/mdb/) offers:
 
-LMDB uses memory-mapped files, so it has the read performance of a pure in-memory
-database while still offering the persistence of standard disk-based databases.
-It is transactional with full ACID semantics and crash-proof by design.
-No journal files. No corruption. No startup time. No dependencies. No config
-tuning. LMDB is the perfect foundation for large, read-centric, single node
-workloads that require strong latency and operational robustness outcomes.
+* Transactions (full ACID semantics)
+* Ordered keys (enabling very fast cursor-based iteration)
+* Memory-mapped files (enabling optimal OS-level memory management)
+* Zero copy design (no serialization or memory copy overhead)
+* No blocking between readers and writers
+* Configuration-free (no need to "tune" it to your storage)
+* Instant crash recovery (no logs, journals or other complexity)
+* Minimal file handle consumption (just one data file; not 100,000's like some stores)
+* Same-thread operation (LMDB is invoked within your application thread; no compactor thread is needed)
+* Freedom from application-side data caching (memory-mapped files are more efficient)
+* Multi-threading support (each thread can have its own MVCC-isolated transaction)
+* Multi-process support (on the same host with a local file system)
+* Atomic hot backups
 
-### Installation
+**LmdbJava** adds Java-specific features to LMDB:
 
-Windows, Linux and OS X users can simply add the LmdbJava JAR to their classpath
-and start using the LmdbJava API (we bundle the LMDB libraries inside the JAR).
-If you prefer to use a shared system library, set the `lmdbjava.disable.extract`
-[Library](https://github.com/lmdbjava/lmdbjava/tree/master/src/main/java/org/lmdbjava/Library.java) property to `true`.
+* [Extremely fast](https://github.com/lmdbjava/benchmarks/blob/master/results/20160710/README.md) across a broad range of benchmarks, data sizes and access patterns
+* Modern, idiomatic Java API (including iterators, enums, unit conversion etc)
+* Dependency-free (everything you need is within the single LmdbJava JAR)
+* Buffer agnostic (Java `ByteBuffer`, Agrona `DirectBuffer`, Netty `ByteBuf`, your own buffer)
+* 100% stock-standard, officially-released, widely-tested LMDB C code ([no extra](https://github.com/lmdbjava/native) C/JNI code)
+* Low latency design (allocation-free; buffer pools; optional checks can be easily disabled in production etc)
+* Easy to use (just work through our step-by-step, CI-tested, fully-executable [tutorial](https://github.com/lmdbjava/lmdbjava/tree/master/src/test/java/org/lmdbjava/TutorialTest.java))
+* Java 9 ready ([JNR-FFI](https://github.com/jnr/jnr-ffi)-based; `Unsafe` not required etc)
+* Available from [Maven Central](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22org.lmdbjava%22%20AND%20a%3A%22lmdbjava%22) and [JCenter](https://bintray.com/lmdbjava/maven/org.lmdbjava:lmdbjava/_latestVersion)
+* Comprehensive [JavaDocs](http://www.javadoc.io/doc/org.lmdbjava/lmdbjava)
 
-Other operating systems will need to install the LMDB system library separately.
-The standard operating system package manager will likely work, but if you'd
-rather an up-to-date, tested, better-supported integration, try adapting the
-[LmdbJava Native](https://github.com/lmdbjava/native) cross-compile targets.
+### Performance
 
-### Usage
+![img](https://raw.githubusercontent.com/lmdbjava/benchmarks/master/results/20160710/4-intKey-seq-summary.png)
 
-Have a read through the
-[tutorial](https://github.com/lmdbjava/lmdbjava/tree/master/src/test/java/org/lmdbjava/TutorialTest.java)
-to learn how to use LmdbJava.
+![img](https://raw.githubusercontent.com/lmdbjava/benchmarks/master/results/20160710/4-intKey-rnd-summary.png)
+
+Full details are in the [latest benchmark report](https://github.com/lmdbjava/benchmarks/blob/master/results/20160710/README.md).
 
 ### Support
 
@@ -48,22 +54,6 @@ any questions.
 ### Contributing
 
 Contributions are welcome! Please see the [Contributing Guidelines](CONTRIBUTING.md).
-
-### History
-
-For years Java users have been able to access LMDB via
-[LMDBJNI](https://github.com/deephacks/lmdbjni). Its public API is mature and
-widely used, but this makes it challenging to implement any substantial changes.
-
-LmdbJava was created to provide a new LMDB abstraction without the backward
-compatibility consideration. A separate project also offered a convenient
-opportunity to implement many internal changes to reduce latency and long-term
-maintenance costs. For example, we moved from HawtJNI to JNR-FFI (for its active
-community, lower latency, Java 9 roadmap and much simpler build requirements). We
-also significantly reduced and isolated `Unsafe` use, with only a single method
-now requiring it (and there is an automatic reflective fallback if `Unsafe` isn't
-available). Overall these changes make LmdbJava the optimal choice for projects
-targeting server-class JVMs, and it will be easy to support Java 9 when released.
 
 ### License
 
