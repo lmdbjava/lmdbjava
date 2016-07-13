@@ -16,7 +16,6 @@
 package org.lmdbjava;
 
 import java.io.File;
-import java.io.IOException;
 import static java.lang.Long.MAX_VALUE;
 import static java.lang.System.getProperty;
 import java.nio.ByteBuffer;
@@ -183,7 +182,7 @@ public class DbiTest {
   }
 
   @Test
-  public void stats() throws IOException {
+  public void stats() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
     db.put(bb(1), bb(42));
     db.put(bb(2), bb(42));
