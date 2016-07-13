@@ -1,0 +1,27 @@
+version: '{build}'
+
+clone_depth: 50
+
+environment:
+  MVN_VER: 3.3.9
+
+cache:
+  - C:\Users\appveyor\apache-maven-%MVN_VER% -> appveyor.yml
+  - C:\Users\appveyor\.m2 -> pom.xml
+
+install:
+  - if not exist C:\Users\appveyor\apache-maven-%MVN_VER% (
+      curl -LsS "http://www.apache.org/dyn/closer.cgi?action=download&filename=maven/maven-3/%MVN_VER%/binaries/apache-maven-%MVN_VER%-bin.zip" > apache-maven.zip &&
+      unzip apache-maven.zip -d C:\Users\appveyor
+    )
+  - SET PATH=C:\Users\appveyor\apache-maven-%MVN_VER%\bin;%PATH%
+
+build_script:
+  - mvn -V -B -e verify
+
+notifications:
+  - provider: Email
+    to:
+      - ben.alex@acegi.com.au
+      - stoffe@gmail.com
+    on_build_success: false
