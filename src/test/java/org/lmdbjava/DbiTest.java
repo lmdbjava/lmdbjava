@@ -27,6 +27,7 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -58,6 +59,18 @@ public class DbiTest {
         .setMaxReaders(1)
         .setMaxDbs(2)
         .open(path, MDB_NOSUBDIR);
+  }
+
+  @Test
+  public void close() {
+    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
+    db.put(bb(1), bb(42));
+    db.close();
+    try {
+      db.put(bb(2), bb(42));
+      fail("Closed database shouldn't allow a put");
+    } catch (RuntimeException expected) {
+    }
   }
 
   @Test(expected = DbFullException.class)

@@ -60,6 +60,20 @@ public final class Dbi<T> {
   }
 
   /**
+   * Close the database handle (normally unnecessary; use with caution).
+   * <p>
+   * It is very rare that closing a database handle is useful. There are also
+   * many warnings/restrictions if closing a database handle (refer to the LMDB
+   * C documentation). As such this is non-routine usage and this class does not
+   * track the open/closed state of the {@link Dbi}. Advanced users are expected
+   * to have specific reasons for using this method and will manage their own
+   * state accordingly.
+   */
+  public void close() {
+    LIB.mdb_dbi_close(env.ptr, dbi);
+  }
+
+  /**
    * Starts a new read-write transaction and deletes the key.
    *
    * @param key key to delete from the database (not null)
