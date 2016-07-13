@@ -16,9 +16,10 @@
 package org.lmdbjava;
 
 /**
- * Environment statistics, as returned by {@link Env#stat()}.
+ * Statistics, as returned by {@link Env#stat()} and
+ * {@link Dbi#stat(org.lmdbjava.Txn)}.
  */
-public final class EnvStat {
+public final class Stat {
 
   /**
    * Number of internal (non-leaf) pages.
@@ -50,8 +51,8 @@ public final class EnvStat {
    */
   public final int pageSize;
 
-  EnvStat(int pageSize, int depth, long branchPages, long leafPages,
-          long overflowPages, long entries) {
+  Stat(int pageSize, int depth, long branchPages, long leafPages,
+       long overflowPages, long entries) {
     this.pageSize = pageSize;
     this.depth = depth;
     this.branchPages = branchPages;

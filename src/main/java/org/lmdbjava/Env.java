@@ -200,13 +200,13 @@ public final class Env<T> implements AutoCloseable {
    *
    * @return an immutable statistics object.
    */
-  public EnvStat stat() {
+  public Stat stat() {
     if (closed) {
       throw new AlreadyClosedException();
     }
     final MDB_stat stat = new MDB_stat(RUNTIME);
     checkRc(LIB.mdb_env_stat(ptr, stat));
-    return new EnvStat(
+    return new Stat(
         stat.f0_ms_psize.intValue(),
         stat.f1_ms_depth.intValue(),
         stat.f2_ms_branch_pages.longValue(),

@@ -230,6 +230,8 @@ final class Library {
 
     int mdb_reader_check(@In Pointer env, int dead);
 
+    int mdb_stat(@In Pointer txn, @In Pointer dbi, @Out MDB_stat stat);
+
     String mdb_strerror(int rc);
 
     void mdb_txn_abort(@In Pointer txn);

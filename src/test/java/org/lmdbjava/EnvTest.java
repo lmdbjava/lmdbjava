@@ -198,7 +198,7 @@ public class EnvTest {
     final File path = tmp.newFile();
     final Env<ByteBuffer> env = create()
         .open(path, MDB_NOSUBDIR);
-    EnvStat stat = env.stat();
+    final Stat stat = env.stat();
     assertThat(stat, is(notNullValue()));
     assertThat(stat.branchPages, is(0L));
     assertThat(stat.depth, is(0));

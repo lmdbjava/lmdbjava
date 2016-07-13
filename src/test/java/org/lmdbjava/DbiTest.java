@@ -16,6 +16,7 @@
 package org.lmdbjava;
 
 import java.io.File;
+import java.io.IOException;
 import static java.lang.Long.MAX_VALUE;
 import static java.lang.System.getProperty;
 import java.nio.ByteBuffer;
@@ -23,6 +24,7 @@ import static java.nio.ByteBuffer.allocateDirect;
 import static java.util.Collections.nCopies;
 import java.util.Random;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -178,6 +180,25 @@ public class DbiTest {
       assertThat(val.getLong(), is(MAX_VALUE));
       assertThat(val.getLong(8), is(0L));
     }
+  }
+
+  @Test
+  public void stats() throws IOException {
+    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
+    db.put(bb(1), bb(42));
+    db.put(bb(2), bb(42));
+    db.put(bb(3), bb(42));
+    final Stat stat;
+    try (final Txn<ByteBuffer> txn = env.txnRead()) {
+      stat = db.stat(txn);
+    }
+    assertThat(stat, is(notNullValue()));
+    assertThat(stat.branchPages, is(0L));
+    assertThat(stat.depth, is(1));
+    assertThat(stat.entries, is(0L));
+    assertThat(stat.leafPages, is(1L));
+    assertThat(stat.overflowPages, is(3L));
+    assertThat(stat.pageSize, is(4_096));
   }
 
   @Test(expected = MapFullException.class)

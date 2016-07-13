@@ -25,6 +25,7 @@ import static org.lmdbjava.CursorIterator.IteratorType.FORWARD;
 import static org.lmdbjava.Dbi.KeyNotFoundException.MDB_NOTFOUND;
 import static org.lmdbjava.Env.SHOULD_CHECK;
 import static org.lmdbjava.Library.LIB;
+import org.lmdbjava.Library.MDB_stat;
 import static org.lmdbjava.Library.RUNTIME;
 import static org.lmdbjava.MaskedFlag.mask;
 import static org.lmdbjava.PutFlags.MDB_RESERVE;
@@ -291,6 +292,28 @@ public final class Dbi<T> {
     checkRc(LIB.mdb_put(txn.ptr, dbi, txn.ptrKey, txn.ptrVal, mask));
     txn.valOut(); // marked as in,out in LMDB C docs
     return txn.val();
+  }
+
+  /**
+   * Return statistics about this database.
+   *
+   * @param txn transaction handle (not null; not committed)
+   * @return an immutable statistics object.
+   */
+  public Stat stat(final Txn<T> txn) {
+    if (SHOULD_CHECK) {
+      requireNonNull(txn);
+      txn.checkNotCommitted();
+    }
+    final MDB_stat stat = new MDB_stat(RUNTIME);
+    checkRc(LIB.mdb_stat(txn.ptr, dbi, stat));
+    return new Stat(
+        stat.f0_ms_psize.intValue(),
+        stat.f1_ms_depth.intValue(),
+        stat.f2_ms_branch_pages.longValue(),
+        stat.f3_ms_leaf_pages.longValue(),
+        stat.f4_ms_overflow_pages.longValue(),
+        stat.f5_ms_entries.longValue());
   }
 
   /**
