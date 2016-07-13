@@ -81,7 +81,6 @@ final class Library {
       libToLoad = extract("org/lmdbjava/lmdbjava-native-osx-x86_64.dylib");
     } else if (SHOULD_EXTRACT && arch64 && windows) {
       libToLoad = extract("org/lmdbjava/lmdbjava-native-windows-x86_64.dll");
-      throw new IllegalStateException("Deliberate error on Windows to test CI");
     } else {
       libToLoad = LIB_NAME;
     }
