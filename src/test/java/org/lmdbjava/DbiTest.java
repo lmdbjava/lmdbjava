@@ -23,7 +23,9 @@ import static java.nio.ByteBuffer.allocateDirect;
 import static java.util.Collections.nCopies;
 import java.util.Random;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -79,6 +81,24 @@ public class DbiTest {
     env.openDbi("db1 is OK", MDB_CREATE);
     env.openDbi("db2 is OK", MDB_CREATE);
     env.openDbi("db3 fails", MDB_CREATE);
+  }
+
+  @Test
+  public void drop() {
+    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
+    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
+      db.put(txn, bb(1), bb(42));
+      db.put(txn, bb(2), bb(42));
+      assertThat(db.get(txn, bb(1)), not(nullValue()));
+      assertThat(db.get(txn, bb(2)), not(nullValue()));
+      db.drop(txn);
+      assertThat(db.get(txn, bb(1)), is(nullValue())); // data gone
+      assertThat(db.get(txn, bb(2)), is(nullValue()));
+      db.put(txn, bb(1), bb(42)); // ensure DB still works
+      db.put(txn, bb(2), bb(42));
+      assertThat(db.get(txn, bb(1)), not(nullValue()));
+      assertThat(db.get(txn, bb(2)), not(nullValue()));
+    }
   }
 
   @Test

@@ -132,6 +132,24 @@ public final class Dbi<T> {
   }
 
   /**
+   * Drops the data in this database, leaving the database open for further use.
+   * <p>
+   * This method slightly differs from the LMDB C API in that it does not
+   * provide support for also closing the DB handle. If closing the DB handle is
+   * required, please see {@link #close()}.
+   *
+   * @param txn transaction handle (not null; not committed; must be R-W)
+   */
+  public void drop(final Txn<T> txn) {
+    if (SHOULD_CHECK) {
+      requireNonNull(txn);
+      txn.checkNotCommitted();
+      txn.checkWritesAllowed();
+    }
+    checkRc(LIB.mdb_drop(txn.ptr, dbi, 0));
+  }
+
+  /**
    * Get items from a database, moving the {@link Txn#val()} to the value.
    * <p>
    * This function retrieves key/data pairs from the database. The address and
