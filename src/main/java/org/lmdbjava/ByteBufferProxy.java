@@ -21,6 +21,7 @@ import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import static java.nio.ByteBuffer.allocateDirect;
 import java.util.ArrayDeque;
+import static java.util.Objects.requireNonNull;
 import jnr.ffi.Pointer;
 import static org.lmdbjava.Env.SHOULD_CHECK;
 import static org.lmdbjava.UnsafeAccess.UNSAFE;
@@ -68,6 +69,36 @@ public final class ByteBufferProxy {
   static {
     PROXY_SAFE = new ReflectiveProxy();
     PROXY_OPTIMAL = getProxyOptimal();
+  }
+
+  /**
+   * Convenience method to copy the passed {@link ByteBuffer} into a byte
+   * array.This method is not optimized and use is discouraged (use a proper
+   * {@link BufferProxy} instead).
+   *
+   * @param buffer to copy into a byte array
+   * @return
+   */
+  public static byte[] array(final ByteBuffer buffer) {
+    requireNonNull(buffer, "A non-null input ByteArray is required");
+    final byte[] dest = new byte[buffer.capacity()];
+    buffer.get(dest);
+    return dest;
+  }
+
+  /**
+   * Convenience method to create a direct {@link ByteBuffer} and copy the
+   * passed byte array into it. This method is not optimized and use is
+   * discouraged (use a proper {@link BufferProxy} instead).
+   *
+   * @param src to copy into a byte buffer
+   * @return a byte buffer that contains the passed bytes
+   */
+  public static ByteBuffer buffer(final byte[] src) {
+    requireNonNull(src, "A non-null input byte[] is required");
+    final ByteBuffer buff = allocateDirect(src.length);
+    buff.put(src);
+    return buff;
   }
 
   private static long address(final ByteBuffer buffer) {

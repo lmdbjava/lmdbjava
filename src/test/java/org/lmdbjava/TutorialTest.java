@@ -30,6 +30,8 @@ import static org.junit.Assert.assertNull;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import static org.lmdbjava.ByteBufferProxy.array;
+import static org.lmdbjava.ByteBufferProxy.buffer;
 import static org.lmdbjava.ByteUnit.MEBIBYTES;
 import static org.lmdbjava.CursorIterator.IteratorType.BACKWARD;
 import static org.lmdbjava.CursorIterator.IteratorType.FORWARD;
@@ -258,37 +260,6 @@ public class TutorialTest {
       txn.commit();
     }
 
-    // Iterators are provided as a convenience. Each iterator
-    // uses a cursor and must be closed when finished.
-    try (Txn<ByteBuffer> txn = env.txnWrite()) {
-
-      // iterate forward in terms of key ordering starting with the first key
-      try (CursorIterator<ByteBuffer> it = db.iterate(txn, FORWARD)) {
-        for (KeyVal<ByteBuffer> kv : it.iterable()) {
-          ByteBuffer k = kv.key;
-          ByteBuffer v = kv.val;
-        }
-      }
-
-      // iterate backward in terms of key ordering starting with the first key
-      try (CursorIterator<ByteBuffer> it = db.iterate(txn, BACKWARD)) {
-        for (KeyVal<ByteBuffer> kv : it.iterable()) {
-          ByteBuffer k = kv.key;
-          ByteBuffer v = kv.val;
-        }
-      }
-
-      // search for key and iterate forwards/backward from there til the last/first key.
-      ByteBuffer searchKey = allocateDirect(511);
-      searchKey.putLong(100L);
-      try (CursorIterator<ByteBuffer> it = db.iterate(txn, searchKey, FORWARD)) {
-        for (KeyVal<ByteBuffer> kv : it.iterable()) {
-          ByteBuffer k = kv.key;
-          ByteBuffer v = kv.val;
-        }
-      }
-    }
-
     // A read-only Cursor can survive its original Txn being closed. This is
     // useful if you want to close the original Txn (eg maybe you created the
     // Cursor during the constructor of a singleton with a throw-away Txn). Of
@@ -313,13 +284,66 @@ public class TutorialTest {
   }
 
   /**
-   * In this fourth tutorial we'll explore multiple values sharing a single key.
+   * In this fourth tutorial we'll take a quick look at the iterators. These are
+   * a more Java idiomatic form of using the Cursors we looked at in tutorial 3.
+   *
+   * @throws java.io.IOException
+   */
+  @Test
+  public void tutorial4() throws IOException {
+    // As per tutorial1...
+    File path = tmp.newFolder();
+    Env<ByteBuffer> env = create()
+        .setMapSize(10, MEBIBYTES)
+        .setMaxDbs(1)
+        .open(path, 0664);
+    Dbi<ByteBuffer> db = env.openDbi("my DB", MDB_CREATE);
+
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
+
+      // Let's put some data in. We'll use our byte[] convenience methods.
+      // These aren't recommended, but can be useful for legacy migration.
+      db.put(txn, buffer("key1".getBytes()), buffer("Val".getBytes()));
+      db.put(txn, buffer("key2".getBytes()), buffer("Val".getBytes()));
+      db.put(txn, buffer("key3".getBytes()), buffer("Val".getBytes()));
+
+      // Each iterator uses a cursor and must be closed when finished.
+      // iterate forward in terms of key ordering starting with the first key
+      try (CursorIterator<ByteBuffer> it = db.iterate(txn, FORWARD)) {
+        for (KeyVal<ByteBuffer> kv : it.iterable()) {
+          ByteBuffer k = kv.key;
+          ByteBuffer v = kv.val;
+          assertThat(array(v), is("Val".getBytes()));
+        }
+      }
+
+      // iterate backward in terms of key ordering starting with the first key
+      try (CursorIterator<ByteBuffer> it = db.iterate(txn, BACKWARD)) {
+        for (KeyVal<ByteBuffer> kv : it.iterable()) {
+          ByteBuffer k = kv.key;
+          ByteBuffer v = kv.val;
+        }
+      }
+
+      // search for key and iterate forwards/backward from there til the last/first key.
+      ByteBuffer searchKey = buffer("key2".getBytes());
+      try (CursorIterator<ByteBuffer> it = db.iterate(txn, searchKey, FORWARD)) {
+        for (KeyVal<ByteBuffer> kv : it.iterable()) {
+          ByteBuffer k = kv.key;
+          ByteBuffer v = kv.val;
+        }
+      }
+    }
+  }
+
+  /**
+   * In this fifth tutorial we'll explore multiple values sharing a single key.
    *
    * @throws java.io.IOException
    */
   @Test
   @SuppressWarnings("ConvertToTryWithResources")
-  public void tutorial4() throws IOException {
+  public void tutorial5() throws IOException {
     // As per tutorial1...
     File path = tmp.newFolder();
     Env<ByteBuffer> env = create()
@@ -380,7 +404,7 @@ public class TutorialTest {
    */
   @Test
   @SuppressWarnings("ConvertToTryWithResources")
-  public void tutorial5() throws IOException {
+  public void tutorial6() throws IOException {
     // The critical difference is we pass the PROXY_DB field to Env.create().
     // There's also a PROXY_SAFE if you want to stop ByteBuffer's Unsafe use.
     // Aside from that and a different type argument, it's the same as usual...
