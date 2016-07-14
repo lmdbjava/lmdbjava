@@ -291,7 +291,7 @@ public final class Env<T> implements AutoCloseable {
   /**
    * Builder for configuring and opening Env.
    *
-   * @param <T>
+   * @param <T> buffer type
    */
   public static final class Builder<T> {
 
