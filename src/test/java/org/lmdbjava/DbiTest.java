@@ -243,9 +243,9 @@ public class DbiTest {
     assertThat(stat, is(notNullValue()));
     assertThat(stat.branchPages, is(0L));
     assertThat(stat.depth, is(1));
-    assertThat(stat.entries, is(0L));
+    assertThat(stat.entries, is(3L));
     assertThat(stat.leafPages, is(1L));
-    assertThat(stat.overflowPages, is(3L));
+    assertThat(stat.overflowPages, is(0L));
     assertThat(stat.pageSize, is(4_096));
   }
 

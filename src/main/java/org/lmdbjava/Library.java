@@ -152,8 +152,8 @@ final class Library {
       this.f1_ms_depth = new u_int32_t();
       this.f2_ms_branch_pages = new size_t();
       this.f3_ms_leaf_pages = new size_t();
-      this.f5_ms_entries = new size_t();
       this.f4_ms_overflow_pages = new size_t();
+      this.f5_ms_entries = new size_t();
     }
   }
 
