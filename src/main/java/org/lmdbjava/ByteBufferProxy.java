@@ -22,6 +22,7 @@ import java.nio.ByteBuffer;
 import static java.nio.ByteBuffer.allocateDirect;
 import java.util.ArrayDeque;
 import jnr.ffi.Pointer;
+import static org.lmdbjava.Env.SHOULD_CHECK;
 import static org.lmdbjava.UnsafeAccess.UNSAFE;
 
 /**
@@ -69,6 +70,15 @@ public final class ByteBufferProxy {
     PROXY_OPTIMAL = getProxyOptimal();
   }
 
+  private static long address(final ByteBuffer buffer) {
+    if (SHOULD_CHECK) {
+      if (!buffer.isDirect()) {
+        throw new BufferMustBeDirectException();
+      }
+    }
+    return ((sun.nio.ch.DirectBuffer) buffer).address();
+  }
+
   private static BufferProxy<ByteBuffer> getProxyOptimal() {
     try {
       return new UnsafeProxy();
@@ -92,6 +102,21 @@ public final class ByteBufferProxy {
   }
 
   private ByteBufferProxy() {
+  }
+
+  /**
+   * The buffer must be a direct buffer (not heap allocated).
+   */
+  public static final class BufferMustBeDirectException extends LmdbException {
+
+    private static final long serialVersionUID = 1L;
+
+    /**
+     * Creates a new instance.
+     */
+    public BufferMustBeDirectException() {
+      super("The buffer must be a direct buffer (not heap allocated");
+    }
   }
 
   /**
@@ -130,17 +155,15 @@ public final class ByteBufferProxy {
     @Override
     protected void in(final ByteBuffer buffer, final Pointer ptr,
                       final long ptrAddr) {
-      final long addr = ((sun.nio.ch.DirectBuffer) buffer).address();
       ptr.putLong(STRUCT_FIELD_OFFSET_SIZE, buffer.capacity());
-      ptr.putLong(STRUCT_FIELD_OFFSET_DATA, addr);
+      ptr.putLong(STRUCT_FIELD_OFFSET_DATA, address(buffer));
     }
 
     @Override
     protected void in(final ByteBuffer buffer, final int size, final Pointer ptr,
                       final long ptrAddr) {
-      final long addr = ((sun.nio.ch.DirectBuffer) buffer).address();
       ptr.putLong(STRUCT_FIELD_OFFSET_SIZE, size);
-      ptr.putLong(STRUCT_FIELD_OFFSET_DATA, addr);
+      ptr.putLong(STRUCT_FIELD_OFFSET_DATA, address(buffer));
     }
 
     @Override
@@ -201,17 +224,15 @@ public final class ByteBufferProxy {
     @Override
     protected void in(final ByteBuffer buffer, final Pointer ptr,
                       final long ptrAddr) {
-      final long addr = ((sun.nio.ch.DirectBuffer) buffer).address();
       UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE, buffer.capacity());
-      UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_DATA, addr);
+      UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_DATA, address(buffer));
     }
 
     @Override
     protected void in(final ByteBuffer buffer, final int size, final Pointer ptr,
                       final long ptrAddr) {
-      final long addr = ((sun.nio.ch.DirectBuffer) buffer).address();
       UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE, size);
-      UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_DATA, addr);
+      UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_DATA, address(buffer));
     }
 
     @Override
