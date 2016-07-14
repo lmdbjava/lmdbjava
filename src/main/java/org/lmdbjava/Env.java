@@ -414,7 +414,7 @@ public final class Env<T> implements AutoCloseable {
   /**
    * The specified copy destination is invalid.
    */
-  public static class InvalidCopyDestination extends LmdbException {
+  public static final class InvalidCopyDestination extends LmdbException {
 
     private static final long serialVersionUID = 1L;
 
