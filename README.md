@@ -5,7 +5,6 @@
 [![Javadocs](http://www.javadoc.io/badge/org.lmdbjava/lmdbjava.svg?color=blue)](http://www.javadoc.io/doc/org.lmdbjava/lmdbjava)
 [![Download](https://api.bintray.com/packages/lmdbjava/maven/org.lmdbjava:lmdbjava/images/download.svg)](https://bintray.com/lmdbjava/maven/org.lmdbjava:lmdbjava/_latestVersion)
 [![Maven Central](https://img.shields.io/maven-central/v/org.lmdbjava/lmdbjava.svg?maxAge=3600)](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22org.lmdbjava%22%20AND%20a%3A%22lmdbjava%22)
-[![License](https://img.shields.io/hexpm/l/plug.svg?maxAge=2592000)](http://www.apache.org/licenses/LICENSE-2.0.txt)
 
 # LMDB for Java
 
