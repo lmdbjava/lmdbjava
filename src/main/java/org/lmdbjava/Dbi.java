@@ -47,10 +47,6 @@ public final class Dbi<T> {
   Dbi(final Env<T> env, final Txn<T> txn, final String name,
       final DbiFlags... flags) throws CommittedException, LmdbNativeException,
                                       ReadWriteRequiredException {
-    requireNonNull(env);
-    requireNonNull(txn);
-    txn.checkNotCommitted();
-    txn.checkWritesAllowed();
     this.env = env;
     this.name = name;
     final int flagsMask = mask(flags);

@@ -21,7 +21,7 @@ import static org.hamcrest.Matchers.arrayWithSize;
 import org.junit.Test;
 import static org.lmdbjava.EnvFlags.MDB_FIXEDMAP;
 import static org.lmdbjava.EnvFlags.MDB_NOSYNC;
-import static org.lmdbjava.EnvFlags.MDB_RDONLY;
+import static org.lmdbjava.EnvFlags.MDB_RDONLY_ENV;
 import static org.lmdbjava.MaskedFlag.isSet;
 import static org.lmdbjava.MaskedFlag.mask;
 
@@ -31,20 +31,20 @@ public class MaskedFlagTest {
   public void isSetOperates() {
     assertThat(isSet(0, MDB_NOSYNC), is(false));
     assertThat(isSet(0, MDB_FIXEDMAP), is(false));
-    assertThat(isSet(0, MDB_RDONLY), is(false));
+    assertThat(isSet(0, MDB_RDONLY_ENV), is(false));
 
     assertThat(isSet(MDB_FIXEDMAP.getMask(), MDB_NOSYNC), is(false));
     assertThat(isSet(MDB_FIXEDMAP.getMask(), MDB_FIXEDMAP), is(true));
-    assertThat(isSet(MDB_FIXEDMAP.getMask(), MDB_RDONLY), is(false));
+    assertThat(isSet(MDB_FIXEDMAP.getMask(), MDB_RDONLY_ENV), is(false));
 
     assertThat(isSet(MDB_NOSYNC.getMask(), MDB_NOSYNC), is(true));
     assertThat(isSet(MDB_NOSYNC.getMask(), MDB_FIXEDMAP), is(false));
-    assertThat(isSet(MDB_NOSYNC.getMask(), MDB_RDONLY), is(false));
+    assertThat(isSet(MDB_NOSYNC.getMask(), MDB_RDONLY_ENV), is(false));
 
     final int syncFixed = mask(MDB_NOSYNC, MDB_FIXEDMAP);
     assertThat(isSet(syncFixed, MDB_NOSYNC), is(true));
     assertThat(isSet(syncFixed, MDB_FIXEDMAP), is(true));
-    assertThat(isSet(syncFixed, MDB_RDONLY), is(false));
+    assertThat(isSet(syncFixed, MDB_RDONLY_ENV), is(false));
   }
 
   @Test

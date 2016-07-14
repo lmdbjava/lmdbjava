@@ -35,6 +35,9 @@ import org.lmdbjava.Env.InvalidCopyDestination;
 import static org.lmdbjava.Env.create;
 import static org.lmdbjava.Env.open;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
+import static org.lmdbjava.EnvFlags.MDB_RDONLY_ENV;
+import static org.lmdbjava.TestUtils.DB_1;
+import static org.lmdbjava.TestUtils.bb;
 
 public class EnvTest {
 
@@ -191,6 +194,20 @@ public class EnvTest {
     assertThat(info.mapSize, is(123_456L));
     assertThat(info.maxReaders, is(4));
     assertThat(info.numReaders, is(0));
+  }
+
+  @Test
+  public void readOnlySupported() throws IOException {
+    final File path = tmp.newFolder();
+    try (final Env<ByteBuffer> rwEnv = create().open(path)) {
+      final Dbi<ByteBuffer> rwDb = rwEnv.openDbi(DB_1, MDB_CREATE);
+      rwDb.put(bb(1), bb(42));
+    }
+    final Env<ByteBuffer> roEnv = create().open(path, MDB_RDONLY_ENV);
+    final Dbi<ByteBuffer> roDb = roEnv.openDbi(DB_1);
+    try (final Txn<ByteBuffer> roTxn = roEnv.txnRead()) {
+      assertThat(roDb.get(roTxn, bb(1)), notNullValue());
+    }
   }
 
   @Test

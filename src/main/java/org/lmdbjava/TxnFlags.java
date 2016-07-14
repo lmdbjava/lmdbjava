@@ -22,7 +22,7 @@ public enum TxnFlags implements MaskedFlag {
   /**
    * Read only
    */
-  MDB_RDONLY(0x2_0000);
+  MDB_RDONLY_TXN(0x2_0000);
 
   private final int mask;
 

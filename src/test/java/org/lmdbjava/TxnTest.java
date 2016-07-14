@@ -21,6 +21,7 @@ import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicLong;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import org.junit.Before;
@@ -32,31 +33,51 @@ import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import org.lmdbjava.Env.AlreadyClosedException;
 import static org.lmdbjava.Env.create;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
+import static org.lmdbjava.EnvFlags.MDB_RDONLY_ENV;
 import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.POSIX_MODE;
 import static org.lmdbjava.TestUtils.bb;
 import org.lmdbjava.Txn.CommittedException;
+import org.lmdbjava.Txn.EnvIsReadOnly;
 import org.lmdbjava.Txn.IncompatibleParent;
 import org.lmdbjava.Txn.NotResetException;
 import org.lmdbjava.Txn.ReadOnlyRequiredException;
 import org.lmdbjava.Txn.ReadWriteRequiredException;
 import org.lmdbjava.Txn.ResetException;
-import static org.lmdbjava.TxnFlags.MDB_RDONLY;
+import static org.lmdbjava.TxnFlags.MDB_RDONLY_TXN;
 
 public class TxnTest {
 
   @Rule
   public final TemporaryFolder tmp = new TemporaryFolder();
   private Env<ByteBuffer> env;
+  private File path;
 
   @Before
   public void before() throws IOException {
-    final File path = tmp.newFile();
+    path = tmp.newFile();
     env = create()
         .setMapSize(100, KIBIBYTES)
         .setMaxReaders(1)
         .setMaxDbs(2)
         .open(path, POSIX_MODE, MDB_NOSUBDIR);
+  }
+
+  @Test
+  public void readOnlyTxnAllowedInReadOnlyEnv() throws IOException {
+    env.openDbi(DB_1, MDB_CREATE);
+    final Env<ByteBuffer> roEnv = create().open(path, MDB_NOSUBDIR,
+                                                MDB_RDONLY_ENV);
+    assertThat(roEnv.txnRead(), is(notNullValue()));
+  }
+
+  @Test(expected = EnvIsReadOnly.class)
+  public void readWriteTxnDeniedInReadOnlyEnv() throws IOException {
+    env.openDbi(DB_1, MDB_CREATE);
+    env.close();
+    final Env<ByteBuffer> roEnv = create().open(path, MDB_NOSUBDIR,
+                                                MDB_RDONLY_ENV);
+    roEnv.txnWrite(); // error
   }
 
   @Test(expected = CommittedException.class)
@@ -148,7 +169,7 @@ public class TxnTest {
   @Test(expected = IncompatibleParent.class)
   public void txParentRWChildROIncompatible() {
     final Txn<ByteBuffer> txRoot = env.txnWrite();
-    env.txn(txRoot, MDB_RDONLY); // error
+    env.txn(txRoot, MDB_RDONLY_TXN); // error
   }
 
   @Test

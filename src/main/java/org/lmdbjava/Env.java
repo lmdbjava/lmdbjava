@@ -23,13 +23,15 @@ import jnr.ffi.Pointer;
 import jnr.ffi.byref.PointerByReference;
 import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
 import static org.lmdbjava.ByteUnit.MEBIBYTES;
+import static org.lmdbjava.EnvFlags.MDB_RDONLY_ENV;
 import static org.lmdbjava.Library.LIB;
 import org.lmdbjava.Library.MDB_envinfo;
 import org.lmdbjava.Library.MDB_stat;
 import static org.lmdbjava.Library.RUNTIME;
+import static org.lmdbjava.MaskedFlag.isSet;
 import static org.lmdbjava.MaskedFlag.mask;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
-import static org.lmdbjava.TxnFlags.MDB_RDONLY;
+import static org.lmdbjava.TxnFlags.MDB_RDONLY_TXN;
 
 /**
  * LMDB environment.
@@ -57,8 +59,7 @@ public final class Env<T> implements AutoCloseable {
    * @return the environment (never null)
    */
   public static Builder<ByteBuffer> create() {
-    Env<ByteBuffer> env = new Env<>(PROXY_OPTIMAL);
-    return new Builder<>(env);
+    return new Builder<>(PROXY_OPTIMAL);
   }
 
   /**
@@ -69,7 +70,7 @@ public final class Env<T> implements AutoCloseable {
    * @return the environment (never null)
    */
   public static <T> Builder<T> create(final BufferProxy<T> proxy) {
-    return new Builder<>(new Env<>(proxy));
+    return new Builder<>(proxy);
   }
 
   /**
@@ -82,9 +83,7 @@ public final class Env<T> implements AutoCloseable {
    * @return env the environment (never null)
    */
   public static Env<ByteBuffer> open(File path, int size, EnvFlags... flags) {
-    Env<ByteBuffer> env = new Env<>(PROXY_OPTIMAL);
-    return new Builder<>(env)
-        .setMaxDbs(1)
+    return new Builder<>(PROXY_OPTIMAL)
         .setMapSize(size, MEBIBYTES)
         .open(path, flags);
   }
@@ -92,13 +91,13 @@ public final class Env<T> implements AutoCloseable {
   private boolean closed = false;
   private final BufferProxy<T> proxy;
   final Pointer ptr;
+  final boolean readOnly;
 
-  private Env(final BufferProxy<T> proxy) {
-    requireNonNull(proxy);
+  private Env(final BufferProxy<T> proxy, final Pointer ptr,
+              final boolean readOnly) {
     this.proxy = proxy;
-    final PointerByReference envPtr = new PointerByReference();
-    checkRc(LIB.mdb_env_create(envPtr));
-    ptr = envPtr.getValue();
+    this.readOnly = readOnly;
+    this.ptr = ptr;
   }
 
   /**
@@ -188,9 +187,9 @@ public final class Env<T> implements AutoCloseable {
    * @return a database that is ready to use
    */
   public Dbi<T> openDbi(final String name, final DbiFlags... flags) {
-    try (Txn<T> txn = txnWrite()) {
+    try (Txn<T> txn = readOnly ? txnRead() : txnWrite()) {
       final Dbi<T> dbi = new Dbi<>(this, txn, name, flags);
-      txn.commit();
+      txn.commit(); // even RO Txns require a commit to retain Dbi in Env
       return dbi;
     }
   }
@@ -247,7 +246,7 @@ public final class Env<T> implements AutoCloseable {
    * @return a read-only transaction
    */
   public Txn<T> txnRead() {
-    return new Txn<>(this, null, proxy, MDB_RDONLY);
+    return new Txn<>(this, null, proxy, MDB_RDONLY_TXN);
   }
 
   /**
@@ -292,15 +291,19 @@ public final class Env<T> implements AutoCloseable {
   /**
    * Builder for configuring and opening Env.
    *
-   * @param <T> buffer type
+   * @param <T>
    */
   public static final class Builder<T> {
 
-    private final Env<T> env;
+    private long mapSize = MEBIBYTES.toBytes(1);
+    private int maxDbs = 1;
+    private int maxReaders = 1;
     private boolean opened = false;
+    private final BufferProxy<T> proxy;
 
-    private Builder(Env<T> env) {
-      this.env = env;
+    private Builder(final BufferProxy<T> proxy) {
+      requireNonNull(proxy);
+      this.proxy = proxy;
     }
 
     /**
@@ -317,10 +320,17 @@ public final class Env<T> implements AutoCloseable {
       if (opened) {
         throw new AlreadyOpenException();
       }
-      final int flagsMask = mask(flags);
-      checkRc(LIB.mdb_env_open(env.ptr, path.getAbsolutePath(), flagsMask, mode));
       opened = true;
-      return this.env;
+      final PointerByReference envPtr = new PointerByReference();
+      checkRc(LIB.mdb_env_create(envPtr));
+      final Pointer ptr = envPtr.getValue();
+      checkRc(LIB.mdb_env_set_mapsize(ptr, mapSize));
+      checkRc(LIB.mdb_env_set_maxdbs(ptr, maxDbs));
+      checkRc(LIB.mdb_env_set_maxreaders(ptr, maxReaders));
+      final int flagsMask = mask(flags);
+      final boolean readOnly = isSet(flagsMask, MDB_RDONLY_ENV);
+      checkRc(LIB.mdb_env_open(ptr, path.getAbsolutePath(), flagsMask, mode));
+      return new Env<>(proxy, ptr, readOnly);
     }
 
     /**
@@ -344,7 +354,7 @@ public final class Env<T> implements AutoCloseable {
       if (opened) {
         throw new AlreadyOpenException();
       }
-      checkRc(LIB.mdb_env_set_mapsize(env.ptr, mapSize));
+      this.mapSize = mapSize;
       return this;
     }
 
@@ -369,7 +379,7 @@ public final class Env<T> implements AutoCloseable {
       if (opened) {
         throw new AlreadyOpenException();
       }
-      checkRc(LIB.mdb_env_set_maxdbs(env.ptr, dbs));
+      this.maxDbs = dbs;
       return this;
     }
 
@@ -383,7 +393,7 @@ public final class Env<T> implements AutoCloseable {
       if (opened) {
         throw new AlreadyOpenException();
       }
-      checkRc(LIB.mdb_env_set_maxreaders(env.ptr, readers));
+      this.maxReaders = readers;
       return this;
     }
   }

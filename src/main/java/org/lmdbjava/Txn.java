@@ -27,7 +27,7 @@ import static org.lmdbjava.Library.RUNTIME;
 import static org.lmdbjava.MaskedFlag.isSet;
 import static org.lmdbjava.MaskedFlag.mask;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
-import static org.lmdbjava.TxnFlags.MDB_RDONLY;
+import static org.lmdbjava.TxnFlags.MDB_RDONLY_TXN;
 
 /**
  * LMDB transaction.
@@ -61,7 +61,10 @@ public final class Txn<T> implements AutoCloseable {
     this.env = env;
     this.proxy = proxy;
     final int flagsMask = mask(flags);
-    this.readOnly = isSet(flagsMask, MDB_RDONLY);
+    this.readOnly = isSet(flagsMask, MDB_RDONLY_TXN);
+    if (env.readOnly && !this.readOnly) {
+      throw new EnvIsReadOnly();
+    }
     this.parent = parent;
     if (parent != null) {
       if ((parent.readOnly && !this.readOnly)
@@ -293,6 +296,21 @@ public final class Txn<T> implements AutoCloseable {
      */
     public CommittedException() {
       super("Transaction has already been committed");
+    }
+  }
+
+  /**
+   * The proposed R-W transaction is incompatible with a R-O Env.
+   */
+  public static class EnvIsReadOnly extends LmdbException {
+
+    private static final long serialVersionUID = 1L;
+
+    /**
+     * Creates a new instance.
+     */
+    public EnvIsReadOnly() {
+      super("Read-write Txn incompatible with read-only Env");
     }
   }
 

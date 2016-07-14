@@ -23,6 +23,9 @@ public enum EnvFlags implements MaskedFlag {
   /**
    * mmap at a fixed address (experimental)
    */
+  /**
+   * mmap at a fixed address (experimental)
+   */
   MDB_FIXEDMAP(0x01),
   /**
    * no environment directory
@@ -35,7 +38,7 @@ public enum EnvFlags implements MaskedFlag {
   /**
    * read only
    */
-  MDB_RDONLY(0x2_0000),
+  MDB_RDONLY_ENV(0x2_0000),
   /**
    * don't fsync metapage after commit
    */
