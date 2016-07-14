@@ -77,7 +77,7 @@ public final class ByteBufferProxy {
    * {@link BufferProxy} instead).
    *
    * @param buffer to copy into a byte array
-   * @return
+   * @return a byte array of the same length as the passed buffer's capacity
    */
   public static byte[] array(final ByteBuffer buffer) {
     requireNonNull(buffer, "A non-null input ByteArray is required");
