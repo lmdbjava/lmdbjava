@@ -24,6 +24,7 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -52,6 +53,11 @@ public class TxnTest {
   public final TemporaryFolder tmp = new TemporaryFolder();
   private Env<ByteBuffer> env;
   private File path;
+
+  @After
+  public void after() {
+    env.close();
+  }
 
   @Before
   public void before() throws IOException {
