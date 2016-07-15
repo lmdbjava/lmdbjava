@@ -50,8 +50,9 @@ public final class EnvInfo {
    */
   public final int numReaders;
 
-  EnvInfo(long mapAddress, long mapSize, long lastPageNumber,
-          long lastTransactionId, int maxReaders, int numReaders) {
+  EnvInfo(final long mapAddress, final long mapSize, final long lastPageNumber,
+          final long lastTransactionId, final int maxReaders,
+          final int numReaders) {
     this.mapAddress = mapAddress;
     this.mapSize = mapSize;
     this.lastPageNumber = lastPageNumber;

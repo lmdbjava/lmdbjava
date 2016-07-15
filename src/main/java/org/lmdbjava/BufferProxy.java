@@ -27,7 +27,7 @@ import jnr.ffi.Pointer;
  *
  * @param <T> buffer type
  */
-public abstract class BufferProxy<T> {
+public abstract class BufferProxy<T> { // NOPMD
 
   /**
    * Size of a <code>MDB_val</code> pointer in bytes.

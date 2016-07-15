@@ -49,14 +49,14 @@ public class EnvTest {
     final File path = tmp.newFile();
     final Env<ByteBuffer> env
         = create().setMapSize(1, MEBIBYTES).open(path, MDB_NOSUBDIR);
-    EnvInfo info = env.info();
+    final EnvInfo info = env.info();
     assertThat(info.mapSize, is(MEBIBYTES.toBytes(1)));
   }
 
   @Test(expected = AlreadyOpenException.class)
   public void cannotChangeMapSizeAfterOpen() throws IOException {
     final File path = tmp.newFile();
-    Builder<ByteBuffer> builder = create();
+    final Builder<ByteBuffer> builder = create();
     builder.open(path, MDB_NOSUBDIR);
     builder.setMapSize(1);
   }
@@ -64,7 +64,7 @@ public class EnvTest {
   @Test(expected = AlreadyOpenException.class)
   public void cannotChangeMaxDbsAfterOpen() throws IOException {
     final File path = tmp.newFile();
-    Builder<ByteBuffer> builder = create();
+    final Builder<ByteBuffer> builder = create();
     builder.open(path, MDB_NOSUBDIR);
     builder.setMaxDbs(1);
   }
@@ -72,7 +72,7 @@ public class EnvTest {
   @Test(expected = AlreadyOpenException.class)
   public void cannotChangeMaxReadersAfterOpen() throws IOException {
     final File path = tmp.newFile();
-    Builder<ByteBuffer> builder = create();
+    final Builder<ByteBuffer> builder = create();
     builder.open(path, MDB_NOSUBDIR);
     builder.setMaxReaders(1);
   }
@@ -89,7 +89,7 @@ public class EnvTest {
   @Test(expected = AlreadyOpenException.class)
   public void cannotOpenTwice() throws IOException {
     final File path = tmp.newFile();
-    Builder<ByteBuffer> builder = create();
+    final Builder<ByteBuffer> builder = create();
     builder.open(path, MDB_NOSUBDIR);
     builder.open(path, MDB_NOSUBDIR);
   }
@@ -137,7 +137,7 @@ public class EnvTest {
   @Test(expected = InvalidCopyDestination.class)
   public void copyRejectsMissingDestination() throws IOException {
     final File dest = tmp.newFolder();
-    dest.delete();
+    assertThat(dest.delete(), is(true));
     final File src = tmp.newFolder();
     try (final Env<ByteBuffer> env = create().open(src)) {
       env.copy(dest, MDB_CP_COMPACT);
@@ -148,7 +148,7 @@ public class EnvTest {
   public void copyRejectsNonEmptyDestination() throws IOException {
     final File dest = tmp.newFolder();
     final File subDir = new File(dest, "hello");
-    subDir.mkdir();
+    assertThat(subDir.mkdir(), is(true));
     final File src = tmp.newFolder();
     try (final Env<ByteBuffer> env = create().open(src)) {
       env.copy(dest, MDB_CP_COMPACT);
@@ -186,7 +186,7 @@ public class EnvTest {
         .setMaxReaders(4)
         .setMapSize(123_456)
         .open(path, MDB_NOSUBDIR);
-    EnvInfo info = env.info();
+    final EnvInfo info = env.info();
     assertThat(info, is(notNullValue()));
     assertThat(info.lastPageNumber, is(1L));
     assertThat(info.lastTransactionId, is(0L));
@@ -229,7 +229,7 @@ public class EnvTest {
   public void testDefaultOpen() throws IOException {
     final File path = tmp.newFolder();
     try (final Env<ByteBuffer> env = open(path, 10)) {
-      Dbi<ByteBuffer> db = env.openDbi("test", MDB_CREATE);
+      final Dbi<ByteBuffer> db = env.openDbi("test", MDB_CREATE);
       db.put(allocateDirect(1), allocateDirect(1));
     }
   }

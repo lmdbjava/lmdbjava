@@ -40,9 +40,9 @@ import org.lmdbjava.Txn.ReadWriteRequiredException;
  */
 public final class Dbi<T> {
 
-  private final Pointer dbi;
   private final Env<T> env;
   private final String name;
+  private final Pointer ptr;
 
   Dbi(final Env<T> env, final Txn<T> txn, final String name,
       final DbiFlags... flags) throws CommittedException, LmdbNativeException,
@@ -52,7 +52,7 @@ public final class Dbi<T> {
     final int flagsMask = mask(flags);
     final Pointer dbiPtr = allocateDirect(RUNTIME, ADDRESS);
     checkRc(LIB.mdb_dbi_open(txn.ptr, name, flagsMask, dbiPtr));
-    dbi = dbiPtr.getPointer(0);
+    ptr = dbiPtr.getPointer(0);
   }
 
   /**
@@ -66,7 +66,7 @@ public final class Dbi<T> {
    * state accordingly.
    */
   public void close() {
-    LIB.mdb_dbi_close(env.ptr, dbi);
+    LIB.mdb_dbi_close(env.ptr, ptr);
   }
 
   /**
@@ -120,10 +120,10 @@ public final class Dbi<T> {
     txn.keyIn(key);
 
     if (val == null) {
-      checkRc(LIB.mdb_del(txn.ptr, dbi, txn.ptrKey, null));
+      checkRc(LIB.mdb_del(txn.ptr, ptr, txn.ptrKey, null));
     } else {
       txn.valIn(val);
-      checkRc(LIB.mdb_del(txn.ptr, dbi, txn.ptrKey, txn.ptrVal));
+      checkRc(LIB.mdb_del(txn.ptr, ptr, txn.ptrKey, txn.ptrVal));
     }
   }
 
@@ -142,7 +142,7 @@ public final class Dbi<T> {
       txn.checkNotCommitted();
       txn.checkWritesAllowed();
     }
-    checkRc(LIB.mdb_drop(txn.ptr, dbi, 0));
+    checkRc(LIB.mdb_drop(txn.ptr, ptr, 0));
   }
 
   /**
@@ -166,7 +166,7 @@ public final class Dbi<T> {
       txn.checkNotCommitted();
     }
     txn.keyIn(key);
-    final int rc = LIB.mdb_get(txn.ptr, dbi, txn.ptrKey, txn.ptrVal);
+    final int rc = LIB.mdb_get(txn.ptr, ptr, txn.ptrKey, txn.ptrVal);
     if (rc == MDB_NOTFOUND) {
       return null;
     }
@@ -243,9 +243,9 @@ public final class Dbi<T> {
       requireNonNull(txn);
       txn.checkNotCommitted();
     }
-    final PointerByReference ptr = new PointerByReference();
-    checkRc(LIB.mdb_cursor_open(txn.ptr, dbi, ptr));
-    return new Cursor<>(ptr.getValue(), txn);
+    final PointerByReference cursorPtr = new PointerByReference();
+    checkRc(LIB.mdb_cursor_open(txn.ptr, ptr, cursorPtr));
+    return new Cursor<>(cursorPtr.getValue(), txn);
   }
 
   /**
@@ -288,7 +288,7 @@ public final class Dbi<T> {
     txn.keyIn(key);
     txn.valIn(val);
     final int mask = mask(flags);
-    checkRc(LIB.mdb_put(txn.ptr, dbi, txn.ptrKey, txn.ptrVal, mask));
+    checkRc(LIB.mdb_put(txn.ptr, ptr, txn.ptrKey, txn.ptrVal, mask));
     txn.valOut(); // marked as in,out in LMDB C docs
   }
 
@@ -307,7 +307,7 @@ public final class Dbi<T> {
    * @param size size of the value to be stored in the database
    * @return a buffer that can be used to modify the value
    */
-  public T reserve(Txn<T> txn, final T key, final int size) {
+  public T reserve(final Txn<T> txn, final T key, final int size) {
     if (SHOULD_CHECK) {
       requireNonNull(txn);
       requireNonNull(key);
@@ -317,7 +317,7 @@ public final class Dbi<T> {
     txn.keyIn(key);
     txn.valIn(size);
     final int mask = mask(MDB_RESERVE);
-    checkRc(LIB.mdb_put(txn.ptr, dbi, txn.ptrKey, txn.ptrVal, mask));
+    checkRc(LIB.mdb_put(txn.ptr, ptr, txn.ptrKey, txn.ptrVal, mask));
     txn.valOut(); // marked as in,out in LMDB C docs
     return txn.val();
   }
@@ -334,7 +334,7 @@ public final class Dbi<T> {
       txn.checkNotCommitted();
     }
     final MDB_stat stat = new MDB_stat(RUNTIME);
-    checkRc(LIB.mdb_stat(txn.ptr, dbi, stat));
+    checkRc(LIB.mdb_stat(txn.ptr, ptr, stat));
     return new Stat(
         stat.f0_ms_psize.intValue(),
         stat.f1_ms_depth.intValue(),

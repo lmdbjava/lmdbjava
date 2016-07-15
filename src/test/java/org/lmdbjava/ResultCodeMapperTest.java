@@ -42,9 +42,7 @@ import org.lmdbjava.LmdbNativeException.PageFullException;
 import org.lmdbjava.LmdbNativeException.PageNotFoundException;
 import org.lmdbjava.LmdbNativeException.PanicException;
 import org.lmdbjava.LmdbNativeException.TlsFullException;
-import static org.lmdbjava.ResultCodeMapper.MDB_SUCCESS;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
-import static org.lmdbjava.ResultCodeMapper.rcException;
 import static org.lmdbjava.TestUtils.invokePrivateConstructor;
 import org.lmdbjava.Txn.BadException;
 import org.lmdbjava.Txn.BadReaderLockException;
@@ -78,13 +76,13 @@ public class ResultCodeMapperTest {
     EXCEPTIONS.add(new TxFullException());
     EXCEPTIONS.add(new VersionMismatchException());
 
-    for (LmdbNativeException e : EXCEPTIONS) {
+    for (final LmdbNativeException e : EXCEPTIONS) {
       RESULT_CODES.add(e.getResultCode());
     }
   }
 
   @Test
-  public void checkErrAll() throws Exception {
+  public void checkErrAll() {
     for (final Integer rc : RESULT_CODES) {
       try {
         checkRc(rc);
@@ -96,28 +94,22 @@ public class ResultCodeMapperTest {
   }
 
   @Test(expected = ConstantDerviedException.class)
-  public void checkErrConstantDerived() throws Exception {
+  public void checkErrConstantDerived() {
     checkRc(20);
   }
 
   @Test(expected = FullException.class)
-  public void checkErrCursorFull() throws Exception {
+  public void checkErrCursorFull() {
     checkRc(MDB_CURSOR_FULL);
   }
 
   @Test(expected = IllegalArgumentException.class)
-  public void checkErrUnknownResultCode() throws Exception {
+  public void checkErrUnknownResultCode() {
     checkRc(MAX_VALUE);
   }
 
-  @Test(expected = IllegalArgumentException.class)
-  @SuppressWarnings("ThrowableResultIgnored")
-  public void checkSuccessRaisesErrorIfPassedToRcException() throws Exception {
-    rcException(MDB_SUCCESS);
-  }
-
   @Test
-  public void coverPrivateConstructors() throws Exception {
+  public void coverPrivateConstructors() {
     invokePrivateConstructor(ResultCodeMapper.class);
   }
 
@@ -125,9 +117,12 @@ public class ResultCodeMapperTest {
   public void mapperReturnsUnique() {
     final Set<LmdbNativeException> seen = new HashSet<>();
     for (final Integer rc : RESULT_CODES) {
-      LmdbNativeException ex = rcException(rc);
-      assertThat(ex, is(notNullValue()));
-      seen.add(ex);
+      try {
+        checkRc(rc);
+      } catch (LmdbNativeException ex) {
+        assertThat(ex, is(notNullValue()));
+        seen.add(ex);
+      }
     }
     assertThat(seen.size(), is(RESULT_CODES.size()));
   }

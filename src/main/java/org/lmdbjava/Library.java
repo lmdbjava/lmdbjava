@@ -23,6 +23,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import static java.lang.Boolean.getBoolean;
 import static java.lang.System.getProperty;
+import static java.lang.Thread.currentThread;
+import static java.util.Locale.ENGLISH;
 import static java.util.Objects.requireNonNull;
 import static jnr.ffi.LibraryLoader.create;
 import jnr.ffi.Pointer;
@@ -67,11 +69,11 @@ final class Library {
     final String libToLoad;
 
     final String arch = getProperty("os.arch");
-    final boolean arch64 = arch.equals("x64") || arch.equals("amd64")
-                               || arch.equals("x86_64");
+    final boolean arch64 = "x64".equals(arch) || "amd64".equals(arch)
+                               || "x86_64".equals(arch);
 
     final String os = getProperty("os.name");
-    final boolean linux = os.toLowerCase().startsWith("linux");
+    final boolean linux = os.toLowerCase(ENGLISH).startsWith("linux");
     final boolean osx = os.startsWith("Mac OS X");
     final boolean windows = os.startsWith("Windows");
 
@@ -90,13 +92,13 @@ final class Library {
   }
 
   @SuppressWarnings("NestedAssignment")
-  private static String extract(String name) {
+  private static String extract(final String name) {
     final String suffix = name.substring(name.lastIndexOf('.'));
     final File file;
     try {
       file = createTempFile("lmdbjava-native-library-", suffix);
       file.deleteOnExit();
-      final ClassLoader cl = Library.class.getClassLoader();
+      final ClassLoader cl = currentThread().getContextClassLoader();
       try (final InputStream in = cl.getResourceAsStream(name);
            final OutputStream out = new FileOutputStream(file);) {
         requireNonNull(in, "Classpath resource not found");
@@ -108,7 +110,7 @@ final class Library {
       }
       return file.getAbsolutePath();
     } catch (IOException ioe) {
-      throw new RuntimeException("Failed to extract " + name, ioe);
+      throw new LmdbException("Failed to extract " + name, ioe);
     }
   }
 

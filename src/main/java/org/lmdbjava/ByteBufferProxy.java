@@ -55,25 +55,14 @@ public final class ByteBufferProxy {
    */
   public static final BufferProxy<ByteBuffer> PROXY_SAFE;
 
-  /**
-   * A thread-safe pool for a given length. If the buffer found is valid (ie not
-   * of a negative length) then that buffer is used. If no valid buffer is
-   * found, a new buffer is created.
-   */
-  private static final ThreadLocal<ArrayDeque<ByteBuffer>> BUFFERS
-      = withInitial(() -> new ArrayDeque<>(16));
-
-  private static final String FIELD_NAME_ADDRESS = "address";
-  private static final String FIELD_NAME_CAPACITY = "capacity";
-
   static {
     PROXY_SAFE = new ReflectiveProxy();
     PROXY_OPTIMAL = getProxyOptimal();
   }
 
   /**
-   * Convenience method to copy the passed {@link ByteBuffer} into a byte
-   * array. This method is not optimized and use is discouraged (use a proper
+   * Convenience method to copy the passed {@link ByteBuffer} into a byte array.
+   * This method is not optimized and use is discouraged (use a proper
    * {@link BufferProxy} instead).
    *
    * @param buffer to copy into a byte array (not null)
@@ -101,35 +90,12 @@ public final class ByteBufferProxy {
     return buff;
   }
 
-  private static long address(final ByteBuffer buffer) {
-    if (SHOULD_CHECK) {
-      if (!buffer.isDirect()) {
-        throw new BufferMustBeDirectException();
-      }
-    }
-    return ((sun.nio.ch.DirectBuffer) buffer).address();
-  }
-
   private static BufferProxy<ByteBuffer> getProxyOptimal() {
     try {
       return new UnsafeProxy();
-    } catch (Throwable e) {
+    } catch (RuntimeException e) { // NOPMD
       return PROXY_SAFE;
     }
-  }
-
-  static Field findField(final Class<?> c, final String name) {
-    Class<?> clazz = c;
-    do {
-      try {
-        final Field field = clazz.getDeclaredField(name);
-        field.setAccessible(true);
-        return field;
-      } catch (NoSuchFieldException e) {
-        clazz = clazz.getSuperclass();
-      }
-    } while (clazz != null);
-    throw new RuntimeException(name + " not found");
   }
 
   private ByteBufferProxy() {
@@ -154,7 +120,7 @@ public final class ByteBufferProxy {
    * A proxy that uses Java reflection to modify byte buffer fields, and
    * official JNR-FFF methods to manipulate native pointers.
    */
-  private static final class ReflectiveProxy extends BufferProxy<ByteBuffer> {
+  private static final class ReflectiveProxy extends AbstractByteBufferProxy {
 
     private static final Field ADDRESS_FIELD;
     private static final Field CAPACITY_FIELD;
@@ -162,25 +128,6 @@ public final class ByteBufferProxy {
     static {
       ADDRESS_FIELD = findField(Buffer.class, FIELD_NAME_ADDRESS);
       CAPACITY_FIELD = findField(Buffer.class, FIELD_NAME_CAPACITY);
-    }
-
-    @Override
-    protected ByteBuffer allocate() {
-      final ArrayDeque<ByteBuffer> queue = BUFFERS.get();
-      final ByteBuffer buffer = queue.poll();
-
-      if (buffer != null && buffer.capacity() >= 0) {
-        return buffer;
-      } else {
-        final ByteBuffer bb = allocateDirect(0);
-        return bb;
-      }
-    }
-
-    @Override
-    protected void deallocate(final ByteBuffer buff) {
-      final ArrayDeque<ByteBuffer> queue = BUFFERS.get();
-      queue.offer(buff);
     }
 
     @Override
@@ -206,7 +153,7 @@ public final class ByteBufferProxy {
         ADDRESS_FIELD.set(buffer, addr);
         CAPACITY_FIELD.set(buffer, (int) size);
       } catch (IllegalArgumentException | IllegalAccessException ex) {
-        throw new RuntimeException("Cannot modify buffer", ex);
+        throw new LmdbException("Cannot modify buffer", ex);
       }
       buffer.clear();
     }
@@ -217,7 +164,7 @@ public final class ByteBufferProxy {
    * A proxy that uses Java's "unsafe" class to directly manipulate byte buffer
    * fields and JNR-FFF allocated memory pointers.
    */
-  private static final class UnsafeProxy extends BufferProxy<ByteBuffer> {
+  private static final class UnsafeProxy extends AbstractByteBufferProxy {
 
     private static final long ADDRESS_OFFSET;
     private static final long CAPACITY_OFFSET;
@@ -229,27 +176,8 @@ public final class ByteBufferProxy {
         ADDRESS_OFFSET = UNSAFE.objectFieldOffset(address);
         CAPACITY_OFFSET = UNSAFE.objectFieldOffset(capacity);
       } catch (SecurityException e) {
-        throw new RuntimeException(e);
+        throw new LmdbException("Field access error", e);
       }
-    }
-
-    @Override
-    protected ByteBuffer allocate() {
-      final ArrayDeque<ByteBuffer> queue = BUFFERS.get();
-      final ByteBuffer buffer = queue.poll();
-
-      if (buffer != null && buffer.capacity() >= 0) {
-        return buffer;
-      } else {
-        final ByteBuffer bb = allocateDirect(0);
-        return bb;
-      }
-    }
-
-    @Override
-    protected void deallocate(final ByteBuffer buff) {
-      final ArrayDeque<ByteBuffer> queue = BUFFERS.get();
-      queue.offer(buff);
     }
 
     @Override
@@ -274,6 +202,58 @@ public final class ByteBufferProxy {
       UNSAFE.putLong(buffer, ADDRESS_OFFSET, addr);
       UNSAFE.putInt(buffer, CAPACITY_OFFSET, (int) size);
       buffer.clear();
+    }
+  }
+
+  static abstract class AbstractByteBufferProxy extends BufferProxy<ByteBuffer> {
+
+    /**
+     * A thread-safe pool for a given length. If the buffer found is valid (ie
+     * not of a negative length) then that buffer is used. If no valid buffer is
+     * found, a new buffer is created.
+     */
+    private static final ThreadLocal<ArrayDeque<ByteBuffer>> BUFFERS
+        = withInitial(() -> new ArrayDeque<>(16));
+    protected static final String FIELD_NAME_ADDRESS = "address";
+    protected static final String FIELD_NAME_CAPACITY = "capacity";
+
+    static Field findField(final Class<?> c, final String name) {
+      Class<?> clazz = c;
+      do {
+        try {
+          final Field field = clazz.getDeclaredField(name);
+          field.setAccessible(true);
+          return field;
+        } catch (NoSuchFieldException e) {
+          clazz = clazz.getSuperclass();
+        }
+      } while (clazz != null);
+      throw new LmdbException(name + " not found");
+    }
+
+    protected final long address(final ByteBuffer buffer) {
+      if (SHOULD_CHECK && !buffer.isDirect()) {
+        throw new BufferMustBeDirectException();
+      }
+      return ((sun.nio.ch.DirectBuffer) buffer).address();
+    }
+
+    @Override
+    protected final ByteBuffer allocate() {
+      final ArrayDeque<ByteBuffer> queue = BUFFERS.get();
+      final ByteBuffer buffer = queue.poll();
+
+      if (buffer != null && buffer.capacity() >= 0) {
+        return buffer;
+      } else {
+        return allocateDirect(0);
+      }
+    }
+
+    @Override
+    protected final void deallocate(final ByteBuffer buff) {
+      final ArrayDeque<ByteBuffer> queue = BUFFERS.get();
+      queue.offer(buff);
     }
   }
 }

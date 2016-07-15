@@ -33,31 +33,32 @@ public enum ByteUnit {
    * Byte unit representing one byte.
    */
   BYTES {
-    @Override public long convert(long sourceCount, ByteUnit sourceUnit) {
+    @Override public long convert(final long sourceCount,
+                                  final ByteUnit sourceUnit) {
       return sourceUnit.toBytes(sourceCount);
     }
 
-    @Override public long toBytes(long count) {
+    @Override public long toBytes(final long count) {
       return count;
     }
 
-    @Override public long toKibibytes(long count) {
+    @Override public long toKibibytes(final long count) {
       return count / (KB / B);
     }
 
-    @Override public long toMebibytes(long count) {
+    @Override public long toMebibytes(final long count) {
       return count / (MB / B);
     }
 
-    @Override public long toGibibytes(long count) {
+    @Override public long toGibibytes(final long count) {
       return count / (GB / B);
     }
 
-    @Override public long toTebibytes(long count) {
+    @Override public long toTebibytes(final long count) {
       return count / (TB / B);
     }
 
-    @Override public long toPebibytes(long count) {
+    @Override public long toPebibytes(final long count) {
       return count / (PB / B);
     }
   },
@@ -65,31 +66,32 @@ public enum ByteUnit {
    * A byte unit representing 1024 bytes.
    */
   KIBIBYTES {
-    @Override public long convert(long sourceCount, ByteUnit sourceUnit) {
+    @Override public long convert(final long sourceCount,
+                                  final ByteUnit sourceUnit) {
       return sourceUnit.toKibibytes(sourceCount);
     }
 
-    @Override public long toBytes(long count) {
+    @Override public long toBytes(final long count) {
       return multiply(count, KB / B, MAX / (KB / B));
     }
 
-    @Override public long toKibibytes(long count) {
+    @Override public long toKibibytes(final long count) {
       return count;
     }
 
-    @Override public long toMebibytes(long count) {
+    @Override public long toMebibytes(final long count) {
       return count / (MB / KB);
     }
 
-    @Override public long toGibibytes(long count) {
+    @Override public long toGibibytes(final long count) {
       return count / (GB / KB);
     }
 
-    @Override public long toTebibytes(long count) {
+    @Override public long toTebibytes(final long count) {
       return count / (TB / KB);
     }
 
-    @Override public long toPebibytes(long count) {
+    @Override public long toPebibytes(final long count) {
       return count / (PB / KB);
     }
   },
@@ -97,31 +99,32 @@ public enum ByteUnit {
    * A byte unit representing 1024 kibibytes.
    */
   MEBIBYTES {
-    @Override public long convert(long sourceCount, ByteUnit sourceUnit) {
+    @Override public long convert(final long sourceCount,
+                                  final ByteUnit sourceUnit) {
       return sourceUnit.toMebibytes(sourceCount);
     }
 
-    @Override public long toBytes(long count) {
+    @Override public long toBytes(final long count) {
       return multiply(count, MB / B, MAX / (MB / B));
     }
 
-    @Override public long toKibibytes(long count) {
+    @Override public long toKibibytes(final long count) {
       return multiply(count, MB / KB, MAX / (MB / KB));
     }
 
-    @Override public long toMebibytes(long count) {
+    @Override public long toMebibytes(final long count) {
       return count;
     }
 
-    @Override public long toGibibytes(long count) {
+    @Override public long toGibibytes(final long count) {
       return count / (GB / MB);
     }
 
-    @Override public long toTebibytes(long count) {
+    @Override public long toTebibytes(final long count) {
       return count / (TB / MB);
     }
 
-    @Override public long toPebibytes(long count) {
+    @Override public long toPebibytes(final long count) {
       return count / (PB / MB);
     }
   },
@@ -129,31 +132,32 @@ public enum ByteUnit {
    * A byte unit representing 1024 mebibytes.
    */
   GIBIBYTES {
-    @Override public long convert(long sourceCount, ByteUnit sourceUnit) {
+    @Override public long convert(final long sourceCount,
+                                  final ByteUnit sourceUnit) {
       return sourceUnit.toGibibytes(sourceCount);
     }
 
-    @Override public long toBytes(long count) {
+    @Override public long toBytes(final long count) {
       return multiply(count, GB / B, MAX / (GB / B));
     }
 
-    @Override public long toKibibytes(long count) {
+    @Override public long toKibibytes(final long count) {
       return multiply(count, GB / KB, MAX / (GB / KB));
     }
 
-    @Override public long toMebibytes(long count) {
+    @Override public long toMebibytes(final long count) {
       return multiply(count, GB / MB, MAX / (GB / MB));
     }
 
-    @Override public long toGibibytes(long count) {
+    @Override public long toGibibytes(final long count) {
       return count;
     }
 
-    @Override public long toTebibytes(long count) {
+    @Override public long toTebibytes(final long count) {
       return count / (TB / GB);
     }
 
-    @Override public long toPebibytes(long count) {
+    @Override public long toPebibytes(final long count) {
       return count / (PB / GB);
     }
   },
@@ -161,31 +165,32 @@ public enum ByteUnit {
    * A byte unit representing 1024 gibibytes.
    */
   TEBIBYTES {
-    @Override public long convert(long sourceCount, ByteUnit sourceUnit) {
+    @Override public long convert(final long sourceCount,
+                                  final ByteUnit sourceUnit) {
       return sourceUnit.toTebibytes(sourceCount);
     }
 
-    @Override public long toBytes(long count) {
+    @Override public long toBytes(final long count) {
       return multiply(count, TB / B, MAX / (TB / B));
     }
 
-    @Override public long toKibibytes(long count) {
+    @Override public long toKibibytes(final long count) {
       return multiply(count, TB / KB, MAX / (TB / KB));
     }
 
-    @Override public long toMebibytes(long count) {
+    @Override public long toMebibytes(final long count) {
       return multiply(count, TB / MB, MAX / (TB / MB));
     }
 
-    @Override public long toGibibytes(long count) {
+    @Override public long toGibibytes(final long count) {
       return multiply(count, TB / GB, MAX / (TB / GB));
     }
 
-    @Override public long toTebibytes(long count) {
+    @Override public long toTebibytes(final long count) {
       return count;
     }
 
-    @Override public long toPebibytes(long count) {
+    @Override public long toPebibytes(final long count) {
       return count / (PB / TB);
     }
   },
@@ -193,31 +198,32 @@ public enum ByteUnit {
    * A byte unit representing 1024 tebibytes.
    */
   PEBIBYTES {
-    @Override public long convert(long sourceCount, ByteUnit sourceUnit) {
+    @Override public long convert(final long sourceCount,
+                                  final ByteUnit sourceUnit) {
       return sourceUnit.toPebibytes(sourceCount);
     }
 
-    @Override public long toBytes(long count) {
+    @Override public long toBytes(final long count) {
       return multiply(count, PB / B, MAX / (PB / B));
     }
 
-    @Override public long toKibibytes(long count) {
+    @Override public long toKibibytes(final long count) {
       return multiply(count, PB / KB, MAX / (PB / KB));
     }
 
-    @Override public long toMebibytes(long count) {
+    @Override public long toMebibytes(final long count) {
       return multiply(count, PB / MB, MAX / (PB / MB));
     }
 
-    @Override public long toGibibytes(long count) {
+    @Override public long toGibibytes(final long count) {
       return multiply(count, PB / GB, MAX / (PB / GB));
     }
 
-    @Override public long toTebibytes(long count) {
+    @Override public long toTebibytes(final long count) {
       return multiply(count, PB / TB, MAX / (PB / TB));
     }
 
-    @Override public long toPebibytes(long count) {
+    @Override public long toPebibytes(final long count) {
       return count;
     }
   };
@@ -228,7 +234,8 @@ public enum ByteUnit {
   private static final long GB = MB * 1_024L;
   private static final long TB = GB * 1_024L;
   private static final long PB = TB * 1_024L;
-
+  private static final String[] UNITS = {"B", "KiB", "MiB", "GiB", "TiB", "PiB"};
+  static final String DEFAULT_FORMAT_PATTERN = "#,##0.#";
   private static final long MAX = Long.MAX_VALUE;
 
   /**
@@ -241,7 +248,7 @@ public enum ByteUnit {
    *         negatively overflow, or {@code Long.MAX_VALUE} if it would
    *         positively overflow.
    */
-  public long toBytes(long count) {
+  public long toBytes(final long count) {
     throw new AbstractMethodError();
   }
 
@@ -262,7 +269,7 @@ public enum ByteUnit {
    *         conversion would negatively overflow, or {@code Long.MAX_VALUE} if
    *         it would positively overflow.
    */
-  public long convert(long sourceCount, ByteUnit sourceUnit) {
+  public long convert(final long sourceCount, final ByteUnit sourceUnit) {
     throw new AbstractMethodError();
   }
 
@@ -275,7 +282,7 @@ public enum ByteUnit {
    *         negatively overflow, or {@code Long.MAX_VALUE} if it would
    *         positively overflow.
    */
-  public long toKibibytes(long count) {
+  public long toKibibytes(final long count) {
     throw new AbstractMethodError();
   }
 
@@ -288,7 +295,7 @@ public enum ByteUnit {
    *         negatively overflow, or {@code Long.MAX_VALUE} if it would
    *         positively overflow.
    */
-  public long toMebibytes(long count) {
+  public long toMebibytes(final long count) {
     throw new AbstractMethodError();
   }
 
@@ -301,7 +308,7 @@ public enum ByteUnit {
    *         negatively overflow, or {@code Long.MAX_VALUE} if it would
    *         positively overflow.
    */
-  public long toGibibytes(long count) {
+  public long toGibibytes(final long count) {
     throw new AbstractMethodError();
   }
 
@@ -314,7 +321,7 @@ public enum ByteUnit {
    *         negatively overflow, or {@code Long.MAX_VALUE} if it would
    *         positively overflow.
    */
-  public long toTebibytes(long count) {
+  public long toTebibytes(final long count) {
     throw new AbstractMethodError();
   }
 
@@ -327,11 +334,9 @@ public enum ByteUnit {
    *         negatively overflow, or {@code Long.MAX_VALUE} if it would
    *         positively overflow.
    */
-  public long toPebibytes(long count) {
+  public long toPebibytes(final long count) {
     throw new AbstractMethodError();
   }
-
-  private static final String[] UNITS = {"B", "KiB", "MiB", "GiB", "TiB", "PiB"};
 
   /**
    * Return {@code bytes} as human-readable size string (e.g., "1.2 GiB". This
@@ -341,7 +346,7 @@ public enum ByteUnit {
    * @param bytes number of bytes
    * @return a human-readable size string
    */
-  public static String format(long bytes) {
+  public static String format(final long bytes) {
     return format(bytes, new DecimalFormat(DEFAULT_FORMAT_PATTERN));
   }
 
@@ -354,7 +359,7 @@ public enum ByteUnit {
    * @param pattern decimal format pattern
    * @return a human-readable size string
    */
-  public static String format(long bytes, String pattern) {
+  public static String format(final long bytes, final String pattern) {
     return format(bytes, new DecimalFormat(pattern));
   }
 
@@ -367,7 +372,7 @@ public enum ByteUnit {
    * @param format number format object
    * @return a human-readable size string
    */
-  public static String format(long bytes, NumberFormat format) {
+  public static String format(final long bytes, final NumberFormat format) {
     if (bytes < 0) {
       throw new IllegalArgumentException("bytes < 0: " + bytes);
     }
@@ -381,12 +386,11 @@ public enum ByteUnit {
     return format.format(count) + ' ' + UNITS[unitIndex];
   }
 
-  static final String DEFAULT_FORMAT_PATTERN = "#,##0.#";
-
   /**
    * Multiply {@code size} by {@code factor} accounting for overflow.
    */
-  private static long multiply(long size, long factor, long over) {
+  private static long multiply(final long size, final long factor,
+                               final long over) {
     if (size > over) {
       return Long.MAX_VALUE;
     }

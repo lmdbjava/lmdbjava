@@ -32,20 +32,24 @@ import org.agrona.concurrent.UnsafeBuffer;
 final class TestUtils {
 
   public static final String DB_1 = "test-db-1";
-  public static final int POSIX_MODE = 0664;
+  public static final int POSIX_MODE = 0664; // NOPMD
 
-  static ByteBuffer bb(int value) {
+  static ByteBuffer bb(final int value) {
     final ByteBuffer bb = allocateDirect(BYTES);
     bb.putInt(value).flip();
     return bb;
   }
 
-  static void invokePrivateConstructor(final Class<?> clazz) throws
-      InstantiationException, IllegalAccessException, IllegalArgumentException,
-      InvocationTargetException, NoSuchMethodException {
-    final Constructor<?> c = clazz.getDeclaredConstructor();
-    c.setAccessible(true);
-    c.newInstance();
+  static void invokePrivateConstructor(final Class<?> clazz) {
+    try {
+      final Constructor<?> c = clazz.getDeclaredConstructor();
+      c.setAccessible(true);
+      c.newInstance();
+    } catch (NoSuchMethodException | InstantiationException |
+             IllegalAccessException | IllegalArgumentException |
+             InvocationTargetException e) {
+      throw new LmdbException("Private construction failed", e);
+    }
   }
 
   static MutableDirectBuffer mdb(final int value) {

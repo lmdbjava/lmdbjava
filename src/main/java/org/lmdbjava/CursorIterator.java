@@ -77,7 +77,7 @@ public final class CursorIterator<T> implements
       throw new NoSuchElementException();
     }
     state = NOT_READY;
-    KeyVal<T> result = entry;
+    final KeyVal<T> result = entry;
     entry = null;
     return result;
   }
@@ -97,7 +97,7 @@ public final class CursorIterator<T> implements
 
   private boolean tryToComputeNext() {
     if (first) {
-      if (key != null) {
+      if (key != null) { // NOPMD
         setEntry(cursor.get(key, MDB_SET_RANGE));
       } else if (type == FORWARD) {
         setEntry(cursor.first());
@@ -146,7 +146,7 @@ public final class CursorIterator<T> implements
      * @param key the key
      * @param val the value
      */
-    public KeyVal(T key, T val) {
+    public KeyVal(final T key, final T val) {
       this.key = key;
       this.val = val;
     }

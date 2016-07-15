@@ -1,27 +1,10 @@
-/*
- * Copyright 2016 The LmdbJava Project, http://lmdbjava.org/
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.lmdbjava;
 
-import static java.util.Objects.requireNonNull;
 import static jnr.ffi.Memory.allocateDirect;
 import static jnr.ffi.NativeType.ADDRESS;
 import jnr.ffi.Pointer;
 import jnr.ffi.provider.MemoryManager;
 import static org.lmdbjava.BufferProxy.MDB_VAL_STRUCT_SIZE;
-import org.lmdbjava.Env.AlreadyClosedException;
 import static org.lmdbjava.Library.LIB;
 import static org.lmdbjava.Library.RUNTIME;
 import static org.lmdbjava.MaskedFlag.isSet;
@@ -37,28 +20,21 @@ import static org.lmdbjava.TxnFlags.MDB_RDONLY_TXN;
 public final class Txn<T> implements AutoCloseable {
 
   private static final MemoryManager MEM_MGR = RUNTIME.getMemoryManager();
-  private boolean committed = false;
-  private final Env<T> env;
-  private final T key;
+  private boolean committed;
+  private final T key; // NOPMD
   private final Txn<T> parent;
-  private BufferProxy<T> proxy;
+  private final BufferProxy<T> proxy;
   private final long ptrKeyAddr;
   private final long ptrValAddr;
   private final boolean readOnly;
-  private boolean reset = false;
-  private final T val;
+  private boolean reset = false; // NOPMD
+  private final T val; // NOPMD
   final Pointer ptr;
   final Pointer ptrKey;
   final Pointer ptrVal;
 
   Txn(final Env<T> env, final Txn<T> parent, final BufferProxy<T> proxy,
       final TxnFlags... flags) {
-    requireNonNull(env);
-    requireNonNull(proxy);
-    if (env.isClosed()) {
-      throw new AlreadyClosedException();
-    }
-    this.env = env;
     this.proxy = proxy;
     final int flagsMask = mask(flags);
     this.readOnly = isSet(flagsMask, MDB_RDONLY_TXN);
@@ -66,11 +42,8 @@ public final class Txn<T> implements AutoCloseable {
       throw new EnvIsReadOnly();
     }
     this.parent = parent;
-    if (parent != null) {
-      if ((parent.readOnly && !this.readOnly)
-              || (!parent.readOnly && this.readOnly)) {
-        throw new IncompatibleParent();
-      }
+    if (parent != null && parent.readOnly != this.readOnly) {
+      throw new IncompatibleParent();
     }
     final Pointer txnPtr = allocateDirect(RUNTIME, ADDRESS);
     final Pointer txnParentPtr = parent == null ? null : parent.ptr;

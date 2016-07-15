@@ -19,10 +19,12 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import static java.nio.ByteBuffer.allocateDirect;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertNotNull;
@@ -59,6 +61,7 @@ import static org.lmdbjava.SeekOp.MDB_PREV;
  */
 public class TutorialTest {
 
+  private static final String DB_NAME = "my DB";
   @Rule
   public final TemporaryFolder tmp = new TemporaryFolder();
 
@@ -71,30 +74,30 @@ public class TutorialTest {
   public void tutorial1() throws IOException {
     // We need a storage directory first.
     // The path cannot be on a remote file system.
-    File path = tmp.newFolder();
+    final File path = tmp.newFolder();
 
     // We always need an Env. An Env owns a physical on-disk storage file. One
     // Env can store many different databases (ie sorted maps).
-    Env<ByteBuffer> env = create()
+    final Env<ByteBuffer> env = create()
         // LMDB also needs to know how large our DB might be. Over-estimating is OK.
         .setMapSize(10, MEBIBYTES)
         // LMDB also needs to know how many DBs (Dbi) we want to store in this Env.
         .setMaxDbs(1)
-        // Now let's open the Env. The 0664 is the POSIX mode of the created files.
-        // The same path can be concurrently opened and used in different processes,
-        // but do not open the same path twice in the same process at the same time.
-        .open(path, 0664);
+        // Now let's open the Env. The same path can be concurrently opened and
+        // used in different processes, but do not open the same path twice in
+        // the same process at the same time.
+        .open(path);
 
     // We need a Dbi for each DB. A Dbi roughly equates to a sorted map. The
     // MDB_CREATE flag causes the DB to be created if it doesn't already exist.
-    Dbi<ByteBuffer> db = env.openDbi("my DB", MDB_CREATE);
+    final Dbi<ByteBuffer> db = env.openDbi(DB_NAME, MDB_CREATE);
 
     // We want to store some data, so we will need a direct ByteBuffer.
     // Note that LMDB keys cannot exceed 511 bytes. Values can be larger.
-    ByteBuffer key = allocateDirect(511);
-    ByteBuffer val = allocateDirect(700);
-    key.put("greeting".getBytes());
-    val.put("Hello world".getBytes());
+    final ByteBuffer key = allocateDirect(511);
+    final ByteBuffer val = allocateDirect(700);
+    key.put("greeting".getBytes(UTF_8));
+    val.put("Hello world".getBytes(UTF_8));
 
     // Now store it. Dbi.put() internally begins and commits a transaction (Txn).
     db.put(key, val);
@@ -106,19 +109,19 @@ public class TutorialTest {
     // memory as we use Dbi (and Cursor) methods. These read-only buffers remain
     // valid only until the Txn is released or the next Dbi or Cursor call. If
     // you need data afterwards, you should copy the bytes to your own buffer.
-    try (Txn<ByteBuffer> txn = env.txnRead()) {
-      ByteBuffer found = db.get(txn, key);
+    try (final Txn<ByteBuffer> txn = env.txnRead()) {
+      final ByteBuffer found = db.get(txn, key);
       assertNotNull(found);
 
       // The fetchedVal is read-only and points to LMDB memory
-      ByteBuffer fetchedVal = txn.val();
+      final ByteBuffer fetchedVal = txn.val();
       assertThat(fetchedVal.capacity(), is(700));
       assertThat(fetchedVal.limit(), is(700));
 
       // Let's double-check the fetched value is correct
-      byte[] fetched = new byte[700];
+      final byte[] fetched = new byte[700];
       fetchedVal.get(fetched);
-      assertThat(new String(fetched), startsWith("Hello world"));
+      assertThat(new String(fetched, UTF_8), startsWith("Hello world"));
     }
 
     // We can also delete. The simplest way is to let Dbi allocate a new Txn...
@@ -138,24 +141,24 @@ public class TutorialTest {
   @Test
   @SuppressWarnings("ConvertToTryWithResources")
   public void tutorial2() throws IOException {
-    // As per tutorial1...
-    File path = tmp.newFolder();
-    // open 10 mb environment with one database.
-    Env<ByteBuffer> env = open(path, 10);
-    Dbi<ByteBuffer> db = env.openDbi("my DB", MDB_CREATE);
-    ByteBuffer key = allocateDirect(511);
-    ByteBuffer val = allocateDirect(700);
+    final File path = tmp.newFolder();
+    // Here we use a shortcut to open a 10 MB environment with one database.
+    final Env<ByteBuffer> env = open(path, 10);
+
+    final Dbi<ByteBuffer> db = env.openDbi(DB_NAME, MDB_CREATE);
+    final ByteBuffer key = allocateDirect(511);
+    final ByteBuffer val = allocateDirect(700);
 
     // Let's write and commit "key1" via a Txn. A Txn can include multiple Dbis.
     // Note write Txns block other write Txns, due to writes being serialized.
     // It's therefore important to avoid unnecessarily long-lived write Txns.
-    try (Txn<ByteBuffer> txn = env.txnWrite()) {
-      key.put("key1".getBytes());
-      val.put("lmdb".getBytes());
+    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
+      key.put("key1".getBytes(UTF_8));
+      val.put("lmdb".getBytes(UTF_8));
       db.put(txn, key, val);
 
       // We can read data too, even though this is a write Txn.
-      ByteBuffer found = db.get(txn, key);
+      final ByteBuffer found = db.get(txn, key);
       assertNotNull(found);
 
       // An explicit commit is required, otherwise Txn.close() rolls it back.
@@ -163,16 +166,16 @@ public class TutorialTest {
     }
 
     // Open a read-only Txn. It only sees data that existed at Txn creation time.
-    Txn<ByteBuffer> rtx = env.txnRead();
+    final Txn<ByteBuffer> rtx = env.txnRead();
 
     // Our read Txn can fetch key1 without problem, as it existed at Txn creation.
     ByteBuffer found = db.get(rtx, key);
     assertNotNull(found);
 
     // Let's write out a "key2" via a new write Txn.
-    try (Txn<ByteBuffer> txn = env.txnWrite()) {
+    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
       key.clear();
-      key.put("key2".getBytes());
+      key.put("key2".getBytes(UTF_8));
       db.put(txn, key, val);
       txn.commit();
     }
@@ -207,51 +210,48 @@ public class TutorialTest {
   @SuppressWarnings("ConvertToTryWithResources")
   public void tutorial3() throws IOException {
     // As per tutorial1...
-    File path = tmp.newFolder();
-    Env<ByteBuffer> env = create()
-        .setMapSize(10, MEBIBYTES)
-        .setMaxDbs(1)
-        .open(path, 0664);
-    Dbi<ByteBuffer> db = env.openDbi("my DB", MDB_CREATE);
-    ByteBuffer key = allocateDirect(511);
-    ByteBuffer val = allocateDirect(700);
+    final File path = tmp.newFolder();
+    final Env<ByteBuffer> env = open(path, 10);
+    final Dbi<ByteBuffer> db = env.openDbi(DB_NAME, MDB_CREATE);
+    final ByteBuffer key = allocateDirect(511);
+    final ByteBuffer val = allocateDirect(700);
 
-    try (Txn<ByteBuffer> txn = env.txnWrite()) {
+    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
       // A cursor always belongs to a particular Dbi.
-      Cursor<ByteBuffer> c = db.openCursor(txn);
+      final Cursor<ByteBuffer> c = db.openCursor(txn);
 
       // We can put via a Cursor. Note we're adding keys in a strange order,
       // as we want to show you that LMDB returns them in sorted order.
-      key.put("zzz".getBytes());
-      val.put("lmdb".getBytes());
+      key.put("zzz".getBytes(UTF_8));
+      val.put("lmdb".getBytes(UTF_8));
       c.put(key, val);
       key.clear();
-      key.put("aaa".getBytes());
+      key.put("aaa".getBytes(UTF_8));
       c.put(key, val);
       key.clear();
-      key.put("ccc".getBytes());
+      key.put("ccc".getBytes(UTF_8));
       c.put(key, val);
 
       // Just a byte array to hold our keys (ByteBuffer isn't fun to use!)...
-      byte[] keyBytes = new byte[511];
+      final byte[] keyBytes = new byte[511];
 
       // We can read from the Cursor by key.
       c.get(key, MDB_SET);
       txn.key().get(keyBytes);
-      assertThat(new String(keyBytes), startsWith("ccc"));
+      assertThat(new String(keyBytes, UTF_8), startsWith("ccc"));
 
       // Let's see that LMDB provides the keys in appropriate order....
       c.seek(MDB_FIRST);
       txn.key().get(keyBytes);
-      assertThat(new String(keyBytes), startsWith("aaa"));
+      assertThat(new String(keyBytes, UTF_8), startsWith("aaa"));
 
       c.seek(MDB_LAST);
       txn.key().get(keyBytes);
-      assertThat(new String(keyBytes), startsWith("zzz"));
+      assertThat(new String(keyBytes, UTF_8), startsWith("zzz"));
 
       c.seek(MDB_PREV);
       txn.key().get(keyBytes);
-      assertThat(new String(keyBytes), startsWith("ccc"));
+      assertThat(new String(keyBytes, UTF_8), startsWith("ccc"));
 
       // Cursors can also delete the current key.
       c.delete();
@@ -264,12 +264,12 @@ public class TutorialTest {
     // useful if you want to close the original Txn (eg maybe you created the
     // Cursor during the constructor of a singleton with a throw-away Txn). Of
     // course, you cannot use the Cursor if its Txn is closed or currently reset.
-    Txn<ByteBuffer> tx1 = env.txnRead();
-    Cursor<ByteBuffer> c = db.openCursor(tx1);
+    final Txn<ByteBuffer> tx1 = env.txnRead();
+    final Cursor<ByteBuffer> c = db.openCursor(tx1);
     tx1.close();
 
     // The Cursor becomes usable again by "renewing" it with an active read Txn.
-    Txn<ByteBuffer> tx2 = env.txnRead();
+    final Txn<ByteBuffer> tx2 = env.txnRead();
     c.renew(tx2);
     c.seek(MDB_FIRST);
 
@@ -292,45 +292,45 @@ public class TutorialTest {
   @Test
   public void tutorial4() throws IOException {
     // As per tutorial1...
-    File path = tmp.newFolder();
-    Env<ByteBuffer> env = create()
-        .setMapSize(10, MEBIBYTES)
-        .setMaxDbs(1)
-        .open(path, 0664);
-    Dbi<ByteBuffer> db = env.openDbi("my DB", MDB_CREATE);
+    final File path = tmp.newFolder();
+    final Env<ByteBuffer> env = open(path, 10);
+    final Dbi<ByteBuffer> db = env.openDbi(DB_NAME, MDB_CREATE);
 
-    try (Txn<ByteBuffer> txn = env.txnWrite()) {
+    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
 
       // Let's put some data in. We'll use our byte[] convenience methods.
       // These aren't recommended, but can be useful for legacy migration.
-      db.put(txn, buffer("key1".getBytes()), buffer("Val".getBytes()));
-      db.put(txn, buffer("key2".getBytes()), buffer("Val".getBytes()));
-      db.put(txn, buffer("key3".getBytes()), buffer("Val".getBytes()));
+      final byte[] value = "Val".getBytes(UTF_8);
+      db.put(txn, buffer("key1".getBytes(UTF_8)), buffer(value));
+      db.put(txn, buffer("key2".getBytes(UTF_8)), buffer(value));
+      db.put(txn, buffer("key3".getBytes(UTF_8)), buffer(value));
 
       // Each iterator uses a cursor and must be closed when finished.
       // iterate forward in terms of key ordering starting with the first key
-      try (CursorIterator<ByteBuffer> it = db.iterate(txn, FORWARD)) {
-        for (KeyVal<ByteBuffer> kv : it.iterable()) {
-          ByteBuffer k = kv.key;
-          ByteBuffer v = kv.val;
-          assertThat(array(v), is("Val".getBytes()));
+      try (final CursorIterator<ByteBuffer> it = db.iterate(txn, FORWARD)) {
+        for (final KeyVal<ByteBuffer> kv : it.iterable()) {
+          final ByteBuffer k = kv.key;
+          final ByteBuffer v = kv.val;
+          assertThat(k, notNullValue());
+          assertThat(array(v), is(value));
         }
       }
 
       // iterate backward in terms of key ordering starting with the first key
-      try (CursorIterator<ByteBuffer> it = db.iterate(txn, BACKWARD)) {
-        for (KeyVal<ByteBuffer> kv : it.iterable()) {
-          ByteBuffer k = kv.key;
-          ByteBuffer v = kv.val;
+      try (final CursorIterator<ByteBuffer> it = db.iterate(txn, BACKWARD)) {
+        for (final KeyVal<ByteBuffer> kv : it.iterable()) {
+          assertThat(kv.key, notNullValue());
+          assertThat(kv.val, notNullValue());
         }
       }
 
       // search for key and iterate forwards/backward from there til the last/first key.
-      ByteBuffer searchKey = buffer("key2".getBytes());
-      try (CursorIterator<ByteBuffer> it = db.iterate(txn, searchKey, FORWARD)) {
-        for (KeyVal<ByteBuffer> kv : it.iterable()) {
-          ByteBuffer k = kv.key;
-          ByteBuffer v = kv.val;
+      final ByteBuffer searchKey = buffer("key2".getBytes(UTF_8));
+      try (final CursorIterator<ByteBuffer> it = db.iterate(txn, searchKey,
+                                                            FORWARD)) {
+        for (final KeyVal<ByteBuffer> kv : it.iterable()) {
+          assertThat(kv.key, notNullValue());
+          assertThat(kv.val, notNullValue());
         }
       }
     }
@@ -345,52 +345,49 @@ public class TutorialTest {
   @SuppressWarnings("ConvertToTryWithResources")
   public void tutorial5() throws IOException {
     // As per tutorial1...
-    File path = tmp.newFolder();
-    Env<ByteBuffer> env = create()
-        .setMapSize(10, MEBIBYTES)
-        .setMaxDbs(1)
-        .open(path, 0664);
+    final File path = tmp.newFolder();
+    final Env<ByteBuffer> env = open(path, 10);
 
     // This time we're going to tell the Dbi it can store > 1 value per key.
     // There are other flags available if we're storing integers etc.
-    Dbi<ByteBuffer> db = env.openDbi("my DB", MDB_CREATE, MDB_DUPSORT);
+    final Dbi<ByteBuffer> db = env.openDbi(DB_NAME, MDB_CREATE, MDB_DUPSORT);
 
     // Duplicate support requires both keys and values to be <= 511 bytes.
-    ByteBuffer key = allocateDirect(511);
-    ByteBuffer val = allocateDirect(511);
+    final ByteBuffer key = allocateDirect(511);
+    final ByteBuffer val = allocateDirect(511);
 
-    try (Txn<ByteBuffer> txn = env.txnWrite()) {
-      Cursor<ByteBuffer> c = db.openCursor(txn);
+    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
+      final Cursor<ByteBuffer> c = db.openCursor(txn);
 
       // Store one key, but many values, and in non-natural order.
-      key.put("key".getBytes());
-      val.put("xxx".getBytes());
+      key.put("key".getBytes(UTF_8));
+      val.put("xxx".getBytes(UTF_8));
       c.put(key, val);
       val.clear();
-      val.put("aaa".getBytes());
+      val.put("kkk".getBytes(UTF_8));
       c.put(key, val);
       val.clear();
-      val.put("ccc".getBytes());
+      val.put("lll".getBytes(UTF_8));
       c.put(key, val);
 
       // Cursor can tell us how many values the current key has.
-      long count = c.count();
+      final long count = c.count();
       assertThat(count, is(3L));
 
-      byte[] valBytes = new byte[511];
+      final byte[] valBytes = new byte[511];
 
       // Let's position the Cursor. Note sorting still works.
       c.seek(MDB_FIRST);
       txn.val().get(valBytes);
-      assertThat(new String(valBytes), startsWith("aaa"));
+      assertThat(new String(valBytes, UTF_8), startsWith("kkk"));
 
       c.seek(MDB_LAST);
       txn.val().get(valBytes);
-      assertThat(new String(valBytes), startsWith("xxx"));
+      assertThat(new String(valBytes, UTF_8), startsWith("xxx"));
 
       c.seek(MDB_PREV);
       txn.val().get(valBytes);
-      assertThat(new String(valBytes), startsWith("ccc"));
+      assertThat(new String(valBytes, UTF_8), startsWith("lll"));
 
       c.close();
       txn.commit();
@@ -408,33 +405,33 @@ public class TutorialTest {
     // The critical difference is we pass the PROXY_DB field to Env.create().
     // There's also a PROXY_SAFE if you want to stop ByteBuffer's Unsafe use.
     // Aside from that and a different type argument, it's the same as usual...
-    File path = tmp.newFolder();
-    Env<DirectBuffer> env = create(PROXY_DB)
+    final File path = tmp.newFolder();
+    final Env<DirectBuffer> env = create(PROXY_DB)
         .setMapSize(10, MEBIBYTES)
         .setMaxDbs(1)
-        .open(path, 0664);
+        .open(path);
 
-    Dbi<DirectBuffer> db = env.openDbi("my DB", MDB_CREATE);
+    final Dbi<DirectBuffer> db = env.openDbi(DB_NAME, MDB_CREATE);
 
-    MutableDirectBuffer key = new UnsafeBuffer(allocateDirect(511));
-    MutableDirectBuffer val = new UnsafeBuffer(allocateDirect(700));
+    final MutableDirectBuffer key = new UnsafeBuffer(allocateDirect(511));
+    final MutableDirectBuffer val = new UnsafeBuffer(allocateDirect(700));
 
-    try (Txn<DirectBuffer> txn = env.txnWrite()) {
-      Cursor<DirectBuffer> c = db.openCursor(txn);
+    try (final Txn<DirectBuffer> txn = env.txnWrite()) {
+      final Cursor<DirectBuffer> c = db.openCursor(txn);
 
       // Agrona is not only faster than ByteBuffer, but its methods are nicer...
       val.putStringWithoutLengthUtf8(0, "The Value");
-      key.putStringWithoutLengthUtf8(0, "xxx");
+      key.putStringWithoutLengthUtf8(0, "yyy");
       c.put(key, val);
 
-      key.putStringWithoutLengthUtf8(0, "aaa");
+      key.putStringWithoutLengthUtf8(0, "ggg");
       c.put(key, val);
 
       c.seek(MDB_FIRST);
-      assertThat(txn.key().getStringWithoutLengthUtf8(0, 511), startsWith("aaa"));
+      assertThat(txn.key().getStringWithoutLengthUtf8(0, 511), startsWith("ggg"));
 
       c.seek(MDB_LAST);
-      assertThat(txn.key().getStringWithoutLengthUtf8(0, 511), startsWith("xxx"));
+      assertThat(txn.key().getStringWithoutLengthUtf8(0, 511), startsWith("yyy"));
 
       c.close();
       txn.commit();

@@ -15,39 +15,25 @@
  */
 package org.lmdbjava;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import jnr.constants.Constant;
 import jnr.constants.ConstantSet;
 import static jnr.constants.ConstantSet.getConstantSet;
-import static org.lmdbjava.Cursor.FullException.MDB_CURSOR_FULL;
-import static org.lmdbjava.Dbi.BadDbiException.MDB_BAD_DBI;
-import static org.lmdbjava.Dbi.BadValueSizeException.MDB_BAD_VALSIZE;
-import static org.lmdbjava.Dbi.DbFullException.MDB_DBS_FULL;
-import static org.lmdbjava.Dbi.IncompatibleException.MDB_INCOMPATIBLE;
-import static org.lmdbjava.Dbi.KeyExistsException.MDB_KEYEXIST;
-import static org.lmdbjava.Dbi.KeyNotFoundException.MDB_NOTFOUND;
-import static org.lmdbjava.Dbi.MapResizedException.MDB_MAP_RESIZED;
-import static org.lmdbjava.Env.FileInvalidException.MDB_INVALID;
-import static org.lmdbjava.Env.MapFullException.MDB_MAP_FULL;
-import static org.lmdbjava.Env.ReadersFullException.MDB_READERS_FULL;
-import static org.lmdbjava.Env.VersionMismatchException.MDB_VERSION_MISMATCH;
-import static org.lmdbjava.LmdbNativeException.PageCorruptedException.MDB_CORRUPTED;
-import static org.lmdbjava.LmdbNativeException.PageFullException.MDB_PAGE_FULL;
-import static org.lmdbjava.LmdbNativeException.PageNotFoundException.MDB_PAGE_NOTFOUND;
-import static org.lmdbjava.LmdbNativeException.PanicException.MDB_PANIC;
-import static org.lmdbjava.LmdbNativeException.TlsFullException.MDB_TLS_FULL;
 import org.lmdbjava.Txn.BadException;
-import static org.lmdbjava.Txn.BadException.MDB_BAD_TXN;
 import org.lmdbjava.Txn.BadReaderLockException;
-import static org.lmdbjava.Txn.BadReaderLockException.MDB_BAD_RSLOT;
 import org.lmdbjava.Txn.TxFullException;
-import static org.lmdbjava.Txn.TxFullException.MDB_TXN_FULL;
 
 /**
  * Maps a LMDB C result code to the equivalent Java exception.
+ * <p>
+ * The immutable nature of all LMDB exceptions means the mapper internally
+ * maintains a table of them.
  */
 final class ResultCodeMapper {
 
   private static final ConstantSet CONSTANTS;
+  private static final Map<Integer, LmdbNativeException> EXCEPTIONS;
   private static final String POSIX_ERR_NO = "Errno";
 
   /**
@@ -57,6 +43,32 @@ final class ResultCodeMapper {
 
   static {
     CONSTANTS = getConstantSet(POSIX_ERR_NO);
+    EXCEPTIONS = new ConcurrentHashMap<>(20);
+    add(new Dbi.BadDbiException());
+    add(new BadReaderLockException());
+    add(new BadException());
+    add(new Dbi.BadValueSizeException());
+    add(new LmdbNativeException.PageCorruptedException());
+    add(new Cursor.FullException());
+    add(new Dbi.DbFullException());
+    add(new Dbi.IncompatibleException());
+    add(new Env.FileInvalidException());
+    add(new Dbi.KeyExistsException());
+    add(new Env.MapFullException());
+    add(new Dbi.MapResizedException());
+    add(new Dbi.KeyNotFoundException());
+    add(new LmdbNativeException.PageFullException());
+    add(new LmdbNativeException.PageNotFoundException());
+    add(new LmdbNativeException.PanicException());
+    add(new Env.ReadersFullException());
+    add(new LmdbNativeException.TlsFullException());
+    add(new TxFullException());
+    add(new Env.VersionMismatchException());
+  }
+
+  @SuppressWarnings("ThrowableResultIgnored")
+  private static void add(final LmdbNativeException e) {
+    EXCEPTIONS.put(e.getResultCode(), e);
   }
 
   /**
@@ -70,7 +82,7 @@ final class ResultCodeMapper {
       return;
     }
 
-    final LmdbNativeException nativeException = rcException(rc);
+    final LmdbNativeException nativeException = EXCEPTIONS.get(rc);
     if (nativeException != null) {
       throw nativeException;
     }
@@ -80,69 +92,6 @@ final class ResultCodeMapper {
       throw new IllegalArgumentException("Unknown result code " + rc);
     }
     throw new LmdbNativeException.ConstantDerviedException(rc, constant.name());
-  }
-
-  /**
-   * Returns the appropriate exception for a given result code.
-   * <p>
-   * The passed result code must be a value other than {@link #MDB_SUCCESS}.
-   * Passing {@link #MDB_SUCCESS} will raise an exception.
-   * <p>
-   * If the passed result code cannot be mapped to an LMDB exception, null is
-   * returned.
-   *
-   * @param rc the non-zero LMDB result code
-   * @return the resolved exception (may be null if not an LMDB result code)
-   */
-  static LmdbNativeException rcException(final int rc) throws
-      IllegalArgumentException {
-    if (rc == MDB_SUCCESS) {
-      throw new IllegalArgumentException("Non-zero value required");
-    }
-
-    switch (rc) {
-      case MDB_BAD_DBI:
-        return new Dbi.BadDbiException();
-      case MDB_BAD_RSLOT:
-        return new BadReaderLockException();
-      case MDB_BAD_TXN:
-        return new BadException();
-      case MDB_BAD_VALSIZE:
-        return new Dbi.BadValueSizeException();
-      case MDB_CORRUPTED:
-        return new LmdbNativeException.PageCorruptedException();
-      case MDB_CURSOR_FULL:
-        return new Cursor.FullException();
-      case MDB_DBS_FULL:
-        return new Dbi.DbFullException();
-      case MDB_INCOMPATIBLE:
-        return new Dbi.IncompatibleException();
-      case MDB_INVALID:
-        return new Env.FileInvalidException();
-      case MDB_KEYEXIST:
-        return new Dbi.KeyExistsException();
-      case MDB_MAP_FULL:
-        return new Env.MapFullException();
-      case MDB_MAP_RESIZED:
-        return new Dbi.MapResizedException();
-      case MDB_NOTFOUND:
-        return new Dbi.KeyNotFoundException();
-      case MDB_PAGE_FULL:
-        return new LmdbNativeException.PageFullException();
-      case MDB_PAGE_NOTFOUND:
-        return new LmdbNativeException.PageNotFoundException();
-      case MDB_PANIC:
-        return new LmdbNativeException.PanicException();
-      case MDB_READERS_FULL:
-        return new Env.ReadersFullException();
-      case MDB_TLS_FULL:
-        return new LmdbNativeException.TlsFullException();
-      case MDB_TXN_FULL:
-        return new TxFullException();
-      case MDB_VERSION_MISMATCH:
-        return new Env.VersionMismatchException();
-    }
-    return null;
   }
 
   private ResultCodeMapper() {

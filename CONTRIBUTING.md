@@ -11,21 +11,16 @@ we can discuss what you have in mind.
 
 ## Priorities
 
-All engineering decisions require trade-offs, which is why we have an ordered list of 
+All engineering decisions require trade-offs, which is why we have an ordered list of
 [priorites](https://github.com/lmdbjava/lmdbjava/blob/master/src/main/java/org/lmdbjava/package-info.java).
 Please ensure your changes reflect those priorities.
 
 ## Style
 
-Please use the current code as your style guide. Highlights:
-
-* Add the copyright header to each file
-* Use `final`
-* Use `import static`
-* Keep methods short and clear
-* Exceptions extend `LmdbException` and are typically static inner classes
-* JavaDocs are needed for public types and methods
-* Test coverage is important (Travis and Coveralls run for every pull request)
+Please use the current code as your style guide and run `mvn clean verify`
+before submitting a pull request. This will execute Maven checks using PMD,
+FindBugs, Checkstyle, XML Formatting, classpath duplication, dependency usage,
+and dependency versioning plugins.
 
 ## Questions
 

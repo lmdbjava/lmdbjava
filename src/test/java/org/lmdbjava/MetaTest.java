@@ -28,7 +28,7 @@ import static org.lmdbjava.TestUtils.invokePrivateConstructor;
 public class MetaTest {
 
   @Test
-  public void coverPrivateConstructors() throws Exception {
+  public void coverPrivateConstructors() {
     invokePrivateConstructor(Meta.class);
   }
 

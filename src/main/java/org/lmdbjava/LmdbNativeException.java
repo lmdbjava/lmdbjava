@@ -20,7 +20,7 @@ import static java.lang.String.format;
 /**
  * Superclass for all exceptions that originate from a native C call.
  */
-public abstract class LmdbNativeException extends LmdbException {
+public class LmdbNativeException extends LmdbException {
 
   private static final long serialVersionUID = 1L;
 

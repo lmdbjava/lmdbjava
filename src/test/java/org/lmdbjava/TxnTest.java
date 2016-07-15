@@ -107,7 +107,7 @@ public class TxnTest {
 
   @Test
   public void testGetId() {
-    Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
+    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
 
     final AtomicLong txId1 = new AtomicLong();
     final AtomicLong txId2 = new AtomicLong();

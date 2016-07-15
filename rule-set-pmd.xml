@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ruleset xmlns="http://pmd.sf.net/ruleset/1.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="mybraces" xsi:schemaLocation="http://pmd.sf.net/ruleset/1.0.0 http://pmd.sf.net/ruleset_xml_schema.xsd" xsi:noNamespaceSchemaLocation="http://pmd.sf.net/ruleset_xml_schema.xsd">
+  <rule ref="rulesets/java/basic.xml"/>
+  <rule ref="rulesets/java/braces.xml"/>
+  <rule ref="rulesets/java/clone.xml"/>
+  <rule ref="rulesets/java/codesize.xml">
+    <exclude name="ExcessivePublicCount"/>
+    <exclude name="TooManyMethods"/>
+  </rule>
+  <rule ref="rulesets/java/controversial.xml/UnnecessaryConstructor"/>
+  <rule ref="rulesets/java/controversial.xml/SuspiciousOctalEscape"/>
+  <rule ref="rulesets/java/controversial.xml/CallSuperInConstructor"/>
+  <rule ref="rulesets/java/controversial.xml/UnnecessaryParentheses"/>
+  <rule ref="rulesets/java/controversial.xml/AvoidUsingShortType"/>
+  <rule ref="rulesets/java/controversial.xml/DoNotCallGarbageCollectionExplicitly"/>
+  <rule ref="rulesets/java/controversial.xml/AvoidLiteralsInIfCondition"/>
+  <rule ref="rulesets/java/coupling.xml/LooseCoupling"/>
+  <rule ref="rulesets/java/design.xml">
+    <exclude name="FieldDeclarationsShouldBeAtStartOfClass"/>
+  </rule>
+  <rule ref="rulesets/java/finalizers.xml"/>
+  <rule ref="rulesets/java/imports.xml">
+    <exclude name="TooManyStaticImports"/>
+  </rule>
+  <rule ref="rulesets/java/j2ee.xml/UseProperClassLoader"/>
+  <rule ref="rulesets/java/j2ee.xml/DoNotCallSystemExit"/>
+  <rule ref="rulesets/java/j2ee.xml/DoNotUseThreads"/>
+  <rule ref="rulesets/java/migrating.xml"/>
+  <rule ref="rulesets/java/naming.xml">
+    <exclude name="ShortClassName"/>
+    <exclude name="ShortMethodName"/>
+    <exclude name="ShortVariable"/>
+    <exclude name="LongVariable"/>
+  </rule>
+  <rule ref="rulesets/java/optimizations.xml"/>
+  <rule ref="rulesets/java/strictexception.xml"/>
+  <rule ref="rulesets/java/strings.xml">
+    <exclude name="AvoidDuplicateLiterals"/>
+  </rule>
+  <rule ref="rulesets/java/strings.xml/AvoidDuplicateLiterals">
+    <properties>
+      <property name="skipAnnotations" value="true"/>
+    </properties>
+  </rule>
+  <rule ref="rulesets/java/sunsecure.xml"/>
+  <rule ref="rulesets/java/unusedcode.xml"/>
+  <rule ref="rulesets/java/typeresolution.xml"/>
+</ruleset>

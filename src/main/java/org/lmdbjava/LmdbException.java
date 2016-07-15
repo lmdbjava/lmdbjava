@@ -31,4 +31,14 @@ public class LmdbException extends RuntimeException {
     super(message);
   }
 
+  /**
+   * Constructs an instance with the provided detailed message and cause.
+   *
+   * @param message the detail message
+   * @param cause   original cause
+   */
+  public LmdbException(final String message, final Throwable cause) {
+    super(message, cause);
+  }
+
 }

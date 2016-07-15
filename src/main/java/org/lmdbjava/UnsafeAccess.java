@@ -49,7 +49,7 @@ final class UnsafeAccess {
 
   static {
     if (!ALLOW_UNSAFE) {
-      throw new RuntimeException("Unsafe disabled by user");
+      throw new LmdbException("Unsafe disabled by user");
     }
     try {
       final Field field = Unsafe.class.getDeclaredField(FIELD_NAME_THE_UNSAFE);
@@ -57,7 +57,7 @@ final class UnsafeAccess {
       UNSAFE = (Unsafe) field.get(null);
     } catch (NoSuchFieldException | SecurityException |
              IllegalArgumentException | IllegalAccessException e) {
-      throw new RuntimeException(e);
+      throw new LmdbException("Unsafe unavailable", e);
     }
   }
 

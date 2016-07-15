@@ -26,14 +26,14 @@ import static org.lmdbjava.TestUtils.invokePrivateConstructor;
 public class LibraryTest {
 
   @Test
-  public void coverPrivateConstructors() throws Exception {
+  public void coverPrivateConstructors() {
     invokePrivateConstructor(Library.class);
     invokePrivateConstructor(UnsafeAccess.class);
   }
 
   @Test
   public void structureFieldOrder() {
-    MDB_envinfo v = new MDB_envinfo(RUNTIME);
+    final MDB_envinfo v = new MDB_envinfo(RUNTIME);
     assertThat(v.f0_me_mapaddr.offset(), is(0L));
     assertThat(v.f1_me_mapsize.offset(), is((long) BYTES));
   }

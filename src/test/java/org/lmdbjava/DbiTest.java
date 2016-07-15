@@ -16,10 +16,12 @@
 package org.lmdbjava;
 
 import java.io.File;
+import java.io.IOException;
 import static java.lang.Long.MAX_VALUE;
 import static java.lang.System.getProperty;
 import java.nio.ByteBuffer;
 import static java.nio.ByteBuffer.allocateDirect;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.nCopies;
 import java.util.Random;
 import static org.hamcrest.CoreMatchers.is;
@@ -29,7 +31,6 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -45,6 +46,7 @@ import org.lmdbjava.Env.MapFullException;
 import static org.lmdbjava.Env.create;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.GetOp.MDB_SET_KEY;
+import org.lmdbjava.LmdbNativeException.ConstantDerviedException;
 import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
 import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.bb;
@@ -59,18 +61,18 @@ public class DbiTest {
   public void arrayConvenienceMethods() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
     try (final Txn<ByteBuffer> txn = env.txnWrite()) {
-      final byte[] key = "Hello world".getBytes();
-      final byte[] val = "Need a new greeting".getBytes();
+      final byte[] key = "Hello world".getBytes(UTF_8);
+      final byte[] val = "Need a new greeting".getBytes(UTF_8);
       db.put(txn, buffer(key), buffer(val));
 
       final byte[] found = array(db.get(txn, buffer(key)));
       assertNotNull(found);
-      assertThat(found, is("Need a new greeting".getBytes()));
+      assertThat(found, is("Need a new greeting".getBytes(UTF_8)));
     }
   }
 
   @Before
-  public void before() throws Exception {
+  public void before() throws IOException {
     final File path = tmp.newFile();
     env = create()
         .setMapSize(1, MEBIBYTES)
@@ -79,16 +81,12 @@ public class DbiTest {
         .open(path, MDB_NOSUBDIR);
   }
 
-  @Test
+  @Test(expected = ConstantDerviedException.class)
   public void close() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
     db.put(bb(1), bb(42));
     db.close();
-    try {
-      db.put(bb(2), bb(42));
-      fail("Closed database shouldn't allow a put");
-    } catch (RuntimeException expected) {
-    }
+    db.put(bb(2), bb(42)); // error
   }
 
   @Test(expected = DbFullException.class)
@@ -118,13 +116,13 @@ public class DbiTest {
   }
 
   @Test
-  public void getName() throws Exception {
+  public void getName() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
     assertThat(db.getName(), is(DB_1));
   }
 
   @Test(expected = KeyExistsException.class)
-  public void keyExistsException() throws Exception {
+  public void keyExistsException() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
     try (final Txn<ByteBuffer> txn = env.txnWrite()) {
       db.put(txn, bb(5), bb(5), MDB_NOOVERWRITE);
@@ -258,7 +256,7 @@ public class DbiTest {
         v = allocateDirect(1_024 * 1_024 * 1_024);
       } catch (OutOfMemoryError ome) {
         // Travis CI OS X build cannot allocate this much memory, so assume OK
-        throw new MapFullException();
+        throw new MapFullException(); // NOPMD
       }
       db.put(txn, bb(1), v);
     }
@@ -266,16 +264,16 @@ public class DbiTest {
 
   @Test
   public void testParallelWritesStress() {
-    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
-
     if (getProperty("os.name").startsWith("Windows")) {
       return; // Windows VMs run this test too slowly
     }
 
+    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
+
     // Travis CI has 1.5 cores for legacy builds
     nCopies(2, null).parallelStream()
         .forEach(ignored -> {
-          Random random = new Random();
+          final Random random = new Random();
           for (int i = 0; i < 15_000; i++) {
             db.put(bb(random.nextInt()), bb(random.nextInt()));
           }

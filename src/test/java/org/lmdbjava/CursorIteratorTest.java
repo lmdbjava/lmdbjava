@@ -19,6 +19,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import static java.util.Arrays.asList;
+import java.util.Deque;
 import java.util.LinkedList;
 import java.util.NoSuchElementException;
 import static org.hamcrest.CoreMatchers.is;
@@ -43,13 +44,13 @@ public class CursorIteratorTest {
   public final TemporaryFolder tmp = new TemporaryFolder();
   private Dbi<ByteBuffer> db;
   private Env<ByteBuffer> env;
-  private LinkedList<Integer> list;
+  private Deque<Integer> list;
 
   @Test
   public void backward() {
     try (final Txn<ByteBuffer> txn = env.txnRead();
          CursorIterator<ByteBuffer> c = db.iterate(txn, BACKWARD)) {
-      for (KeyVal<ByteBuffer> kv : c.iterable()) {
+      for (final KeyVal<ByteBuffer> kv : c.iterable()) {
         assertThat(kv.val.getInt(), is(list.pollLast()));
         assertThat(kv.key.getInt(), is(list.pollLast()));
         assertThat(c.hasNext(), is(list.peekFirst() != null));
@@ -59,12 +60,12 @@ public class CursorIteratorTest {
 
   @Test
   public void backwardSeek() {
-    ByteBuffer key = bb(5);
+    final ByteBuffer key = bb(5);
     list.pollLast();
     list.pollLast();
     try (final Txn<ByteBuffer> txn = env.txnRead();
          CursorIterator<ByteBuffer> c = db.iterate(txn, key, BACKWARD)) {
-      for (KeyVal<ByteBuffer> kv : c.iterable()) {
+      for (final KeyVal<ByteBuffer> kv : c.iterable()) {
         assertThat(kv.val.getInt(), is(list.pollLast()));
         assertThat(kv.key.getInt(), is(list.pollLast()));
       }
@@ -92,7 +93,7 @@ public class CursorIteratorTest {
   public void forward() {
     try (final Txn<ByteBuffer> txn = env.txnRead();
          CursorIterator<ByteBuffer> c = db.iterate(txn, FORWARD)) {
-      for (KeyVal<ByteBuffer> kv : c.iterable()) {
+      for (final KeyVal<ByteBuffer> kv : c.iterable()) {
         assertThat(kv.key.getInt(), is(list.pollFirst()));
         assertThat(kv.val.getInt(), is(list.pollFirst()));
         assertThat(c.hasNext(), is(list.peekFirst() != null));
@@ -102,13 +103,13 @@ public class CursorIteratorTest {
 
   @Test
   public void forwardSeek() {
-    ByteBuffer key = bb(3);
+    final ByteBuffer key = bb(3);
     list.pollFirst();
     list.pollFirst();
 
     try (final Txn<ByteBuffer> txn = env.txnRead();
          CursorIterator<ByteBuffer> c = db.iterate(txn, key, FORWARD)) {
-      for (KeyVal<ByteBuffer> kv : c.iterable()) {
+      for (final KeyVal<ByteBuffer> kv : c.iterable()) {
         assertThat(kv.key.getInt(), is(list.pollFirst()));
         assertThat(kv.val.getInt(), is(list.pollFirst()));
       }
@@ -119,7 +120,7 @@ public class CursorIteratorTest {
   public void iterate() {
     try (final Txn<ByteBuffer> txn = env.txnRead();
          CursorIterator<ByteBuffer> c = db.iterate(txn)) {
-      for (KeyVal<ByteBuffer> kv : c.iterable()) {
+      for (final KeyVal<ByteBuffer> kv : c.iterable()) {
         assertThat(kv.key.getInt(), is(list.pollFirst()));
         assertThat(kv.val.getInt(), is(list.pollFirst()));
       }
@@ -130,7 +131,7 @@ public class CursorIteratorTest {
   public void nextThrowsNoSuchElementExceptionIfNoMoreElements() {
     try (final Txn<ByteBuffer> txn = env.txnRead();
          CursorIterator<ByteBuffer> c = db.iterate(txn)) {
-      for (KeyVal<ByteBuffer> kv : c.iterable()) {
+      for (final KeyVal<ByteBuffer> kv : c.iterable()) {
         assertThat(kv.key.getInt(), is(list.pollFirst()));
         assertThat(kv.val.getInt(), is(list.pollFirst()));
       }

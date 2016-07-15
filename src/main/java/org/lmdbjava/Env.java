@@ -82,13 +82,14 @@ public final class Env<T> implements AutoCloseable {
    * @param flags the flags for this new environment
    * @return env the environment (never null)
    */
-  public static Env<ByteBuffer> open(File path, int size, EnvFlags... flags) {
+  public static Env<ByteBuffer> open(final File path, final int size,
+                                     final EnvFlags... flags) {
     return new Builder<>(PROXY_OPTIMAL)
         .setMapSize(size, MEBIBYTES)
         .open(path, flags);
   }
 
-  private boolean closed = false;
+  private boolean closed;
   private final BufferProxy<T> proxy;
   final Pointer ptr;
   final boolean readOnly;
@@ -135,7 +136,8 @@ public final class Env<T> implements AutoCloseable {
     if (!path.isDirectory()) {
       throw new InvalidCopyDestination("Path must be a directory");
     }
-    if (path.list().length > 0) {
+    final String[] files = path.list();
+    if (files != null && files.length > 0) {
       throw new InvalidCopyDestination("Path must contain no files");
     }
     final int flagsMask = mask(flags);
@@ -237,6 +239,9 @@ public final class Env<T> implements AutoCloseable {
    * @return a transaction (never null)
    */
   public Txn<T> txn(final Txn<T> parent, final TxnFlags... flags) {
+    if (closed) {
+      throw new AlreadyClosedException();
+    }
     return new Txn<>(this, parent, proxy, flags);
   }
 
@@ -246,6 +251,9 @@ public final class Env<T> implements AutoCloseable {
    * @return a read-only transaction
    */
   public Txn<T> txnRead() {
+    if (closed) {
+      throw new AlreadyClosedException();
+    }
     return new Txn<>(this, null, proxy, MDB_RDONLY_TXN);
   }
 
@@ -255,6 +263,9 @@ public final class Env<T> implements AutoCloseable {
    * @return a read-write transaction
    */
   public Txn<T> txnWrite() {
+    if (closed) {
+      throw new AlreadyClosedException();
+    }
     return new Txn<>(this, null, proxy);
   }
 
@@ -298,10 +309,10 @@ public final class Env<T> implements AutoCloseable {
     private long mapSize = MEBIBYTES.toBytes(1);
     private int maxDbs = 1;
     private int maxReaders = 1;
-    private boolean opened = false;
+    private boolean opened;
     private final BufferProxy<T> proxy;
 
-    private Builder(final BufferProxy<T> proxy) {
+    Builder(final BufferProxy<T> proxy) {
       requireNonNull(proxy);
       this.proxy = proxy;
     }
@@ -330,7 +341,7 @@ public final class Env<T> implements AutoCloseable {
       final int flagsMask = mask(flags);
       final boolean readOnly = isSet(flagsMask, MDB_RDONLY_ENV);
       checkRc(LIB.mdb_env_open(ptr, path.getAbsolutePath(), flagsMask, mode));
-      return new Env<>(proxy, ptr, readOnly);
+      return new Env<>(proxy, ptr, readOnly); // NOPMD
     }
 
     /**
@@ -341,7 +352,7 @@ public final class Env<T> implements AutoCloseable {
      * @return an environment ready for use
      */
     public Env<T> open(final File path, final EnvFlags... flags) {
-      return open(path, 0664, flags);
+      return open(path, 0664, flags); // NOPMD
     }
 
     /**
@@ -365,7 +376,7 @@ public final class Env<T> implements AutoCloseable {
      * @param unit the unit to use for the size.
      * @return the builder
      */
-    public Builder<T> setMapSize(final int size, ByteUnit unit) {
+    public Builder<T> setMapSize(final int size, final ByteUnit unit) {
       return setMapSize(unit.toBytes(size));
     }
 

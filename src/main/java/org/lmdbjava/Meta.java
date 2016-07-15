@@ -78,7 +78,7 @@ public final class Meta {
      */
     public final int patch;
 
-    Version(int major, int minor, int patch) {
+    Version(final int major, final int minor, final int patch) {
       this.major = major;
       this.minor = minor;
       this.patch = patch;

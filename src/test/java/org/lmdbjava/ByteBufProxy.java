@@ -54,7 +54,7 @@ public class ByteBufProxy extends BufferProxy<ByteBuf> {
       ADDRESS_OFFSET = UNSAFE.objectFieldOffset(address);
       LENGTH_OFFSET = UNSAFE.objectFieldOffset(length);
     } catch (SecurityException e) {
-      throw new RuntimeException(e);
+      throw new LmdbException("Field access error", e);
     }
   }
 
@@ -63,7 +63,7 @@ public class ByteBufProxy extends BufferProxy<ByteBuf> {
     try {
       clazz = forName(c);
     } catch (ClassNotFoundException e) {
-      throw new RuntimeException(e);
+      throw new LmdbException(c + " class unavailable", e);
     }
     do {
       try {
@@ -74,13 +74,13 @@ public class ByteBufProxy extends BufferProxy<ByteBuf> {
         clazz = clazz.getSuperclass();
       }
     } while (clazz != null);
-    throw new RuntimeException(name + " not found");
+    throw new LmdbException(name + " not found");
   }
 
   @Override
   protected ByteBuf allocate() {
-    ArrayDeque<ByteBuf> queue = BUFFERS.get();
-    ByteBuf buffer = queue.poll();
+    final ArrayDeque<ByteBuf> queue = BUFFERS.get();
+    final ByteBuf buffer = queue.poll();
 
     if (buffer != null && buffer.capacity() >= 0) {
       return buffer;
@@ -90,15 +90,15 @@ public class ByteBufProxy extends BufferProxy<ByteBuf> {
   }
 
   @Override
-  protected void deallocate(ByteBuf buff) {
-    ArrayDeque<ByteBuf> queue = BUFFERS.get();
+  protected void deallocate(final ByteBuf buff) {
+    final ArrayDeque<ByteBuf> queue = BUFFERS.get();
     if (!queue.offer(buff)) {
       buff.release();
     }
   }
 
   @Override
-  protected void in(ByteBuf buffer, Pointer ptr, long ptrAddr) {
+  protected void in(final ByteBuf buffer, final Pointer ptr, final long ptrAddr) {
     UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE,
                    buffer.writerIndex() - buffer.readerIndex());
     UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_DATA,
@@ -106,7 +106,8 @@ public class ByteBufProxy extends BufferProxy<ByteBuf> {
   }
 
   @Override
-  protected void in(ByteBuf buffer, int size, Pointer ptr, long ptrAddr) {
+  protected void in(final ByteBuf buffer, final int size, final Pointer ptr,
+                    final long ptrAddr) {
     UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE,
                    size);
     UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_DATA,
@@ -114,7 +115,7 @@ public class ByteBufProxy extends BufferProxy<ByteBuf> {
   }
 
   @Override
-  protected void out(ByteBuf buffer, Pointer ptr, long ptrAddr) {
+  protected void out(final ByteBuf buffer, final Pointer ptr, final long ptrAddr) {
     final long addr = UNSAFE.getLong(ptrAddr + STRUCT_FIELD_OFFSET_DATA);
     final long size = UNSAFE.getLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE);
     UNSAFE.putLong(buffer, ADDRESS_OFFSET, addr);
