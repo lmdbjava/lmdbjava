@@ -350,7 +350,7 @@
           <printFailingErrors>true</printFailingErrors>
           <includeTests>true</includeTests>
           <rulesets>
-            <ruleset>${basedir}/rule-set-pmd.xml</ruleset>
+            <ruleset>${basedir}/src/main/config/rule-set-pmd.xml</ruleset>
           </rulesets>
         </configuration>
       </plugin>
@@ -384,8 +384,7 @@
               <goal>check</goal>
             </goals>
             <configuration>
-              <configLocation>checkstyle.xml</configLocation>
-              <headerLocation>rule-set-hdr.txt</headerLocation>
+              <configLocation>${basedir}/src/main/config/checkstyle.xml</configLocation>
               <consoleOutput>true</consoleOutput>
               <failsOnError>true</failsOnError>
               <includeTestSourceDirectory>true</includeTestSourceDirectory>
@@ -418,6 +417,31 @@
       </plugin>
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
+        <artifactId>license-maven-plugin</artifactId>
+        <version>1.9</version>
+        <executions>
+          <execution>
+            <id>download-licenses</id>
+            <goals>
+              <goal>update-file-header</goal>
+              <goal>update-project-license</goal>
+              <goal>add-third-party</goal>
+            </goals>
+            <phase>process-sources</phase>
+            <configuration>
+              <licenseName>apache_v2</licenseName>
+              <addJavaLicenseAfterPackage>false</addJavaLicenseAfterPackage>
+              <canUpdateCopyright>true</canUpdateCopyright>
+              <canUpdateDescription>true</canUpdateDescription>
+              <emptyLineAfterHeader>true</emptyLineAfterHeader>
+              <generateBundle>true</generateBundle>
+              <failIfWarning>true</failIfWarning>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
         <artifactId>versions-maven-plugin</artifactId>
         <version>2.2</version>
         <executions>
@@ -433,7 +457,7 @@
           </execution>
         </executions>
         <configuration>
-          <rulesUri>file://${basedir}/rule-set-ver.xml</rulesUri>
+          <rulesUri>file://${basedir}/src/main/config/rule-set-ver.xml</rulesUri>
         </configuration>
       </plugin>
     </plugins>
