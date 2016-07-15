@@ -386,11 +386,9 @@
             <configuration>
               <configLocation>checkstyle.xml</configLocation>
               <headerLocation>rule-set-hdr.txt</headerLocation>
-              <encoding>UTF-8</encoding>
               <consoleOutput>true</consoleOutput>
               <failsOnError>true</failsOnError>
               <includeTestSourceDirectory>true</includeTestSourceDirectory>
-              <linkXRef>false</linkXRef>
             </configuration>
           </execution>
         </executions>
