@@ -205,7 +205,7 @@ public final class ByteBufferProxy {
     }
   }
 
-  static abstract class AbstractByteBufferProxy extends BufferProxy<ByteBuffer> {
+  abstract static class AbstractByteBufferProxy extends BufferProxy<ByteBuffer> {
 
     /**
      * A thread-safe pool for a given length. If the buffer found is valid (ie

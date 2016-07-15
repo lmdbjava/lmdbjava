@@ -117,7 +117,7 @@ final class Library {
   private Library() {
   }
 
-  @SuppressWarnings("all")
+  @SuppressWarnings("checkstyle:typename")
   public static final class MDB_envinfo extends Struct {
 
     public final Pointer f0_me_mapaddr;
@@ -127,7 +127,7 @@ final class Library {
     public final u_int32_t f4_me_maxreaders;
     public final u_int32_t f5_me_numreaders;
 
-    public MDB_envinfo(jnr.ffi.Runtime runtime) {
+    MDB_envinfo(final jnr.ffi.Runtime runtime) {
       super(runtime);
       this.f0_me_mapaddr = new Pointer();
       this.f1_me_mapsize = new size_t();
@@ -138,7 +138,7 @@ final class Library {
     }
   }
 
-  @SuppressWarnings("all")
+  @SuppressWarnings("checkstyle:typename")
   public static final class MDB_stat extends Struct {
 
     public final u_int32_t f0_ms_psize;
@@ -148,7 +148,7 @@ final class Library {
     public final size_t f4_ms_overflow_pages;
     public final size_t f5_ms_entries;
 
-    public MDB_stat(jnr.ffi.Runtime runtime) {
+    MDB_stat(final jnr.ffi.Runtime runtime) {
       super(runtime);
       this.f0_ms_psize = new u_int32_t();
       this.f1_ms_depth = new u_int32_t();
@@ -159,7 +159,7 @@ final class Library {
     }
   }
 
-  @SuppressWarnings("all")
+  @SuppressWarnings({"checkstyle:methodname", "PMD.MethodNamingConventions"})
   public interface Lmdb {
 
     void mdb_cursor_close(@In Pointer cursor);
