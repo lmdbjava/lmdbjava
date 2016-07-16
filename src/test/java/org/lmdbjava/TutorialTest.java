@@ -37,8 +37,6 @@ import static org.junit.Assert.assertNull;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import static org.lmdbjava.ByteBufferProxy.array;
-import static org.lmdbjava.ByteBufferProxy.buffer;
 import static org.lmdbjava.ByteUnit.MEBIBYTES;
 import static org.lmdbjava.CursorIterator.IteratorType.BACKWARD;
 import static org.lmdbjava.CursorIterator.IteratorType.FORWARD;
@@ -302,22 +300,24 @@ public class TutorialTest {
     final Dbi<ByteBuffer> db = env.openDbi(DB_NAME, MDB_CREATE);
 
     try (final Txn<ByteBuffer> txn = env.txnWrite()) {
+      final ByteBuffer key = allocateDirect(511);
+      final ByteBuffer val = allocateDirect(700);
 
-      // Let's put some data in. We'll use our byte[] convenience methods.
-      // These aren't recommended, but can be useful for legacy migration.
-      final byte[] value = "Val".getBytes(UTF_8);
-      db.put(txn, buffer("key1".getBytes(UTF_8)), buffer(value));
-      db.put(txn, buffer("key2".getBytes(UTF_8)), buffer(value));
-      db.put(txn, buffer("key3".getBytes(UTF_8)), buffer(value));
+      // Insert some data
+      val.putInt(100);
+      key.putInt(1);
+      db.put(txn, key, val);
+      key.clear();
+      key.putInt(2);
+      db.put(txn, key, val);
+      key.clear();
 
       // Each iterator uses a cursor and must be closed when finished.
       // iterate forward in terms of key ordering starting with the first key
       try (final CursorIterator<ByteBuffer> it = db.iterate(txn, FORWARD)) {
         for (final KeyVal<ByteBuffer> kv : it.iterable()) {
-          final ByteBuffer k = kv.key;
-          final ByteBuffer v = kv.val;
-          assertThat(k, notNullValue());
-          assertThat(array(v), is(value));
+          assertThat(kv.key, notNullValue());
+          assertThat(kv.val, notNullValue());
         }
       }
 
@@ -330,9 +330,8 @@ public class TutorialTest {
       }
 
       // search for key and iterate forwards/backward from there til the last/first key.
-      final ByteBuffer searchKey = buffer("key2".getBytes(UTF_8));
-      try (final CursorIterator<ByteBuffer> it = db.iterate(txn, searchKey,
-                                                            FORWARD)) {
+      key.putInt(1);
+      try (final CursorIterator<ByteBuffer> it = db.iterate(txn, key, FORWARD)) {
         for (final KeyVal<ByteBuffer> kv : it.iterable()) {
           assertThat(kv.key, notNullValue());
           assertThat(kv.val, notNullValue());

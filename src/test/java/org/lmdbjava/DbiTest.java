@@ -26,7 +26,6 @@ import static java.lang.Long.MAX_VALUE;
 import static java.lang.System.getProperty;
 import java.nio.ByteBuffer;
 import static java.nio.ByteBuffer.allocateDirect;
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.nCopies;
 import java.util.Random;
 import static org.hamcrest.CoreMatchers.is;
@@ -40,8 +39,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import static org.lmdbjava.ByteBufferProxy.array;
-import static org.lmdbjava.ByteBufferProxy.buffer;
 import static org.lmdbjava.ByteUnit.MEBIBYTES;
 import org.lmdbjava.Dbi.DbFullException;
 import org.lmdbjava.Dbi.KeyExistsException;
@@ -61,20 +58,6 @@ public class DbiTest {
   @Rule
   public final TemporaryFolder tmp = new TemporaryFolder();
   private Env<ByteBuffer> env;
-
-  @Test
-  public void arrayConvenienceMethods() {
-    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
-    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
-      final byte[] key = "Hello world".getBytes(UTF_8);
-      final byte[] val = "Need a new greeting".getBytes(UTF_8);
-      db.put(txn, buffer(key), buffer(val));
-
-      final byte[] found = array(db.get(txn, buffer(key)));
-      assertNotNull(found);
-      assertThat(found, is("Need a new greeting".getBytes(UTF_8)));
-    }
-  }
 
   @Before
   public void before() throws IOException {
