@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
 import static java.nio.ByteBuffer.allocate;
+import jnr.ffi.Pointer;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -39,6 +40,7 @@ import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
 import static org.lmdbjava.ByteBufferProxy.PROXY_SAFE;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import static org.lmdbjava.Env.create;
+import static org.lmdbjava.Library.RUNTIME;
 import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.invokePrivateConstructor;
 import static org.lmdbjava.UnsafeAccess.ALLOW_UNSAFE;
@@ -102,4 +104,29 @@ public final class ByteBufferProxyTest {
     assertThat(v.getClass().getSimpleName(), startsWith("Unsafe"));
   }
 
+  @Test
+  public void inOutBuffersAreManagedCorrectly() {
+      checkInOut(PROXY_SAFE);
+      checkInOut(PROXY_OPTIMAL);
+  }
+  
+  private void checkInOut(final BufferProxy<ByteBuffer> v) {
+    final ByteBuffer b = ByteBuffer.allocateDirect(511);
+    b.putInt(1);
+    b.putInt(2);
+    b.putInt(3);
+    b.flip();
+    b.position(Integer.BYTES); // skip 1
+    
+    final Pointer p = RUNTIME.getMemoryManager().allocateTemporary(1, false);
+    v.in(b, p, p.address());
+    
+    final ByteBuffer bb = ByteBuffer.allocateDirect(1);
+    v.out(bb, p, p.address());
+    
+    assertThat(bb.getInt(), is(2));
+    assertThat(bb.getInt(), is(3));
+    assertThat(bb.remaining(), is(0));
+  }
+  
 }

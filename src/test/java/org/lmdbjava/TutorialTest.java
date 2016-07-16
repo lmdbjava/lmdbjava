@@ -101,8 +101,9 @@ public final class TutorialTest {
     // Note that LMDB keys cannot exceed 511 bytes. Values can be larger.
     final ByteBuffer key = allocateDirect(511);
     final ByteBuffer val = allocateDirect(700);
-    key.put("greeting".getBytes(UTF_8));
-    val.put("Hello world".getBytes(UTF_8));
+    key.put("greeting".getBytes(UTF_8)).flip();
+    val.put("Hello world".getBytes(UTF_8)).flip();
+    final int valSize = val.remaining();
 
     // Now store it. Dbi.put() internally begins and commits a transaction (Txn).
     db.put(key, val);
@@ -120,13 +121,10 @@ public final class TutorialTest {
 
       // The fetchedVal is read-only and points to LMDB memory
       final ByteBuffer fetchedVal = txn.val();
-      assertThat(fetchedVal.capacity(), is(700));
-      assertThat(fetchedVal.limit(), is(700));
+      assertThat(fetchedVal.remaining(), is(valSize));
 
       // Let's double-check the fetched value is correct
-      final byte[] fetched = new byte[700];
-      fetchedVal.get(fetched);
-      assertThat(new String(fetched, UTF_8), startsWith("Hello world"));
+      assertThat(UTF_8.decode(fetchedVal).toString(), is("Hello world"));
     }
 
     // We can also delete. The simplest way is to let Dbi allocate a new Txn...
@@ -158,8 +156,8 @@ public final class TutorialTest {
     // Note write Txns block other write Txns, due to writes being serialized.
     // It's therefore important to avoid unnecessarily long-lived write Txns.
     try (final Txn<ByteBuffer> txn = env.txnWrite()) {
-      key.put("key1".getBytes(UTF_8));
-      val.put("lmdb".getBytes(UTF_8));
+      key.put("key1".getBytes(UTF_8)).flip();
+      val.put("lmdb".getBytes(UTF_8)).flip();
       db.put(txn, key, val);
 
       // We can read data too, even though this is a write Txn.
@@ -180,7 +178,7 @@ public final class TutorialTest {
     // Let's write out a "key2" via a new write Txn.
     try (final Txn<ByteBuffer> txn = env.txnWrite()) {
       key.clear();
-      key.put("key2".getBytes(UTF_8));
+      key.put("key2".getBytes(UTF_8)).flip();
       db.put(txn, key, val);
       txn.commit();
     }
@@ -228,36 +226,29 @@ public final class TutorialTest {
 
       // We can put via a Cursor. Note we're adding keys in a strange order,
       // as we want to show you that LMDB returns them in sorted order.
-      key.put("zzz".getBytes(UTF_8));
-      val.put("lmdb".getBytes(UTF_8));
+      key.put("zzz".getBytes(UTF_8)).flip();
+      val.put("lmdb".getBytes(UTF_8)).flip();
       c.put(key, val);
       key.clear();
-      key.put("aaa".getBytes(UTF_8));
+      key.put("aaa".getBytes(UTF_8)).flip();
       c.put(key, val);
       key.clear();
-      key.put("ccc".getBytes(UTF_8));
+      key.put("ccc".getBytes(UTF_8)).flip();
       c.put(key, val);
-
-      // Just a byte array to hold our keys (ByteBuffer isn't fun to use!)...
-      final byte[] keyBytes = new byte[511];
 
       // We can read from the Cursor by key.
       c.get(key, MDB_SET);
-      txn.key().get(keyBytes);
-      assertThat(new String(keyBytes, UTF_8), startsWith("ccc"));
+      assertThat(UTF_8.decode(txn.key()).toString(), is("ccc"));
 
       // Let's see that LMDB provides the keys in appropriate order....
       c.seek(MDB_FIRST);
-      txn.key().get(keyBytes);
-      assertThat(new String(keyBytes, UTF_8), startsWith("aaa"));
+      assertThat(UTF_8.decode(txn.key()).toString(), is("aaa"));
 
       c.seek(MDB_LAST);
-      txn.key().get(keyBytes);
-      assertThat(new String(keyBytes, UTF_8), startsWith("zzz"));
+      assertThat(UTF_8.decode(txn.key()).toString(), is("zzz"));
 
       c.seek(MDB_PREV);
-      txn.key().get(keyBytes);
-      assertThat(new String(keyBytes, UTF_8), startsWith("ccc"));
+      assertThat(UTF_8.decode(txn.key()).toString(), is("ccc"));
 
       // Cursors can also delete the current key.
       c.delete();
@@ -367,34 +358,29 @@ public final class TutorialTest {
       final Cursor<ByteBuffer> c = db.openCursor(txn);
 
       // Store one key, but many values, and in non-natural order.
-      key.put("key".getBytes(UTF_8));
-      val.put("xxx".getBytes(UTF_8));
+      key.put("key".getBytes(UTF_8)).flip();
+      val.put("xxx".getBytes(UTF_8)).flip();
       c.put(key, val);
       val.clear();
-      val.put("kkk".getBytes(UTF_8));
+      val.put("kkk".getBytes(UTF_8)).flip();
       c.put(key, val);
       val.clear();
-      val.put("lll".getBytes(UTF_8));
+      val.put("lll".getBytes(UTF_8)).flip();
       c.put(key, val);
 
       // Cursor can tell us how many values the current key has.
       final long count = c.count();
       assertThat(count, is(3L));
 
-      final byte[] valBytes = new byte[511];
-
       // Let's position the Cursor. Note sorting still works.
       c.seek(MDB_FIRST);
-      txn.val().get(valBytes);
-      assertThat(new String(valBytes, UTF_8), startsWith("kkk"));
+      assertThat(UTF_8.decode(txn.val()).toString(), is("kkk"));
 
       c.seek(MDB_LAST);
-      txn.val().get(valBytes);
-      assertThat(new String(valBytes, UTF_8), startsWith("xxx"));
+      assertThat(UTF_8.decode(txn.val()).toString(), is("xxx"));
 
       c.seek(MDB_PREV);
-      txn.val().get(valBytes);
-      assertThat(new String(valBytes, UTF_8), startsWith("lll"));
+      assertThat(UTF_8.decode(txn.val()).toString(), is("lll"));
 
       c.close();
       txn.commit();
