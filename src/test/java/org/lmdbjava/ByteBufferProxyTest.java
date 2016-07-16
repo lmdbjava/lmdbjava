@@ -106,8 +106,8 @@ public final class ByteBufferProxyTest {
 
   @Test
   public void inOutBuffersAreManagedCorrectly() {
-      checkInOut(PROXY_SAFE);
-      checkInOut(PROXY_OPTIMAL);
+    checkInOut(PROXY_SAFE);
+    checkInOut(PROXY_OPTIMAL);
   }
   
   private void checkInOut(final BufferProxy<ByteBuffer> v) {
