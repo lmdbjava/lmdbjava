@@ -166,8 +166,8 @@ public final class ByteBufferProxy {
     @Override
     protected void in(final ByteBuffer buffer, final Pointer ptr,
                       final long ptrAddr) {
-      ptr.putLong(STRUCT_FIELD_OFFSET_SIZE, buffer.remaining());
       ptr.putLong(STRUCT_FIELD_OFFSET_DATA, address(buffer));
+      ptr.putLong(STRUCT_FIELD_OFFSET_SIZE, buffer.remaining());
     }
 
     @Override
