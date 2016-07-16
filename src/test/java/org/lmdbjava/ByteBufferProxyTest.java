@@ -28,15 +28,16 @@ import java.nio.ByteBuffer;
 import static java.nio.ByteBuffer.allocate;
 import static java.nio.ByteBuffer.allocateDirect;
 import jnr.ffi.Pointer;
+import jnr.ffi.provider.MemoryManager;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import static org.lmdbjava.BufferProxy.MDB_VAL_STRUCT_SIZE;
 import static org.lmdbjava.ByteBufferProxy.AbstractByteBufferProxy.findField;
 import org.lmdbjava.ByteBufferProxy.BufferMustBeDirectException;
 import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
@@ -52,6 +53,8 @@ import static org.lmdbjava.UnsafeAccess.ALLOW_UNSAFE;
  * Test {@link ByteBufferProxy}.
  */
 public final class ByteBufferProxyTest {
+
+  static final MemoryManager MEM_MGR = RUNTIME.getMemoryManager();
 
   @Rule
   public final TemporaryFolder tmp = new TemporaryFolder();
@@ -91,7 +94,6 @@ public final class ByteBufferProxyTest {
   }
 
   @Test
-  @Ignore("Fails; requires investigation")
   public void inOutBuffersProxySafe() {
     checkInOut(PROXY_SAFE);
   }
@@ -126,7 +128,7 @@ public final class ByteBufferProxyTest {
     b.flip();
     b.position(BYTES); // skip 1
 
-    final Pointer p = RUNTIME.getMemoryManager().allocateTemporary(1, false);
+    final Pointer p = MEM_MGR.allocateTemporary(MDB_VAL_STRUCT_SIZE, false);
     v.in(b, p, p.address());
 
     final ByteBuffer bb = allocateDirect(1);
