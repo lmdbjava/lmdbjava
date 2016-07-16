@@ -35,8 +35,6 @@ import static jnr.ffi.LibraryLoader.create;
 import jnr.ffi.Pointer;
 import static jnr.ffi.Runtime.getRuntime;
 import jnr.ffi.Struct;
-import jnr.ffi.Struct.size_t;
-import jnr.ffi.Struct.u_int32_t;
 import jnr.ffi.annotations.In;
 import jnr.ffi.annotations.Out;
 import jnr.ffi.byref.IntByReference;
