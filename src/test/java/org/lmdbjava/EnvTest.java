@@ -202,6 +202,8 @@ public final class EnvTest {
     assertThat(info.mapSize, is(123_456L));
     assertThat(info.maxReaders, is(4));
     assertThat(info.numReaders, is(0));
+    
+    assertThat(env.getMaxKeySize(), is(511));
   }
 
   @Test

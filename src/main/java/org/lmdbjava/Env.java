@@ -62,12 +62,15 @@ public final class Env<T> implements AutoCloseable {
   private final BufferProxy<T> proxy;
   private final Pointer ptr;
   private final boolean readOnly;
+  private final int maxKeySize;
 
   private Env(final BufferProxy<T> proxy, final Pointer ptr,
               final boolean readOnly) {
     this.proxy = proxy;
     this.readOnly = readOnly;
     this.ptr = ptr;
+    // cache max key size to avoid further JNI calls
+    this.maxKeySize = LIB.mdb_env_get_maxkeysize(ptr);
   }
 
   /**
@@ -152,6 +155,15 @@ public final class Env<T> implements AutoCloseable {
     checkRc(LIB.mdb_env_copy2(ptr, path.getAbsolutePath(), flagsMask));
   }
 
+  /**
+   * Get the maximum size of keys and MDB_DUPSORT data we can write.
+   * 
+   * @return the maximum size of keys.
+   */
+  public int getMaxKeySize() {
+    return maxKeySize;
+  }
+  
   /**
    * Return information about this environment.
    *
