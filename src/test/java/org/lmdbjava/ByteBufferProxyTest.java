@@ -22,15 +22,18 @@ package org.lmdbjava;
 
 import java.io.File;
 import java.io.IOException;
+import static java.lang.Integer.BYTES;
 import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
 import static java.nio.ByteBuffer.allocate;
+import static java.nio.ByteBuffer.allocateDirect;
 import jnr.ffi.Pointer;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -83,6 +86,17 @@ public final class ByteBufferProxyTest {
   }
 
   @Test
+  public void inOutBuffersProxyOptimal() {
+    checkInOut(PROXY_OPTIMAL);
+  }
+
+  @Test
+  @Ignore("Fails; requires investigation")
+  public void inOutBuffersProxySafe() {
+    checkInOut(PROXY_SAFE);
+  }
+
+  @Test
   public void optimalAlwaysAvailable() {
     final BufferProxy<ByteBuffer> v = PROXY_OPTIMAL;
     assertThat(v, is(notNullValue()));
@@ -104,30 +118,23 @@ public final class ByteBufferProxyTest {
     assertThat(v.getClass().getSimpleName(), startsWith("Unsafe"));
   }
 
-  @Test
-  public void inOutBuffersAreManagedCorrectly() {
-    // FIXME PROXY_SAFE doesn't work
-    // checkInOut(PROXY_SAFE);
-    checkInOut(PROXY_OPTIMAL);
-  }
-  
   private void checkInOut(final BufferProxy<ByteBuffer> v) {
-    final ByteBuffer b = ByteBuffer.allocateDirect(511);
+    final ByteBuffer b = allocateDirect(511);
     b.putInt(1);
     b.putInt(2);
     b.putInt(3);
     b.flip();
-    b.position(Integer.BYTES); // skip 1
-    
+    b.position(BYTES); // skip 1
+
     final Pointer p = RUNTIME.getMemoryManager().allocateTemporary(1, false);
     v.in(b, p, p.address());
-    
-    final ByteBuffer bb = ByteBuffer.allocateDirect(1);
+
+    final ByteBuffer bb = allocateDirect(1);
     v.out(bb, p, p.address());
-    
+
     assertThat(bb.getInt(), is(2));
     assertThat(bb.getInt(), is(3));
     assertThat(bb.remaining(), is(0));
   }
-  
+
 }
