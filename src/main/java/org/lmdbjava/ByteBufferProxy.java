@@ -127,7 +127,7 @@ public final class ByteBufferProxy {
       if (SHOULD_CHECK && !buffer.isDirect()) {
         throw new BufferMustBeDirectException();
       }
-      return ((sun.nio.ch.DirectBuffer) buffer).address();
+      return ((sun.nio.ch.DirectBuffer) buffer).address() + buffer.position();
     }
 
     @Override
@@ -166,8 +166,8 @@ public final class ByteBufferProxy {
     @Override
     protected void in(final ByteBuffer buffer, final Pointer ptr,
                       final long ptrAddr) {
-      ptr.putLong(STRUCT_FIELD_OFFSET_SIZE, buffer.capacity());
       ptr.putLong(STRUCT_FIELD_OFFSET_DATA, address(buffer));
+      ptr.putLong(STRUCT_FIELD_OFFSET_SIZE, buffer.remaining());
     }
 
     @Override
@@ -216,7 +216,7 @@ public final class ByteBufferProxy {
     @Override
     protected void in(final ByteBuffer buffer, final Pointer ptr,
                       final long ptrAddr) {
-      UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE, buffer.capacity());
+      UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE, buffer.remaining());
       UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_DATA, address(buffer));
     }
 

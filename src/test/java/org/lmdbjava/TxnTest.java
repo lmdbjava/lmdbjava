@@ -78,7 +78,7 @@ public final class TxnTest {
   }
 
   @Test
-  public void readOnlyTxnAllowedInReadOnlyEnv() throws IOException {
+  public void readOnlyTxnAllowedInReadOnlyEnv() {
     env.openDbi(DB_1, MDB_CREATE);
     final Env<ByteBuffer> roEnv = create().open(path, MDB_NOSUBDIR,
                                                 MDB_RDONLY_ENV);
@@ -86,7 +86,7 @@ public final class TxnTest {
   }
 
   @Test(expected = EnvIsReadOnly.class)
-  public void readWriteTxnDeniedInReadOnlyEnv() throws IOException {
+  public void readWriteTxnDeniedInReadOnlyEnv() {
     env.openDbi(DB_1, MDB_CREATE);
     env.close();
     final Env<ByteBuffer> roEnv = create().open(path, MDB_NOSUBDIR,
