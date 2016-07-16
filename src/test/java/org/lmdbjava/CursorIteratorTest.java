@@ -43,7 +43,10 @@ import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
 import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.bb;
 
-public class CursorIteratorTest {
+/**
+ * Test {@link CursorIterator}.
+ */
+public final class CursorIteratorTest {
 
   @Rule
   public final TemporaryFolder tmp = new TemporaryFolder();
@@ -56,8 +59,8 @@ public class CursorIteratorTest {
     try (final Txn<ByteBuffer> txn = env.txnRead();
          CursorIterator<ByteBuffer> c = db.iterate(txn, BACKWARD)) {
       for (final KeyVal<ByteBuffer> kv : c.iterable()) {
-        assertThat(kv.val.getInt(), is(list.pollLast()));
-        assertThat(kv.key.getInt(), is(list.pollLast()));
+        assertThat(kv.val().getInt(), is(list.pollLast()));
+        assertThat(kv.key().getInt(), is(list.pollLast()));
         assertThat(c.hasNext(), is(list.peekFirst() != null));
       }
     }
@@ -71,8 +74,8 @@ public class CursorIteratorTest {
     try (final Txn<ByteBuffer> txn = env.txnRead();
          CursorIterator<ByteBuffer> c = db.iterate(txn, key, BACKWARD)) {
       for (final KeyVal<ByteBuffer> kv : c.iterable()) {
-        assertThat(kv.val.getInt(), is(list.pollLast()));
-        assertThat(kv.key.getInt(), is(list.pollLast()));
+        assertThat(kv.val().getInt(), is(list.pollLast()));
+        assertThat(kv.key().getInt(), is(list.pollLast()));
       }
     }
   }
@@ -99,8 +102,8 @@ public class CursorIteratorTest {
     try (final Txn<ByteBuffer> txn = env.txnRead();
          CursorIterator<ByteBuffer> c = db.iterate(txn, FORWARD)) {
       for (final KeyVal<ByteBuffer> kv : c.iterable()) {
-        assertThat(kv.key.getInt(), is(list.pollFirst()));
-        assertThat(kv.val.getInt(), is(list.pollFirst()));
+        assertThat(kv.key().getInt(), is(list.pollFirst()));
+        assertThat(kv.val().getInt(), is(list.pollFirst()));
         assertThat(c.hasNext(), is(list.peekFirst() != null));
       }
     }
@@ -115,8 +118,8 @@ public class CursorIteratorTest {
     try (final Txn<ByteBuffer> txn = env.txnRead();
          CursorIterator<ByteBuffer> c = db.iterate(txn, key, FORWARD)) {
       for (final KeyVal<ByteBuffer> kv : c.iterable()) {
-        assertThat(kv.key.getInt(), is(list.pollFirst()));
-        assertThat(kv.val.getInt(), is(list.pollFirst()));
+        assertThat(kv.key().getInt(), is(list.pollFirst()));
+        assertThat(kv.val().getInt(), is(list.pollFirst()));
       }
     }
   }
@@ -126,8 +129,8 @@ public class CursorIteratorTest {
     try (final Txn<ByteBuffer> txn = env.txnRead();
          CursorIterator<ByteBuffer> c = db.iterate(txn)) {
       for (final KeyVal<ByteBuffer> kv : c.iterable()) {
-        assertThat(kv.key.getInt(), is(list.pollFirst()));
-        assertThat(kv.val.getInt(), is(list.pollFirst()));
+        assertThat(kv.key().getInt(), is(list.pollFirst()));
+        assertThat(kv.val().getInt(), is(list.pollFirst()));
       }
     }
   }
@@ -137,8 +140,8 @@ public class CursorIteratorTest {
     try (final Txn<ByteBuffer> txn = env.txnRead();
          CursorIterator<ByteBuffer> c = db.iterate(txn)) {
       for (final KeyVal<ByteBuffer> kv : c.iterable()) {
-        assertThat(kv.key.getInt(), is(list.pollFirst()));
-        assertThat(kv.val.getInt(), is(list.pollFirst()));
+        assertThat(kv.key().getInt(), is(list.pollFirst()));
+        assertThat(kv.val().getInt(), is(list.pollFirst()));
       }
       assertThat(c.hasNext(), is(false));
       c.next();

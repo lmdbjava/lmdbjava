@@ -28,7 +28,10 @@ import org.lmdbjava.Library.MDB_envinfo;
 import static org.lmdbjava.Library.RUNTIME;
 import static org.lmdbjava.TestUtils.invokePrivateConstructor;
 
-public class LibraryTest {
+/**
+ * Test {@link Library}.
+ */
+public final class LibraryTest {
 
   @Test
   public void coverPrivateConstructors() {

@@ -30,7 +30,10 @@ import static org.lmdbjava.EnvFlags.MDB_RDONLY_ENV;
 import static org.lmdbjava.MaskedFlag.isSet;
 import static org.lmdbjava.MaskedFlag.mask;
 
-public class MaskedFlagTest {
+/**
+ * Test {@link MaskedFlag}.
+ */
+public final class MaskedFlagTest {
 
   @Test
   public void isSetOperates() {

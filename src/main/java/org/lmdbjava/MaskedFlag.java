@@ -23,7 +23,7 @@ package org.lmdbjava;
 import static java.util.Objects.requireNonNull;
 
 /**
- * Indicates an enum that can provide integers for each of its values,
+ * Indicates an enum that can provide integers for each of its values.
  */
 public interface MaskedFlag {
 
@@ -46,7 +46,7 @@ public interface MaskedFlag {
     }
 
     int result = 0;
-    for (MaskedFlag flag : flags) {
+    for (final MaskedFlag flag : flags) {
       if (flag == null) {
         continue;
       }

@@ -53,7 +53,10 @@ import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
 import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.bb;
 
-public class DbiTest {
+/**
+ * Test {@link Dbi}.
+ */
+public final class DbiTest {
 
   @Rule
   public final TemporaryFolder tmp = new TemporaryFolder();
@@ -242,7 +245,7 @@ public class DbiTest {
       final ByteBuffer v;
       try {
         v = allocateDirect(1_024 * 1_024 * 1_024);
-      } catch (OutOfMemoryError ome) {
+      } catch (final OutOfMemoryError e) {
         // Travis CI OS X build cannot allocate this much memory, so assume OK
         throw new MapFullException(); // NOPMD
       }

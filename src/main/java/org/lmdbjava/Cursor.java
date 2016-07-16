@@ -55,6 +55,7 @@ public final class Cursor<T> implements AutoCloseable {
 
   /**
    * Close a cursor handle.
+   *
    * <p>
    * The cursor handle will be freed and must not be used again after this call.
    * Its transaction must still be live if it is a write-transaction.
@@ -73,6 +74,7 @@ public final class Cursor<T> implements AutoCloseable {
 
   /**
    * Return count of duplicates for current key.
+   *
    * <p>
    * This call is only valid on databases that support sorted duplicate data
    * items {@link DbiFlags#MDB_DUPSORT}.
@@ -91,6 +93,7 @@ public final class Cursor<T> implements AutoCloseable {
 
   /**
    * Delete current key/data pair.
+   *
    * <p>
    * This function deletes the key/data pair to which the cursor refers.
    *
@@ -107,7 +110,7 @@ public final class Cursor<T> implements AutoCloseable {
   }
 
   /**
-   * Position at first key/data item
+   * Position at first key/data item.
    *
    * @return false if requested position not found
    */
@@ -131,8 +134,8 @@ public final class Cursor<T> implements AutoCloseable {
     }
     txn.keyIn(key);
 
-    final int rc = LIB.mdb_cursor_get(ptrCursor, txn.ptrKey, txn.ptrVal,
-                                      op.getCode());
+    final int rc = LIB.mdb_cursor_get(ptrCursor, txn.pointerKey(), txn.
+                                      pointerVal(), op.getCode());
 
     if (rc == MDB_NOTFOUND) {
       return false;
@@ -152,7 +155,7 @@ public final class Cursor<T> implements AutoCloseable {
   }
 
   /**
-   * Position at last key/data item
+   * Position at last key/data item.
    *
    * @return false if requested position not found
    */
@@ -161,7 +164,7 @@ public final class Cursor<T> implements AutoCloseable {
   }
 
   /**
-   * Position at next data item
+   * Position at next data item.
    *
    * @return false if requested position not found
    */
@@ -170,7 +173,7 @@ public final class Cursor<T> implements AutoCloseable {
   }
 
   /**
-   * Position at previous data item
+   * Position at previous data item.
    *
    * @return false if requested position not found
    */
@@ -180,6 +183,7 @@ public final class Cursor<T> implements AutoCloseable {
 
   /**
    * Store by cursor.
+   *
    * <p>
    * This function stores key/data pairs into the database. The cursor is
    * positioned at the new item, or on failure usually near it.
@@ -199,13 +203,15 @@ public final class Cursor<T> implements AutoCloseable {
     txn.keyIn(key);
     txn.valIn(val);
     final int flags = mask(op);
-    checkRc(LIB.mdb_cursor_put(ptrCursor, txn.ptrKey, txn.ptrVal, flags));
+    checkRc(LIB.mdb_cursor_put(ptrCursor, txn.pointerKey(), txn.pointerVal(),
+                               flags));
     txn.keyOut();
     txn.valOut();
   }
 
   /**
    * Renew a cursor handle.
+   *
    * <p>
    * A cursor is associated with a specific transaction and database. Cursors
    * that are only used in read-only transactions may be re-used, to avoid
@@ -214,18 +220,18 @@ public final class Cursor<T> implements AutoCloseable {
    * created with. This may be done whether the previous transaction is live or
    * dead.
    *
-   * @param txn transaction handle
+   * @param newTxn transaction handle
    */
-  public void renew(final Txn<T> txn) {
+  public void renew(final Txn<T> newTxn) {
     if (SHOULD_CHECK) {
-      requireNonNull(txn);
+      requireNonNull(newTxn);
       checkNotClosed();
       this.txn.checkReadOnly(); // existing
-      txn.checkReadOnly(); // new
-      txn.checkNotCommitted(); // new
+      newTxn.checkReadOnly();
+      newTxn.checkNotCommitted();
     }
-    checkRc(LIB.mdb_cursor_renew(txn.ptr, ptrCursor));
-    this.txn = txn;
+    checkRc(LIB.mdb_cursor_renew(newTxn.pointer(), ptrCursor));
+    this.txn = newTxn;
   }
 
   /**
@@ -235,6 +241,7 @@ public final class Cursor<T> implements AutoCloseable {
    * saves an extra memcpy if the data is being generated later. LMDB does
    * nothing else with this memory, the caller is expected to modify all of the
    * space requested.
+   *
    * <p>
    * This flag must not be specified if the database was opened with MDB_DUPSORT
    *
@@ -252,7 +259,8 @@ public final class Cursor<T> implements AutoCloseable {
     txn.keyIn(key);
     txn.valIn(size);
     final int flags = mask(MDB_RESERVE);
-    checkRc(LIB.mdb_cursor_put(ptrCursor, txn.ptrKey, txn.ptrVal, flags));
+    checkRc(LIB.mdb_cursor_put(ptrCursor, txn.pointerKey(), txn.pointerVal(),
+                               flags));
     txn.valOut();
     return txn.val();
   }
@@ -270,7 +278,8 @@ public final class Cursor<T> implements AutoCloseable {
       txn.checkNotCommitted();
     }
 
-    final int rc = LIB.mdb_cursor_get(ptrCursor, txn.ptrKey, txn.ptrVal,
+    final int rc = LIB.mdb_cursor_get(ptrCursor, txn.pointerKey(), txn.
+                                      pointerVal(),
                                       op.getCode());
 
     if (rc == MDB_NOTFOUND) {
@@ -316,8 +325,8 @@ public final class Cursor<T> implements AutoCloseable {
    */
   public static final class FullException extends LmdbNativeException {
 
-    private static final long serialVersionUID = 1L;
     static final int MDB_CURSOR_FULL = -30_787;
+    private static final long serialVersionUID = 1L;
 
     FullException() {
       super(MDB_CURSOR_FULL, "Cursor stack too deep - internal error");

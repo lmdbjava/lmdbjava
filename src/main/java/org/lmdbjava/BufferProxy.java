@@ -25,6 +25,7 @@ import jnr.ffi.Pointer;
 
 /**
  * The strategy for mapping memory address to a given buffer type.
+ *
  * <p>
  * The proxy is passed to the {@link Env#create(org.lmdbjava.BufferProxy)}
  * method and is subsequently used by every {@link Txn}, {@link Dbi} and
@@ -32,6 +33,7 @@ import jnr.ffi.Pointer;
  *
  * @param <T> buffer type
  */
+@SuppressWarnings("checkstyle:abstractclassname")
 public abstract class BufferProxy<T> { // NOPMD
 
   /**

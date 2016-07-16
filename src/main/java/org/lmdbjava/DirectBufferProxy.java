@@ -32,6 +32,7 @@ import static org.lmdbjava.UnsafeAccess.UNSAFE;
 
 /**
  * A buffer proxy backed by Agrona's {@link DirectBuffer}.
+ *
  * <p>
  * This class requires {@link UnsafeAccess} and Agrona must be in the classpath.
  */

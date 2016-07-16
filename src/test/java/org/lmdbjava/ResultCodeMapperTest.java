@@ -53,7 +53,10 @@ import org.lmdbjava.Txn.BadException;
 import org.lmdbjava.Txn.BadReaderLockException;
 import org.lmdbjava.Txn.TxFullException;
 
-public class ResultCodeMapperTest {
+/**
+ * Test {@link ResultCodeMapper}.
+ */
+public final class ResultCodeMapperTest {
 
   private static final Set<LmdbNativeException> EXCEPTIONS = new HashSet<>();
   private static final Set<Integer> RESULT_CODES = new HashSet<>();
@@ -92,7 +95,7 @@ public class ResultCodeMapperTest {
       try {
         checkRc(rc);
         fail("Exception expected for RC " + rc);
-      } catch (LmdbNativeException e) {
+      } catch (final LmdbNativeException e) {
         assertThat(e.getResultCode(), is(rc));
       }
     }
@@ -124,7 +127,7 @@ public class ResultCodeMapperTest {
     for (final Integer rc : RESULT_CODES) {
       try {
         checkRc(rc);
-      } catch (LmdbNativeException ex) {
+      } catch (final LmdbNativeException ex) {
         assertThat(ex, is(notNullValue()));
         seen.add(ex);
       }

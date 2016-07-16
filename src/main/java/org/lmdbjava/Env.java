@@ -58,6 +58,18 @@ public final class Env<T> implements AutoCloseable {
    */
   public static final boolean SHOULD_CHECK = !getBoolean(DISABLE_CHECKS_PROP);
 
+  private boolean closed;
+  private final BufferProxy<T> proxy;
+  private final Pointer ptr;
+  private final boolean readOnly;
+
+  private Env(final BufferProxy<T> proxy, final Pointer ptr,
+              final boolean readOnly) {
+    this.proxy = proxy;
+    this.readOnly = readOnly;
+    this.ptr = ptr;
+  }
+
   /**
    * Create an {@link Env} using the {@link ByteBufferProxy#PROXY_OPTIMAL}.
    *
@@ -94,20 +106,9 @@ public final class Env<T> implements AutoCloseable {
         .open(path, flags);
   }
 
-  private boolean closed;
-  private final BufferProxy<T> proxy;
-  final Pointer ptr;
-  final boolean readOnly;
-
-  private Env(final BufferProxy<T> proxy, final Pointer ptr,
-              final boolean readOnly) {
-    this.proxy = proxy;
-    this.readOnly = readOnly;
-    this.ptr = ptr;
-  }
-
   /**
    * Close the handle.
+   *
    * <p>
    * Will silently return if already closed or never opened.
    */
@@ -122,9 +123,11 @@ public final class Env<T> implements AutoCloseable {
 
   /**
    * Copies an LMDB environment to the specified destination path.
+   *
    * <p>
    * This function may be used to make a backup of an existing environment. No
    * lockfile is created, since it gets recreated at need.
+   *
    * <p>
    * Note: This call can trigger significant file size growth if run in parallel
    * with write transactions, because it employs a read-only transaction. See
@@ -184,6 +187,16 @@ public final class Env<T> implements AutoCloseable {
    */
   public boolean isClosed() {
     return closed;
+  }
+
+  /**
+   * Indicates if this environment was opened with
+   * {@link EnvFlags#MDB_RDONLY_ENV}.
+   *
+   * @return true if read-only
+   */
+  public boolean isReadOnly() {
+    return readOnly;
   }
 
   /**
@@ -272,6 +285,10 @@ public final class Env<T> implements AutoCloseable {
       throw new AlreadyClosedException();
     }
     return new Txn<>(this, null, proxy);
+  }
+
+  Pointer pointer() {
+    return ptr;
   }
 
   /**
@@ -419,8 +436,8 @@ public final class Env<T> implements AutoCloseable {
    */
   public static final class FileInvalidException extends LmdbNativeException {
 
-    private static final long serialVersionUID = 1L;
     static final int MDB_INVALID = -30_793;
+    private static final long serialVersionUID = 1L;
 
     FileInvalidException() {
       super(MDB_INVALID, "File is not a valid LMDB file");
@@ -436,7 +453,7 @@ public final class Env<T> implements AutoCloseable {
 
     /**
      * Creates a new instance.
-     * <p>
+     *
      * @param message the reason
      */
     public InvalidCopyDestination(final String message) {
@@ -449,8 +466,8 @@ public final class Env<T> implements AutoCloseable {
    */
   public static final class MapFullException extends LmdbNativeException {
 
-    private static final long serialVersionUID = 1L;
     static final int MDB_MAP_FULL = -30_792;
+    private static final long serialVersionUID = 1L;
 
     MapFullException() {
       super(MDB_MAP_FULL, "Environment mapsize reached");
@@ -462,8 +479,8 @@ public final class Env<T> implements AutoCloseable {
    */
   public static final class ReadersFullException extends LmdbNativeException {
 
-    private static final long serialVersionUID = 1L;
     static final int MDB_READERS_FULL = -30_790;
+    private static final long serialVersionUID = 1L;
 
     ReadersFullException() {
       super(MDB_READERS_FULL, "Environment maxreaders reached");
@@ -475,8 +492,8 @@ public final class Env<T> implements AutoCloseable {
    */
   public static final class VersionMismatchException extends LmdbNativeException {
 
-    private static final long serialVersionUID = 1L;
     static final int MDB_VERSION_MISMATCH = -30_794;
+    private static final long serialVersionUID = 1L;
 
     VersionMismatchException() {
       super(MDB_VERSION_MISMATCH, "Environment version mismatch");

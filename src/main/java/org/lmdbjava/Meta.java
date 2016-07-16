@@ -28,8 +28,12 @@ import static org.lmdbjava.Library.LIB;
  */
 public final class Meta {
 
+  private Meta() {
+  }
+
   /**
    * Fetches the LMDB error code description.
+   *
    * <p>
    * End users should not need this method, as LmdbJava converts all LMDB
    * exceptions into a typed Java exception that incorporates the error code.
@@ -58,9 +62,6 @@ public final class Meta {
 
     return new Version(major.intValue(), minor.intValue(), patch.
                        intValue());
-  }
-
-  private Meta() {
   }
 
   /**

@@ -18,26 +18,7 @@
  * #L%
  */
 
-package org.lmdbjava;
-
 /**
- * Flags for use when creating a {@link Txn}.
+ * Lightning Memory Database (LMDB) for Java (LmdbJava) tests.
  */
-public enum TxnFlags implements MaskedFlag {
-  /**
-   * Read only.
-   */
-  MDB_RDONLY_TXN(0x2_0000);
-
-  private final int mask;
-
-  TxnFlags(final int mask) {
-    this.mask = mask;
-  }
-
-  @Override
-  public int getMask() {
-    return mask;
-  }
-
-}
+package org.lmdbjava;

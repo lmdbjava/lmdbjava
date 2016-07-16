@@ -41,37 +41,37 @@ public final class Txn<T> implements AutoCloseable {
 
   private static final MemoryManager MEM_MGR = RUNTIME.getMemoryManager();
   private boolean committed;
-  private final T key; // NOPMD
+  private final T k;
   private final Txn<T> parent;
   private final BufferProxy<T> proxy;
+  private final Pointer ptr;
+  private final Pointer ptrKey;
   private final long ptrKeyAddr;
+  private final Pointer ptrVal;
   private final long ptrValAddr;
   private final boolean readOnly;
-  private boolean reset = false; // NOPMD
-  private final T val; // NOPMD
-  final Pointer ptr;
-  final Pointer ptrKey;
-  final Pointer ptrVal;
+  private boolean resetState;
+  private final T v;
 
   Txn(final Env<T> env, final Txn<T> parent, final BufferProxy<T> proxy,
       final TxnFlags... flags) {
     this.proxy = proxy;
     final int flagsMask = mask(flags);
     this.readOnly = isSet(flagsMask, MDB_RDONLY_TXN);
-    if (env.readOnly && !this.readOnly) {
+    if (env.isReadOnly() && !this.readOnly) {
       throw new EnvIsReadOnly();
     }
     this.parent = parent;
-    if (parent != null && parent.readOnly != this.readOnly) {
+    if (parent != null && parent.isReadOnly() != this.readOnly) {
       throw new IncompatibleParent();
     }
     final Pointer txnPtr = allocateDirect(RUNTIME, ADDRESS);
     final Pointer txnParentPtr = parent == null ? null : parent.ptr;
-    checkRc(LIB.mdb_txn_begin(env.ptr, txnParentPtr, flagsMask, txnPtr));
+    checkRc(LIB.mdb_txn_begin(env.pointer(), txnParentPtr, flagsMask, txnPtr));
     ptr = txnPtr.getPointer(0);
 
-    this.key = proxy.allocate();
-    this.val = proxy.allocate();
+    this.k = proxy.allocate();
+    this.v = proxy.allocate();
     ptrKey = MEM_MGR.allocateTemporary(MDB_VAL_STRUCT_SIZE, false);
     ptrKeyAddr = ptrKey.address();
     ptrVal = MEM_MGR.allocateTemporary(MDB_VAL_STRUCT_SIZE, false);
@@ -91,6 +91,7 @@ public final class Txn<T> implements AutoCloseable {
 
   /**
    * Closes this transaction by aborting if not already committed.
+   *
    * <p>
    * Closing the transaction will invoke
    * {@link BufferProxy#deallocate(java.lang.Object)} for each read-only buffer
@@ -101,8 +102,8 @@ public final class Txn<T> implements AutoCloseable {
     if (committed) {
       return;
     }
-    proxy.deallocate(key);
-    proxy.deallocate(val);
+    proxy.deallocate(k);
+    proxy.deallocate(v);
     LIB.mdb_txn_abort(ptr);
     committed = true;
   }
@@ -160,7 +161,7 @@ public final class Txn<T> implements AutoCloseable {
    * @return if reset
    */
   public boolean isReset() {
-    return reset;
+    return resetState;
   }
 
   /**
@@ -172,17 +173,17 @@ public final class Txn<T> implements AutoCloseable {
    * @return the key buffer (never null)
    */
   public T key() {
-    return key;
+    return k;
   }
 
   /**
    * Renews a read-only transaction previously released by {@link #reset()}.
    */
   public void renew() {
-    if (!reset) {
+    if (!resetState) {
       throw new NotResetException();
     }
-    reset = false;
+    resetState = false;
     checkRc(LIB.mdb_txn_renew(ptr));
   }
 
@@ -194,11 +195,11 @@ public final class Txn<T> implements AutoCloseable {
     if (!isReadOnly()) {
       throw new ReadOnlyRequiredException();
     }
-    if (reset) {
+    if (resetState) {
       throw new ResetException();
     }
     LIB.mdb_txn_reset(ptr);
-    reset = true;
+    resetState = true;
   }
 
   /**
@@ -210,7 +211,7 @@ public final class Txn<T> implements AutoCloseable {
    * @return the value buffer (never null)
    */
   public T val() {
-    return val;
+    return v;
   }
 
   void checkNotCommitted() throws CommittedException {
@@ -236,7 +237,19 @@ public final class Txn<T> implements AutoCloseable {
   }
 
   void keyOut() {
-    proxy.out(key, ptrKey, ptrKeyAddr);
+    proxy.out(k, ptrKey, ptrKeyAddr);
+  }
+
+  Pointer pointer() {
+    return ptr;
+  }
+
+  Pointer pointerKey() {
+    return ptrKey;
+  }
+
+  Pointer pointerVal() {
+    return ptrVal;
   }
 
   void valIn(final T val) {
@@ -244,11 +257,11 @@ public final class Txn<T> implements AutoCloseable {
   }
 
   void valIn(final int size) {
-    proxy.in(val, size, ptrVal, ptrValAddr);
+    proxy.in(v, size, ptrVal, ptrValAddr);
   }
 
   void valOut() {
-    proxy.out(val, ptrVal, ptrValAddr);
+    proxy.out(v, ptrVal, ptrValAddr);
   }
 
   /**
@@ -256,8 +269,8 @@ public final class Txn<T> implements AutoCloseable {
    */
   public static final class BadException extends LmdbNativeException {
 
-    private static final long serialVersionUID = 1L;
     static final int MDB_BAD_TXN = -30_782;
+    private static final long serialVersionUID = 1L;
 
     BadException() {
       super(MDB_BAD_TXN, "Transaction must abort, has a child, or is invalid");
@@ -269,8 +282,8 @@ public final class Txn<T> implements AutoCloseable {
    */
   public static final class BadReaderLockException extends LmdbNativeException {
 
-    private static final long serialVersionUID = 1L;
     static final int MDB_BAD_RSLOT = -30_783;
+    private static final long serialVersionUID = 1L;
 
     BadReaderLockException() {
       super(MDB_BAD_RSLOT, "Invalid reuse of reader locktable slot");
@@ -387,8 +400,8 @@ public final class Txn<T> implements AutoCloseable {
    */
   public static final class TxFullException extends LmdbNativeException {
 
-    private static final long serialVersionUID = 1L;
     static final int MDB_TXN_FULL = -30_788;
+    private static final long serialVersionUID = 1L;
 
     TxFullException() {
       super(MDB_TXN_FULL, "Transaction has too many dirty pages");

@@ -30,7 +30,10 @@ import org.lmdbjava.Meta.Version;
 import static org.lmdbjava.Meta.error;
 import static org.lmdbjava.TestUtils.invokePrivateConstructor;
 
-public class MetaTest {
+/**
+ * Test {@link Meta}.
+ */
+public final class MetaTest {
 
   @Test
   public void coverPrivateConstructors() {

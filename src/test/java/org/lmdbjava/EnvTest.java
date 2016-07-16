@@ -44,7 +44,10 @@ import static org.lmdbjava.EnvFlags.MDB_RDONLY_ENV;
 import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.bb;
 
-public class EnvTest {
+/**
+ * Test {@link Env}.
+ */
+public final class EnvTest {
 
   @Rule
   public final TemporaryFolder tmp = new TemporaryFolder();
@@ -52,8 +55,8 @@ public class EnvTest {
   @Test
   public void byteUnit() throws IOException {
     final File path = tmp.newFile();
-    final Env<ByteBuffer> env
-        = create().setMapSize(1, MEBIBYTES).open(path, MDB_NOSUBDIR);
+    final Env<ByteBuffer> env = create().setMapSize(1, MEBIBYTES).open(path,
+                                                                       MDB_NOSUBDIR);
     final EnvInfo info = env.info();
     assertThat(info.mapSize, is(MEBIBYTES.toBytes(1)));
   }

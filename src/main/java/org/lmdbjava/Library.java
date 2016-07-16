@@ -45,6 +45,7 @@ import jnr.ffi.byref.PointerByReference;
 
 /**
  * JNR-FFI interface to LMDB.
+ *
  * <p>
  * For performance reasons pointers are used rather than structs.
  */
@@ -66,9 +67,9 @@ final class Library {
    */
   public static final boolean SHOULD_EXTRACT = !getBoolean(DISABLE_EXTRACT_PROP);
 
-  private static final String LIB_NAME = "lmdb";
   static final Lmdb LIB;
   static final jnr.ffi.Runtime RUNTIME;
+  private static final String LIB_NAME = "lmdb";
 
   static {
     final String libToLoad;
@@ -96,6 +97,9 @@ final class Library {
     RUNTIME = getRuntime(LIB);
   }
 
+  private Library() {
+  }
+
   @SuppressWarnings("NestedAssignment")
   private static String extract(final String name) {
     final String suffix = name.substring(name.lastIndexOf('.'));
@@ -105,7 +109,7 @@ final class Library {
       file.deleteOnExit();
       final ClassLoader cl = currentThread().getContextClassLoader();
       try (final InputStream in = cl.getResourceAsStream(name);
-           final OutputStream out = new FileOutputStream(file);) {
+           final OutputStream out = new FileOutputStream(file)) {
         requireNonNull(in, "Classpath resource not found");
         int bytes;
         final byte[] buffer = new byte[4_096];
@@ -114,15 +118,16 @@ final class Library {
         }
       }
       return file.getAbsolutePath();
-    } catch (IOException ioe) {
-      throw new LmdbException("Failed to extract " + name, ioe);
+    } catch (final IOException e) {
+      throw new LmdbException("Failed to extract " + name, e);
     }
   }
 
-  private Library() {
-  }
-
-  @SuppressWarnings("checkstyle:typename")
+  /**
+   * Structure to wrap a native <code>MDB_envinfo</code>. Not for external use.
+   */
+  @SuppressWarnings({"checkstyle:typename", "checkstyle:visibilitymodifier",
+                     "checkstyle:membername"})
   public static final class MDB_envinfo extends Struct {
 
     public final Pointer f0_me_mapaddr;
@@ -143,7 +148,11 @@ final class Library {
     }
   }
 
-  @SuppressWarnings("checkstyle:typename")
+  /**
+   * Structure to wrap a native <code>MDB_stat</code>. Not for external use.
+   */
+  @SuppressWarnings({"checkstyle:typename", "checkstyle:visibilitymodifier",
+                     "checkstyle:membername"})
   public static final class MDB_stat extends Struct {
 
     public final u_int32_t f0_ms_psize;
@@ -164,6 +173,9 @@ final class Library {
     }
   }
 
+  /**
+   * JNR API for MDB-defined C functions. Not for external use.
+   */
   @SuppressWarnings({"checkstyle:methodname", "PMD.MethodNamingConventions"})
   public interface Lmdb {
 

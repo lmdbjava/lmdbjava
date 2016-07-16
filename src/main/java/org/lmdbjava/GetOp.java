@@ -23,25 +23,30 @@ package org.lmdbjava;
 /**
  * Flags for use when performing a
  * {@link Cursor#get(java.lang.Object, org.lmdbjava.GetOp)}.
+ *
  * <p>
  * Unlike most other LMDB enums, this enum is not bit masked.
  */
 public enum GetOp {
 
   /**
-   * Position at specified key
+   * Position at specified key.
    */
   MDB_SET(15),
   /**
-   * Position at specified key, return key + data
+   * Position at specified key, return key + data.
    */
   MDB_SET_KEY(16),
   /**
-   * Position at first key greater than or equal to specified key
+   * Position at first key greater than or equal to specified key.
    */
   MDB_SET_RANGE(17);
 
   private final int code;
+
+  GetOp(final int code) {
+    this.code = code;
+  }
 
   /**
    * Obtain the integer code for use by LMDB C API.
@@ -50,10 +55,6 @@ public enum GetOp {
    */
   public int getCode() {
     return code;
-  }
-
-  GetOp(final int code) {
-    this.code = code;
   }
 
 }

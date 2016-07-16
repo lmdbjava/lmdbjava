@@ -52,7 +52,10 @@ import org.lmdbjava.Txn.ReadWriteRequiredException;
 import org.lmdbjava.Txn.ResetException;
 import static org.lmdbjava.TxnFlags.MDB_RDONLY_TXN;
 
-public class TxnTest {
+/**
+ * Test {@link Txn}.
+ */
+public final class TxnTest {
 
   @Rule
   public final TemporaryFolder tmp = new TemporaryFolder();

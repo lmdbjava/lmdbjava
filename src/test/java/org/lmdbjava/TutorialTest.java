@@ -53,8 +53,10 @@ import static org.lmdbjava.SeekOp.MDB_PREV;
 
 /**
  * Welcome to LmdbJava!
+ *
  * <p>
  * This short tutorial will walk you through using LmdbJava step-by-step.
+ *
  * <p>
  * If you are using a 64-bit Windows, Linux or OS X machine, you can simply run
  * this tutorial by adding the LmdbJava JAR to your classpath. It includes the
@@ -62,7 +64,7 @@ import static org.lmdbjava.SeekOp.MDB_PREV;
  * need to install the LMDB system library yourself. 32-bit platforms are not
  * supported.
  */
-public class TutorialTest {
+public final class TutorialTest {
 
   private static final String DB_NAME = "my DB";
   @Rule
@@ -71,7 +73,7 @@ public class TutorialTest {
   /**
    * In this first tutorial we will use LmdbJava with some basic defaults.
    *
-   * @throws java.io.IOException
+   * @throws IOException if a path was unavailable for memory mapping
    */
   @Test
   public void tutorial1() throws IOException {
@@ -139,7 +141,7 @@ public class TutorialTest {
   /**
    * In this second tutorial we'll learn more about LMDB's ACID Txns.
    *
-   * @throws java.io.IOException
+   * @throws IOException if a path was unavailable for memory mapping
    */
   @Test
   @SuppressWarnings("ConvertToTryWithResources")
@@ -207,10 +209,11 @@ public class TutorialTest {
    * just used Dbi, which is good enough for simple cases but unsuitable if you
    * don't know the key to fetch, or want to iterate over all the data etc.
    *
-   * @throws java.io.IOException
+   * @throws IOException if a path was unavailable for memory mapping
    */
   @Test
-  @SuppressWarnings("ConvertToTryWithResources")
+  @SuppressWarnings({"ConvertToTryWithResources",
+                     "checkstyle:executablestatementcount"})
   public void tutorial3() throws IOException {
     // As per tutorial1...
     final File path = tmp.newFolder();
@@ -290,7 +293,7 @@ public class TutorialTest {
    * In this fourth tutorial we'll take a quick look at the iterators. These are
    * a more Java idiomatic form of using the Cursors we looked at in tutorial 3.
    *
-   * @throws java.io.IOException
+   * @throws IOException if a path was unavailable for memory mapping
    */
   @Test
   public void tutorial4() throws IOException {
@@ -316,16 +319,16 @@ public class TutorialTest {
       // iterate forward in terms of key ordering starting with the first key
       try (final CursorIterator<ByteBuffer> it = db.iterate(txn, FORWARD)) {
         for (final KeyVal<ByteBuffer> kv : it.iterable()) {
-          assertThat(kv.key, notNullValue());
-          assertThat(kv.val, notNullValue());
+          assertThat(kv.key(), notNullValue());
+          assertThat(kv.val(), notNullValue());
         }
       }
 
       // iterate backward in terms of key ordering starting with the first key
       try (final CursorIterator<ByteBuffer> it = db.iterate(txn, BACKWARD)) {
         for (final KeyVal<ByteBuffer> kv : it.iterable()) {
-          assertThat(kv.key, notNullValue());
-          assertThat(kv.val, notNullValue());
+          assertThat(kv.key(), notNullValue());
+          assertThat(kv.val(), notNullValue());
         }
       }
 
@@ -333,8 +336,8 @@ public class TutorialTest {
       key.putInt(1);
       try (final CursorIterator<ByteBuffer> it = db.iterate(txn, key, FORWARD)) {
         for (final KeyVal<ByteBuffer> kv : it.iterable()) {
-          assertThat(kv.key, notNullValue());
-          assertThat(kv.val, notNullValue());
+          assertThat(kv.key(), notNullValue());
+          assertThat(kv.val(), notNullValue());
         }
       }
     }
@@ -343,7 +346,7 @@ public class TutorialTest {
   /**
    * In this fifth tutorial we'll explore multiple values sharing a single key.
    *
-   * @throws java.io.IOException
+   * @throws IOException if a path was unavailable for memory mapping
    */
   @Test
   @SuppressWarnings("ConvertToTryWithResources")
@@ -401,7 +404,7 @@ public class TutorialTest {
   /**
    * In this final tutorial we'll look at using Agrona's MutableDirectBuffer.
    *
-   * @throws java.io.IOException
+   * @throws IOException if a path was unavailable for memory mapping
    */
   @Test
   @SuppressWarnings("ConvertToTryWithResources")

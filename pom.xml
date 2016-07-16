@@ -215,23 +215,6 @@
         <version>4.2.0</version>
       </plugin>
       <plugin>
-        <groupId>au.com.acegi</groupId>
-        <artifactId>xml-format-maven-plugin</artifactId>
-        <version>3.0.2</version>
-        <executions>
-          <execution>
-            <id>xml-format</id>
-            <phase>package</phase>
-            <goals>
-              <goal>xml-format</goal>
-            </goals>
-            <configuration>
-              <indentSize>2</indentSize>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
         <artifactId>maven-source-plugin</artifactId>
         <version>3.0.1</version>
         <executions>
@@ -334,6 +317,68 @@
         </configuration>
       </plugin>
       <plugin>
+        <groupId>au.com.acegi</groupId>
+        <artifactId>xml-format-maven-plugin</artifactId>
+        <version>3.0.2</version>
+        <executions>
+          <execution>
+            <id>xml-format</id>
+            <phase>process-sources</phase>
+            <goals>
+              <goal>xml-format</goal>
+            </goals>
+            <configuration>
+              <indentSize>2</indentSize>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>license-maven-plugin</artifactId>
+        <version>1.9</version>
+        <executions>
+          <execution>
+            <id>download-licenses</id>
+            <goals>
+              <goal>update-file-header</goal>
+              <goal>update-project-license</goal>
+              <goal>add-third-party</goal>
+            </goals>
+            <phase>process-sources</phase>
+            <configuration>
+              <licenseName>apache_v2</licenseName>
+              <addJavaLicenseAfterPackage>false</addJavaLicenseAfterPackage>
+              <canUpdateCopyright>true</canUpdateCopyright>
+              <canUpdateDescription>true</canUpdateDescription>
+              <emptyLineAfterHeader>true</emptyLineAfterHeader>
+              <generateBundle>true</generateBundle>
+              <failIfWarning>true</failIfWarning>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-checkstyle-plugin</artifactId>
+        <version>2.17</version>
+        <executions>
+          <execution>
+            <id>check-style</id>
+            <phase>process-sources</phase>
+            <goals>
+              <goal>check</goal>
+            </goals>
+            <configuration>
+              <configLocation>${basedir}/src/main/config/checkstyle.xml</configLocation>
+              <consoleOutput>true</consoleOutput>
+              <failsOnError>true</failsOnError>
+              <includeTestSourceDirectory>true</includeTestSourceDirectory>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
         <artifactId>maven-pmd-plugin</artifactId>
         <version>3.6</version>
         <executions>
@@ -373,26 +418,6 @@
         </configuration>
       </plugin>
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-checkstyle-plugin</artifactId>
-        <version>2.17</version>
-        <executions>
-          <execution>
-            <id>check-style</id>
-            <phase>verify</phase>
-            <goals>
-              <goal>check</goal>
-            </goals>
-            <configuration>
-              <configLocation>${basedir}/src/main/config/checkstyle.xml</configLocation>
-              <consoleOutput>true</consoleOutput>
-              <failsOnError>true</failsOnError>
-              <includeTestSourceDirectory>true</includeTestSourceDirectory>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
         <groupId>org.basepom.maven</groupId>
         <artifactId>duplicate-finder-maven-plugin</artifactId>
         <version>1.2.1</version>
@@ -414,31 +439,6 @@
             <ignoredResourcePattern>.netbeans_automatic_build</ignoredResourcePattern>
           </ignoredResourcePatterns>
         </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>license-maven-plugin</artifactId>
-        <version>1.9</version>
-        <executions>
-          <execution>
-            <id>download-licenses</id>
-            <goals>
-              <goal>update-file-header</goal>
-              <goal>update-project-license</goal>
-              <goal>add-third-party</goal>
-            </goals>
-            <phase>process-sources</phase>
-            <configuration>
-              <licenseName>apache_v2</licenseName>
-              <addJavaLicenseAfterPackage>false</addJavaLicenseAfterPackage>
-              <canUpdateCopyright>true</canUpdateCopyright>
-              <canUpdateDescription>true</canUpdateDescription>
-              <emptyLineAfterHeader>true</emptyLineAfterHeader>
-              <generateBundle>true</generateBundle>
-              <failIfWarning>true</failIfWarning>
-            </configuration>
-          </execution>
-        </executions>
       </plugin>
       <plugin>
         <groupId>org.codehaus.mojo</groupId>

@@ -233,115 +233,15 @@ public enum ByteUnit {
     }
   };
 
+  static final String DEFAULT_FORMAT_PATTERN = "#,##0.#";
   private static final long B = 1L;
   private static final long KB = B * 1_024L;
+  private static final long MAX = Long.MAX_VALUE;
   private static final long MB = KB * 1_024L;
   private static final long GB = MB * 1_024L;
   private static final long TB = GB * 1_024L;
   private static final long PB = TB * 1_024L;
   private static final String[] UNITS = {"B", "KiB", "MiB", "GiB", "TiB", "PiB"};
-  static final String DEFAULT_FORMAT_PATTERN = "#,##0.#";
-  private static final long MAX = Long.MAX_VALUE;
-
-  /**
-   * Converts the given size in the given unit to bytes. Conversions with
-   * arguments that would numerically overflow saturate to
-   * {@code Long.MIN_VALUE} if negative or {@code Long.MAX_VALUE} if positive.
-   *
-   * @param count the bit count
-   * @return the converted count, or {@code Long.MIN_VALUE} if conversion would
-   *         negatively overflow, or {@code Long.MAX_VALUE} if it would
-   *         positively overflow.
-   */
-  public long toBytes(final long count) {
-    throw new AbstractMethodError();
-  }
-
-  /**
-   * Converts the given size in the given unit to this unit. Conversions from
-   * finer to coarser granularities truncate, so lose precision. For example,
-   * converting from {@code 999} bytes to kibibytes results in {@code 0}.
-   * Conversions from coarser to finer granularities with arguments that would
-   * numerically overflow saturate to {@code Long.MIN_VALUE} if negative or
-   * {@code Long.MAX_VALUE} if positive.
-   * <p>
-   * For example, to convert 10 kilobytes to bytes, use:
-   * {@code ByteUnit.KIBIBYTES.convert(10, ByteUnit.BYTES)}
-   *
-   * @param sourceCount the size in the given {@code sourceUnit}.
-   * @param sourceUnit  the unit of the {@code sourceCount} argument.
-   * @return the converted size in this unit, or {@code Long.MIN_VALUE} if
-   *         conversion would negatively overflow, or {@code Long.MAX_VALUE} if
-   *         it would positively overflow.
-   */
-  public long convert(final long sourceCount, final ByteUnit sourceUnit) {
-    throw new AbstractMethodError();
-  }
-
-  /**
-   * Equivalent to
-   * {@link #convert(long, ByteUnit) KIBIBYTES.convert(count, this)}.
-   *
-   * @param count the bit count
-   * @return the converted count, or {@code Long.MIN_VALUE} if conversion would
-   *         negatively overflow, or {@code Long.MAX_VALUE} if it would
-   *         positively overflow.
-   */
-  public long toKibibytes(final long count) {
-    throw new AbstractMethodError();
-  }
-
-  /**
-   * Equivalent to
-   * {@link #convert(long, ByteUnit) MEBIBYTES.convert(count, this)}.
-   *
-   * @param count the bit count
-   * @return the converted count, or {@code Long.MIN_VALUE} if conversion would
-   *         negatively overflow, or {@code Long.MAX_VALUE} if it would
-   *         positively overflow.
-   */
-  public long toMebibytes(final long count) {
-    throw new AbstractMethodError();
-  }
-
-  /**
-   * Equivalent to
-   * {@link #convert(long, ByteUnit) GIBIBYTES.convert(count, this)}.
-   *
-   * @param count the bit count
-   * @return the converted count, or {@code Long.MIN_VALUE} if conversion would
-   *         negatively overflow, or {@code Long.MAX_VALUE} if it would
-   *         positively overflow.
-   */
-  public long toGibibytes(final long count) {
-    throw new AbstractMethodError();
-  }
-
-  /**
-   * Equivalent to
-   * {@link #convert(long, ByteUnit) TEBIBYTES.convert(count, this)}.
-   *
-   * @param count the bit count
-   * @return the converted count, or {@code Long.MIN_VALUE} if conversion would
-   *         negatively overflow, or {@code Long.MAX_VALUE} if it would
-   *         positively overflow.
-   */
-  public long toTebibytes(final long count) {
-    throw new AbstractMethodError();
-  }
-
-  /**
-   * Equivalent to
-   * {@link #convert(long, ByteUnit) PEBIBYTES.convert(count, this)}.
-   *
-   * @param count the bit count
-   * @return the converted count, or {@code Long.MIN_VALUE} if conversion would
-   *         negatively overflow, or {@code Long.MAX_VALUE} if it would
-   *         positively overflow.
-   */
-  public long toPebibytes(final long count) {
-    throw new AbstractMethodError();
-  }
 
   /**
    * Return {@code bytes} as human-readable size string (e.g., "1.2 GiB". This
@@ -391,9 +291,7 @@ public enum ByteUnit {
     return format.format(count) + ' ' + UNITS[unitIndex];
   }
 
-  /**
-   * Multiply {@code size} by {@code factor} accounting for overflow.
-   */
+  @SuppressWarnings("checkstyle:returncount")
   private static long multiply(final long size, final long factor,
                                final long over) {
     if (size > over) {
@@ -404,4 +302,106 @@ public enum ByteUnit {
     }
     return size * factor;
   }
+
+  /**
+   * Converts the given size in the given unit to this unit. Conversions from
+   * finer to coarser granularities truncate, so lose precision. For example,
+   * converting from {@code 999} bytes to kibibytes results in {@code 0}.
+   * Conversions from coarser to finer granularities with arguments that would
+   * numerically overflow saturate to {@code Long.MIN_VALUE} if negative or
+   * {@code Long.MAX_VALUE} if positive.
+   *
+   * <p>
+   * For example, to convert 10 kilobytes to bytes, use:
+   * {@code ByteUnit.KIBIBYTES.convert(10, ByteUnit.BYTES)}
+   *
+   * @param sourceCount the size in the given {@code sourceUnit}.
+   * @param sourceUnit  the unit of the {@code sourceCount} argument.
+   * @return the converted size in this unit, or {@code Long.MIN_VALUE} if
+   *         conversion would negatively overflow, or {@code Long.MAX_VALUE} if
+   *         it would positively overflow.
+   */
+  public long convert(final long sourceCount, final ByteUnit sourceUnit) {
+    throw new AbstractMethodError();
+  }
+
+  /**
+   * Converts the given size in the given unit to bytes. Conversions with
+   * arguments that would numerically overflow saturate to
+   * {@code Long.MIN_VALUE} if negative or {@code Long.MAX_VALUE} if positive.
+   *
+   * @param count the bit count
+   * @return the converted count, or {@code Long.MIN_VALUE} if conversion would
+   *         negatively overflow, or {@code Long.MAX_VALUE} if it would
+   *         positively overflow.
+   */
+  public long toBytes(final long count) {
+    throw new AbstractMethodError();
+  }
+
+  /**
+   * Equivalent to
+   * {@link #convert(long, ByteUnit) GIBIBYTES.convert(count, this)}.
+   *
+   * @param count the bit count
+   * @return the converted count, or {@code Long.MIN_VALUE} if conversion would
+   *         negatively overflow, or {@code Long.MAX_VALUE} if it would
+   *         positively overflow.
+   */
+  public long toGibibytes(final long count) {
+    throw new AbstractMethodError();
+  }
+
+  /**
+   * Equivalent to
+   * {@link #convert(long, ByteUnit) KIBIBYTES.convert(count, this)}.
+   *
+   * @param count the bit count
+   * @return the converted count, or {@code Long.MIN_VALUE} if conversion would
+   *         negatively overflow, or {@code Long.MAX_VALUE} if it would
+   *         positively overflow.
+   */
+  public long toKibibytes(final long count) {
+    throw new AbstractMethodError();
+  }
+
+  /**
+   * Equivalent to
+   * {@link #convert(long, ByteUnit) MEBIBYTES.convert(count, this)}.
+   *
+   * @param count the bit count
+   * @return the converted count, or {@code Long.MIN_VALUE} if conversion would
+   *         negatively overflow, or {@code Long.MAX_VALUE} if it would
+   *         positively overflow.
+   */
+  public long toMebibytes(final long count) {
+    throw new AbstractMethodError();
+  }
+
+  /**
+   * Equivalent to
+   * {@link #convert(long, ByteUnit) PEBIBYTES.convert(count, this)}.
+   *
+   * @param count the bit count
+   * @return the converted count, or {@code Long.MIN_VALUE} if conversion would
+   *         negatively overflow, or {@code Long.MAX_VALUE} if it would
+   *         positively overflow.
+   */
+  public long toPebibytes(final long count) {
+    throw new AbstractMethodError();
+  }
+
+  /**
+   * Equivalent to
+   * {@link #convert(long, ByteUnit) TEBIBYTES.convert(count, this)}.
+   *
+   * @param count the bit count
+   * @return the converted count, or {@code Long.MIN_VALUE} if conversion would
+   *         negatively overflow, or {@code Long.MAX_VALUE} if it would
+   *         positively overflow.
+   */
+  public long toTebibytes(final long count) {
+    throw new AbstractMethodError();
+  }
+
 }

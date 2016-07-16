@@ -22,13 +22,14 @@ package org.lmdbjava;
 
 /**
  * Flags for use when performing a {@link Cursor#seek(org.lmdbjava.SeekOp)}.
+ *
  * <p>
  * Unlike most other LMDB enums, this enum is not bit masked.
  */
 public enum SeekOp {
 
   /**
-   * Position at first key/data item
+   * Position at first key/data item.
    */
   MDB_FIRST(0),
   /**
@@ -45,7 +46,7 @@ public enum SeekOp {
    */
   MDB_GET_BOTH_RANGE(3),
   /**
-   * Return key/data at current cursor position
+   * Return key/data at current cursor position.
    */
   MDB_GET_CURRENT(4),
   /**
@@ -55,7 +56,7 @@ public enum SeekOp {
    */
   MDB_GET_MULTIPLE(5),
   /**
-   * Position at last key/data item
+   * Position at last key/data item.
    */
   MDB_LAST(6),
   /**
@@ -64,7 +65,7 @@ public enum SeekOp {
    */
   MDB_LAST_DUP(7),
   /**
-   * Position at next data item
+   * Position at next data item.
    */
   MDB_NEXT(8),
   /**
@@ -79,11 +80,11 @@ public enum SeekOp {
    */
   MDB_NEXT_MULTIPLE(10),
   /**
-   * Position at first data item of next key
+   * Position at first data item of next key.
    */
   MDB_NEXT_NODUP(11),
   /**
-   * Position at previous data item
+   * Position at previous data item.
    */
   MDB_PREV(12),
   /**
@@ -92,11 +93,15 @@ public enum SeekOp {
    */
   MDB_PREV_DUP(13),
   /**
-   * Position at last data item of previous key
+   * Position at last data item of previous key.
    */
   MDB_PREV_NODUP(14);
 
   private final int code;
+
+  SeekOp(final int code) {
+    this.code = code;
+  }
 
   /**
    * Obtain the integer code for use by LMDB C API.
@@ -105,10 +110,6 @@ public enum SeekOp {
    */
   public int getCode() {
     return code;
-  }
-
-  SeekOp(final int code) {
-    this.code = code;
   }
 
 }

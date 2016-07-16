@@ -35,8 +35,6 @@ import static org.lmdbjava.Library.RUNTIME;
 import static org.lmdbjava.MaskedFlag.mask;
 import static org.lmdbjava.PutFlags.MDB_RESERVE;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
-import org.lmdbjava.Txn.CommittedException;
-import org.lmdbjava.Txn.ReadWriteRequiredException;
 
 /**
  * LMDB Database.
@@ -50,18 +48,18 @@ public final class Dbi<T> {
   private final Pointer ptr;
 
   Dbi(final Env<T> env, final Txn<T> txn, final String name,
-      final DbiFlags... flags) throws CommittedException, LmdbNativeException,
-                                      ReadWriteRequiredException {
+      final DbiFlags... flags) {
     this.env = env;
     this.name = name;
     final int flagsMask = mask(flags);
     final Pointer dbiPtr = allocateDirect(RUNTIME, ADDRESS);
-    checkRc(LIB.mdb_dbi_open(txn.ptr, name, flagsMask, dbiPtr));
+    checkRc(LIB.mdb_dbi_open(txn.pointer(), name, flagsMask, dbiPtr));
     ptr = dbiPtr.getPointer(0);
   }
 
   /**
    * Close the database handle (normally unnecessary; use with caution).
+   *
    * <p>
    * It is very rare that closing a database handle is useful. There are also
    * many warnings/restrictions if closing a database handle (refer to the LMDB
@@ -71,7 +69,7 @@ public final class Dbi<T> {
    * state accordingly.
    */
   public void close() {
-    LIB.mdb_dbi_close(env.ptr, ptr);
+    LIB.mdb_dbi_close(env.pointer(), ptr);
   }
 
   /**
@@ -100,12 +98,14 @@ public final class Dbi<T> {
 
   /**
    * Removes key/data pairs from the database.
+   *
    * <p>
    * If the database does not support sorted duplicate data items
    * ({@link DbiFlags#MDB_DUPSORT}) the value parameter is ignored. If the
    * database supports sorted duplicates and the value parameter is null, all of
    * the duplicate data items for the key will be deleted. Otherwise, if the
    * data parameter is non-null only the matching data item will be deleted.
+   *
    * <p>
    * This function will throw {@link KeyNotFoundException} if the key/data pair
    * is not found.
@@ -125,15 +125,17 @@ public final class Dbi<T> {
     txn.keyIn(key);
 
     if (val == null) {
-      checkRc(LIB.mdb_del(txn.ptr, ptr, txn.ptrKey, null));
+      checkRc(LIB.mdb_del(txn.pointer(), ptr, txn.pointerKey(), null));
     } else {
       txn.valIn(val);
-      checkRc(LIB.mdb_del(txn.ptr, ptr, txn.ptrKey, txn.ptrVal));
+      checkRc(LIB
+          .mdb_del(txn.pointer(), ptr, txn.pointerKey(), txn.pointerVal()));
     }
   }
 
   /**
    * Drops the data in this database, leaving the database open for further use.
+   *
    * <p>
    * This method slightly differs from the LMDB C API in that it does not
    * provide support for also closing the DB handle. If closing the DB handle is
@@ -147,11 +149,12 @@ public final class Dbi<T> {
       txn.checkNotCommitted();
       txn.checkWritesAllowed();
     }
-    checkRc(LIB.mdb_drop(txn.ptr, ptr, 0));
+    checkRc(LIB.mdb_drop(txn.pointer(), ptr, 0));
   }
 
   /**
    * Get items from a database, moving the {@link Txn#val()} to the value.
+   *
    * <p>
    * This function retrieves key/data pairs from the database. The address and
    * length of the data associated with the specified \b key are returned in the
@@ -171,7 +174,8 @@ public final class Dbi<T> {
       txn.checkNotCommitted();
     }
     txn.keyIn(key);
-    final int rc = LIB.mdb_get(txn.ptr, ptr, txn.ptrKey, txn.ptrVal);
+    final int rc = LIB.mdb_get(txn.pointer(), ptr, txn.pointerKey(), txn.
+                               pointerVal());
     if (rc == MDB_NOTFOUND) {
       return null;
     }
@@ -230,6 +234,7 @@ public final class Dbi<T> {
 
   /**
    * Create a cursor handle.
+   *
    * <p>
    * A cursor is associated with a specific transaction and database. A cursor
    * cannot be used when its database handle is closed. Nor when its transaction
@@ -249,7 +254,7 @@ public final class Dbi<T> {
       txn.checkNotCommitted();
     }
     final PointerByReference cursorPtr = new PointerByReference();
-    checkRc(LIB.mdb_cursor_open(txn.ptr, ptr, cursorPtr));
+    checkRc(LIB.mdb_cursor_open(txn.pointer(), ptr, cursorPtr));
     return new Cursor<>(cursorPtr.getValue(), txn);
   }
 
@@ -270,6 +275,7 @@ public final class Dbi<T> {
 
   /**
    * Store a key/value pair in the database.
+   *
    * <p>
    * This function stores key/data pairs in the database. The default behavior
    * is to enter the new key/data pair, replacing any previously existing key if
@@ -293,7 +299,8 @@ public final class Dbi<T> {
     txn.keyIn(key);
     txn.valIn(val);
     final int mask = mask(flags);
-    checkRc(LIB.mdb_put(txn.ptr, ptr, txn.ptrKey, txn.ptrVal, mask));
+    checkRc(LIB.mdb_put(txn.pointer(), ptr, txn.pointerKey(), txn.pointerVal(),
+                        mask));
     txn.valOut(); // marked as in,out in LMDB C docs
   }
 
@@ -304,6 +311,7 @@ public final class Dbi<T> {
    * saves an extra memcpy if the data is being generated later. LMDB does
    * nothing else with this memory, the caller is expected to modify all of the
    * space requested.
+   *
    * <p>
    * This flag must not be specified if the database was opened with MDB_DUPSORT
    *
@@ -322,7 +330,8 @@ public final class Dbi<T> {
     txn.keyIn(key);
     txn.valIn(size);
     final int mask = mask(MDB_RESERVE);
-    checkRc(LIB.mdb_put(txn.ptr, ptr, txn.ptrKey, txn.ptrVal, mask));
+    checkRc(LIB.mdb_put(txn.pointer(), ptr, txn.pointerKey(), txn.pointerVal(),
+                        mask));
     txn.valOut(); // marked as in,out in LMDB C docs
     return txn.val();
   }
@@ -339,7 +348,7 @@ public final class Dbi<T> {
       txn.checkNotCommitted();
     }
     final MDB_stat stat = new MDB_stat(RUNTIME);
-    checkRc(LIB.mdb_stat(txn.ptr, ptr, stat));
+    checkRc(LIB.mdb_stat(txn.pointer(), ptr, stat));
     return new Stat(
         stat.f0_ms_psize.intValue(),
         stat.f1_ms_depth.intValue(),
@@ -354,8 +363,8 @@ public final class Dbi<T> {
    */
   public static final class BadDbiException extends LmdbNativeException {
 
-    private static final long serialVersionUID = 1L;
     static final int MDB_BAD_DBI = -30_780;
+    private static final long serialVersionUID = 1L;
 
     BadDbiException() {
       super(MDB_BAD_DBI, "The specified DBI was changed unexpectedly");
@@ -367,8 +376,8 @@ public final class Dbi<T> {
    */
   public static final class BadValueSizeException extends LmdbNativeException {
 
-    private static final long serialVersionUID = 1L;
     static final int MDB_BAD_VALSIZE = -30_781;
+    private static final long serialVersionUID = 1L;
 
     BadValueSizeException() {
       super(MDB_BAD_VALSIZE,
@@ -381,8 +390,8 @@ public final class Dbi<T> {
    */
   public static final class DbFullException extends LmdbNativeException {
 
-    private static final long serialVersionUID = 1L;
     static final int MDB_DBS_FULL = -30_791;
+    private static final long serialVersionUID = 1L;
 
     DbFullException() {
       super(MDB_DBS_FULL, "Environment maxdbs reached");
@@ -391,6 +400,7 @@ public final class Dbi<T> {
 
   /**
    * Operation and DB incompatible, or DB type changed.
+   *
    * <p>
    * This can mean:
    * <ul>
@@ -403,8 +413,8 @@ public final class Dbi<T> {
    */
   public static final class IncompatibleException extends LmdbNativeException {
 
-    private static final long serialVersionUID = 1L;
     static final int MDB_INCOMPATIBLE = -30_784;
+    private static final long serialVersionUID = 1L;
 
     IncompatibleException() {
       super(MDB_INCOMPATIBLE,
@@ -417,8 +427,8 @@ public final class Dbi<T> {
    */
   public static final class KeyExistsException extends LmdbNativeException {
 
-    private static final long serialVersionUID = 1L;
     static final int MDB_KEYEXIST = -30_799;
+    private static final long serialVersionUID = 1L;
 
     KeyExistsException() {
       super(MDB_KEYEXIST, "key/data pair already exists");
@@ -430,8 +440,8 @@ public final class Dbi<T> {
    */
   public static final class KeyNotFoundException extends LmdbNativeException {
 
-    private static final long serialVersionUID = 1L;
     static final int MDB_NOTFOUND = -30_798;
+    private static final long serialVersionUID = 1L;
 
     KeyNotFoundException() {
       super(MDB_NOTFOUND, "key/data pair not found (EOF)");
@@ -443,8 +453,8 @@ public final class Dbi<T> {
    */
   public static final class MapResizedException extends LmdbNativeException {
 
-    private static final long serialVersionUID = 1L;
     static final int MDB_MAP_RESIZED = -30_785;
+    private static final long serialVersionUID = 1L;
 
     MapResizedException() {
       super(MDB_MAP_RESIZED, "Database contents grew beyond environment mapsize");

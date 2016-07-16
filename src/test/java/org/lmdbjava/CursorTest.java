@@ -53,11 +53,18 @@ import static org.lmdbjava.SeekOp.MDB_FIRST;
 import static org.lmdbjava.SeekOp.MDB_LAST;
 import static org.lmdbjava.SeekOp.MDB_NEXT;
 import static org.lmdbjava.SeekOp.MDB_PREV;
-import static org.lmdbjava.TestUtils.*;
+import static org.lmdbjava.TestUtils.DB_1;
+import static org.lmdbjava.TestUtils.POSIX_MODE;
+import static org.lmdbjava.TestUtils.bb;
+import static org.lmdbjava.TestUtils.mdb;
+import static org.lmdbjava.TestUtils.nb;
 import org.lmdbjava.Txn.CommittedException;
 import org.lmdbjava.Txn.ReadOnlyRequiredException;
 
-public class CursorTest {
+/**
+ * Test {@link Cursor}.
+ */
+public final class CursorTest {
 
   @Rule
   public final TemporaryFolder tmp = new TemporaryFolder();
@@ -171,6 +178,7 @@ public class CursorTest {
   }
 
   @Test
+  @SuppressWarnings("checkstyle:executablestatementcount")
   public void cursorMutableDirectBuffer() {
     final Env<DirectBuffer> env = makeEnv(PROXY_DB);
     final Dbi<DirectBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
@@ -320,6 +328,7 @@ public class CursorTest {
     }
   }
 
+  @SuppressWarnings("checkstyle:executablestatementcount")
   private void cursorByteBuffer(final BufferProxy<ByteBuffer> buffType) {
     final Env<ByteBuffer> env = makeEnv(buffType);
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
@@ -369,7 +378,7 @@ public class CursorTest {
           .setMaxDbs(1)
           .open(path, POSIX_MODE, MDB_NOSUBDIR);
       return env;
-    } catch (IOException e) {
+    } catch (final IOException e) {
       throw new LmdbException("IO failure", e);
     }
   }

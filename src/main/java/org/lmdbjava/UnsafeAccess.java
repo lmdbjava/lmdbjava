@@ -40,17 +40,16 @@ final class UnsafeAccess {
   public static final boolean ALLOW_UNSAFE = !getBoolean(DISABLE_UNSAFE_PROP);
 
   /**
-   * Unsafe field name (used to reflectively obtain the unsafe instance).
-   */
-  private static final String FIELD_NAME_THE_UNSAFE = "theUnsafe";
-
-  /**
    * The actual unsafe. Guaranteed to be non-null if this class can access
    * unsafe and {@link #ALLOW_UNSAFE} is true. In other words, this entire class
    * will fail to initialize if unsafe is unavailable. This avoids callers from
    * needing to deal with null checks.
    */
   static final Unsafe UNSAFE;
+  /**
+   * Unsafe field name (used to reflectively obtain the unsafe instance).
+   */
+  private static final String FIELD_NAME_THE_UNSAFE = "theUnsafe";
 
   static {
     if (!ALLOW_UNSAFE) {
@@ -60,8 +59,8 @@ final class UnsafeAccess {
       final Field field = Unsafe.class.getDeclaredField(FIELD_NAME_THE_UNSAFE);
       field.setAccessible(true);
       UNSAFE = (Unsafe) field.get(null);
-    } catch (NoSuchFieldException | SecurityException |
-             IllegalArgumentException | IllegalAccessException e) {
+    } catch (final NoSuchFieldException | SecurityException |
+                   IllegalArgumentException | IllegalAccessException e) {
       throw new LmdbException("Unsafe unavailable", e);
     }
   }

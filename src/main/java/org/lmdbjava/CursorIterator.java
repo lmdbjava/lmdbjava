@@ -57,6 +57,7 @@ public final class CursorIterator<T> implements
   }
 
   @Override
+  @SuppressWarnings("checkstyle:returncount")
   public boolean hasNext() {
     switch (state) {
       case DONE:
@@ -69,6 +70,7 @@ public final class CursorIterator<T> implements
   }
 
   /**
+   * Obtain an iterator.
    *
    * @return an iterator
    */
@@ -100,6 +102,7 @@ public final class CursorIterator<T> implements
     }
   }
 
+  @SuppressWarnings("checkstyle:returncount")
   private boolean tryToComputeNext() {
     if (first) {
       if (key != null) { // NOPMD
@@ -136,27 +139,43 @@ public final class CursorIterator<T> implements
    */
   public static final class KeyVal<T> {
 
-    /**
-     * The key.
-     */
-    public final T key;
+    private final T k;
+    private final T v;
 
     /**
-     * The value.
-     */
-    public final T val;
-
-    /**
+     * Obtain a key-value holder.
      *
      * @param key the key
      * @param val the value
      */
     public KeyVal(final T key, final T val) {
-      this.key = key;
-      this.val = val;
+      this.k = key;
+      this.v = val;
     }
+
+    /**
+     * The key.
+     *
+     * @return key
+     */
+    public T key() {
+      return k;
+    }
+
+    /**
+     * The value.
+     *
+     * @return value
+     */
+    public T val() {
+      return v;
+    }
+
   }
 
+  /**
+   * Represents the internal {@link CursorIterator} state.
+   */
   enum State {
     READY, NOT_READY, DONE, FAILED,
   }

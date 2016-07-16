@@ -43,7 +43,10 @@ import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.invokePrivateConstructor;
 import static org.lmdbjava.UnsafeAccess.ALLOW_UNSAFE;
 
-public class ByteBufferProxyTest {
+/**
+ * Test {@link ByteBufferProxy}.
+ */
+public final class ByteBufferProxyTest {
 
   @Rule
   public final TemporaryFolder tmp = new TemporaryFolder();

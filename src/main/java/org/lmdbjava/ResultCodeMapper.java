@@ -31,20 +31,21 @@ import org.lmdbjava.Txn.TxFullException;
 
 /**
  * Maps a LMDB C result code to the equivalent Java exception.
+ *
  * <p>
  * The immutable nature of all LMDB exceptions means the mapper internally
  * maintains a table of them.
  */
 final class ResultCodeMapper {
 
+  /**
+   * Successful result.
+   */
+  static final int MDB_SUCCESS = 0;
+
   private static final ConstantSet CONSTANTS;
   private static final Map<Integer, LmdbNativeException> EXCEPTIONS;
   private static final String POSIX_ERR_NO = "Errno";
-
-  /**
-   * Successful result
-   */
-  static final int MDB_SUCCESS = 0;
 
   static {
     CONSTANTS = getConstantSet(POSIX_ERR_NO);
@@ -71,9 +72,7 @@ final class ResultCodeMapper {
     add(new Env.VersionMismatchException());
   }
 
-  @SuppressWarnings("ThrowableResultIgnored")
-  private static void add(final LmdbNativeException e) {
-    EXCEPTIONS.put(e.getResultCode(), e);
+  private ResultCodeMapper() {
   }
 
   /**
@@ -99,6 +98,8 @@ final class ResultCodeMapper {
     throw new LmdbNativeException.ConstantDerviedException(rc, constant.name());
   }
 
-  private ResultCodeMapper() {
+  @SuppressWarnings("ThrowableResultIgnored")
+  private static void add(final LmdbNativeException e) {
+    EXCEPTIONS.put(e.getResultCode(), e);
   }
 }

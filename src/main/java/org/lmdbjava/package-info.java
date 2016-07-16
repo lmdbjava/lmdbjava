@@ -20,10 +20,12 @@
 
 /**
  * Lightning Memory Database (LMDB) for Java (LmdbJava).
+ *
  * <p>
  * LmdbJava is intended for extremely low latency use cases. Users are required
  * to understand and comply with the LMDB C API contract (eg handle usage
  * patterns, thread binding, process rules).
+ *
  * <p>
  * Priorities:
  * <ol>
@@ -35,12 +37,14 @@
  * <li>Support official JVMs running on typical 64-bit operating systems</li>
  * <li>Prepare for Java 9 (eg Unsafe, native call technology roadmap etc)</li>
  * </ol>
+ *
  * <p>
  * Critical paths of special latency focus:
  * <ul>
  * <li>Releasing and renewing a read-only transaction</li>
  * <li>Any operation that uses a cursor</li>
  * </ul>
+ *
  * <p>
  * The classes in this package are NOT thread safe. In addition, the LMBC C API
  * requires you to respect specific thread rules (eg do not share transactions
@@ -48,6 +52,7 @@
  * doing so would impose locking overhead on use cases that may not require it
  * or have already carefully implemented application threading (as most low
  * latency applications do to optimize the memory hierarchy, core pinning etc).
+ *
  * <p>
  * Most methods in this package will throw a standard Java exception for failing
  * preconditions (eg {@link NullPointerException} if a mandatory argument was

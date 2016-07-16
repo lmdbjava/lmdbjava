@@ -46,6 +46,7 @@ public class LmdbNativeException extends LmdbException {
   }
 
   /**
+   * Obtain the LMDB C-side result code.
    *
    * @return the C-side result code
    */
@@ -70,8 +71,8 @@ public class LmdbNativeException extends LmdbException {
    */
   public static final class PageCorruptedException extends LmdbNativeException {
 
-    private static final long serialVersionUID = 1L;
     static final int MDB_CORRUPTED = -30_796;
+    private static final long serialVersionUID = 1L;
 
     PageCorruptedException() {
       super(MDB_CORRUPTED, "located page was wrong type");
@@ -83,8 +84,8 @@ public class LmdbNativeException extends LmdbException {
    */
   public static final class PageFullException extends LmdbNativeException {
 
-    private static final long serialVersionUID = 1L;
     static final int MDB_PAGE_FULL = -30_786;
+    private static final long serialVersionUID = 1L;
 
     PageFullException() {
       super(MDB_PAGE_FULL, "Page has not enough space - internal error");
@@ -96,8 +97,8 @@ public class LmdbNativeException extends LmdbException {
    */
   public static final class PageNotFoundException extends LmdbNativeException {
 
-    private static final long serialVersionUID = 1L;
     static final int MDB_PAGE_NOTFOUND = -30_797;
+    private static final long serialVersionUID = 1L;
 
     PageNotFoundException() {
       super(MDB_PAGE_NOTFOUND,
@@ -110,8 +111,8 @@ public class LmdbNativeException extends LmdbException {
    */
   public static final class PanicException extends LmdbNativeException {
 
-    private static final long serialVersionUID = 1L;
     static final int MDB_PANIC = -30_795;
+    private static final long serialVersionUID = 1L;
 
     PanicException() {
       super(MDB_PANIC,
@@ -124,8 +125,8 @@ public class LmdbNativeException extends LmdbException {
    */
   public static final class TlsFullException extends LmdbNativeException {
 
-    private static final long serialVersionUID = 1L;
     static final int MDB_TLS_FULL = -30_789;
+    private static final long serialVersionUID = 1L;
 
     TlsFullException() {
       super(MDB_TLS_FULL, "Too many TLS keys in use - Windows only");

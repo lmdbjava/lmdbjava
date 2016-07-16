@@ -36,7 +36,7 @@ public enum PutFlags implements MaskedFlag {
    */
   MDB_NODUPDATA(0x20),
   /**
-   * For mdb_cursor_put: overwrite the current key/data pair
+   * For mdb_cursor_put: overwrite the current key/data pair.
    */
   MDB_CURRENT(0x40),
   /**

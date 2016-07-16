@@ -31,11 +31,12 @@ import static org.lmdbjava.UnsafeAccess.UNSAFE;
 
 /**
  * A buffer proxy backed by Netty's {@link ByteBuf}.
+ *
  * <p>
  * This class requires {@link UnsafeAccess} and netty-buffer must be in the
  * classpath.
  */
-public class ByteBufProxy extends BufferProxy<ByteBuf> {
+public final class ByteBufProxy extends BufferProxy<ByteBuf> {
 
   private static final long ADDRESS_OFFSET;
 
@@ -44,8 +45,8 @@ public class ByteBufProxy extends BufferProxy<ByteBuf> {
    * the buffer in the pool creates a new buffer. If no buffer is found creates
    * a new buffer.
    */
-  private static final ThreadLocal<ArrayDeque<ByteBuf>> BUFFERS
-      = withInitial(() -> new ArrayDeque<>(16));
+  private static final ThreadLocal<ArrayDeque<ByteBuf>> BUFFERS = withInitial(()
+      -> new ArrayDeque<>(16));
 
   private static final String FIELD_NAME_ADDRESS = "memoryAddress";
   private static final String FIELD_NAME_LENGTH = "length";
@@ -58,7 +59,7 @@ public class ByteBufProxy extends BufferProxy<ByteBuf> {
       final Field length = findField(NAME, FIELD_NAME_LENGTH);
       ADDRESS_OFFSET = UNSAFE.objectFieldOffset(address);
       LENGTH_OFFSET = UNSAFE.objectFieldOffset(length);
-    } catch (SecurityException e) {
+    } catch (final SecurityException e) {
       throw new LmdbException("Field access error", e);
     }
   }
@@ -67,7 +68,7 @@ public class ByteBufProxy extends BufferProxy<ByteBuf> {
     Class<?> clazz;
     try {
       clazz = forName(c);
-    } catch (ClassNotFoundException e) {
+    } catch (final ClassNotFoundException e) {
       throw new LmdbException(c + " class unavailable", e);
     }
     do {
@@ -75,7 +76,7 @@ public class ByteBufProxy extends BufferProxy<ByteBuf> {
         final Field field = clazz.getDeclaredField(name);
         field.setAccessible(true);
         return field;
-      } catch (NoSuchFieldException e) {
+      } catch (final NoSuchFieldException e) {
         clazz = clazz.getSuperclass();
       }
     } while (clazz != null);

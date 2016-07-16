@@ -26,32 +26,32 @@ package org.lmdbjava;
 public enum DbiFlags implements MaskedFlag {
 
   /**
-   * use reverse string keys
+   * Use reverse string keys.
    */
   MDB_REVERSEKEY(0x02),
   /**
-   * use sorted duplicates
+   * Use sorted duplicates.
    */
   MDB_DUPSORT(0x04),
   /**
-   * numeric keys in native byte order: either unsigned int or size_t. The keys
+   * Numeric keys in native byte order: either unsigned int or size_t. The keys
    * must all be of the same size.
    */
   MDB_INTEGERKEY(0x08),
   /**
-   * with #MDB_DUPSORT, sorted dup items have fixed size
+   * With {@link #MDB_DUPSORT}, sorted dup items have fixed size.
    */
   MDB_DUPFIXED(0x10),
   /**
-   * with #MDB_DUPSORT, dups are #MDB_INTEGERKEY-style integers
+   * With {@link #MDB_DUPSORT}, dups are {@link #MDB_INTEGERKEY}-style integers.
    */
   MDB_INTEGERDUP(0x20),
   /**
-   * with #MDB_DUPSORT, use reverse string dups
+   * With {@link #MDB_DUPSORT}, use reverse string dups.
    */
   MDB_REVERSEDUP(0x40),
   /**
-   * create DB if not already existing
+   * Create DB if not already existing.
    */
   MDB_CREATE(0x4_0000);
 
