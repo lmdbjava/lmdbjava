@@ -389,7 +389,7 @@ public final class TutorialTest {
   }
 
   /**
-   * In this final tutorial we'll look at using Agrona's MutableDirectBuffer.
+   * In this final tutorial we'll look at using Agrona's DirectBuffer.
    *
    * @throws IOException if a path was unavailable for memory mapping
    */
@@ -407,7 +407,8 @@ public final class TutorialTest {
 
     final Dbi<DirectBuffer> db = env.openDbi(DB_NAME, MDB_CREATE);
 
-    final MutableDirectBuffer key = new UnsafeBuffer(allocateDirect(env.getMaxKeySize()));
+    final ByteBuffer keyBb = allocateDirect(env.getMaxKeySize());
+    final MutableDirectBuffer key = new UnsafeBuffer(keyBb);
     final MutableDirectBuffer val = new UnsafeBuffer(allocateDirect(700));
 
     try (final Txn<DirectBuffer> txn = env.txnWrite()) {
@@ -427,6 +428,24 @@ public final class TutorialTest {
       c.seek(MDB_LAST);
       assertThat(txn.key().getStringWithoutLengthUtf8(0, env.getMaxKeySize()), startsWith("yyy"));
 
+      // DirectBuffer has no notion of a position. Often you don't want to store
+      // the unnecessary bytes of a varying-size buffer. Let's have a look...
+      final int keyLen = key.putStringWithoutLengthUtf8(0, "12characters");
+      assertThat(keyLen, is(12));
+      assertThat(key.capacity(), is(env.getMaxKeySize()));
+      
+      // To only store the 12 characters, we simply call wrap:
+      key.wrap(key, 0, keyLen);
+      assertThat(key.capacity(), is(keyLen));
+      c.put(key, val);
+      c.seek(MDB_FIRST);
+      assertThat(txn.key().capacity(), is(keyLen));
+      assertThat(txn.key().getStringWithoutLengthUtf8(0, txn.key().capacity()), is("12characters"));
+      
+      // If we want to store bigger values again, just wrap our original buffer.
+      key.wrap(keyBb);
+      assertThat(key.capacity(), is(env.getMaxKeySize()));
+      
       c.close();
       txn.commit();
     }
