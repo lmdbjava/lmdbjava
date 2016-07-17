@@ -27,7 +27,6 @@ import static java.util.Objects.requireNonNull;
 import jnr.ffi.Pointer;
 import jnr.ffi.byref.PointerByReference;
 import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
-import static org.lmdbjava.ByteUnit.MEBIBYTES;
 import static org.lmdbjava.EnvFlags.MDB_RDONLY_ENV;
 import static org.lmdbjava.Library.LIB;
 import org.lmdbjava.Library.MDB_envinfo;
@@ -59,10 +58,10 @@ public final class Env<T> implements AutoCloseable {
   public static final boolean SHOULD_CHECK = !getBoolean(DISABLE_CHECKS_PROP);
 
   private boolean closed;
+  private final int maxKeySize;
   private final BufferProxy<T> proxy;
   private final Pointer ptr;
   private final boolean readOnly;
-  private final int maxKeySize;
 
   private Env(final BufferProxy<T> proxy, final Pointer ptr,
               final boolean readOnly) {
@@ -98,14 +97,14 @@ public final class Env<T> implements AutoCloseable {
    * {@link ByteBufferProxy#PROXY_OPTIMAL}.
    *
    * @param path  file system destination
-   * @param size  size in ByteUnit.MEBIBYTES
+   * @param size  size in megabytes
    * @param flags the flags for this new environment
    * @return env the environment (never null)
    */
   public static Env<ByteBuffer> open(final File path, final int size,
                                      final EnvFlags... flags) {
     return new Builder<>(PROXY_OPTIMAL)
-        .setMapSize(size, MEBIBYTES)
+        .setMapSize(size * 1_024L * 1_024L)
         .open(path, flags);
   }
 
@@ -157,13 +156,13 @@ public final class Env<T> implements AutoCloseable {
 
   /**
    * Get the maximum size of keys and MDB_DUPSORT data we can write.
-   * 
+   *
    * @return the maximum size of keys.
    */
   public int getMaxKeySize() {
     return maxKeySize;
   }
-  
+
   /**
    * Return information about this environment.
    *
@@ -340,7 +339,7 @@ public final class Env<T> implements AutoCloseable {
    */
   public static final class Builder<T> {
 
-    private long mapSize = MEBIBYTES.toBytes(1);
+    private long mapSize = 1_024 * 1_024;
     private int maxDbs = 1;
     private int maxReaders = 1;
     private boolean opened;
@@ -401,17 +400,6 @@ public final class Env<T> implements AutoCloseable {
       }
       this.mapSize = mapSize;
       return this;
-    }
-
-    /**
-     * Sets the map size.
-     *
-     * @param size the size in given unit.
-     * @param unit the unit to use for the size.
-     * @return the builder
-     */
-    public Builder<T> setMapSize(final int size, final ByteUnit unit) {
-      return setMapSize(unit.toBytes(size));
     }
 
     /**

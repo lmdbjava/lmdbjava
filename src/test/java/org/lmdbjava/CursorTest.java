@@ -20,6 +20,7 @@
 
 package org.lmdbjava;
 
+import static com.jakewharton.byteunits.BinaryByteUnit.KIBIBYTES;
 import io.netty.buffer.ByteBuf;
 import java.io.File;
 import java.io.IOException;
@@ -38,7 +39,6 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
 import static org.lmdbjava.ByteBufferProxy.PROXY_SAFE;
-import static org.lmdbjava.ByteUnit.KIBIBYTES;
 import org.lmdbjava.Cursor.ClosedException;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import static org.lmdbjava.DbiFlags.MDB_DUPSORT;
@@ -373,7 +373,7 @@ public final class CursorTest {
     try {
       final File path = tmp.newFile();
       final Env<T> env = create(proxy)
-          .setMapSize(1_024, KIBIBYTES)
+          .setMapSize(KIBIBYTES.toBytes(1_024))
           .setMaxReaders(1)
           .setMaxDbs(1)
           .open(path, POSIX_MODE, MDB_NOSUBDIR);

@@ -27,8 +27,8 @@
 **LmdbJava** adds Java-specific features to LMDB:
 
 * [Extremely fast](https://github.com/lmdbjava/benchmarks/blob/master/results/20160710/README.md) across a broad range of benchmarks, data sizes and access patterns
-* Modern, idiomatic Java API (including iterators, enums, unit conversion etc)
-* Dependency-free (everything you need is within the single LmdbJava JAR)
+* Modern, idiomatic Java API (including iterators, enums, exceptions etc)
+* Nothing to install (the JAR embeds LMDB libraries for Linux, OS X and Windows)
 * Buffer agnostic (Java `ByteBuffer`, Agrona `DirectBuffer`, Netty `ByteBuf`, your own buffer)
 * 100% stock-standard, officially-released, widely-tested LMDB C code ([no extra](https://github.com/lmdbjava/native) C/JNI code)
 * Low latency design (allocation-free; buffer pools; optional checks can be easily disabled in production etc)

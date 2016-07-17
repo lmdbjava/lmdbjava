@@ -20,6 +20,7 @@
 
 package org.lmdbjava;
 
+import static com.jakewharton.byteunits.BinaryByteUnit.KIBIBYTES;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -34,7 +35,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import static org.lmdbjava.ByteUnit.KIBIBYTES;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import org.lmdbjava.Env.AlreadyClosedException;
 import static org.lmdbjava.Env.create;
@@ -71,7 +71,7 @@ public final class TxnTest {
   public void before() throws IOException {
     path = tmp.newFile();
     env = create()
-        .setMapSize(100, KIBIBYTES)
+        .setMapSize(KIBIBYTES.toBytes(100))
         .setMaxReaders(1)
         .setMaxDbs(2)
         .open(path, POSIX_MODE, MDB_NOSUBDIR);

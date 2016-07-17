@@ -20,6 +20,7 @@
 
 package org.lmdbjava;
 
+import static com.jakewharton.byteunits.BinaryByteUnit.MEBIBYTES;
 import java.io.File;
 import java.io.IOException;
 import static java.lang.Long.MAX_VALUE;
@@ -39,7 +40,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import static org.lmdbjava.ByteUnit.MEBIBYTES;
 import org.lmdbjava.Dbi.DbFullException;
 import org.lmdbjava.Dbi.KeyExistsException;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
@@ -66,7 +66,7 @@ public final class DbiTest {
   public void before() throws IOException {
     final File path = tmp.newFile();
     env = create()
-        .setMapSize(1, MEBIBYTES)
+        .setMapSize(MEBIBYTES.toBytes(1_024))
         .setMaxReaders(1)
         .setMaxDbs(2)
         .open(path, MDB_NOSUBDIR);

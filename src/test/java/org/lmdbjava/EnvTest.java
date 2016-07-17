@@ -20,6 +20,7 @@
 
 package org.lmdbjava;
 
+import static com.jakewharton.byteunits.BinaryByteUnit.MEBIBYTES;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -30,7 +31,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import static org.lmdbjava.ByteUnit.MEBIBYTES;
 import static org.lmdbjava.CopyFlags.MDB_CP_COMPACT;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import org.lmdbjava.Env.AlreadyClosedException;
@@ -55,8 +55,8 @@ public final class EnvTest {
   @Test
   public void byteUnit() throws IOException {
     final File path = tmp.newFile();
-    final Env<ByteBuffer> env = create().setMapSize(1, MEBIBYTES).open(path,
-                                                                       MDB_NOSUBDIR);
+    final Env<ByteBuffer> env = create().setMapSize(MEBIBYTES.toBytes(1)).open(
+        path, MDB_NOSUBDIR);
     final EnvInfo info = env.info();
     assertThat(info.mapSize, is(MEBIBYTES.toBytes(1)));
   }
@@ -202,7 +202,7 @@ public final class EnvTest {
     assertThat(info.mapSize, is(123_456L));
     assertThat(info.maxReaders, is(4));
     assertThat(info.numReaders, is(0));
-    
+
     assertThat(env.getMaxKeySize(), is(511));
   }
 

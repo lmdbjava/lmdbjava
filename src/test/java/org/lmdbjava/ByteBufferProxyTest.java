@@ -122,7 +122,7 @@ public final class ByteBufferProxyTest {
 
   private void checkInOut(final BufferProxy<ByteBuffer> v) {
     // allocate a buffer larger than max key size
-    final ByteBuffer b = allocateDirect(1000);
+    final ByteBuffer b = allocateDirect(1_000);
     b.putInt(1);
     b.putInt(2);
     b.putInt(3);

@@ -84,6 +84,11 @@
       <version>0.9.2</version>
     </dependency>
     <dependency>
+      <groupId>com.jakewharton.byteunits</groupId>
+      <artifactId>byteunits</artifactId>
+      <version>0.9.1</version>
+    </dependency>
+    <dependency>
       <groupId>org.agrona</groupId>
       <artifactId>Agrona</artifactId>
       <version>0.5.2</version>
@@ -192,22 +197,12 @@
                       <counter>LINE</counter>
                       <minimum>0.95</minimum>
                     </limit>
-                    <limit>
-                      <counter>COMPLEXITY</counter>
-                      <minimum>0.60</minimum>
-                    </limit>
                   </limits>
                 </rule>
               </rules>
             </configuration>
           </execution>
         </executions>
-        <configuration>
-          <excludes>
-            <exclude>**/Exception*</exclude>
-            <exclude>**/ByteUnit*</exclude>
-          </excludes>
-        </configuration>
       </plugin>
       <plugin>
         <groupId>org.eluder.coveralls</groupId>

@@ -20,6 +20,7 @@
 
 package org.lmdbjava;
 
+import static com.jakewharton.byteunits.BinaryByteUnit.MEBIBYTES;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -37,7 +38,6 @@ import static org.junit.Assert.assertNull;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import static org.lmdbjava.ByteUnit.MEBIBYTES;
 import static org.lmdbjava.CursorIterator.IteratorType.BACKWARD;
 import static org.lmdbjava.CursorIterator.IteratorType.FORWARD;
 import org.lmdbjava.CursorIterator.KeyVal;
@@ -85,7 +85,7 @@ public final class TutorialTest {
     // Env can store many different databases (ie sorted maps).
     final Env<ByteBuffer> env = create()
         // LMDB also needs to know how large our DB might be. Over-estimating is OK.
-        .setMapSize(10, MEBIBYTES)
+        .setMapSize(MEBIBYTES.toBytes(10))
         // LMDB also needs to know how many DBs (Dbi) we want to store in this Env.
         .setMaxDbs(1)
         // Now let's open the Env. The same path can be concurrently opened and
@@ -401,7 +401,7 @@ public final class TutorialTest {
     // Aside from that and a different type argument, it's the same as usual...
     final File path = tmp.newFolder();
     final Env<DirectBuffer> env = create(PROXY_DB)
-        .setMapSize(10, MEBIBYTES)
+        .setMapSize(MEBIBYTES.toBytes(10))
         .setMaxDbs(1)
         .open(path);
 
@@ -423,29 +423,32 @@ public final class TutorialTest {
       c.put(key, val);
 
       c.seek(MDB_FIRST);
-      assertThat(txn.key().getStringWithoutLengthUtf8(0, env.getMaxKeySize()), startsWith("ggg"));
+      assertThat(txn.key().getStringWithoutLengthUtf8(0, env.getMaxKeySize()),
+                 startsWith("ggg"));
 
       c.seek(MDB_LAST);
-      assertThat(txn.key().getStringWithoutLengthUtf8(0, env.getMaxKeySize()), startsWith("yyy"));
+      assertThat(txn.key().getStringWithoutLengthUtf8(0, env.getMaxKeySize()),
+                 startsWith("yyy"));
 
       // DirectBuffer has no notion of a position. Often you don't want to store
       // the unnecessary bytes of a varying-size buffer. Let's have a look...
       final int keyLen = key.putStringWithoutLengthUtf8(0, "12characters");
       assertThat(keyLen, is(12));
       assertThat(key.capacity(), is(env.getMaxKeySize()));
-      
+
       // To only store the 12 characters, we simply call wrap:
       key.wrap(key, 0, keyLen);
       assertThat(key.capacity(), is(keyLen));
       c.put(key, val);
       c.seek(MDB_FIRST);
       assertThat(txn.key().capacity(), is(keyLen));
-      assertThat(txn.key().getStringWithoutLengthUtf8(0, txn.key().capacity()), is("12characters"));
-      
+      assertThat(txn.key().getStringWithoutLengthUtf8(0, txn.key().capacity()),
+                 is("12characters"));
+
       // If we want to store bigger values again, just wrap our original buffer.
       key.wrap(keyBb);
       assertThat(key.capacity(), is(env.getMaxKeySize()));
-      
+
       c.close();
       txn.commit();
     }
