@@ -7,43 +7,26 @@
   <packaging>jar</packaging>
   <name>LmdbJava</name>
   <description>Low latency Java API for the ultra-fast, embedded Symas Lightning Database (LMDB)</description>
-  <url>https://lmdbjava.github.io/</url>
+  <url>https://github.com/${github.user}/${project.artifactId}</url>
   <organization>
     <name>The LmdbJava Open Source Project</name>
-    <url>https://github.com/lmdbjava</url>
+    <url>https://github.com/${github.user}</url>
   </organization>
   <inceptionYear>2016</inceptionYear>
   <scm>
-    <connection>scm:git:git@github.com:lmdbjava/lmdbjava.git</connection>
-    <developerConnection>scm:git:git@github.com:lmdbjava/lmdbjava.git</developerConnection>
-    <url>git@github.com:lmdbjava/lmdbjava.git</url>
+    <connection>scm:git:git@github.com:${github.user}/${project.artifactId}.git</connection>
+    <developerConnection>scm:git:git@github.com:${github.user}/${project.artifactId}.git</developerConnection>
+    <url>git@github.com:${github.user}/${project.artifactId}.git</url>
     <tag>HEAD</tag>
   </scm>
   <issueManagement>
     <system>GitHub Issues</system>
-    <url>https://github.com/lmdbjava/lmdbjava/issues</url>
+    <url>https://github.com/${github.user}/${project.artifactId}/issues</url>
   </issueManagement>
   <ciManagement>
     <system>travis-ci</system>
-    <url>https://travis-ci.org/lmdbjava/lmdbjava</url>
+    <url>https://travis-ci.org/${github.user}/${project.artifactId}</url>
   </ciManagement>
-  <repositories>
-    <repository>
-      <snapshots>
-        <enabled>false</enabled>
-      </snapshots>
-      <id>bintray</id>
-      <name>bintray</name>
-      <url>http://jcenter.bintray.com</url>
-    </repository>
-  </repositories>
-  <distributionManagement>
-    <repository>
-      <id>bintray-dist-maven</id>
-      <name>lmdbjava-maven</name>
-      <url>https://api.bintray.com/maven/lmdbjava/maven/org.lmdbjava:lmdbjava/;publish=1</url>
-    </repository>
-  </distributionManagement>
   <licenses>
     <license>
       <name>The Apache Software License, Version 2.0</name>
@@ -65,12 +48,18 @@
       <email>ben.alex@acegi.com.au</email>
       <url>https://github.com/benalexau/</url>
       <organization>Acegi Technology Pty Limited</organization>
+      <timezone>+10</timezone>
     </developer>
   </developers>
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
+    <maven.build.timestamp.format>yyyy-MM-dd'T'HH:mm:ss'Z'</maven.build.timestamp.format>
+    <github.global.server>github</github.global.server>
+    <github.user>lmdbjava</github.user>
+    <bintray.user>lmdbjava</bintray.user>
+    <license.licenseName>apache_v2</license.licenseName>
   </properties>
   <dependencies>
     <dependency>
@@ -123,6 +112,12 @@
       <artifactId>mockito-core</artifactId>
       <version>1.10.19</version>
       <scope>test</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>org.hamcrest</groupId>
+          <artifactId>hamcrest-core</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.lmdbjava</groupId>
@@ -150,6 +145,7 @@
         <version>2.4.3</version>
         <executions>
           <execution>
+            <id>lmdbjava-shade</id>
             <phase>package</phase>
             <goals>
               <goal>shade</goal>
@@ -172,20 +168,19 @@
         <version>0.7.7.201606060606</version>
         <executions>
           <execution>
-            <id>default-prepare-agent</id>
+            <id>config-jacoco-prepare-agent</id>
             <goals>
               <goal>prepare-agent</goal>
             </goals>
           </execution>
           <execution>
-            <id>default-report</id>
-            <phase>prepare-package</phase>
+            <id>config-jacoco-report</id>
             <goals>
               <goal>report</goal>
             </goals>
           </execution>
           <execution>
-            <id>default-check</id>
+            <id>jacoco-check</id>
             <goals>
               <goal>check</goal>
             </goals>
@@ -209,7 +204,7 @@
         <version>3.0.1</version>
         <executions>
           <execution>
-            <id>attach-sources</id>
+            <id>config-source</id>
             <goals>
               <goal>jar-no-fork</goal>
             </goals>
@@ -221,7 +216,7 @@
         <version>2.10.4</version>
         <executions>
           <execution>
-            <id>attach-javadocs</id>
+            <id>config-javadoc</id>
             <goals>
               <goal>jar</goal>
             </goals>
@@ -269,42 +264,46 @@
         <version>2.10</version>
         <executions>
           <execution>
-            <id>analyze</id>
+            <id>config-dependency</id>
             <goals>
               <goal>analyze-only</goal>
             </goals>
+            <configuration>
+              <failOnWarning>true</failOnWarning>
+              <ignoredUnusedDeclaredDependencies>
+                <ignoredUnusuedDeclaredDependency>org.mockito:mockito-core</ignoredUnusuedDeclaredDependency>
+                <ignoredUnusuedDeclaredDependency>org.lmdbjava:lmdbjava-native-linux-x86_64</ignoredUnusuedDeclaredDependency>
+                <ignoredUnusuedDeclaredDependency>org.lmdbjava:lmdbjava-native-windows-x86_64</ignoredUnusuedDeclaredDependency>
+                <ignoredUnusuedDeclaredDependency>org.lmdbjava:lmdbjava-native-osx-x86_64</ignoredUnusuedDeclaredDependency>
+              </ignoredUnusedDeclaredDependencies>
+            </configuration>
           </execution>
         </executions>
-        <configuration>
-          <failOnWarning>true</failOnWarning>
-          <ignoredUnusedDeclaredDependencies>
-            <ignoredUnusuedDeclaredDependency>org.mockito:mockito-core</ignoredUnusuedDeclaredDependency>
-            <ignoredUnusuedDeclaredDependency>org.lmdbjava:lmdbjava-native-linux-x86_64</ignoredUnusuedDeclaredDependency>
-            <ignoredUnusuedDeclaredDependency>org.lmdbjava:lmdbjava-native-windows-x86_64</ignoredUnusuedDeclaredDependency>
-            <ignoredUnusuedDeclaredDependency>org.lmdbjava:lmdbjava-native-osx-x86_64</ignoredUnusuedDeclaredDependency>
-          </ignoredUnusedDeclaredDependencies>
-        </configuration>
       </plugin>
       <plugin>
         <artifactId>maven-enforcer-plugin</artifactId>
         <version>1.4.1</version>
         <executions>
           <execution>
-            <id>enforce-versions</id>
+            <id>config-enforcer</id>
             <goals>
               <goal>enforce</goal>
             </goals>
+            <configuration>
+              <rules>
+                <banDistributionManagement/>
+                <dependencyConvergence/>
+                <requireJavaVersion>
+                  <version>[${maven.compiler.source},)</version>
+                </requireJavaVersion>
+                <requireNoRepositories/>
+                <requirePluginVersions/>
+                <requireReleaseDeps/>
+                <requireUpperBoundDeps/>
+              </rules>
+            </configuration>
           </execution>
         </executions>
-        <configuration>
-          <rules>
-            <requireJavaVersion>
-              <version>[1.8.0,)</version>
-            </requireJavaVersion>
-            <requirePluginVersions/>
-            <requireReleaseDeps/>
-          </rules>
-        </configuration>
       </plugin>
       <plugin>
         <groupId>au.com.acegi</groupId>
@@ -312,8 +311,8 @@
         <version>3.0.2</version>
         <executions>
           <execution>
-            <id>xml-format</id>
-            <phase>process-sources</phase>
+            <id>config-xml-format</id>
+            <phase>verify</phase>
             <goals>
               <goal>xml-format</goal>
             </goals>
@@ -329,15 +328,14 @@
         <version>1.9</version>
         <executions>
           <execution>
-            <id>download-licenses</id>
+            <id>config-license</id>
+            <phase>verify</phase>
             <goals>
               <goal>update-file-header</goal>
               <goal>update-project-license</goal>
               <goal>add-third-party</goal>
             </goals>
-            <phase>process-sources</phase>
             <configuration>
-              <licenseName>apache_v2</licenseName>
               <addJavaLicenseAfterPackage>false</addJavaLicenseAfterPackage>
               <canUpdateCopyright>true</canUpdateCopyright>
               <canUpdateDescription>true</canUpdateDescription>
@@ -354,13 +352,12 @@
         <version>2.17</version>
         <executions>
           <execution>
-            <id>check-style</id>
-            <phase>process-sources</phase>
+            <id>config-checkstyle</id>
             <goals>
               <goal>check</goal>
             </goals>
             <configuration>
-              <configLocation>${basedir}/src/main/config/checkstyle.xml</configLocation>
+              <configLocation>${project.basedir}/src/main/config/checkstyle.xml</configLocation>
               <consoleOutput>true</consoleOutput>
               <failsOnError>true</failsOnError>
               <includeTestSourceDirectory>true</includeTestSourceDirectory>
@@ -373,8 +370,7 @@
         <version>3.6</version>
         <executions>
           <execution>
-            <id>pmd-check</id>
-            <phase>verify</phase>
+            <id>config-pmd</id>
             <goals>
               <goal>check</goal>
               <goal>cpd-check</goal>
@@ -385,7 +381,7 @@
           <printFailingErrors>true</printFailingErrors>
           <includeTests>true</includeTests>
           <rulesets>
-            <ruleset>${basedir}/src/main/config/rule-set-pmd.xml</ruleset>
+            <ruleset>${project.basedir}/src/main/config/rule-set-pmd.xml</ruleset>
           </rulesets>
         </configuration>
       </plugin>
@@ -395,17 +391,16 @@
         <version>3.0.4</version>
         <executions>
           <execution>
-            <id>find-bugs</id>
-            <phase>verify</phase>
+            <id>config-findbugs</id>
             <goals>
               <goal>check</goal>
             </goals>
+            <configuration>
+              <failOnError>true</failOnError>
+              <includeTests>true</includeTests>
+            </configuration>
           </execution>
         </executions>
-        <configuration>
-          <failOnError>true</failOnError>
-          <includeTests>true</includeTests>
-        </configuration>
       </plugin>
       <plugin>
         <groupId>org.basepom.maven</groupId>
@@ -413,22 +408,23 @@
         <version>1.2.1</version>
         <executions>
           <execution>
-            <id>enforce-no-duplicates</id>
-            <phase>verify</phase>
+            <id>config-duplicate-finder</id>
             <goals>
               <goal>check</goal>
             </goals>
+            <configuration>
+              <printEqualFiles>true</printEqualFiles>
+              <failBuildInCaseOfDifferentContentConflict>true</failBuildInCaseOfDifferentContentConflict>
+              <failBuildInCaseOfEqualContentConflict>true</failBuildInCaseOfEqualContentConflict>
+              <failBuildInCaseOfConflict>true</failBuildInCaseOfConflict>
+              <ignoredResourcePatterns>
+                <ignoredResourcePattern>LICENSE.TXT</ignoredResourcePattern>
+                <ignoredResourcePattern>THIRD-PARTY.TXT</ignoredResourcePattern>
+                <ignoredResourcePattern>.netbeans_automatic_build</ignoredResourcePattern>
+              </ignoredResourcePatterns>
+            </configuration>
           </execution>
         </executions>
-        <configuration>
-          <printEqualFiles>true</printEqualFiles>
-          <failBuildInCaseOfDifferentContentConflict>true</failBuildInCaseOfDifferentContentConflict>
-          <failBuildInCaseOfEqualContentConflict>true</failBuildInCaseOfEqualContentConflict>
-          <failBuildInCaseOfConflict>true</failBuildInCaseOfConflict>
-          <ignoredResourcePatterns>
-            <ignoredResourcePattern>.netbeans_automatic_build</ignoredResourcePattern>
-          </ignoredResourcePatterns>
-        </configuration>
       </plugin>
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
@@ -436,7 +432,7 @@
         <version>2.2</version>
         <executions>
           <execution>
-            <id>report-new-dependencies</id>
+            <id>config-versions</id>
             <phase>verify</phase>
             <goals>
               <goal>display-plugin-updates</goal>
@@ -455,6 +451,13 @@
   <profiles>
     <profile>
       <id>release</id>
+      <distributionManagement>
+        <repository>
+          <id>bintray-dist-maven</id>
+          <name>bintray-dist-maven</name>
+          <url>https://api.bintray.com/maven/${bintray.user}/maven/${project.groupId}:${project.artifactId}/;publish=1</url>
+        </repository>
+      </distributionManagement>
     </profile>
     <profile>
       <id>travis</id>
