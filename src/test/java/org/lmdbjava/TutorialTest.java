@@ -98,8 +98,9 @@ public final class TutorialTest {
     final Dbi<ByteBuffer> db = env.openDbi(DB_NAME, MDB_CREATE);
 
     // We want to store some data, so we will need a direct ByteBuffer.
-    // Note that LMDB keys cannot exceed 511 bytes. Values can be larger.
-    final ByteBuffer key = allocateDirect(511);
+    // Note that LMDB keys cannot exceed maxKeySize bytes (511 bytes by default).
+    // Values can be larger.
+    final ByteBuffer key = allocateDirect(env.getMaxKeySize());
     final ByteBuffer val = allocateDirect(700);
     key.put("greeting".getBytes(UTF_8)).flip();
     val.put("Hello world".getBytes(UTF_8)).flip();
@@ -149,7 +150,7 @@ public final class TutorialTest {
     final Env<ByteBuffer> env = open(path, 10);
 
     final Dbi<ByteBuffer> db = env.openDbi(DB_NAME, MDB_CREATE);
-    final ByteBuffer key = allocateDirect(511);
+    final ByteBuffer key = allocateDirect(env.getMaxKeySize());
     final ByteBuffer val = allocateDirect(700);
 
     // Let's write and commit "key1" via a Txn. A Txn can include multiple Dbis.
@@ -217,7 +218,7 @@ public final class TutorialTest {
     final File path = tmp.newFolder();
     final Env<ByteBuffer> env = open(path, 10);
     final Dbi<ByteBuffer> db = env.openDbi(DB_NAME, MDB_CREATE);
-    final ByteBuffer key = allocateDirect(511);
+    final ByteBuffer key = allocateDirect(env.getMaxKeySize());
     final ByteBuffer val = allocateDirect(700);
 
     try (final Txn<ByteBuffer> txn = env.txnWrite()) {
@@ -294,7 +295,7 @@ public final class TutorialTest {
     final Dbi<ByteBuffer> db = env.openDbi(DB_NAME, MDB_CREATE);
 
     try (final Txn<ByteBuffer> txn = env.txnWrite()) {
-      final ByteBuffer key = allocateDirect(511);
+      final ByteBuffer key = allocateDirect(env.getMaxKeySize());
       final ByteBuffer val = allocateDirect(700);
 
       // Insert some data
@@ -350,9 +351,9 @@ public final class TutorialTest {
     // There are other flags available if we're storing integers etc.
     final Dbi<ByteBuffer> db = env.openDbi(DB_NAME, MDB_CREATE, MDB_DUPSORT);
 
-    // Duplicate support requires both keys and values to be <= 511 bytes.
-    final ByteBuffer key = allocateDirect(511);
-    final ByteBuffer val = allocateDirect(511);
+    // Duplicate support requires both keys and values to be <= max key size.
+    final ByteBuffer key = allocateDirect(env.getMaxKeySize());
+    final ByteBuffer val = allocateDirect(env.getMaxKeySize());
 
     try (final Txn<ByteBuffer> txn = env.txnWrite()) {
       final Cursor<ByteBuffer> c = db.openCursor(txn);
@@ -406,7 +407,7 @@ public final class TutorialTest {
 
     final Dbi<DirectBuffer> db = env.openDbi(DB_NAME, MDB_CREATE);
 
-    final MutableDirectBuffer key = new UnsafeBuffer(allocateDirect(511));
+    final MutableDirectBuffer key = new UnsafeBuffer(allocateDirect(env.getMaxKeySize()));
     final MutableDirectBuffer val = new UnsafeBuffer(allocateDirect(700));
 
     try (final Txn<DirectBuffer> txn = env.txnWrite()) {
@@ -421,10 +422,10 @@ public final class TutorialTest {
       c.put(key, val);
 
       c.seek(MDB_FIRST);
-      assertThat(txn.key().getStringWithoutLengthUtf8(0, 511), startsWith("ggg"));
+      assertThat(txn.key().getStringWithoutLengthUtf8(0, env.getMaxKeySize()), startsWith("ggg"));
 
       c.seek(MDB_LAST);
-      assertThat(txn.key().getStringWithoutLengthUtf8(0, 511), startsWith("yyy"));
+      assertThat(txn.key().getStringWithoutLengthUtf8(0, env.getMaxKeySize()), startsWith("yyy"));
 
       c.close();
       txn.commit();
