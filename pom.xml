@@ -7,25 +7,25 @@
   <packaging>jar</packaging>
   <name>LmdbJava</name>
   <description>Low latency Java API for the ultra-fast, embedded Symas Lightning Database (LMDB)</description>
-  <url>https://github.com/${github.user}/${project.artifactId}</url>
+  <url>https://github.com/${github.org}/${project.artifactId}</url>
   <organization>
     <name>The LmdbJava Open Source Project</name>
-    <url>https://github.com/${github.user}</url>
+    <url>https://github.com/${github.org}</url>
   </organization>
   <inceptionYear>2016</inceptionYear>
   <scm>
-    <connection>scm:git:git@github.com:${github.user}/${project.artifactId}.git</connection>
-    <developerConnection>scm:git:git@github.com:${github.user}/${project.artifactId}.git</developerConnection>
-    <url>git@github.com:${github.user}/${project.artifactId}.git</url>
+    <connection>scm:git:git@github.com:${github.org}/${project.artifactId}.git</connection>
+    <developerConnection>scm:git:git@github.com:${github.org}/${project.artifactId}.git</developerConnection>
+    <url>git@github.com:${github.org}/${project.artifactId}.git</url>
     <tag>HEAD</tag>
   </scm>
   <issueManagement>
     <system>GitHub Issues</system>
-    <url>https://github.com/${github.user}/${project.artifactId}/issues</url>
+    <url>https://github.com/${github.org}/${project.artifactId}/issues</url>
   </issueManagement>
   <ciManagement>
     <system>travis-ci</system>
-    <url>https://travis-ci.org/${github.user}/${project.artifactId}</url>
+    <url>https://travis-ci.org/${github.org}/${project.artifactId}</url>
   </ciManagement>
   <licenses>
     <license>
@@ -57,9 +57,12 @@
     <maven.compiler.target>1.8</maven.compiler.target>
     <maven.build.timestamp.format>yyyy-MM-dd'T'HH:mm:ss'Z'</maven.build.timestamp.format>
     <github.global.server>github</github.global.server>
-    <github.user>lmdbjava</github.user>
-    <bintray.user>lmdbjava</bintray.user>
+    <github.org>lmdbjava</github.org>
+    <bintray.org>lmdbjava</bintray.org>
     <license.licenseName>apache_v2</license.licenseName>
+    <checkstyle.config.location>${project.basedir}/src/main/config/checkstyle.xml</checkstyle.config.location>
+    <maven.version.rules>file://${basedir}/src/main/config/rule-set-ver.xml</maven.version.rules>
+    <pmd.ruleset>${project.basedir}/src/main/config/rule-set-pmd.xml</pmd.ruleset>
   </properties>
   <dependencies>
     <dependency>
@@ -328,19 +331,29 @@
         <version>1.9</version>
         <executions>
           <execution>
-            <id>config-license</id>
+            <id>config-license-update</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>update-project-license</goal>
+              <goal>add-third-party</goal>
+            </goals>
+            <configuration>
+              <generateBundle>true</generateBundle>
+              <failIfWarning>true</failIfWarning>
+            </configuration>
+          </execution>
+          <execution>
+            <id>config-license-file-header</id>
             <phase>verify</phase>
             <goals>
               <goal>update-file-header</goal>
-              <goal>update-project-license</goal>
-              <goal>add-third-party</goal>
             </goals>
             <configuration>
               <addJavaLicenseAfterPackage>false</addJavaLicenseAfterPackage>
               <canUpdateCopyright>true</canUpdateCopyright>
               <canUpdateDescription>true</canUpdateDescription>
+              <canUpdateLicense>true</canUpdateLicense>
               <emptyLineAfterHeader>true</emptyLineAfterHeader>
-              <generateBundle>true</generateBundle>
               <failIfWarning>true</failIfWarning>
             </configuration>
           </execution>
@@ -357,7 +370,6 @@
               <goal>check</goal>
             </goals>
             <configuration>
-              <configLocation>${project.basedir}/src/main/config/checkstyle.xml</configLocation>
               <consoleOutput>true</consoleOutput>
               <failsOnError>true</failsOnError>
               <includeTestSourceDirectory>true</includeTestSourceDirectory>
@@ -381,7 +393,7 @@
           <printFailingErrors>true</printFailingErrors>
           <includeTests>true</includeTests>
           <rulesets>
-            <ruleset>${project.basedir}/src/main/config/rule-set-pmd.xml</ruleset>
+            <ruleset>${pmd.ruleset}</ruleset>
           </rulesets>
         </configuration>
       </plugin>
@@ -442,9 +454,6 @@
             </goals>
           </execution>
         </executions>
-        <configuration>
-          <rulesUri>file://${basedir}/src/main/config/rule-set-ver.xml</rulesUri>
-        </configuration>
       </plugin>
     </plugins>
   </build>
@@ -455,7 +464,7 @@
         <repository>
           <id>bintray-dist-maven</id>
           <name>bintray-dist-maven</name>
-          <url>https://api.bintray.com/maven/${bintray.user}/maven/${project.groupId}:${project.artifactId}/;publish=1</url>
+          <url>https://api.bintray.com/maven/${bintray.org}/maven/${project.groupId}:${project.artifactId}/;publish=1</url>
         </repository>
       </distributionManagement>
     </profile>
