@@ -54,7 +54,7 @@ import org.lmdbjava.Txn.BadReaderLockException;
 import org.lmdbjava.Txn.TxFullException;
 
 /**
- * Test {@link ResultCodeMapper}.
+ * Test {@link ResultCodeMapper} and {@link LmdbException}.
  */
 public final class ResultCodeMapperTest {
 
@@ -119,6 +119,14 @@ public final class ResultCodeMapperTest {
   @Test
   public void coverPrivateConstructors() {
     invokePrivateConstructor(ResultCodeMapper.class);
+  }
+
+  @Test
+  public void lmdbExceptionPreservesRootCause() {
+    final Exception cause = new IllegalStateException("root cause");
+    final LmdbException e = new LmdbException("test", cause);
+    assertThat(e.getCause(), is(cause));
+    assertThat(e.getMessage(), is("test"));
   }
 
   @Test
