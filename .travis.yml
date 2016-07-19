@@ -24,6 +24,7 @@ notifications:
     - stoffe@gmail.com
 after_success:
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then mvn clean test jacoco:report coveralls:report; fi
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then bash <(curl -s https://codecov.io/bash); fi
   - if [ "$TRAVIS_PULL_REQUEST" == "false" ] && [ "$TRAVIS_TAG" != "" ]; then mvn deploy --settings .settings.xml; fi
 
   ######################### CAUTION ########################
