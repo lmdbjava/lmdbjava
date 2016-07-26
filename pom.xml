@@ -111,18 +111,6 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.mockito</groupId>
-      <artifactId>mockito-core</artifactId>
-      <version>1.10.19</version>
-      <scope>test</scope>
-      <exclusions>
-        <exclusion>
-          <groupId>org.hamcrest</groupId>
-          <artifactId>hamcrest-core</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
-    <dependency>
       <groupId>org.lmdbjava</groupId>
       <artifactId>lmdbjava-native-linux-x86_64</artifactId>
       <version>0.9.18-2</version>
@@ -273,12 +261,11 @@
             </goals>
             <configuration>
               <failOnWarning>true</failOnWarning>
-              <ignoredUnusedDeclaredDependencies>
-                <ignoredUnusuedDeclaredDependency>org.mockito:mockito-core</ignoredUnusuedDeclaredDependency>
-                <ignoredUnusuedDeclaredDependency>org.lmdbjava:lmdbjava-native-linux-x86_64</ignoredUnusuedDeclaredDependency>
-                <ignoredUnusuedDeclaredDependency>org.lmdbjava:lmdbjava-native-windows-x86_64</ignoredUnusuedDeclaredDependency>
-                <ignoredUnusuedDeclaredDependency>org.lmdbjava:lmdbjava-native-osx-x86_64</ignoredUnusuedDeclaredDependency>
-              </ignoredUnusedDeclaredDependencies>
+              <usedDependencies>
+                <usedDependency>org.lmdbjava:lmdbjava-native-linux-x86_64</usedDependency>
+                <usedDependency>org.lmdbjava:lmdbjava-native-windows-x86_64</usedDependency>
+                <usedDependency>org.lmdbjava:lmdbjava-native-osx-x86_64</usedDependency>
+              </usedDependencies>
             </configuration>
           </execution>
         </executions>
