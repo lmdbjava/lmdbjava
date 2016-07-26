@@ -31,6 +31,7 @@ import static org.lmdbjava.MaskedFlag.isSet;
 import static org.lmdbjava.MaskedFlag.mask;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
 import static org.lmdbjava.TxnFlags.MDB_RDONLY_TXN;
+import static org.lmdbjava.Txn.State.*;
 
 /**
  * LMDB transaction.
@@ -38,9 +39,16 @@ import static org.lmdbjava.TxnFlags.MDB_RDONLY_TXN;
  * @param <T> buffer type
  */
 public final class Txn<T> implements AutoCloseable {
+  
+  /**
+   * Transaction states.
+   */
+  enum State {
+    READY, FINISHED, RESET, RELEASED
+  }
 
   private static final MemoryManager MEM_MGR = RUNTIME.getMemoryManager();
-  private boolean committed;
+  private State state;
   private final T k;
   private final Txn<T> parent;
   private final BufferProxy<T> proxy;
@@ -50,7 +58,6 @@ public final class Txn<T> implements AutoCloseable {
   private final Pointer ptrVal;
   private final long ptrValAddr;
   private final boolean readOnly;
-  private boolean resetState;
   private final T v;
 
   Txn(final Env<T> env, final Txn<T> parent, final BufferProxy<T> proxy,
@@ -76,17 +83,17 @@ public final class Txn<T> implements AutoCloseable {
     ptrKeyAddr = ptrKey.address();
     ptrVal = MEM_MGR.allocateTemporary(MDB_VAL_STRUCT_SIZE, false);
     ptrValAddr = ptrVal.address();
+    
+    state = READY;
   }
 
   /**
    * Aborts this transaction.
    */
   public void abort() {
-    if (committed) {
-      throw new CommittedException();
-    }
+    checkReady();
     LIB.mdb_txn_abort(ptr);
-    committed = true;
+    state = FINISHED;
   }
 
   /**
@@ -99,24 +106,25 @@ public final class Txn<T> implements AutoCloseable {
    */
   @Override
   public void close() {
-    if (committed) {
+    if (state == RELEASED) {
       return;
+    }
+    if (state == READY) {
+      LIB.mdb_txn_abort(ptr);
+      state = FINISHED;
     }
     proxy.deallocate(k);
     proxy.deallocate(v);
-    LIB.mdb_txn_abort(ptr);
-    committed = true;
+    state = RELEASED;
   }
 
   /**
    * Commits this transaction.
    */
   public void commit() {
-    if (committed) {
-      throw new CommittedException();
-    }
+    checkReady();
     checkRc(LIB.mdb_txn_commit(ptr));
-    committed = true;
+    state = FINISHED;
   }
 
   /**
@@ -138,12 +146,12 @@ public final class Txn<T> implements AutoCloseable {
   }
 
   /**
-   * Whether this transaction has been committed.
+   * Return the state of the transaction.
    *
-   * @return true if committed
+   * @return the state
    */
-  public boolean isCommitted() {
-    return committed;
+  State getState() {
+    return state;
   }
 
   /**
@@ -153,15 +161,6 @@ public final class Txn<T> implements AutoCloseable {
    */
   public boolean isReadOnly() {
     return readOnly;
-  }
-
-  /**
-   * Whether this transaction has been {@link #reset()}.
-   *
-   * @return if reset
-   */
-  public boolean isReset() {
-    return resetState;
   }
 
   /**
@@ -180,10 +179,10 @@ public final class Txn<T> implements AutoCloseable {
    * Renews a read-only transaction previously released by {@link #reset()}.
    */
   public void renew() {
-    if (!resetState) {
+    if (state != RESET) {
       throw new NotResetException();
     }
-    resetState = false;
+    state = READY;
     checkRc(LIB.mdb_txn_renew(ptr));
   }
 
@@ -192,14 +191,12 @@ public final class Txn<T> implements AutoCloseable {
    * can be reused upon calling {@link #renew()}.
    */
   public void reset() {
-    if (!isReadOnly()) {
-      throw new ReadOnlyRequiredException();
-    }
-    if (resetState) {
+    checkReadOnly();
+    if (state != READY && state != FINISHED) {
       throw new ResetException();
     }
     LIB.mdb_txn_reset(ptr);
-    resetState = true;
+    state = RESET;
   }
 
   /**
@@ -214,9 +211,9 @@ public final class Txn<T> implements AutoCloseable {
     return v;
   }
 
-  void checkNotCommitted() throws CommittedException {
-    if (committed) {
-      throw new CommittedException();
+  void checkReady() throws NotReadyException {
+    if (state != READY) {
+      throw new NotReadyException();
     }
   }
 
@@ -291,17 +288,17 @@ public final class Txn<T> implements AutoCloseable {
   }
 
   /**
-   * Transaction has already been committed.
+   * Transaction is not in a READY state.
    */
-  public static final class CommittedException extends LmdbException {
+  public static final class NotReadyException extends LmdbException {
 
     private static final long serialVersionUID = 1L;
 
     /**
      * Creates a new instance.
      */
-    public CommittedException() {
-      super("Transaction has already been committed");
+    public NotReadyException() {
+      super("Transaction is not in ready state");
     }
   }
 

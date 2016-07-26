@@ -58,7 +58,7 @@ import static org.lmdbjava.TestUtils.POSIX_MODE;
 import static org.lmdbjava.TestUtils.bb;
 import static org.lmdbjava.TestUtils.mdb;
 import static org.lmdbjava.TestUtils.nb;
-import org.lmdbjava.Txn.CommittedException;
+import org.lmdbjava.Txn.NotReadyException;
 import org.lmdbjava.Txn.ReadOnlyRequiredException;
 
 /**
@@ -131,7 +131,7 @@ public final class CursorTest {
     cursorByteBuffer(PROXY_SAFE);
   }
 
-  @Test(expected = CommittedException.class)
+  @Test(expected = NotReadyException.class)
   public void cursorCannotCloseIfTransactionCommitted() {
     final Env<ByteBuffer> env = makeEnv(PROXY_OPTIMAL);
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
