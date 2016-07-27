@@ -44,7 +44,7 @@ public final class Txn<T> implements AutoCloseable {
    * Transaction states.
    */
   enum State {
-    READY, FINISHED, RESET, RELEASED
+    READY, DONE, RESET, RELEASED
   }
 
   private static final MemoryManager MEM_MGR = RUNTIME.getMemoryManager();
@@ -93,7 +93,7 @@ public final class Txn<T> implements AutoCloseable {
   public void abort() {
     checkReady();
     LIB.mdb_txn_abort(ptr);
-    state = FINISHED;
+    state = DONE;
   }
 
   /**
@@ -111,7 +111,7 @@ public final class Txn<T> implements AutoCloseable {
     }
     if (state == READY) {
       LIB.mdb_txn_abort(ptr);
-      state = FINISHED;
+      state = DONE;
     }
     proxy.deallocate(k);
     proxy.deallocate(v);
@@ -124,7 +124,7 @@ public final class Txn<T> implements AutoCloseable {
   public void commit() {
     checkReady();
     checkRc(LIB.mdb_txn_commit(ptr));
-    state = FINISHED;
+    state = DONE;
   }
 
   /**
@@ -182,8 +182,8 @@ public final class Txn<T> implements AutoCloseable {
     if (state != RESET) {
       throw new NotResetException();
     }
-    state = READY;
     checkRc(LIB.mdb_txn_renew(ptr));
+    state = READY;
   }
 
   /**
@@ -192,7 +192,7 @@ public final class Txn<T> implements AutoCloseable {
    */
   public void reset() {
     checkReadOnly();
-    if (state != READY && state != FINISHED) {
+    if (state != READY && state != DONE) {
       throw new ResetException();
     }
     LIB.mdb_txn_reset(ptr);

@@ -139,7 +139,7 @@ public final class TxnTest {
     try (final Txn<ByteBuffer> txn = env.txnRead()) {
       assertThat(txn.getState(), is(READY));
       txn.commit();
-      assertThat(txn.getState(), is(FINISHED));
+      assertThat(txn.getState(), is(DONE));
     }
   }
 
@@ -148,7 +148,7 @@ public final class TxnTest {
     try (final Txn<ByteBuffer> txn = env.txnRead()) {
       assertThat(txn.getState(), is(READY));
       txn.commit();
-      assertThat(txn.getState(), is(FINISHED));
+      assertThat(txn.getState(), is(DONE));
       txn.abort();
     }
   }
@@ -200,7 +200,7 @@ public final class TxnTest {
     txn.renew();
     assertThat(txn.getState(), is(READY));
     txn.commit();
-    assertThat(txn.getState(), is(FINISHED));
+    assertThat(txn.getState(), is(DONE));
     txn.close();
     assertThat(txn.getState(), is(RELEASED));
   }
@@ -214,7 +214,7 @@ public final class TxnTest {
     txn.checkReady();
     txn.checkWritesAllowed();
     txn.commit();
-    assertThat(txn.getState(), is(FINISHED));
+    assertThat(txn.getState(), is(DONE));
     txn.close();
     assertThat(txn.getState(), is(RELEASED));
   }
