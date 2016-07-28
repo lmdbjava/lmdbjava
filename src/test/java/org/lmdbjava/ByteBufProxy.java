@@ -55,6 +55,8 @@ public final class ByteBufProxy extends BufferProxy<ByteBuf> {
 
   static {
     try {
+      // create buffer (first is SimpleLeakAwareByteBuff but we need PooledUDBB)
+      DEFAULT.directBuffer(0);
       final Field address = findField(NAME, FIELD_NAME_ADDRESS);
       final Field length = findField(NAME, FIELD_NAME_LENGTH);
       ADDRESS_OFFSET = UNSAFE.objectFieldOffset(address);
