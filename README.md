@@ -1,6 +1,6 @@
 [![Build Status](https://travis-ci.org/lmdbjava/lmdbjava.svg?branch=master)](https://travis-ci.org/lmdbjava/lmdbjava)
 [![Build Status](https://ci.appveyor.com/api/projects/status/0w4yb9ybx22g2pwp?svg=true)](https://ci.appveyor.com/project/benalexau/lmdbjava)
-[![Coverage Status](https://coveralls.io/repos/github/lmdbjava/lmdbjava/badge.svg?branch=master)](https://coveralls.io/github/lmdbjava/lmdbjava?branch=master)
+[![codecov](https://codecov.io/gh/lmdbjava/lmdbjava/branch/master/graph/badge.svg)](https://codecov.io/gh/lmdbjava/lmdbjava)
 [![Dependency Status](https://www.versioneye.com/user/projects/57552e137757a00041b3a6f4/badge.svg?style=flat)](https://www.versioneye.com/user/projects/57552e137757a00041b3a6f4)
 [![Javadocs](http://www.javadoc.io/badge/org.lmdbjava/lmdbjava.svg?color=blue)](http://www.javadoc.io/doc/org.lmdbjava/lmdbjava)
 [![Download](https://api.bintray.com/packages/lmdbjava/maven/org.lmdbjava:lmdbjava/images/download.svg)](https://bintray.com/lmdbjava/maven/org.lmdbjava:lmdbjava/_latestVersion)
