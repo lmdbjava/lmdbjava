@@ -30,8 +30,11 @@ import static org.lmdbjava.Library.RUNTIME;
 import static org.lmdbjava.MaskedFlag.isSet;
 import static org.lmdbjava.MaskedFlag.mask;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
+import static org.lmdbjava.Txn.State.DONE;
+import static org.lmdbjava.Txn.State.READY;
+import static org.lmdbjava.Txn.State.RELEASED;
+import static org.lmdbjava.Txn.State.RESET;
 import static org.lmdbjava.TxnFlags.MDB_RDONLY_TXN;
-import static org.lmdbjava.Txn.State.*;
 
 /**
  * LMDB transaction.
@@ -39,16 +42,8 @@ import static org.lmdbjava.Txn.State.*;
  * @param <T> buffer type
  */
 public final class Txn<T> implements AutoCloseable {
-  
-  /**
-   * Transaction states.
-   */
-  enum State {
-    READY, DONE, RESET, RELEASED
-  }
 
   private static final MemoryManager MEM_MGR = RUNTIME.getMemoryManager();
-  private State state;
   private final T k;
   private final Txn<T> parent;
   private final BufferProxy<T> proxy;
@@ -58,6 +53,7 @@ public final class Txn<T> implements AutoCloseable {
   private final Pointer ptrVal;
   private final long ptrValAddr;
   private final boolean readOnly;
+  private State state;
   private final T v;
 
   Txn(final Env<T> env, final Txn<T> parent, final BufferProxy<T> proxy,
@@ -83,7 +79,7 @@ public final class Txn<T> implements AutoCloseable {
     ptrKeyAddr = ptrKey.address();
     ptrVal = MEM_MGR.allocateTemporary(MDB_VAL_STRUCT_SIZE, false);
     ptrValAddr = ptrVal.address();
-    
+
     state = READY;
   }
 
@@ -146,15 +142,6 @@ public final class Txn<T> implements AutoCloseable {
   }
 
   /**
-   * Return the state of the transaction.
-   *
-   * @return the state
-   */
-  State getState() {
-    return state;
-  }
-
-  /**
    * Whether this transaction is read-only.
    *
    * @return if read-only
@@ -211,15 +198,15 @@ public final class Txn<T> implements AutoCloseable {
     return v;
   }
 
-  void checkReady() throws NotReadyException {
-    if (state != READY) {
-      throw new NotReadyException();
-    }
-  }
-
   void checkReadOnly() throws ReadOnlyRequiredException {
     if (!readOnly) {
       throw new ReadOnlyRequiredException();
+    }
+  }
+
+  void checkReady() throws NotReadyException {
+    if (state != READY) {
+      throw new NotReadyException();
     }
   }
 
@@ -227,6 +214,15 @@ public final class Txn<T> implements AutoCloseable {
     if (readOnly) {
       throw new ReadWriteRequiredException();
     }
+  }
+
+  /**
+   * Return the state of the transaction.
+   *
+   * @return the state
+   */
+  State getState() {
+    return state;
   }
 
   void keyIn(final T key) {
@@ -288,21 +284,6 @@ public final class Txn<T> implements AutoCloseable {
   }
 
   /**
-   * Transaction is not in a READY state.
-   */
-  public static final class NotReadyException extends LmdbException {
-
-    private static final long serialVersionUID = 1L;
-
-    /**
-     * Creates a new instance.
-     */
-    public NotReadyException() {
-      super("Transaction is not in ready state");
-    }
-  }
-
-  /**
    * The proposed R-W transaction is incompatible with a R-O Env.
    */
   public static class EnvIsReadOnly extends LmdbException {
@@ -329,6 +310,21 @@ public final class Txn<T> implements AutoCloseable {
      */
     public IncompatibleParent() {
       super("Transaction incompatible with its parent transaction");
+    }
+  }
+
+  /**
+   * Transaction is not in a READY state.
+   */
+  public static final class NotReadyException extends LmdbException {
+
+    private static final long serialVersionUID = 1L;
+
+    /**
+     * Creates a new instance.
+     */
+    public NotReadyException() {
+      super("Transaction is not in ready state");
     }
   }
 
@@ -403,6 +399,13 @@ public final class Txn<T> implements AutoCloseable {
     TxFullException() {
       super(MDB_TXN_FULL, "Transaction has too many dirty pages");
     }
+  }
+
+  /**
+   * Transaction states.
+   */
+  enum State {
+    READY, DONE, RESET, RELEASED
   }
 
 }

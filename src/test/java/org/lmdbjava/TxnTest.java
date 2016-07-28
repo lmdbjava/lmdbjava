@@ -50,8 +50,11 @@ import org.lmdbjava.Txn.NotResetException;
 import org.lmdbjava.Txn.ReadOnlyRequiredException;
 import org.lmdbjava.Txn.ReadWriteRequiredException;
 import org.lmdbjava.Txn.ResetException;
+import static org.lmdbjava.Txn.State.DONE;
+import static org.lmdbjava.Txn.State.READY;
+import static org.lmdbjava.Txn.State.RELEASED;
+import static org.lmdbjava.Txn.State.RESET;
 import static org.lmdbjava.TxnFlags.MDB_RDONLY_TXN;
-import static org.lmdbjava.Txn.State.*;
 
 /**
  * Test {@link Txn}.
