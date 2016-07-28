@@ -17,7 +17,7 @@ install:
   - SET PATH=C:\Users\appveyor\apache-maven-%MVN_VER%\bin;%PATH%
 
 build_script:
-  - mvn -V -B -e verify
+  - mvn -V -B -Dcheckstyle.skip=true -e verify
 
 notifications:
   - provider: Email
