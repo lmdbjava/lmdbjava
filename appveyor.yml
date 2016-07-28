@@ -4,6 +4,7 @@ clone_depth: 50
 
 environment:
   MVN_VER: 3.3.9
+  PYTHON: "C:\\Python35"
 
 cache:
   - C:\Users\appveyor\apache-maven-%MVN_VER% -> appveyor.yml
@@ -14,14 +15,15 @@ install:
       curl -LsS "http://www.apache.org/dyn/closer.cgi?action=download&filename=maven/maven-3/%MVN_VER%/binaries/apache-maven-%MVN_VER%-bin.zip" > apache-maven.zip &&
       unzip apache-maven.zip -d C:\Users\appveyor
     )
-  - SET PATH=C:\Users\appveyor\apache-maven-%MVN_VER%\bin;%PATH%
+  - SET PATH=%PYTHON%;%PYTHON%\\Scripts;C:\Users\appveyor\apache-maven-%MVN_VER%\bin;%PATH%
+  - pip install codecov
 
 build_script:
   - mvn -V -B -Dcheckstyle.skip=true -e verify
+  - codecov -X gcov -f target/site/jacoco/jacoco.xml
 
 notifications:
   - provider: Email
     to:
       - ben.alex@acegi.com.au
-      - stoffe@gmail.com
     on_build_success: false
