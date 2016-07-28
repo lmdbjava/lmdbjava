@@ -33,7 +33,6 @@ import static org.lmdbjava.SeekOp.MDB_FIRST;
 import static org.lmdbjava.SeekOp.MDB_LAST;
 import static org.lmdbjava.SeekOp.MDB_NEXT;
 import static org.lmdbjava.SeekOp.MDB_PREV;
-import org.lmdbjava.Txn.CommittedException;
 
 /**
  * A cursor handle.
@@ -65,8 +64,8 @@ public final class Cursor<T> implements AutoCloseable {
     if (closed) {
       return;
     }
-    if (SHOULD_CHECK && !txn.isReadOnly() && txn.isCommitted()) {
-      throw new CommittedException();
+    if (SHOULD_CHECK && !txn.isReadOnly()) {
+      txn.checkReady();
     }
     LIB.mdb_cursor_close(ptrCursor);
     closed = true;
@@ -84,7 +83,7 @@ public final class Cursor<T> implements AutoCloseable {
   public long count() {
     if (SHOULD_CHECK) {
       checkNotClosed();
-      txn.checkNotCommitted();
+      txn.checkReady();
     }
     final NativeLongByReference longByReference = new NativeLongByReference();
     checkRc(LIB.mdb_cursor_count(ptrCursor, longByReference));
@@ -102,7 +101,7 @@ public final class Cursor<T> implements AutoCloseable {
   public void delete(final PutFlags... f) {
     if (SHOULD_CHECK) {
       checkNotClosed();
-      txn.checkNotCommitted();
+      txn.checkReady();
       txn.checkWritesAllowed();
     }
     final int flags = mask(f);
@@ -130,7 +129,7 @@ public final class Cursor<T> implements AutoCloseable {
       requireNonNull(key);
       requireNonNull(op);
       checkNotClosed();
-      txn.checkNotCommitted();
+      txn.checkReady();
     }
     txn.keyIn(key);
 
@@ -197,7 +196,7 @@ public final class Cursor<T> implements AutoCloseable {
       requireNonNull(key);
       requireNonNull(val);
       checkNotClosed();
-      txn.checkNotCommitted();
+      txn.checkReady();
       txn.checkWritesAllowed();
     }
     txn.keyIn(key);
@@ -228,7 +227,7 @@ public final class Cursor<T> implements AutoCloseable {
       checkNotClosed();
       this.txn.checkReadOnly(); // existing
       newTxn.checkReadOnly();
-      newTxn.checkNotCommitted();
+      newTxn.checkReady();
     }
     checkRc(LIB.mdb_cursor_renew(newTxn.pointer(), ptrCursor));
     this.txn = newTxn;
@@ -253,7 +252,7 @@ public final class Cursor<T> implements AutoCloseable {
     if (SHOULD_CHECK) {
       requireNonNull(key);
       checkNotClosed();
-      txn.checkNotCommitted();
+      txn.checkReady();
       txn.checkWritesAllowed();
     }
     txn.keyIn(key);
@@ -275,7 +274,7 @@ public final class Cursor<T> implements AutoCloseable {
     if (SHOULD_CHECK) {
       requireNonNull(op);
       checkNotClosed();
-      txn.checkNotCommitted();
+      txn.checkReady();
     }
 
     final int rc = LIB.mdb_cursor_get(ptrCursor, txn.pointerKey(), txn.

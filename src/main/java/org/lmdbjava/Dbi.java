@@ -118,7 +118,7 @@ public final class Dbi<T> {
     if (SHOULD_CHECK) {
       requireNonNull(txn);
       requireNonNull(key);
-      txn.checkNotCommitted();
+      txn.checkReady();
       txn.checkWritesAllowed();
     }
 
@@ -146,7 +146,7 @@ public final class Dbi<T> {
   public void drop(final Txn<T> txn) {
     if (SHOULD_CHECK) {
       requireNonNull(txn);
-      txn.checkNotCommitted();
+      txn.checkReady();
       txn.checkWritesAllowed();
     }
     checkRc(LIB.mdb_drop(txn.pointer(), ptr, 0));
@@ -171,7 +171,7 @@ public final class Dbi<T> {
     if (SHOULD_CHECK) {
       requireNonNull(txn);
       requireNonNull(key);
-      txn.checkNotCommitted();
+      txn.checkReady();
     }
     txn.keyIn(key);
     final int rc = LIB.mdb_get(txn.pointer(), ptr, txn.pointerKey(), txn.
@@ -227,7 +227,7 @@ public final class Dbi<T> {
                                    final IteratorType type) {
     if (SHOULD_CHECK) {
       requireNonNull(txn);
-      txn.checkNotCommitted();
+      txn.checkReady();
     }
     return new CursorIterator<>(openCursor(txn), key, type);
   }
@@ -251,7 +251,7 @@ public final class Dbi<T> {
   public Cursor<T> openCursor(final Txn<T> txn) {
     if (SHOULD_CHECK) {
       requireNonNull(txn);
-      txn.checkNotCommitted();
+      txn.checkReady();
     }
     final PointerByReference cursorPtr = new PointerByReference();
     checkRc(LIB.mdb_cursor_open(txn.pointer(), ptr, cursorPtr));
@@ -293,7 +293,7 @@ public final class Dbi<T> {
       requireNonNull(txn);
       requireNonNull(key);
       requireNonNull(val);
-      txn.checkNotCommitted();
+      txn.checkReady();
       txn.checkWritesAllowed();
     }
     txn.keyIn(key);
@@ -324,7 +324,7 @@ public final class Dbi<T> {
     if (SHOULD_CHECK) {
       requireNonNull(txn);
       requireNonNull(key);
-      txn.checkNotCommitted();
+      txn.checkReady();
       txn.checkWritesAllowed();
     }
     txn.keyIn(key);
@@ -345,7 +345,7 @@ public final class Dbi<T> {
   public Stat stat(final Txn<T> txn) {
     if (SHOULD_CHECK) {
       requireNonNull(txn);
-      txn.checkNotCommitted();
+      txn.checkReady();
     }
     final MDB_stat stat = new MDB_stat(RUNTIME);
     checkRc(LIB.mdb_stat(txn.pointer(), ptr, stat));

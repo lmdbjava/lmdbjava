@@ -43,14 +43,15 @@ import static org.lmdbjava.EnvFlags.MDB_RDONLY_ENV;
 import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.POSIX_MODE;
 import static org.lmdbjava.TestUtils.bb;
-import org.lmdbjava.Txn.CommittedException;
 import org.lmdbjava.Txn.EnvIsReadOnly;
 import org.lmdbjava.Txn.IncompatibleParent;
+import org.lmdbjava.Txn.NotReadyException;
 import org.lmdbjava.Txn.NotResetException;
 import org.lmdbjava.Txn.ReadOnlyRequiredException;
 import org.lmdbjava.Txn.ReadWriteRequiredException;
 import org.lmdbjava.Txn.ResetException;
 import static org.lmdbjava.TxnFlags.MDB_RDONLY_TXN;
+import static org.lmdbjava.Txn.State.*;
 
 /**
  * Test {@link Txn}.
@@ -94,11 +95,11 @@ public final class TxnTest {
     roEnv.txnWrite(); // error
   }
 
-  @Test(expected = CommittedException.class)
+  @Test(expected = NotReadyException.class)
   public void testCheckNotCommitted() {
     final Txn<ByteBuffer> txn = env.txnRead();
     txn.commit();
-    txn.checkNotCommitted();
+    txn.checkReady();
   }
 
   @Test(expected = ReadOnlyRequiredException.class)
@@ -136,23 +137,23 @@ public final class TxnTest {
   @Test
   public void txCanCommitThenCloseWithoutError() {
     try (final Txn<ByteBuffer> txn = env.txnRead()) {
-      assertThat(txn.isCommitted(), is(false));
+      assertThat(txn.getState(), is(READY));
       txn.commit();
-      assertThat(txn.isCommitted(), is(true));
+      assertThat(txn.getState(), is(DONE));
     }
   }
 
-  @Test(expected = CommittedException.class)
+  @Test(expected = NotReadyException.class)
   public void txCannotAbortIfAlreadyCommitted() {
     try (final Txn<ByteBuffer> txn = env.txnRead()) {
-      assertThat(txn.isCommitted(), is(false));
+      assertThat(txn.getState(), is(READY));
       txn.commit();
-      assertThat(txn.isCommitted(), is(true));
+      assertThat(txn.getState(), is(DONE));
       txn.abort();
     }
   }
 
-  @Test(expected = CommittedException.class)
+  @Test(expected = NotReadyException.class)
   public void txCannotCommitTwice() {
     final Txn<ByteBuffer> txn = env.txnRead();
     txn.commit();
@@ -190,29 +191,32 @@ public final class TxnTest {
   public void txReadOnly() {
     final Txn<ByteBuffer> txn = env.txnRead();
     assertThat(txn.getParent(), is(nullValue()));
-    assertThat(txn.isCommitted(), is(false));
+    assertThat(txn.getState(), is(READY));
     assertThat(txn.isReadOnly(), is(true));
-    assertThat(txn.isReset(), is(false));
-    txn.checkNotCommitted();
+    txn.checkReady();
     txn.checkReadOnly();
     txn.reset();
-    assertThat(txn.isReset(), is(true));
+    assertThat(txn.getState(), is(RESET));
     txn.renew();
-    assertThat(txn.isReset(), is(false));
+    assertThat(txn.getState(), is(READY));
     txn.commit();
-    assertThat(txn.isCommitted(), is(true));
+    assertThat(txn.getState(), is(DONE));
+    txn.close();
+    assertThat(txn.getState(), is(RELEASED));
   }
 
   @Test
   public void txReadWrite() {
     final Txn<ByteBuffer> txn = env.txnWrite();
     assertThat(txn.getParent(), is(nullValue()));
-    assertThat(txn.isCommitted(), is(false));
+    assertThat(txn.getState(), is(READY));
     assertThat(txn.isReadOnly(), is(false));
-    txn.checkNotCommitted();
+    txn.checkReady();
     txn.checkWritesAllowed();
     txn.commit();
-    assertThat(txn.isCommitted(), is(true));
+    assertThat(txn.getState(), is(DONE));
+    txn.close();
+    assertThat(txn.getState(), is(RELEASED));
   }
 
   @Test(expected = NotResetException.class)
