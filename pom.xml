@@ -47,6 +47,14 @@
     <url>git@github.com:${github.org}/${github.repo}.git</url>
     <tag>HEAD</tag>
   </scm>
+  <issueManagement>
+    <system>GitHub Issues</system>
+    <url>https://github.com/${github.org}/${github.repo}/issues</url>
+  </issueManagement>
+  <ciManagement>
+    <system>travis-ci</system>
+    <url>https://travis-ci.org/${github.org}/${github.repo}</url>
+  </ciManagement>
   <properties>
     <github.org>lmdbjava</github.org>
     <github.repo>lmdbjava</github.repo>
