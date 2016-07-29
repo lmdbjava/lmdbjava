@@ -26,4 +26,5 @@ notifications:
   - provider: Email
     to:
       - ben.alex@acegi.com.au
+      - stoffe@gmail.com
     on_build_success: false
