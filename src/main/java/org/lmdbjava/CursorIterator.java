@@ -174,17 +174,24 @@ public final class CursorIterator<T> implements
   }
 
   /**
+   * Direction in terms of key ordering for CursorIterator.
+   */
+  public enum IteratorType {
+    /**
+     * Move forward.
+     */
+    FORWARD,
+    /**
+     * Move backward.
+     */
+    BACKWARD
+  }
+
+  /**
    * Represents the internal {@link CursorIterator} state.
    */
   enum State {
     READY, NOT_READY, DONE, FAILED,
-  }
-
-  /**
-   * Direction in terms of key ordering for CursorIterator.
-   */
-  enum IteratorType {
-    FORWARD, BACKWARD
   }
 
 }
