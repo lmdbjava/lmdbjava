@@ -19,7 +19,7 @@ install:
   - pip install codecov
 
 build_script:
-  - mvn -V -B -Dcheckstyle.skip=true -e verify
+  - mvn -V -B -e verify
   - codecov -X gcov -f target/site/jacoco/jacoco.xml
 
 notifications:
