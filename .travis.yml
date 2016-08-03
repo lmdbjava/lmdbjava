@@ -18,7 +18,7 @@ notifications:
 before_install:
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then export JAVA_HOME=$(/usr/libexec/java_home); fi
 install:
-  - mvn -B -Pdeploy -DexcludeGroupIds=com.github.github -V dependency:go-offline
+  - mvn -B -Pdeploy -V dependency:go-offline
 script:
   - mvn -B -Pdeploy -Dgpg.skip=true verify
 after_success:
