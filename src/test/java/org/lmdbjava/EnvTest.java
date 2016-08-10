@@ -102,6 +102,14 @@ public final class EnvTest {
     builder.open(path, MDB_NOSUBDIR);
   }
 
+  @Test(expected = IllegalArgumentException.class)
+  public void cannotOverflowMapSize() {
+    final Builder<ByteBuffer> builder = create();
+    final int mb = 1_024 * 1_024;
+    final int size = mb * 2_048; // as per issue 18
+    builder.setMapSize(size);
+  }
+
   @Test(expected = AlreadyClosedException.class)
   public void cannotStatOnceClosed() throws IOException {
     final File path = tmp.newFile();
