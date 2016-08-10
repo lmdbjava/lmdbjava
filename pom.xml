@@ -4,7 +4,7 @@
   <parent>
     <groupId>au.com.acegi</groupId>
     <artifactId>acegi-standard-project</artifactId>
-    <version>0.0.4</version>
+    <version>0.0.5</version>
   </parent>
   <groupId>org.lmdbjava</groupId>
   <artifactId>lmdbjava</artifactId>
@@ -147,6 +147,10 @@
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>versions-maven-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>buildnumber-maven-plugin</artifactId>
       </plugin>
       <plugin>
         <groupId>org.jacoco</groupId>
