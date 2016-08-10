@@ -33,7 +33,7 @@
 * Low latency design (allocation-free; buffer pools; optional checks can be easily disabled in production etc)
 * Easy to use (just work through our step-by-step, CI-tested, fully-executable [tutorial](https://github.com/lmdbjava/lmdbjava/tree/master/src/test/java/org/lmdbjava/TutorialTest.java))
 * Java 9 ready ([JNR-FFI](https://github.com/jnr/jnr-ffi)-based; `Unsafe` not required etc)
-* Available from [Maven Central](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22org.lmdbjava%22%20AND%20a%3A%22lmdbjava%22)
+* Available from [Maven Central](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22org.lmdbjava%22%20AND%20a%3A%22lmdbjava%22) and [OSS Sonatype Snapshots](https://oss.sonatype.org/content/repositories/snapshots/org/lmdbjava/lmdbjava)
 * Comprehensive [JavaDocs](http://www.javadoc.io/doc/org.lmdbjava/lmdbjava)
 * [Linux](https://travis-ci.org/lmdbjava/lmdbjava), [OS X](https://travis-ci.org/lmdbjava/lmdbjava) and [Windows](https://ci.appveyor.com/project/benalexau/lmdbjava) CI
 
