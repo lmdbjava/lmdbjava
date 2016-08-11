@@ -368,13 +368,18 @@ public final class Env<T> implements AutoCloseable {
       final PointerByReference envPtr = new PointerByReference();
       checkRc(LIB.mdb_env_create(envPtr));
       final Pointer ptr = envPtr.getValue();
-      checkRc(LIB.mdb_env_set_mapsize(ptr, mapSize));
-      checkRc(LIB.mdb_env_set_maxdbs(ptr, maxDbs));
-      checkRc(LIB.mdb_env_set_maxreaders(ptr, maxReaders));
-      final int flagsMask = mask(flags);
-      final boolean readOnly = isSet(flagsMask, MDB_RDONLY_ENV);
-      checkRc(LIB.mdb_env_open(ptr, path.getAbsolutePath(), flagsMask, mode));
-      return new Env<>(proxy, ptr, readOnly); // NOPMD
+      try {
+        checkRc(LIB.mdb_env_set_mapsize(ptr, mapSize));
+        checkRc(LIB.mdb_env_set_maxdbs(ptr, maxDbs));
+        checkRc(LIB.mdb_env_set_maxreaders(ptr, maxReaders));
+        final int flagsMask = mask(flags);
+        final boolean readOnly = isSet(flagsMask, MDB_RDONLY_ENV);
+        checkRc(LIB.mdb_env_open(ptr, path.getAbsolutePath(), flagsMask, mode));
+        return new Env<>(proxy, ptr, readOnly); // NOPMD
+      } catch (final LmdbNativeException e) {
+        LIB.mdb_env_close(ptr);
+        throw e;
+      }
     }
 
     /**
