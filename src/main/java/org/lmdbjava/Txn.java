@@ -88,8 +88,8 @@ public final class Txn<T> implements AutoCloseable {
    */
   public void abort() {
     checkReady();
-    LIB.mdb_txn_abort(ptr);
     state = DONE;
+    LIB.mdb_txn_abort(ptr);
   }
 
   /**
@@ -107,7 +107,6 @@ public final class Txn<T> implements AutoCloseable {
     }
     if (state == READY) {
       LIB.mdb_txn_abort(ptr);
-      state = DONE;
     }
     proxy.deallocate(k);
     proxy.deallocate(v);
@@ -119,8 +118,8 @@ public final class Txn<T> implements AutoCloseable {
    */
   public void commit() {
     checkReady();
-    checkRc(LIB.mdb_txn_commit(ptr));
     state = DONE;
+    checkRc(LIB.mdb_txn_commit(ptr));
   }
 
   /**
@@ -169,6 +168,7 @@ public final class Txn<T> implements AutoCloseable {
     if (state != RESET) {
       throw new NotResetException();
     }
+    state = DONE;
     checkRc(LIB.mdb_txn_renew(ptr));
     state = READY;
   }
@@ -182,8 +182,8 @@ public final class Txn<T> implements AutoCloseable {
     if (state != READY && state != DONE) {
       throw new ResetException();
     }
-    LIB.mdb_txn_reset(ptr);
     state = RESET;
+    LIB.mdb_txn_reset(ptr);
   }
 
   /**

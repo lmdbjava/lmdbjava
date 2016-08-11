@@ -25,6 +25,8 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import static java.nio.ByteBuffer.allocateDirect;
+import java.security.SecureRandom;
+import java.util.Random;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -37,6 +39,7 @@ import org.lmdbjava.Env.AlreadyClosedException;
 import org.lmdbjava.Env.AlreadyOpenException;
 import org.lmdbjava.Env.Builder;
 import org.lmdbjava.Env.InvalidCopyDestination;
+import org.lmdbjava.Env.MapFullException;
 import static org.lmdbjava.Env.create;
 import static org.lmdbjava.Env.open;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
@@ -214,6 +217,26 @@ public final class EnvTest {
     assertThat(env.getMaxKeySize(), is(511));
   }
 
+  @Test(expected = MapFullException.class)
+  public void mapFull() throws IOException {
+    final File path = tmp.newFolder();
+    final byte[] k = new byte[500];
+    final ByteBuffer key = allocateDirect(500);
+    final ByteBuffer val = allocateDirect(1_024);
+    final Random rnd = new SecureRandom();
+    try (final Env<ByteBuffer> env = create().setMapSize(MEBIBYTES.toBytes(8))
+        .setMaxDbs(1).open(path)) {
+      final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
+      for (;;) {
+        rnd.nextBytes(k);
+        key.clear();
+        key.put(k).flip();
+        val.clear();
+        db.put(key, val);
+      }
+    }
+  }
+
   @Test
   public void readOnlySupported() throws IOException {
     final File path = tmp.newFolder();
@@ -251,4 +274,5 @@ public final class EnvTest {
       db.put(allocateDirect(1), allocateDirect(1));
     }
   }
+
 }
