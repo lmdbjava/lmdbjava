@@ -398,6 +398,9 @@ public final class Env<T> implements AutoCloseable {
       if (opened) {
         throw new AlreadyOpenException();
       }
+      if (mapSize < 0) {
+        throw new IllegalArgumentException("Negative value; overflow?");
+      }
       this.mapSize = mapSize;
       return this;
     }
