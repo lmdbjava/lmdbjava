@@ -25,7 +25,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import static java.nio.ByteBuffer.allocateDirect;
-import java.security.SecureRandom;
 import java.util.Random;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -223,7 +222,7 @@ public final class EnvTest {
     final byte[] k = new byte[500];
     final ByteBuffer key = allocateDirect(500);
     final ByteBuffer val = allocateDirect(1_024);
-    final Random rnd = new SecureRandom();
+    final Random rnd = new Random();
     try (final Env<ByteBuffer> env = create().setMapSize(MEBIBYTES.toBytes(8))
         .setMaxDbs(1).open(path)) {
       final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
