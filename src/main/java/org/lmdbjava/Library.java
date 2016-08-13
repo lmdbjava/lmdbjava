@@ -40,6 +40,7 @@ import jnr.ffi.annotations.Out;
 import jnr.ffi.byref.IntByReference;
 import jnr.ffi.byref.NativeLongByReference;
 import jnr.ffi.byref.PointerByReference;
+import jnr.ffi.types.size_t;
 
 /**
  * JNR-FFI interface to LMDB.
@@ -228,7 +229,7 @@ final class Library {
 
     int mdb_env_set_flags(@In Pointer env, int flags, int onoff);
 
-    int mdb_env_set_mapsize(@In Pointer env, long size);
+    int mdb_env_set_mapsize(@In Pointer env, @size_t long size);
 
     int mdb_env_set_maxdbs(@In Pointer env, int dbs);
 
