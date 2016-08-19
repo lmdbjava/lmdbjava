@@ -123,11 +123,12 @@ public final class ByteBufProxy extends BufferProxy<ByteBuf> {
   }
 
   @Override
-  protected void out(final ByteBuf buffer, final Pointer ptr, final long ptrAddr) {
+  protected ByteBuf out(final ByteBuf buffer, final Pointer ptr, final long ptrAddr) {
     final long addr = UNSAFE.getLong(ptrAddr + STRUCT_FIELD_OFFSET_DATA);
     final long size = UNSAFE.getLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE);
     UNSAFE.putLong(buffer, ADDRESS_OFFSET, addr);
     UNSAFE.putLong(buffer, LENGTH_OFFSET, (int) size);
     buffer.readerIndex(0).writerIndex((int) size);
+    return buffer;
   }
 }

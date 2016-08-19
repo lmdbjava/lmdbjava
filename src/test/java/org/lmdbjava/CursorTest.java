@@ -53,11 +53,8 @@ import static org.lmdbjava.SeekOp.MDB_FIRST;
 import static org.lmdbjava.SeekOp.MDB_LAST;
 import static org.lmdbjava.SeekOp.MDB_NEXT;
 import static org.lmdbjava.SeekOp.MDB_PREV;
-import static org.lmdbjava.TestUtils.DB_1;
-import static org.lmdbjava.TestUtils.POSIX_MODE;
-import static org.lmdbjava.TestUtils.bb;
-import static org.lmdbjava.TestUtils.mdb;
-import static org.lmdbjava.TestUtils.nb;
+import static org.lmdbjava.TestUtils.*;
+
 import org.lmdbjava.Txn.NotReadyException;
 import org.lmdbjava.Txn.ReadOnlyRequiredException;
 
@@ -247,6 +244,76 @@ public final class CursorTest {
       assertThat(mdb8.getInt(0), is(2));
     }
   }
+
+  @Test
+  @SuppressWarnings("checkstyle:executablestatementcount")
+  public void cursorByteArray() {
+    final Env<byte[]> env = makeEnv(new ByteArrayProxy());
+    final Dbi<byte[]> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
+    try (final Txn<byte[]> txn = env.txnWrite()) {
+      // populate data
+      final Cursor<byte[]> c = db.openCursor(txn);
+      c.put(ba(1), ba(2), MDB_NOOVERWRITE);
+      c.put(ba(3), ba(4));
+      c.put(ba(5), ba(6));
+
+      // check MDB_SET operations
+      final byte[] key3 = ba(3);
+      assertThat(c.get(key3, MDB_SET_KEY), is(true));
+      assertThat(new UnsafeBuffer(txn.key()).getInt(0), is(3));
+      assertThat(new UnsafeBuffer(txn.val()).getInt(0), is(4));
+      final byte[] key6 = ba(5);
+      assertThat(c.get(key6, MDB_SET_RANGE), is(true));
+      assertThat(new UnsafeBuffer(txn.key()).getInt(0), is(5));
+      assertThat(new UnsafeBuffer(txn.val()).getInt(0), is(6));
+      final byte[] key999 = ba(999);
+      assertThat(c.get(key999, MDB_SET_KEY), is(false));
+
+      // check MDB navigation operations
+      assertThat(c.seek(MDB_LAST), is(true));
+      final MutableDirectBuffer mdb1 = mdb(0);
+      final MutableDirectBuffer mdb2 = mdb(0);
+      mdb1.wrap(txn.key());
+      mdb2.wrap(txn.val());
+
+      assertThat(c.seek(MDB_PREV), is(true));
+      final MutableDirectBuffer mdb3 = mdb(0);
+      final MutableDirectBuffer mdb4 = mdb(0);
+      mdb3.wrap(txn.key());
+      mdb4.wrap(txn.val());
+
+      assertThat(c.seek(MDB_NEXT), is(true));
+      final MutableDirectBuffer mdb5 = mdb(0);
+      final MutableDirectBuffer mdb6 = mdb(0);
+      mdb5.wrap(txn.key());
+      mdb6.wrap(txn.val());
+
+      assertThat(c.seek(MDB_FIRST), is(true));
+      final MutableDirectBuffer mdb7 = mdb(0);
+      final MutableDirectBuffer mdb8 = mdb(0);
+      mdb7.wrap(txn.key());
+      mdb8.wrap(txn.val());
+
+      // assert afterwards to ensure memory address from LMDB
+      // are valid within same txn and across cursor movement
+      // MDB_LAST
+      assertThat(mdb1.getInt(0), is(5));
+      assertThat(mdb2.getInt(0), is(6));
+
+      // MDB_PREV
+      assertThat(mdb3.getInt(0), is(3));
+      assertThat(mdb4.getInt(0), is(4));
+
+      // MDB_NEXT
+      assertThat(mdb5.getInt(0), is(5));
+      assertThat(mdb6.getInt(0), is(6));
+
+      // MDB_FIRST
+      assertThat(mdb7.getInt(0), is(1));
+      assertThat(mdb8.getInt(0), is(2));
+    }
+  }
+
 
   @Test
   public void delete() {

@@ -180,8 +180,7 @@ public final class Dbi<T> {
       return null;
     }
     checkRc(rc);
-    txn.valOut(); // marked as out in LMDB C docs
-    return txn.val();
+    return txn.valOut(); // marked as out in LMDB C docs
   }
 
   /**
@@ -332,8 +331,7 @@ public final class Dbi<T> {
     final int mask = mask(MDB_RESERVE);
     checkRc(LIB.mdb_put(txn.pointer(), ptr, txn.pointerKey(), txn.pointerVal(),
                         mask));
-    txn.valOut(); // marked as in,out in LMDB C docs
-    return txn.val();
+    return txn.valOut(); // marked as in,out in LMDB C docs
   }
 
   /**

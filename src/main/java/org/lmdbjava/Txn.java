@@ -44,7 +44,8 @@ import static org.lmdbjava.TxnFlags.MDB_RDONLY_TXN;
 public final class Txn<T> implements AutoCloseable {
 
   private static final MemoryManager MEM_MGR = RUNTIME.getMemoryManager();
-  private final T k;
+  private T k;
+  private T v;
   private final Txn<T> parent;
   private final BufferProxy<T> proxy;
   private final Pointer ptr;
@@ -54,7 +55,6 @@ public final class Txn<T> implements AutoCloseable {
   private final long ptrValAddr;
   private final boolean readOnly;
   private State state;
-  private final T v;
 
   Txn(final Env<T> env, final Txn<T> parent, final BufferProxy<T> proxy,
       final TxnFlags... flags) {
@@ -229,8 +229,9 @@ public final class Txn<T> implements AutoCloseable {
     proxy.in(key, ptrKey, ptrKeyAddr);
   }
 
-  void keyOut() {
-    proxy.out(k, ptrKey, ptrKeyAddr);
+  T keyOut() {
+    k = proxy.out(k, ptrKey, ptrKeyAddr);
+    return k;
   }
 
   Pointer pointer() {
@@ -253,8 +254,9 @@ public final class Txn<T> implements AutoCloseable {
     proxy.in(v, size, ptrVal, ptrValAddr);
   }
 
-  void valOut() {
-    proxy.out(v, ptrVal, ptrValAddr);
+  T valOut() {
+    v = proxy.out(v, ptrVal, ptrValAddr);
+    return v;
   }
 
   /**

@@ -178,7 +178,7 @@ public final class ByteBufferProxy {
     }
 
     @Override
-    protected void out(final ByteBuffer buffer, final Pointer ptr,
+    protected ByteBuffer out(final ByteBuffer buffer, final Pointer ptr,
                        final long ptrAddr) {
       final long addr = ptr.getLong(STRUCT_FIELD_OFFSET_DATA);
       final long size = ptr.getLong(STRUCT_FIELD_OFFSET_SIZE);
@@ -189,6 +189,7 @@ public final class ByteBufferProxy {
         throw new LmdbException("Cannot modify buffer", e);
       }
       buffer.clear();
+      return buffer;
     }
 
   }
@@ -228,13 +229,14 @@ public final class ByteBufferProxy {
     }
 
     @Override
-    protected void out(final ByteBuffer buffer, final Pointer ptr,
+    protected ByteBuffer out(final ByteBuffer buffer, final Pointer ptr,
                        final long ptrAddr) {
       final long addr = UNSAFE.getLong(ptrAddr + STRUCT_FIELD_OFFSET_DATA);
       final long size = UNSAFE.getLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE);
       UNSAFE.putLong(buffer, ADDRESS_OFFSET, addr);
       UNSAFE.putInt(buffer, CAPACITY_OFFSET, (int) size);
       buffer.clear();
+      return buffer;
     }
   }
 
