@@ -36,6 +36,8 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+
+import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -51,6 +53,7 @@ import static org.lmdbjava.GetOp.MDB_SET_KEY;
 import org.lmdbjava.LmdbNativeException.ConstantDerviedException;
 import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
 import static org.lmdbjava.TestUtils.DB_1;
+import static org.lmdbjava.TestUtils.ba;
 import static org.lmdbjava.TestUtils.bb;
 
 /**
@@ -177,6 +180,28 @@ public final class DbiTest {
 
       assertNull(db.get(txn, bb(5)));
       txn.abort();
+    }
+  }
+
+  @Test
+  public void putCommitGetByteArray() throws IOException {
+    final File path = tmp.newFile();
+    Env<byte[]> env = create(new ByteArrayProxy())
+      .setMapSize(MEBIBYTES.toBytes(1_024))
+      .setMaxReaders(1)
+      .setMaxDbs(2)
+      .open(path, MDB_NOSUBDIR);
+
+    final Dbi<byte[]> db = env.openDbi(DB_1, MDB_CREATE);
+    try (final Txn<byte[]> txn = env.txnWrite()) {
+      db.put(txn, ba(5), ba(5));
+      txn.commit();
+    }
+
+    try (final Txn<byte[]> txn = env.txnWrite()) {
+      final byte[] found = db.get(txn, ba(5));
+      assertNotNull(found);
+      assertThat(new UnsafeBuffer(txn.val()).getInt(0), is(5));
     }
   }
 
