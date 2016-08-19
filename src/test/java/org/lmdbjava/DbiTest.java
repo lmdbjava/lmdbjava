@@ -29,6 +29,7 @@ import java.nio.ByteBuffer;
 import static java.nio.ByteBuffer.allocateDirect;
 import static java.util.Collections.nCopies;
 import java.util.Random;
+import org.agrona.concurrent.UnsafeBuffer;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -37,7 +38,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
-import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -187,19 +187,19 @@ public final class DbiTest {
   @Test
   public void putCommitGetByteArray() throws IOException {
     final File path = tmp.newFile();
-    Env<byte[]> env = Env.byteArray()
-      .setMapSize(MEBIBYTES.toBytes(1_024))
-      .setMaxReaders(1)
-      .setMaxDbs(2)
-      .open(path, MDB_NOSUBDIR);
+    final Env<byte[]> byteArrayEnv = Env.byteArray()
+        .setMapSize(MEBIBYTES.toBytes(1_024))
+        .setMaxReaders(1)
+        .setMaxDbs(2)
+        .open(path, MDB_NOSUBDIR);
 
-    final Dbi<byte[]> db = env.openDbi(DB_1, MDB_CREATE);
-    try (final Txn<byte[]> txn = env.txnWrite()) {
+    final Dbi<byte[]> db = byteArrayEnv.openDbi(DB_1, MDB_CREATE);
+    try (final Txn<byte[]> txn = byteArrayEnv.txnWrite()) {
       db.put(txn, ba(5), ba(5));
       txn.commit();
     }
 
-    try (final Txn<byte[]> txn = env.txnWrite()) {
+    try (final Txn<byte[]> txn = byteArrayEnv.txnWrite()) {
       final byte[] found = db.get(txn, ba(5));
       assertNotNull(found);
       assertThat(new UnsafeBuffer(txn.val()).getInt(0), is(5));

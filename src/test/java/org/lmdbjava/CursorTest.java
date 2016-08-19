@@ -52,7 +52,12 @@ import static org.lmdbjava.SeekOp.MDB_FIRST;
 import static org.lmdbjava.SeekOp.MDB_LAST;
 import static org.lmdbjava.SeekOp.MDB_NEXT;
 import static org.lmdbjava.SeekOp.MDB_PREV;
-import static org.lmdbjava.TestUtils.*;
+import static org.lmdbjava.TestUtils.DB_1;
+import static org.lmdbjava.TestUtils.POSIX_MODE;
+import static org.lmdbjava.TestUtils.ba;
+import static org.lmdbjava.TestUtils.bb;
+import static org.lmdbjava.TestUtils.mdb;
+import static org.lmdbjava.TestUtils.nb;
 
 import org.lmdbjava.Txn.NotReadyException;
 import org.lmdbjava.Txn.ReadOnlyRequiredException;

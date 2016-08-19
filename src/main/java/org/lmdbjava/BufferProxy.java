@@ -96,6 +96,7 @@ public abstract class BufferProxy<T> { // NOPMD
    * @param buffer  the buffer to write to <code>MDB_val</code>
    * @param ptr     the pointer to the <code>MDB_val</code>
    * @param ptrAddr the address of the <code>MDB_val</code> pointer
+   * @return the buffer for <code>MDB_val</code>
    */
   protected abstract T out(T buffer, Pointer ptr, long ptrAddr);
 
