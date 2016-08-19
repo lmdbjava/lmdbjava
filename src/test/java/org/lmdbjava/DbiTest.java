@@ -47,7 +47,8 @@ import org.lmdbjava.Dbi.KeyExistsException;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import static org.lmdbjava.DbiFlags.MDB_DUPSORT;
 import org.lmdbjava.Env.MapFullException;
-import static org.lmdbjava.Env.create;
+
+import static org.lmdbjava.Env.byteBuffer;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.GetOp.MDB_SET_KEY;
 import org.lmdbjava.LmdbNativeException.ConstantDerviedException;
@@ -68,7 +69,7 @@ public final class DbiTest {
   @Before
   public void before() throws IOException {
     final File path = tmp.newFile();
-    env = create()
+    env = byteBuffer()
         .setMapSize(MEBIBYTES.toBytes(1_024))
         .setMaxReaders(1)
         .setMaxDbs(2)
@@ -186,7 +187,7 @@ public final class DbiTest {
   @Test
   public void putCommitGetByteArray() throws IOException {
     final File path = tmp.newFile();
-    Env<byte[]> env = create(new ByteArrayProxy())
+    Env<byte[]> env = Env.byteArray()
       .setMapSize(MEBIBYTES.toBytes(1_024))
       .setMaxReaders(1)
       .setMaxDbs(2)

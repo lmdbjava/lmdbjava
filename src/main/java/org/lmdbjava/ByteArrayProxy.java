@@ -5,8 +5,18 @@ import jnr.ffi.provider.MemoryManager;
 
 import static org.lmdbjava.Library.RUNTIME;
 
+/**
+ * Byte array proxy.
+ *
+ * {@link Env#byteArray()}
+ */
 public class ByteArrayProxy extends BufferProxy<byte[]> {
   private static final MemoryManager MEM_MGR = RUNTIME.getMemoryManager();
+
+  /**
+   * The byte array proxy. Guaranteed to never be null.
+   */
+  public static final BufferProxy<byte[]> PROXY_BA = new ByteArrayProxy();
 
   @Override
   protected byte[] allocate() {

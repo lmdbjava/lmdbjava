@@ -37,7 +37,6 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import org.lmdbjava.Env.AlreadyClosedException;
-import static org.lmdbjava.Env.create;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.EnvFlags.MDB_RDONLY_ENV;
 import static org.lmdbjava.TestUtils.DB_1;
@@ -74,7 +73,7 @@ public final class TxnTest {
   @Before
   public void before() throws IOException {
     path = tmp.newFile();
-    env = create()
+    env = Env.byteBuffer()
         .setMapSize(KIBIBYTES.toBytes(100))
         .setMaxReaders(1)
         .setMaxDbs(2)
@@ -84,7 +83,7 @@ public final class TxnTest {
   @Test
   public void readOnlyTxnAllowedInReadOnlyEnv() {
     env.openDbi(DB_1, MDB_CREATE);
-    final Env<ByteBuffer> roEnv = create().open(path, MDB_NOSUBDIR,
+    final Env<ByteBuffer> roEnv = Env.byteBuffer().open(path, MDB_NOSUBDIR,
                                                 MDB_RDONLY_ENV);
     assertThat(roEnv.txnRead(), is(notNullValue()));
   }
@@ -93,7 +92,7 @@ public final class TxnTest {
   public void readWriteTxnDeniedInReadOnlyEnv() {
     env.openDbi(DB_1, MDB_CREATE);
     env.close();
-    final Env<ByteBuffer> roEnv = create().open(path, MDB_NOSUBDIR,
+    final Env<ByteBuffer> roEnv = Env.byteBuffer().open(path, MDB_NOSUBDIR,
                                                 MDB_RDONLY_ENV);
     roEnv.txnWrite(); // error
   }
