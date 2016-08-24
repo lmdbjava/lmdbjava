@@ -24,6 +24,7 @@ import static com.jakewharton.byteunits.BinaryByteUnit.KIBIBYTES;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import static java.nio.ByteBuffer.allocateDirect;
 import java.util.concurrent.atomic.AtomicLong;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
@@ -36,6 +37,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
+import static org.lmdbjava.DbiFlags.MDB_DUPSORT;
 import org.lmdbjava.Env.AlreadyClosedException;
 import static org.lmdbjava.Env.create;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
@@ -242,4 +244,32 @@ public final class TxnTest {
     final Txn<ByteBuffer> txn = env.txnWrite();
     txn.reset();
   }
+
+  @Test(expected = IndexOutOfBoundsException.class)
+  public void zeroByteKeysRejected() throws IOException {
+    final Dbi<ByteBuffer> dbi = env.openDbi(DB_1, MDB_CREATE);
+    final ByteBuffer key = allocateDirect(4);
+    key.putInt(1);
+    assertThat(key.remaining(), is(0)); // because key.flip() skipped
+    dbi.put(key, bb(2));
+  }
+
+  @Test(expected = IndexOutOfBoundsException.class)
+  public void zeroByteReservationRejected() throws IOException {
+    final Dbi<ByteBuffer> dbi = env.openDbi(DB_1, MDB_CREATE);
+    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
+      final int reservedSize = 0; // invalid
+      dbi.reserve(txn, bb(1), reservedSize);
+    }
+  }
+
+  @Test(expected = IndexOutOfBoundsException.class)
+  public void zeroByteValueRejectedWithDupSortDatabase() throws IOException {
+    final Dbi<ByteBuffer> dbi = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
+    final ByteBuffer val = allocateDirect(4);
+    val.putInt(1);
+    assertThat(val.remaining(), is(0)); // because val.flip() skipped
+    dbi.put(bb(1), val);
+  }
+
 }

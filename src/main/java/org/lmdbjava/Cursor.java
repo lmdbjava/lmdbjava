@@ -44,12 +44,14 @@ public final class Cursor<T> implements AutoCloseable {
   private boolean closed;
   private final Pointer ptrCursor;
   private Txn<T> txn;
+  private final boolean zeroLenValAllowed;
 
-  Cursor(final Pointer ptr, final Txn<T> txn) {
+  Cursor(final Pointer ptr, final Txn<T> txn, final boolean zeroLenValAllowed) {
     requireNonNull(ptr);
     requireNonNull(txn);
     this.ptrCursor = ptr;
     this.txn = txn;
+    this.zeroLenValAllowed = zeroLenValAllowed;
   }
 
   /**
@@ -200,7 +202,7 @@ public final class Cursor<T> implements AutoCloseable {
       txn.checkWritesAllowed();
     }
     txn.keyIn(key);
-    txn.valIn(val);
+    txn.valIn(val, zeroLenValAllowed);
     final int flags = mask(op);
     checkRc(LIB.mdb_cursor_put(ptrCursor, txn.pointerKey(), txn.pointerVal(),
                                flags));

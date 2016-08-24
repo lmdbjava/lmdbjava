@@ -220,6 +220,22 @@ public final class DbiTest {
   }
 
   @Test
+  public void putZeroByteValueForNonMdbDupSortDatabase() {
+    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
+    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
+      final ByteBuffer val = allocateDirect(0);
+      db.put(txn, bb(5), val);
+      txn.commit();
+    }
+
+    try (final Txn<ByteBuffer> txn = env.txnRead()) {
+      final ByteBuffer found = db.get(txn, bb(5));
+      assertNotNull(found);
+      assertThat(txn.val().capacity(), is(0));
+    }
+  }
+
+  @Test
   public void stats() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
     db.put(bb(1), bb(42));
