@@ -56,7 +56,7 @@ public final class CursorIteratorTest {
 
   @Test
   public void backward() {
-    try (final Txn<ByteBuffer> txn = env.txnRead();
+    try (Txn<ByteBuffer> txn = env.txnRead();
          CursorIterator<ByteBuffer> c = db.iterate(txn, BACKWARD)) {
       for (final KeyVal<ByteBuffer> kv : c.iterable()) {
         assertThat(kv.val().getInt(), is(list.pollLast()));
@@ -71,7 +71,7 @@ public final class CursorIteratorTest {
     final ByteBuffer key = bb(5);
     list.pollLast();
     list.pollLast();
-    try (final Txn<ByteBuffer> txn = env.txnRead();
+    try (Txn<ByteBuffer> txn = env.txnRead();
          CursorIterator<ByteBuffer> c = db.iterate(txn, key, BACKWARD)) {
       for (final KeyVal<ByteBuffer> kv : c.iterable()) {
         assertThat(kv.val().getInt(), is(list.pollLast()));
@@ -87,7 +87,7 @@ public final class CursorIteratorTest {
     db = env.openDbi(DB_1, MDB_CREATE);
     list = new LinkedList<>();
     list.addAll(asList(1, 2, 3, 4, 5, 6, 7, 8));
-    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
       final Cursor<ByteBuffer> c = db.openCursor(txn);
       c.put(bb(1), bb(2), MDB_NOOVERWRITE);
       c.put(bb(3), bb(4));
@@ -99,7 +99,7 @@ public final class CursorIteratorTest {
 
   @Test
   public void forward() {
-    try (final Txn<ByteBuffer> txn = env.txnRead();
+    try (Txn<ByteBuffer> txn = env.txnRead();
          CursorIterator<ByteBuffer> c = db.iterate(txn, FORWARD)) {
       for (final KeyVal<ByteBuffer> kv : c.iterable()) {
         assertThat(kv.key().getInt(), is(list.pollFirst()));
@@ -115,7 +115,7 @@ public final class CursorIteratorTest {
     list.pollFirst();
     list.pollFirst();
 
-    try (final Txn<ByteBuffer> txn = env.txnRead();
+    try (Txn<ByteBuffer> txn = env.txnRead();
          CursorIterator<ByteBuffer> c = db.iterate(txn, key, FORWARD)) {
       for (final KeyVal<ByteBuffer> kv : c.iterable()) {
         assertThat(kv.key().getInt(), is(list.pollFirst()));
@@ -126,7 +126,7 @@ public final class CursorIteratorTest {
 
   @Test
   public void iterate() {
-    try (final Txn<ByteBuffer> txn = env.txnRead();
+    try (Txn<ByteBuffer> txn = env.txnRead();
          CursorIterator<ByteBuffer> c = db.iterate(txn)) {
       for (final KeyVal<ByteBuffer> kv : c.iterable()) {
         assertThat(kv.key().getInt(), is(list.pollFirst()));
@@ -137,7 +137,7 @@ public final class CursorIteratorTest {
 
   @Test(expected = NoSuchElementException.class)
   public void nextThrowsNoSuchElementExceptionIfNoMoreElements() {
-    try (final Txn<ByteBuffer> txn = env.txnRead();
+    try (Txn<ByteBuffer> txn = env.txnRead();
          CursorIterator<ByteBuffer> c = db.iterate(txn)) {
       for (final KeyVal<ByteBuffer> kv : c.iterable()) {
         assertThat(kv.key().getInt(), is(list.pollFirst()));
@@ -150,7 +150,7 @@ public final class CursorIteratorTest {
 
   @Test(expected = UnsupportedOperationException.class)
   public void removeUnsupported() {
-    try (final Txn<ByteBuffer> txn = env.txnRead();
+    try (Txn<ByteBuffer> txn = env.txnRead();
          CursorIterator<ByteBuffer> c = db.iterate(txn)) {
       c.remove();
     }

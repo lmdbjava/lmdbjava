@@ -73,7 +73,7 @@ public final class CursorTest {
   public void closedCursorRejectsSubsequentGets() {
     final Env<ByteBuffer> env = makeEnv(PROXY_OPTIMAL);
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
-    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
       final Cursor<ByteBuffer> c = db.openCursor(txn);
       c.close();
       c.seek(MDB_FIRST);
@@ -84,7 +84,7 @@ public final class CursorTest {
   public void count() {
     final Env<ByteBuffer> env = makeEnv(PROXY_OPTIMAL);
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
-    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
       final Cursor<ByteBuffer> c = db.openCursor(txn);
       c.put(bb(1), bb(2), MDB_APPENDDUP);
       assertThat(c.count(), is(1L));
@@ -101,7 +101,7 @@ public final class CursorTest {
   public void cursorByteBufProxy() {
     final Env<ByteBuf> env = makeEnv(new ByteBufProxy());
     final Dbi<ByteBuf> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
-    try (final Txn<ByteBuf> txn = env.txnWrite()) {
+    try (Txn<ByteBuf> txn = env.txnWrite()) {
       // populate data
       final Cursor<ByteBuf> c = db.openCursor(txn);
       c.put(nb(1), nb(2), MDB_NOOVERWRITE);
@@ -135,8 +135,8 @@ public final class CursorTest {
   public void cursorCannotCloseIfTransactionCommitted() {
     final Env<ByteBuffer> env = makeEnv(PROXY_OPTIMAL);
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
-    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
-      try (final Cursor<ByteBuffer> c = db.openCursor(txn);) {
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
+      try (Cursor<ByteBuffer> c = db.openCursor(txn);) {
         c.put(bb(1), bb(2), MDB_APPENDDUP);
         assertThat(c.count(), is(1L));
         c.put(bb(1), bb(4), MDB_APPENDDUP);
@@ -150,7 +150,7 @@ public final class CursorTest {
   public void cursorFirstLastNextPrev() {
     final Env<ByteBuffer> env = makeEnv(PROXY_OPTIMAL);
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
-    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
       // populate data
       final Cursor<ByteBuffer> c = db.openCursor(txn);
       c.put(bb(1), bb(2), MDB_NOOVERWRITE);
@@ -182,7 +182,7 @@ public final class CursorTest {
   public void cursorMutableDirectBuffer() {
     final Env<DirectBuffer> env = makeEnv(PROXY_DB);
     final Dbi<DirectBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
-    try (final Txn<DirectBuffer> txn = env.txnWrite()) {
+    try (Txn<DirectBuffer> txn = env.txnWrite()) {
       // populate data
       final Cursor<DirectBuffer> c = db.openCursor(txn);
       c.put(mdb(1), mdb(2), MDB_NOOVERWRITE);
@@ -252,7 +252,7 @@ public final class CursorTest {
   public void delete() {
     final Env<ByteBuffer> env = makeEnv(PROXY_OPTIMAL);
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
-    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
       final Cursor<ByteBuffer> c = db.openCursor(txn);
       c.put(bb(1), bb(2), MDB_NOOVERWRITE);
       c.put(bb(3), bb(4));
@@ -274,12 +274,12 @@ public final class CursorTest {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
 
     final Cursor<ByteBuffer> c;
-    try (final Txn<ByteBuffer> txn = env.txnRead()) {
+    try (Txn<ByteBuffer> txn = env.txnRead()) {
       c = db.openCursor(txn);
       txn.commit();
     }
 
-    try (final Txn<ByteBuffer> txn = env.txnRead()) {
+    try (Txn<ByteBuffer> txn = env.txnRead()) {
       c.renew(txn);
       txn.commit();
     }
@@ -289,7 +289,7 @@ public final class CursorTest {
   public void renewTxRw() {
     final Env<ByteBuffer> env = makeEnv(PROXY_OPTIMAL);
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
-    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
       assertThat(txn.isReadOnly(), is(false));
 
       final Cursor<ByteBuffer> c = db.openCursor(txn);
@@ -301,7 +301,7 @@ public final class CursorTest {
   public void repeatedCloseCausesNotError() {
     final Env<ByteBuffer> env = makeEnv(PROXY_OPTIMAL);
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
-    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
       final Cursor<ByteBuffer> c = db.openCursor(txn);
       c.close();
       c.close();
@@ -321,7 +321,7 @@ public final class CursorTest {
       val.putLong(MIN_VALUE).flip();
       txn.commit();
     }
-    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
       final ByteBuffer val = db.get(txn, key);
       assertThat(val.capacity(), is(BYTES * 2));
       assertThat(val.getLong(), is(MIN_VALUE));
@@ -332,7 +332,7 @@ public final class CursorTest {
   private void cursorByteBuffer(final BufferProxy<ByteBuffer> buffType) {
     final Env<ByteBuffer> env = makeEnv(buffType);
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
-    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
       // populate data
       final Cursor<ByteBuffer> c = db.openCursor(txn);
       c.put(bb(1), bb(2), MDB_NOOVERWRITE);

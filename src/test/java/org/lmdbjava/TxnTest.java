@@ -126,13 +126,13 @@ public final class TxnTest {
     final AtomicLong txId1 = new AtomicLong();
     final AtomicLong txId2 = new AtomicLong();
 
-    try (final Txn<ByteBuffer> tx1 = env.txnRead()) {
+    try (Txn<ByteBuffer> tx1 = env.txnRead()) {
       txId1.set(tx1.getId());
     }
 
     db.put(bb(1), bb(2));
 
-    try (final Txn<ByteBuffer> tx2 = env.txnRead()) {
+    try (Txn<ByteBuffer> tx2 = env.txnRead()) {
       txId2.set(tx2.getId());
     }
     // should not see the same snapshot
@@ -141,7 +141,7 @@ public final class TxnTest {
 
   @Test
   public void txCanCommitThenCloseWithoutError() {
-    try (final Txn<ByteBuffer> txn = env.txnRead()) {
+    try (Txn<ByteBuffer> txn = env.txnRead()) {
       assertThat(txn.getState(), is(READY));
       txn.commit();
       assertThat(txn.getState(), is(DONE));
@@ -150,7 +150,7 @@ public final class TxnTest {
 
   @Test(expected = NotReadyException.class)
   public void txCannotAbortIfAlreadyCommitted() {
-    try (final Txn<ByteBuffer> txn = env.txnRead()) {
+    try (Txn<ByteBuffer> txn = env.txnRead()) {
       assertThat(txn.getState(), is(READY));
       txn.commit();
       assertThat(txn.getState(), is(DONE));
@@ -257,7 +257,7 @@ public final class TxnTest {
   @Test(expected = IndexOutOfBoundsException.class)
   public void zeroByteReservationRejected() throws IOException {
     final Dbi<ByteBuffer> dbi = env.openDbi(DB_1, MDB_CREATE);
-    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
       final int reservedSize = 0; // invalid
       dbi.reserve(txn, bb(1), reservedSize);
     }

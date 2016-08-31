@@ -83,7 +83,7 @@ public final class Dbi<T> {
    * @see #delete(org.lmdbjava.Txn, java.lang.Object, java.lang.Object)
    */
   public void delete(final T key) {
-    try (final Txn<T> txn = env.txnWrite()) {
+    try (Txn<T> txn = env.txnWrite()) {
       delete(txn, key);
       txn.commit();
     }
@@ -271,7 +271,7 @@ public final class Dbi<T> {
    * org.lmdbjava.PutFlags...)
    */
   public void put(final T key, final T val) {
-    try (final Txn<T> txn = env.txnWrite()) {
+    try (Txn<T> txn = env.txnWrite()) {
       put(txn, key, val);
       txn.commit();
     }

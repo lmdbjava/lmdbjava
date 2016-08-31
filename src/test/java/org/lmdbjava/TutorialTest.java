@@ -119,7 +119,7 @@ public final class TutorialTest {
     // memory as we use Dbi (and Cursor) methods. These read-only buffers remain
     // valid only until the Txn is released or the next Dbi or Cursor call. If
     // you need data afterwards, you should copy the bytes to your own buffer.
-    try (final Txn<ByteBuffer> txn = env.txnRead()) {
+    try (Txn<ByteBuffer> txn = env.txnRead()) {
       final ByteBuffer found = db.get(txn, key);
       assertNotNull(found);
 
@@ -161,7 +161,7 @@ public final class TutorialTest {
     // Let's write and commit "key1" via a Txn. A Txn can include multiple Dbis.
     // Note write Txns block other write Txns, due to writes being serialized.
     // It's therefore important to avoid unnecessarily long-lived write Txns.
-    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
       key.put("key1".getBytes(UTF_8)).flip();
       val.put("lmdb".getBytes(UTF_8)).flip();
       db.put(txn, key, val);
@@ -188,7 +188,7 @@ public final class TutorialTest {
     // Let's write out a "key2" via a new write Txn in a different thread.
     final ExecutorService es = newCachedThreadPool();
     es.execute(() -> {
-      try (final Txn<ByteBuffer> txn = env.txnWrite()) {
+      try (Txn<ByteBuffer> txn = env.txnWrite()) {
         key.clear();
         key.put("key2".getBytes(UTF_8)).flip();
         db.put(txn, key, val);
@@ -235,7 +235,7 @@ public final class TutorialTest {
     final ByteBuffer key = allocateDirect(env.getMaxKeySize());
     final ByteBuffer val = allocateDirect(700);
 
-    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
       // A cursor always belongs to a particular Dbi.
       final Cursor<ByteBuffer> c = db.openCursor(txn);
 
@@ -308,7 +308,7 @@ public final class TutorialTest {
     final Env<ByteBuffer> env = open(path, 10);
     final Dbi<ByteBuffer> db = env.openDbi(DB_NAME, MDB_CREATE);
 
-    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
       final ByteBuffer key = allocateDirect(env.getMaxKeySize());
       final ByteBuffer val = allocateDirect(700);
 
@@ -323,7 +323,7 @@ public final class TutorialTest {
 
       // Each iterator uses a cursor and must be closed when finished.
       // iterate forward in terms of key ordering starting with the first key
-      try (final CursorIterator<ByteBuffer> it = db.iterate(txn, FORWARD)) {
+      try (CursorIterator<ByteBuffer> it = db.iterate(txn, FORWARD)) {
         for (final KeyVal<ByteBuffer> kv : it.iterable()) {
           assertThat(kv.key(), notNullValue());
           assertThat(kv.val(), notNullValue());
@@ -331,7 +331,7 @@ public final class TutorialTest {
       }
 
       // iterate backward in terms of key ordering starting with the first key
-      try (final CursorIterator<ByteBuffer> it = db.iterate(txn, BACKWARD)) {
+      try (CursorIterator<ByteBuffer> it = db.iterate(txn, BACKWARD)) {
         for (final KeyVal<ByteBuffer> kv : it.iterable()) {
           assertThat(kv.key(), notNullValue());
           assertThat(kv.val(), notNullValue());
@@ -340,7 +340,7 @@ public final class TutorialTest {
 
       // search for key and iterate forwards/backward from there til the last/first key.
       key.putInt(1);
-      try (final CursorIterator<ByteBuffer> it = db.iterate(txn, key, FORWARD)) {
+      try (CursorIterator<ByteBuffer> it = db.iterate(txn, key, FORWARD)) {
         for (final KeyVal<ByteBuffer> kv : it.iterable()) {
           assertThat(kv.key(), notNullValue());
           assertThat(kv.val(), notNullValue());
@@ -369,7 +369,7 @@ public final class TutorialTest {
     final ByteBuffer key = allocateDirect(env.getMaxKeySize());
     final ByteBuffer val = allocateDirect(env.getMaxKeySize());
 
-    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
       final Cursor<ByteBuffer> c = db.openCursor(txn);
 
       // Store one key, but many values, and in non-natural order.
@@ -425,7 +425,7 @@ public final class TutorialTest {
     final MutableDirectBuffer key = new UnsafeBuffer(keyBb);
     final MutableDirectBuffer val = new UnsafeBuffer(allocateDirect(700));
 
-    try (final Txn<DirectBuffer> txn = env.txnWrite()) {
+    try (Txn<DirectBuffer> txn = env.txnWrite()) {
       final Cursor<DirectBuffer> c = db.openCursor(txn);
 
       // Agrona is not only faster than ByteBuffer, but its methods are nicer...

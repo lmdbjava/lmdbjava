@@ -107,8 +107,8 @@ final class Library {
       file = createTempFile("lmdbjava-native-library-", suffix);
       file.deleteOnExit();
       final ClassLoader cl = currentThread().getContextClassLoader();
-      try (final InputStream in = cl.getResourceAsStream(name);
-           final OutputStream out = new FileOutputStream(file)) {
+      try (InputStream in = cl.getResourceAsStream(name);
+           OutputStream out = new FileOutputStream(file)) {
         requireNonNull(in, "Classpath resource not found");
         int bytes;
         final byte[] buffer = new byte[4_096];
