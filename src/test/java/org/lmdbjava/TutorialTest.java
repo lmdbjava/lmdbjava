@@ -26,6 +26,9 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import static java.nio.ByteBuffer.allocateDirect;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import java.util.concurrent.ExecutorService;
+import static java.util.concurrent.Executors.newCachedThreadPool;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -140,11 +143,13 @@ public final class TutorialTest {
   /**
    * In this second tutorial we'll learn more about LMDB's ACID Txns.
    *
-   * @throws IOException if a path was unavailable for memory mapping
+   * @throws IOException          if a path was unavailable for memory mapping
+   * @throws InterruptedException if executor shutdown interrupted
    */
   @Test
-  @SuppressWarnings("ConvertToTryWithResources")
-  public void tutorial2() throws IOException {
+  @SuppressWarnings({"ConvertToTryWithResources",
+                     "checkstyle:executablestatementcount"})
+  public void tutorial2() throws IOException, InterruptedException {
     final File path = tmp.newFolder();
     // Here we use a shortcut to open a 10 MB environment with one database.
     final Env<ByteBuffer> env = open(path, 10);
@@ -176,13 +181,22 @@ public final class TutorialTest {
     ByteBuffer found = db.get(rtx, key);
     assertNotNull(found);
 
-    // Let's write out a "key2" via a new write Txn.
-    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
-      key.clear();
-      key.put("key2".getBytes(UTF_8)).flip();
-      db.put(txn, key, val);
-      txn.commit();
-    }
+    // Note that our main test thread holds the Txn. Only one Txn per thread is
+    // typically permitted (the exception is a read-only Env with MDB_NOTLS).
+    assertThat(env.txn(), notNullValue());
+
+    // Let's write out a "key2" via a new write Txn in a different thread.
+    final ExecutorService es = newCachedThreadPool();
+    es.execute(() -> {
+      try (final Txn<ByteBuffer> txn = env.txnWrite()) {
+        key.clear();
+        key.put("key2".getBytes(UTF_8)).flip();
+        db.put(txn, key, val);
+        txn.commit();
+      }
+    });
+    es.shutdown();
+    es.awaitTermination(10, SECONDS);
 
     // Even though key2 has been committed, our read Txn still can't see it.
     found = db.get(rtx, key);

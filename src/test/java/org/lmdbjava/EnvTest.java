@@ -39,6 +39,7 @@ import org.lmdbjava.Env.AlreadyOpenException;
 import org.lmdbjava.Env.Builder;
 import org.lmdbjava.Env.InvalidCopyDestination;
 import org.lmdbjava.Env.MapFullException;
+import org.lmdbjava.Env.ThreadHasTransactionException;
 import static org.lmdbjava.Env.create;
 import static org.lmdbjava.Env.open;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
@@ -195,6 +196,16 @@ public final class EnvTest {
       env.sync(true);
       assertThat(path.isFile(), is(true));
     }
+  }
+
+  @Test(expected = ThreadHasTransactionException.class)
+  public void detectTransactionThreadViolation() throws IOException {
+    final File path = tmp.newFile();
+    final Env<ByteBuffer> env = create()
+        .open(path, MDB_NOSUBDIR);
+    final Txn<ByteBuffer> txn = env.txnRead();
+    assertThat(env.txn(), is(txn));
+    env.txnRead();
   }
 
   @Test
