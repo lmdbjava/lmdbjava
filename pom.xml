@@ -4,7 +4,7 @@
   <parent>
     <groupId>au.com.acegi</groupId>
     <artifactId>acegi-standard-project</artifactId>
-    <version>0.0.7</version>
+    <version>0.0.8-SNAPSHOT</version>
   </parent>
   <groupId>org.lmdbjava</groupId>
   <artifactId>lmdbjava</artifactId>
