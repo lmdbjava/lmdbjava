@@ -44,7 +44,7 @@ import static org.lmdbjava.TxnFlags.MDB_RDONLY_TXN;
  * @param <T> buffer type
  */
 public final class Txn<T> implements AutoCloseable {
-  
+
   private static final MemoryManager MEM_MGR = RUNTIME.getMemoryManager();
   private final Env<T> env;
   private final T k;
@@ -58,7 +58,7 @@ public final class Txn<T> implements AutoCloseable {
   private final boolean readOnly;
   private State state;
   private final T v;
-  
+
   Txn(final Env<T> env, final Txn<T> parent, final BufferProxy<T> proxy,
       final TxnFlags... flags) {
     this.env = env;
@@ -76,14 +76,14 @@ public final class Txn<T> implements AutoCloseable {
     final Pointer txnParentPtr = parent == null ? null : parent.ptr;
     checkRc(LIB.mdb_txn_begin(env.pointer(), txnParentPtr, flagsMask, txnPtr));
     ptr = txnPtr.getPointer(0);
-    
+
     this.k = proxy.allocate();
     this.v = proxy.allocate();
     ptrKey = MEM_MGR.allocateTemporary(MDB_VAL_STRUCT_SIZE, false);
     ptrKeyAddr = ptrKey.address();
     ptrVal = MEM_MGR.allocateTemporary(MDB_VAL_STRUCT_SIZE, false);
     ptrValAddr = ptrVal.address();
-    
+
     state = READY;
   }
 
@@ -202,19 +202,19 @@ public final class Txn<T> implements AutoCloseable {
   public T val() {
     return v;
   }
-  
+
   void checkReadOnly() throws ReadOnlyRequiredException {
     if (!readOnly) {
       throw new ReadOnlyRequiredException();
     }
   }
-  
+
   void checkReady() throws NotReadyException {
     if (state != READY) {
       throw new NotReadyException();
     }
   }
-  
+
   void checkWritesAllowed() throws ReadWriteRequiredException {
     if (readOnly) {
       throw new ReadWriteRequiredException();
@@ -229,7 +229,7 @@ public final class Txn<T> implements AutoCloseable {
   State getState() {
     return state;
   }
-  
+
   void keyIn(final T key) {
     proxy.in(key, ptrKey, ptrKeyAddr);
     if (SHOULD_CHECK) {
@@ -242,23 +242,23 @@ public final class Txn<T> implements AutoCloseable {
       }
     }
   }
-  
+
   void keyOut() {
     proxy.out(k, ptrKey, ptrKeyAddr);
   }
-  
+
   Pointer pointer() {
     return ptr;
   }
-  
+
   Pointer pointerKey() {
     return ptrKey;
   }
-  
+
   Pointer pointerVal() {
     return ptrVal;
   }
-  
+
   void valIn(final T val, final boolean zeroLenValAllowed) {
     proxy.in(val, ptrVal, ptrValAddr);
     if (SHOULD_CHECK && !zeroLenValAllowed) {
@@ -268,14 +268,14 @@ public final class Txn<T> implements AutoCloseable {
       }
     }
   }
-  
+
   void valIn(final int size) {
     if (size <= 0) {
       throw new IndexOutOfBoundsException("Reservation must be > 0 bytes");
     }
     proxy.in(v, size, ptrVal, ptrValAddr);
   }
-  
+
   void valOut() {
     proxy.out(v, ptrVal, ptrValAddr);
   }
@@ -284,10 +284,10 @@ public final class Txn<T> implements AutoCloseable {
    * Transaction must abort, has a child, or is invalid.
    */
   public static final class BadException extends LmdbNativeException {
-    
+
     static final int MDB_BAD_TXN = -30_782;
     private static final long serialVersionUID = 1L;
-    
+
     BadException() {
       super(MDB_BAD_TXN, "Transaction must abort, has a child, or is invalid");
     }
@@ -297,10 +297,10 @@ public final class Txn<T> implements AutoCloseable {
    * Invalid reuse of reader locktable slot.
    */
   public static final class BadReaderLockException extends LmdbNativeException {
-    
+
     static final int MDB_BAD_RSLOT = -30_783;
     private static final long serialVersionUID = 1L;
-    
+
     BadReaderLockException() {
       super(MDB_BAD_RSLOT, "Invalid reuse of reader locktable slot");
     }
@@ -310,7 +310,7 @@ public final class Txn<T> implements AutoCloseable {
    * The proposed R-W transaction is incompatible with a R-O Env.
    */
   public static class EnvIsReadOnly extends LmdbException {
-    
+
     private static final long serialVersionUID = 1L;
 
     /**
@@ -325,7 +325,7 @@ public final class Txn<T> implements AutoCloseable {
    * The proposed transaction is incompatible with its parent transaction.
    */
   public static class IncompatibleParent extends LmdbException {
-    
+
     private static final long serialVersionUID = 1L;
 
     /**
@@ -340,7 +340,7 @@ public final class Txn<T> implements AutoCloseable {
    * Transaction is not in a READY state.
    */
   public static final class NotReadyException extends LmdbException {
-    
+
     private static final long serialVersionUID = 1L;
 
     /**
@@ -355,7 +355,7 @@ public final class Txn<T> implements AutoCloseable {
    * The current transaction has not been reset.
    */
   public static class NotResetException extends LmdbException {
-    
+
     private static final long serialVersionUID = 1L;
 
     /**
@@ -370,7 +370,7 @@ public final class Txn<T> implements AutoCloseable {
    * The current transaction is not a read-only transaction.
    */
   public static class ReadOnlyRequiredException extends LmdbException {
-    
+
     private static final long serialVersionUID = 1L;
 
     /**
@@ -385,7 +385,7 @@ public final class Txn<T> implements AutoCloseable {
    * The current transaction is not a read-write transaction.
    */
   public static class ReadWriteRequiredException extends LmdbException {
-    
+
     private static final long serialVersionUID = 1L;
 
     /**
@@ -400,7 +400,7 @@ public final class Txn<T> implements AutoCloseable {
    * The current transaction has already been reset.
    */
   public static class ResetException extends LmdbException {
-    
+
     private static final long serialVersionUID = 1L;
 
     /**
@@ -415,10 +415,10 @@ public final class Txn<T> implements AutoCloseable {
    * Transaction has too many dirty pages.
    */
   public static final class TxFullException extends LmdbNativeException {
-    
+
     static final int MDB_TXN_FULL = -30_788;
     private static final long serialVersionUID = 1L;
-    
+
     TxFullException() {
       super(MDB_TXN_FULL, "Transaction has too many dirty pages");
     }
@@ -430,5 +430,5 @@ public final class Txn<T> implements AutoCloseable {
   enum State {
     READY, DONE, RESET, RELEASED
   }
-  
+
 }
