@@ -83,6 +83,14 @@ public final class TxnTest {
         .open(path, POSIX_MODE, MDB_NOSUBDIR);
   }
 
+  @Test(expected = IndexOutOfBoundsException.class)
+  public void largeKeysRejected() throws IOException {
+    final Dbi<ByteBuffer> dbi = env.openDbi(DB_1, MDB_CREATE);
+    final ByteBuffer key = allocateDirect(env.getMaxKeySize() + 1);
+    key.limit(key.capacity());
+    dbi.put(key, bb(2));
+  }
+
   @Test
   public void readOnlyTxnAllowedInReadOnlyEnv() {
     env.openDbi(DB_1, MDB_CREATE);

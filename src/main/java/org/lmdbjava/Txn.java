@@ -237,6 +237,9 @@ public final class Txn<T> implements AutoCloseable {
       if (size <= 0) {
         throw new IndexOutOfBoundsException("Keys must be > 0 bytes");
       }
+      if (size > env.getMaxKeySize()) {
+        throw new IndexOutOfBoundsException("Key too many bytes for Env");
+      }
     }
   }
   
