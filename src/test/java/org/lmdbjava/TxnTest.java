@@ -36,6 +36,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.lmdbjava.Dbi.BadValueSizeException;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import static org.lmdbjava.DbiFlags.MDB_DUPSORT;
 import org.lmdbjava.Env.AlreadyClosedException;
@@ -83,7 +84,7 @@ public final class TxnTest {
         .open(path, POSIX_MODE, MDB_NOSUBDIR);
   }
 
-  @Test(expected = IndexOutOfBoundsException.class)
+  @Test(expected = BadValueSizeException.class)
   public void largeKeysRejected() throws IOException {
     final Dbi<ByteBuffer> dbi = env.openDbi(DB_1, MDB_CREATE);
     final ByteBuffer key = allocateDirect(env.getMaxKeySize() + 1);
