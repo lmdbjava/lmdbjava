@@ -25,8 +25,6 @@ import static jnr.ffi.NativeType.ADDRESS;
 import jnr.ffi.Pointer;
 import jnr.ffi.provider.MemoryManager;
 import static org.lmdbjava.BufferProxy.MDB_VAL_STRUCT_SIZE;
-import static org.lmdbjava.BufferProxy.STRUCT_FIELD_OFFSET_SIZE;
-import static org.lmdbjava.Env.SHOULD_CHECK;
 import static org.lmdbjava.Library.LIB;
 import static org.lmdbjava.Library.RUNTIME;
 import static org.lmdbjava.MaskedFlag.isSet;
@@ -232,12 +230,6 @@ public final class Txn<T> implements AutoCloseable {
 
   void keyIn(final T key) {
     proxy.in(key, ptrKey, ptrKeyAddr);
-    if (SHOULD_CHECK) {
-      final long size = ptrKey.getLong(STRUCT_FIELD_OFFSET_SIZE);
-      if (size <= 0) {
-        throw new IndexOutOfBoundsException("Keys must be > 0 bytes");
-      }
-    }
   }
 
   void keyOut() {
@@ -256,20 +248,11 @@ public final class Txn<T> implements AutoCloseable {
     return ptrVal;
   }
 
-  void valIn(final T val, final boolean zeroLenValAllowed) {
+  void valIn(final T val) {
     proxy.in(val, ptrVal, ptrValAddr);
-    if (SHOULD_CHECK && !zeroLenValAllowed) {
-      final long size = ptrVal.getLong(STRUCT_FIELD_OFFSET_SIZE);
-      if (size <= 0) {
-        throw new IndexOutOfBoundsException("Values must be > 0 bytes");
-      }
-    }
   }
 
   void valIn(final int size) {
-    if (size <= 0) {
-      throw new IndexOutOfBoundsException("Reservation must be > 0 bytes");
-    }
     proxy.in(v, size, ptrVal, ptrValAddr);
   }
 

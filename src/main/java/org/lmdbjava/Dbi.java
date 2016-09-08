@@ -28,12 +28,10 @@ import jnr.ffi.byref.PointerByReference;
 import org.lmdbjava.CursorIterator.IteratorType;
 import static org.lmdbjava.CursorIterator.IteratorType.FORWARD;
 import static org.lmdbjava.Dbi.KeyNotFoundException.MDB_NOTFOUND;
-import static org.lmdbjava.DbiFlags.MDB_DUPSORT;
 import static org.lmdbjava.Env.SHOULD_CHECK;
 import static org.lmdbjava.Library.LIB;
 import org.lmdbjava.Library.MDB_stat;
 import static org.lmdbjava.Library.RUNTIME;
-import static org.lmdbjava.MaskedFlag.isSet;
 import static org.lmdbjava.MaskedFlag.mask;
 import static org.lmdbjava.PutFlags.MDB_RESERVE;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
@@ -48,14 +46,12 @@ public final class Dbi<T> {
   private final Env<T> env;
   private final String name;
   private final Pointer ptr;
-  private final boolean zeroLenValAllowed;
 
   Dbi(final Env<T> env, final Txn<T> txn, final String name,
       final DbiFlags... flags) {
     this.env = env;
     this.name = name;
     final int flagsMask = mask(flags);
-    this.zeroLenValAllowed = !isSet(flagsMask, MDB_DUPSORT);
     final Pointer dbiPtr = allocateDirect(RUNTIME, ADDRESS);
     checkRc(LIB.mdb_dbi_open(txn.pointer(), name, flagsMask, dbiPtr));
     ptr = dbiPtr.getPointer(0);
@@ -131,7 +127,7 @@ public final class Dbi<T> {
     if (val == null) {
       checkRc(LIB.mdb_del(txn.pointer(), ptr, txn.pointerKey(), null));
     } else {
-      txn.valIn(val, zeroLenValAllowed);
+      txn.valIn(val);
       checkRc(LIB
           .mdb_del(txn.pointer(), ptr, txn.pointerKey(), txn.pointerVal()));
     }
@@ -259,7 +255,7 @@ public final class Dbi<T> {
     }
     final PointerByReference cursorPtr = new PointerByReference();
     checkRc(LIB.mdb_cursor_open(txn.pointer(), ptr, cursorPtr));
-    return new Cursor<>(cursorPtr.getValue(), txn, zeroLenValAllowed);
+    return new Cursor<>(cursorPtr.getValue(), txn);
   }
 
   /**
@@ -301,7 +297,7 @@ public final class Dbi<T> {
       txn.checkWritesAllowed();
     }
     txn.keyIn(key);
-    txn.valIn(val, zeroLenValAllowed);
+    txn.valIn(val);
     final int mask = mask(flags);
     checkRc(LIB.mdb_put(txn.pointer(), ptr, txn.pointerKey(), txn.pointerVal(),
                         mask));
