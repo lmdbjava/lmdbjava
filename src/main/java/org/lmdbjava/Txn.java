@@ -44,7 +44,6 @@ import static org.lmdbjava.TxnFlags.MDB_RDONLY_TXN;
 public final class Txn<T> implements AutoCloseable {
 
   private static final MemoryManager MEM_MGR = RUNTIME.getMemoryManager();
-  private final Env<T> env;
   private final T k;
   private final Txn<T> parent;
   private final BufferProxy<T> proxy;
@@ -59,7 +58,6 @@ public final class Txn<T> implements AutoCloseable {
 
   Txn(final Env<T> env, final Txn<T> parent, final BufferProxy<T> proxy,
       final TxnFlags... flags) {
-    this.env = env;
     this.proxy = proxy;
     final int flagsMask = mask(flags);
     this.readOnly = isSet(flagsMask, MDB_RDONLY_TXN);
@@ -113,7 +111,6 @@ public final class Txn<T> implements AutoCloseable {
     proxy.deallocate(k);
     proxy.deallocate(v);
     state = RELEASED;
-    env.txnRelease(this);
   }
 
   /**

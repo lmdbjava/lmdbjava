@@ -27,7 +27,6 @@ import static java.util.Objects.requireNonNull;
 import jnr.ffi.Pointer;
 import jnr.ffi.byref.PointerByReference;
 import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
-import static org.lmdbjava.EnvFlags.MDB_NOTLS;
 import static org.lmdbjava.EnvFlags.MDB_RDONLY_ENV;
 import static org.lmdbjava.Library.LIB;
 import org.lmdbjava.Library.MDB_envinfo;
@@ -60,21 +59,17 @@ public final class Env<T> implements AutoCloseable {
 
   private boolean closed;
   private final int maxKeySize;
-  private final boolean noTls;
   private final BufferProxy<T> proxy;
   private final Pointer ptr;
   private final boolean readOnly;
-  private final ThreadLocal<Txn<T>> txns;
 
   private Env(final BufferProxy<T> proxy, final Pointer ptr,
-              final boolean noTls, final boolean readOnly) {
+              final boolean readOnly) {
     this.proxy = proxy;
-    this.noTls = noTls;
     this.readOnly = readOnly;
     this.ptr = ptr;
     // cache max key size to avoid further JNI calls
     this.maxKeySize = LIB.mdb_env_get_maxkeysize(ptr);
-    this.txns = new ThreadLocal<>();
   }
 
   /**
@@ -266,21 +261,6 @@ public final class Env<T> implements AutoCloseable {
   }
 
   /**
-   * Obtain the transaction associated with the current thread, if any.
-   *
-   * <p>
-   * The transaction will only be returned until {@link Txn#close()}.
-   *
-   * <p>
-   * Only a parent transaction will be returned.
-   *
-   * @return the transaction or null if this thread has no transaction
-   */
-  public Txn<T> txn() {
-    return txns.get();
-  }
-
-  /**
    * Obtain a transaction with the requested parent and flags.
    *
    * @param parent parent transaction (may be null if no parent)
@@ -291,15 +271,7 @@ public final class Env<T> implements AutoCloseable {
     if (closed) {
       throw new AlreadyClosedException();
     }
-    final boolean limitTxnsPerThread = !readOnly || !noTls;
-    if (limitTxnsPerThread && parent == null && txns.get() != null) {
-      throw new ThreadHasTransactionException();
-    }
-    final Txn<T> tx = new Txn<>(this, parent, proxy, flags);
-    if (parent == null) {
-      txns.set(tx);
-    }
-    return tx;
+    return new Txn<>(this, parent, proxy, flags);
   }
 
   /**
@@ -322,17 +294,6 @@ public final class Env<T> implements AutoCloseable {
 
   Pointer pointer() {
     return ptr;
-  }
-
-  /**
-   * Release the current transaction from thread local storage.
-   *
-   * @param txn to release
-   */
-  void txnRelease(final Txn<T> txn) {
-    if (txn.getParent() == null) {
-      txns.remove();
-    }
   }
 
   /**
@@ -406,10 +367,9 @@ public final class Env<T> implements AutoCloseable {
         checkRc(LIB.mdb_env_set_maxdbs(ptr, maxDbs));
         checkRc(LIB.mdb_env_set_maxreaders(ptr, maxReaders));
         final int flagsMask = mask(flags);
-        final boolean noTls = isSet(flagsMask, MDB_NOTLS);
         final boolean readOnly = isSet(flagsMask, MDB_RDONLY_ENV);
         checkRc(LIB.mdb_env_open(ptr, path.getAbsolutePath(), flagsMask, mode));
-        return new Env<>(proxy, ptr, noTls, readOnly); // NOPMD
+        return new Env<>(proxy, ptr, readOnly); // NOPMD
       } catch (final LmdbNativeException e) {
         LIB.mdb_env_close(ptr);
         throw e;
@@ -526,21 +486,6 @@ public final class Env<T> implements AutoCloseable {
 
     ReadersFullException() {
       super(MDB_READERS_FULL, "Environment maxreaders reached");
-    }
-  }
-
-  /**
-   * The current thread already has an unreleased (unclosed) transaction.
-   */
-  public static class ThreadHasTransactionException extends LmdbException {
-
-    private static final long serialVersionUID = 1L;
-
-    /**
-     * Creates a new instance.
-     */
-    public ThreadHasTransactionException() {
-      super("Current thread already has an unreleased (unclosed) transaction");
     }
   }
 

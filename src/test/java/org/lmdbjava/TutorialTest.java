@@ -183,7 +183,6 @@ public final class TutorialTest {
 
     // Note that our main test thread holds the Txn. Only one Txn per thread is
     // typically permitted (the exception is a read-only Env with MDB_NOTLS).
-    assertThat(env.txn(), notNullValue());
 
     // Let's write out a "key2" via a new write Txn in a different thread.
     final ExecutorService es = newCachedThreadPool();

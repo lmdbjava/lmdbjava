@@ -39,13 +39,13 @@ import org.lmdbjava.Env.AlreadyOpenException;
 import org.lmdbjava.Env.Builder;
 import org.lmdbjava.Env.InvalidCopyDestination;
 import org.lmdbjava.Env.MapFullException;
-import org.lmdbjava.Env.ThreadHasTransactionException;
 import static org.lmdbjava.Env.create;
 import static org.lmdbjava.Env.open;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.EnvFlags.MDB_RDONLY_ENV;
 import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.bb;
+import org.lmdbjava.Txn.BadReaderLockException;
 
 /**
  * Test {@link Env}.
@@ -198,13 +198,12 @@ public final class EnvTest {
     }
   }
 
-  @Test(expected = ThreadHasTransactionException.class)
+  @Test(expected = BadReaderLockException.class)
   public void detectTransactionThreadViolation() throws IOException {
     final File path = tmp.newFile();
     final Env<ByteBuffer> env = create()
         .open(path, MDB_NOSUBDIR);
-    final Txn<ByteBuffer> txn = env.txnRead();
-    assertThat(env.txn(), is(txn));
+    env.txnRead();
     env.txnRead();
   }
 
