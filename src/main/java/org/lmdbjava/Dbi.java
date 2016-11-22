@@ -27,12 +27,15 @@ import jnr.ffi.Pointer;
 import jnr.ffi.byref.PointerByReference;
 import org.lmdbjava.CursorIterator.IteratorType;
 import static org.lmdbjava.CursorIterator.IteratorType.FORWARD;
+import static org.lmdbjava.Dbi.KeyExistsException.MDB_KEYEXIST;
 import static org.lmdbjava.Dbi.KeyNotFoundException.MDB_NOTFOUND;
 import static org.lmdbjava.Env.SHOULD_CHECK;
 import static org.lmdbjava.Library.LIB;
 import org.lmdbjava.Library.MDB_stat;
 import static org.lmdbjava.Library.RUNTIME;
+import static org.lmdbjava.MaskedFlag.isSet;
 import static org.lmdbjava.MaskedFlag.mask;
+import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
 import static org.lmdbjava.PutFlags.MDB_RESERVE;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
 
@@ -299,9 +302,12 @@ public final class Dbi<T> {
     txn.keyIn(key);
     txn.valIn(val);
     final int mask = mask(flags);
-    checkRc(LIB.mdb_put(txn.pointer(), ptr, txn.pointerKey(), txn.pointerVal(),
-                        mask));
-    txn.valOut(); // marked as in,out in LMDB C docs
+    final int rc = LIB.mdb_put(txn.pointer(), ptr, txn.pointerKey(), txn
+                               .pointerVal(), mask);
+    if (rc == MDB_KEYEXIST && isSet(mask, MDB_NOOVERWRITE)) {
+      txn.valOut(); // marked as in,out in LMDB C docs
+    }
+    checkRc(rc);
   }
 
   /**

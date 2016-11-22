@@ -116,8 +116,13 @@ public final class DbiTest {
   public void keyExistsException() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
-      db.put(txn, bb(5), bb(5), MDB_NOOVERWRITE);
-      db.put(txn, bb(5), bb(5), MDB_NOOVERWRITE);
+      db.put(txn, bb(5), bb(6), MDB_NOOVERWRITE); // ok
+      try {
+        db.put(txn, bb(5), bb(8), MDB_NOOVERWRITE); // fails, but gets exist val
+      } catch (final KeyExistsException ke) {
+        assertThat(txn.val().getInt(0), is(6));
+        throw ke;
+      }
     }
   }
 
