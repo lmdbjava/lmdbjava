@@ -246,9 +246,10 @@ public final class Cursor<T> implements AutoCloseable {
    *
    * @param key  key to store in the database (not null)
    * @param size size of the value to be stored in the database (not null)
+   * @param op   options for this operation
    * @return a buffer that can be used to modify the value
    */
-  public T reserve(final T key, final int size) {
+  public T reserve(final T key, final int size, final PutFlags... op) {
     if (SHOULD_CHECK) {
       requireNonNull(key);
       checkNotClosed();
@@ -257,7 +258,7 @@ public final class Cursor<T> implements AutoCloseable {
     }
     txn.keyIn(key);
     txn.valIn(size);
-    final int flags = mask(MDB_RESERVE);
+    final int flags = mask(op) | MDB_RESERVE.getMask();
     checkRc(LIB.mdb_cursor_put(ptrCursor, txn.pointerKey(), txn.pointerVal(),
                                flags));
     txn.valOut();

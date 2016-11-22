@@ -318,9 +318,11 @@ public final class Dbi<T> {
    * @param txn  transaction handle (not null; not committed; must be R-W)
    * @param key  key to store in the database (not null)
    * @param size size of the value to be stored in the database
+   * @param op   options for this operation
    * @return a buffer that can be used to modify the value
    */
-  public T reserve(final Txn<T> txn, final T key, final int size) {
+  public T reserve(final Txn<T> txn, final T key, final int size,
+                   final PutFlags... op) {
     if (SHOULD_CHECK) {
       requireNonNull(txn);
       requireNonNull(key);
@@ -329,9 +331,9 @@ public final class Dbi<T> {
     }
     txn.keyIn(key);
     txn.valIn(size);
-    final int mask = mask(MDB_RESERVE);
+    final int flags = mask(op) | MDB_RESERVE.getMask();
     checkRc(LIB.mdb_put(txn.pointer(), ptr, txn.pointerKey(), txn.pointerVal(),
-                        mask));
+                        flags));
     txn.valOut(); // marked as in,out in LMDB C docs
     return txn.val();
   }

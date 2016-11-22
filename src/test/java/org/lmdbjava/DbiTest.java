@@ -206,7 +206,7 @@ public final class DbiTest {
     final ByteBuffer key = bb(5);
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
       assertNull(db.get(txn, key));
-      final ByteBuffer val = db.reserve(txn, key, 32);
+      final ByteBuffer val = db.reserve(txn, key, 32, MDB_NOOVERWRITE);
       val.putLong(MAX_VALUE);
       assertNotNull(db.get(txn, key));
       txn.commit();
