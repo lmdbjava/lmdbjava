@@ -280,10 +280,7 @@ public final class Env<T> implements AutoCloseable {
    * @return a read-only transaction
    */
   public Txn<T> txnRead() {
-    if (closed) {
-      throw new AlreadyClosedException();
-    }
-    return new Txn<>(this, null, proxy, MDB_RDONLY_TXN);
+    return txn(null, MDB_RDONLY_TXN);
   }
 
   /**
@@ -292,10 +289,7 @@ public final class Env<T> implements AutoCloseable {
    * @return a read-write transaction
    */
   public Txn<T> txnWrite() {
-    if (closed) {
-      throw new AlreadyClosedException();
-    }
-    return new Txn<>(this, null, proxy);
+    return txn(null);
   }
 
   Pointer pointer() {

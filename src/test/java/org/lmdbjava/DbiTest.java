@@ -94,7 +94,7 @@ public final class DbiTest {
   @Test
   public void drop() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
-    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
       db.put(txn, bb(1), bb(42));
       db.put(txn, bb(2), bb(42));
       assertThat(db.get(txn, bb(1)), not(nullValue()));
@@ -118,9 +118,14 @@ public final class DbiTest {
   @Test(expected = KeyExistsException.class)
   public void keyExistsException() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
-    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
-      db.put(txn, bb(5), bb(5), MDB_NOOVERWRITE);
-      db.put(txn, bb(5), bb(5), MDB_NOOVERWRITE);
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
+      db.put(txn, bb(5), bb(6), MDB_NOOVERWRITE); // ok
+      try {
+        db.put(txn, bb(5), bb(8), MDB_NOOVERWRITE); // fails, but gets exist val
+      } catch (final KeyExistsException ke) {
+        assertThat(txn.val().getInt(0), is(6));
+        throw ke;
+      }
     }
   }
 
@@ -128,12 +133,12 @@ public final class DbiTest {
   public void putAbortGet() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
 
-    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
       db.put(txn, bb(5), bb(5));
       txn.abort();
     }
 
-    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
       assertNull(db.get(txn, bb(5)));
     }
   }
@@ -143,14 +148,14 @@ public final class DbiTest {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
 
     db.put(bb(5), bb(5));
-    try (final Txn<ByteBuffer> txn = env.txnRead()) {
+    try (Txn<ByteBuffer> txn = env.txnRead()) {
       final ByteBuffer found = db.get(txn, bb(5));
       assertNotNull(found);
       assertThat(txn.val().getInt(), is(5));
     }
     db.delete(bb(5));
 
-    try (final Txn<ByteBuffer> txn = env.txnRead()) {
+    try (Txn<ByteBuffer> txn = env.txnRead()) {
       assertNull(db.get(txn, bb(5)));
     }
   }
@@ -158,12 +163,12 @@ public final class DbiTest {
   @Test
   public void putCommitGet() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
-    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
       db.put(txn, bb(5), bb(5));
       txn.commit();
     }
 
-    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
       final ByteBuffer found = db.get(txn, bb(5));
       assertNotNull(found);
       assertThat(txn.val().getInt(), is(5));
@@ -174,7 +179,7 @@ public final class DbiTest {
   public void putDelete() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
 
-    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
       db.put(txn, bb(5), bb(5));
       db.delete(txn, bb(5));
 
@@ -209,13 +214,13 @@ public final class DbiTest {
   public void putDuplicateDelete() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
 
-    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
       db.put(txn, bb(5), bb(5));
       db.put(txn, bb(5), bb(6));
       db.put(txn, bb(5), bb(7));
       db.delete(txn, bb(5), bb(6));
 
-      try (final Cursor<ByteBuffer> cursor = db.openCursor(txn)) {
+      try (Cursor<ByteBuffer> cursor = db.openCursor(txn)) {
         final ByteBuffer key = bb(5);
         cursor.get(key, MDB_SET_KEY);
         assertThat(cursor.count(), is(2L));
@@ -229,18 +234,34 @@ public final class DbiTest {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
 
     final ByteBuffer key = bb(5);
-    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
       assertNull(db.get(txn, key));
-      final ByteBuffer val = db.reserve(txn, key, 32);
+      final ByteBuffer val = db.reserve(txn, key, 32, MDB_NOOVERWRITE);
       val.putLong(MAX_VALUE);
       assertNotNull(db.get(txn, key));
       txn.commit();
     }
-    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
       final ByteBuffer val = db.get(txn, key);
       assertThat(val.capacity(), is(32));
       assertThat(val.getLong(), is(MAX_VALUE));
       assertThat(val.getLong(8), is(0L));
+    }
+  }
+
+  @Test
+  public void putZeroByteValueForNonMdbDupSortDatabase() {
+    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
+      final ByteBuffer val = allocateDirect(0);
+      db.put(txn, bb(5), val);
+      txn.commit();
+    }
+
+    try (Txn<ByteBuffer> txn = env.txnRead()) {
+      final ByteBuffer found = db.get(txn, bb(5));
+      assertNotNull(found);
+      assertThat(txn.val().capacity(), is(0));
     }
   }
 
@@ -251,7 +272,7 @@ public final class DbiTest {
     db.put(bb(2), bb(42));
     db.put(bb(3), bb(42));
     final Stat stat;
-    try (final Txn<ByteBuffer> txn = env.txnRead()) {
+    try (Txn<ByteBuffer> txn = env.txnRead()) {
       stat = db.stat(txn);
     }
     assertThat(stat, is(notNullValue()));
@@ -266,7 +287,7 @@ public final class DbiTest {
   @Test(expected = MapFullException.class)
   public void testMapFullException() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
-    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
       final ByteBuffer v;
       try {
         v = allocateDirect(1_024 * 1_024 * 1_024);

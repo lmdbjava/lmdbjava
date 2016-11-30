@@ -27,12 +27,15 @@ import jnr.ffi.Pointer;
 import jnr.ffi.byref.PointerByReference;
 import org.lmdbjava.CursorIterator.IteratorType;
 import static org.lmdbjava.CursorIterator.IteratorType.FORWARD;
+import static org.lmdbjava.Dbi.KeyExistsException.MDB_KEYEXIST;
 import static org.lmdbjava.Dbi.KeyNotFoundException.MDB_NOTFOUND;
 import static org.lmdbjava.Env.SHOULD_CHECK;
 import static org.lmdbjava.Library.LIB;
 import org.lmdbjava.Library.MDB_stat;
 import static org.lmdbjava.Library.RUNTIME;
+import static org.lmdbjava.MaskedFlag.isSet;
 import static org.lmdbjava.MaskedFlag.mask;
+import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
 import static org.lmdbjava.PutFlags.MDB_RESERVE;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
 
@@ -79,7 +82,7 @@ public final class Dbi<T> {
    * @see #delete(org.lmdbjava.Txn, java.lang.Object, java.lang.Object)
    */
   public void delete(final T key) {
-    try (final Txn<T> txn = env.txnWrite()) {
+    try (Txn<T> txn = env.txnWrite()) {
       delete(txn, key);
       txn.commit();
     }
@@ -266,7 +269,7 @@ public final class Dbi<T> {
    * org.lmdbjava.PutFlags...)
    */
   public void put(final T key, final T val) {
-    try (final Txn<T> txn = env.txnWrite()) {
+    try (Txn<T> txn = env.txnWrite()) {
       put(txn, key, val);
       txn.commit();
     }
@@ -298,9 +301,12 @@ public final class Dbi<T> {
     txn.keyIn(key);
     txn.valIn(val);
     final int mask = mask(flags);
-    checkRc(LIB.mdb_put(txn.pointer(), ptr, txn.pointerKey(), txn.pointerVal(),
-                        mask));
-    txn.valOut(); // marked as in,out in LMDB C docs
+    final int rc = LIB.mdb_put(txn.pointer(), ptr, txn.pointerKey(), txn
+                               .pointerVal(), mask);
+    if (rc == MDB_KEYEXIST && isSet(mask, MDB_NOOVERWRITE)) {
+      txn.valOut(); // marked as in,out in LMDB C docs
+    }
+    checkRc(rc);
   }
 
   /**
@@ -317,9 +323,11 @@ public final class Dbi<T> {
    * @param txn  transaction handle (not null; not committed; must be R-W)
    * @param key  key to store in the database (not null)
    * @param size size of the value to be stored in the database
+   * @param op   options for this operation
    * @return a buffer that can be used to modify the value
    */
-  public T reserve(final Txn<T> txn, final T key, final int size) {
+  public T reserve(final Txn<T> txn, final T key, final int size,
+                   final PutFlags... op) {
     if (SHOULD_CHECK) {
       requireNonNull(txn);
       requireNonNull(key);
@@ -328,10 +336,11 @@ public final class Dbi<T> {
     }
     txn.keyIn(key);
     txn.valIn(size);
-    final int mask = mask(MDB_RESERVE);
+    final int flags = mask(op) | MDB_RESERVE.getMask();
     checkRc(LIB.mdb_put(txn.pointer(), ptr, txn.pointerKey(), txn.pointerVal(),
-                        mask));
-    return txn.valOut(); // marked as in,out in LMDB C docs
+                        flags));
+    txn.valOut(); // marked as in,out in LMDB C docs
+    return txn.val();
   }
 
   /**

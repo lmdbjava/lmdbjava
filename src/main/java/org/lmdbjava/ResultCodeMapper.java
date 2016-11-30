@@ -20,8 +20,6 @@
 
 package org.lmdbjava;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import jnr.constants.Constant;
 import jnr.constants.ConstantSet;
 import static jnr.constants.ConstantSet.getConstantSet;
@@ -36,6 +34,7 @@ import org.lmdbjava.Txn.TxFullException;
  * The immutable nature of all LMDB exceptions means the mapper internally
  * maintains a table of them.
  */
+@SuppressWarnings({"PMD.CyclomaticComplexity", "PMD.StdCyclomaticComplexity"})
 final class ResultCodeMapper {
 
   /**
@@ -44,32 +43,10 @@ final class ResultCodeMapper {
   static final int MDB_SUCCESS = 0;
 
   private static final ConstantSet CONSTANTS;
-  private static final Map<Integer, LmdbNativeException> EXCEPTIONS;
   private static final String POSIX_ERR_NO = "Errno";
 
   static {
     CONSTANTS = getConstantSet(POSIX_ERR_NO);
-    EXCEPTIONS = new ConcurrentHashMap<>(20);
-    add(new Dbi.BadDbiException());
-    add(new BadReaderLockException());
-    add(new BadException());
-    add(new Dbi.BadValueSizeException());
-    add(new LmdbNativeException.PageCorruptedException());
-    add(new Cursor.FullException());
-    add(new Dbi.DbFullException());
-    add(new Dbi.IncompatibleException());
-    add(new Env.FileInvalidException());
-    add(new Dbi.KeyExistsException());
-    add(new Env.MapFullException());
-    add(new Dbi.MapResizedException());
-    add(new Dbi.KeyNotFoundException());
-    add(new LmdbNativeException.PageFullException());
-    add(new LmdbNativeException.PageNotFoundException());
-    add(new LmdbNativeException.PanicException());
-    add(new Env.ReadersFullException());
-    add(new LmdbNativeException.TlsFullException());
-    add(new TxFullException());
-    add(new Env.VersionMismatchException());
   }
 
   private ResultCodeMapper() {
@@ -82,13 +59,51 @@ final class ResultCodeMapper {
    * @throws LmdbNativeException the resolved exception
    */
   static void checkRc(final int rc) throws LmdbNativeException {
-    if (rc == MDB_SUCCESS) {
-      return;
-    }
-
-    final LmdbNativeException nativeException = EXCEPTIONS.get(rc);
-    if (nativeException != null) {
-      throw nativeException;
+    switch (rc) {
+      case MDB_SUCCESS:
+        return;
+      case Dbi.BadDbiException.MDB_BAD_DBI:
+        throw new Dbi.BadDbiException();
+      case BadReaderLockException.MDB_BAD_RSLOT:
+        throw new BadReaderLockException();
+      case BadException.MDB_BAD_TXN:
+        throw new BadException();
+      case Dbi.BadValueSizeException.MDB_BAD_VALSIZE:
+        throw new Dbi.BadValueSizeException();
+      case LmdbNativeException.PageCorruptedException.MDB_CORRUPTED:
+        throw new LmdbNativeException.PageCorruptedException();
+      case Cursor.FullException.MDB_CURSOR_FULL:
+        throw new Cursor.FullException();
+      case Dbi.DbFullException.MDB_DBS_FULL:
+        throw new Dbi.DbFullException();
+      case Dbi.IncompatibleException.MDB_INCOMPATIBLE:
+        throw new Dbi.IncompatibleException();
+      case Env.FileInvalidException.MDB_INVALID:
+        throw new Env.FileInvalidException();
+      case Dbi.KeyExistsException.MDB_KEYEXIST:
+        throw new Dbi.KeyExistsException();
+      case Env.MapFullException.MDB_MAP_FULL:
+        throw new Env.MapFullException();
+      case Dbi.MapResizedException.MDB_MAP_RESIZED:
+        throw new Dbi.MapResizedException();
+      case Dbi.KeyNotFoundException.MDB_NOTFOUND:
+        throw new Dbi.KeyNotFoundException();
+      case LmdbNativeException.PageFullException.MDB_PAGE_FULL:
+        throw new LmdbNativeException.PageFullException();
+      case LmdbNativeException.PageNotFoundException.MDB_PAGE_NOTFOUND:
+        throw new LmdbNativeException.PageNotFoundException();
+      case LmdbNativeException.PanicException.MDB_PANIC:
+        throw new LmdbNativeException.PanicException();
+      case Env.ReadersFullException.MDB_READERS_FULL:
+        throw new Env.ReadersFullException();
+      case LmdbNativeException.TlsFullException.MDB_TLS_FULL:
+        throw new LmdbNativeException.TlsFullException();
+      case TxFullException.MDB_TXN_FULL:
+        throw new TxFullException();
+      case Env.VersionMismatchException.MDB_VERSION_MISMATCH:
+        throw new Env.VersionMismatchException();
+      default:
+        break;
     }
 
     final Constant constant = CONSTANTS.getConstant(rc);
@@ -98,8 +113,4 @@ final class ResultCodeMapper {
     throw new LmdbNativeException.ConstantDerviedException(rc, constant.name());
   }
 
-  @SuppressWarnings("ThrowableResultIgnored")
-  private static void add(final LmdbNativeException e) {
-    EXCEPTIONS.put(e.getResultCode(), e);
-  }
 }

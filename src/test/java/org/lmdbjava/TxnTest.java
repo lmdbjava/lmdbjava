@@ -24,6 +24,7 @@ import static com.jakewharton.byteunits.BinaryByteUnit.KIBIBYTES;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import static java.nio.ByteBuffer.allocateDirect;
 import java.util.concurrent.atomic.AtomicLong;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
@@ -35,6 +36,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.lmdbjava.Dbi.BadValueSizeException;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import org.lmdbjava.Env.AlreadyClosedException;
 import static org.lmdbjava.Env.create;
@@ -81,6 +83,14 @@ public final class TxnTest {
         .open(path, POSIX_MODE, MDB_NOSUBDIR);
   }
 
+  @Test(expected = BadValueSizeException.class)
+  public void largeKeysRejected() throws IOException {
+    final Dbi<ByteBuffer> dbi = env.openDbi(DB_1, MDB_CREATE);
+    final ByteBuffer key = allocateDirect(env.getMaxKeySize() + 1);
+    key.limit(key.capacity());
+    dbi.put(key, bb(2));
+  }
+
   @Test
   public void readOnlyTxnAllowedInReadOnlyEnv() {
     env.openDbi(DB_1, MDB_CREATE);
@@ -124,13 +134,13 @@ public final class TxnTest {
     final AtomicLong txId1 = new AtomicLong();
     final AtomicLong txId2 = new AtomicLong();
 
-    try (final Txn<ByteBuffer> tx1 = env.txnRead()) {
+    try (Txn<ByteBuffer> tx1 = env.txnRead()) {
       txId1.set(tx1.getId());
     }
 
     db.put(bb(1), bb(2));
 
-    try (final Txn<ByteBuffer> tx2 = env.txnRead()) {
+    try (Txn<ByteBuffer> tx2 = env.txnRead()) {
       txId2.set(tx2.getId());
     }
     // should not see the same snapshot
@@ -139,7 +149,7 @@ public final class TxnTest {
 
   @Test
   public void txCanCommitThenCloseWithoutError() {
-    try (final Txn<ByteBuffer> txn = env.txnRead()) {
+    try (Txn<ByteBuffer> txn = env.txnRead()) {
       assertThat(txn.getState(), is(READY));
       txn.commit();
       assertThat(txn.getState(), is(DONE));
@@ -148,7 +158,7 @@ public final class TxnTest {
 
   @Test(expected = NotReadyException.class)
   public void txCannotAbortIfAlreadyCommitted() {
-    try (final Txn<ByteBuffer> txn = env.txnRead()) {
+    try (Txn<ByteBuffer> txn = env.txnRead()) {
       assertThat(txn.getState(), is(READY));
       txn.commit();
       assertThat(txn.getState(), is(DONE));
@@ -242,4 +252,14 @@ public final class TxnTest {
     final Txn<ByteBuffer> txn = env.txnWrite();
     txn.reset();
   }
+
+  @Test(expected = BadValueSizeException.class)
+  public void zeroByteKeysRejected() throws IOException {
+    final Dbi<ByteBuffer> dbi = env.openDbi(DB_1, MDB_CREATE);
+    final ByteBuffer key = allocateDirect(4);
+    key.putInt(1);
+    assertThat(key.remaining(), is(0)); // because key.flip() skipped
+    dbi.put(key, bb(2));
+  }
+
 }
