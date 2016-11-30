@@ -26,8 +26,6 @@ import java.nio.ByteBuffer;
 import static java.util.Objects.requireNonNull;
 import jnr.ffi.Pointer;
 import jnr.ffi.byref.PointerByReference;
-
-import static org.lmdbjava.ByteArrayProxy.PROXY_BA;
 import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
 import static org.lmdbjava.EnvFlags.MDB_RDONLY_ENV;
 import static org.lmdbjava.Library.LIB;
@@ -79,17 +77,8 @@ public final class Env<T> implements AutoCloseable {
    *
    * @return the environment (never null)
    */
-  public static Builder<ByteBuffer> byteBuffer() {
+  public static Builder<ByteBuffer> create() {
     return new Builder<>(PROXY_OPTIMAL);
-  }
-
-  /**
-   * Create an {@link Env} using the {@link ByteArrayProxy#PROXY_BA}.
-   *
-   * @return the environment (never null)
-   */
-  public static Builder<byte[]> byteArray() {
-    return new Builder<>(PROXY_BA);
   }
 
   /**

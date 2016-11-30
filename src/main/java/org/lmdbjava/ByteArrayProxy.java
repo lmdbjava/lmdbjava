@@ -28,7 +28,7 @@ import static org.lmdbjava.Library.RUNTIME;
 /**
  * Byte array proxy.
  *
- * {@link Env#byteArray()}
+ * {@link Env#create(org.lmdbjava.BufferProxy)}.
  */
 public class ByteArrayProxy extends BufferProxy<byte[]> {
   /**

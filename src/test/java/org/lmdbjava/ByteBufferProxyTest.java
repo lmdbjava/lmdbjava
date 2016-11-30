@@ -43,6 +43,7 @@ import org.lmdbjava.ByteBufferProxy.BufferMustBeDirectException;
 import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
 import static org.lmdbjava.ByteBufferProxy.PROXY_SAFE;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
+import static org.lmdbjava.Env.create;
 import static org.lmdbjava.Library.RUNTIME;
 import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.invokePrivateConstructor;
@@ -61,7 +62,7 @@ public final class ByteBufferProxyTest {
   @Test(expected = BufferMustBeDirectException.class)
   public void buffersMustBeDirect() throws IOException {
     final File path = tmp.newFolder();
-    try (final Env<ByteBuffer> env = Env.byteBuffer().open(path)) {
+    try (final Env<ByteBuffer> env = create().open(path)) {
       final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
       final ByteBuffer key = allocate(100);
       key.putInt(1).flip();

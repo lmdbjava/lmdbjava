@@ -43,7 +43,7 @@ import static org.lmdbjava.UnsafeAccess.UNSAFE;
  * <p>
  * Users nominate which implementation they prefer by referencing the
  * {@link #PROXY_OPTIMAL} or {@link #PROXY_SAFE} field when invoking
- * {@link Env#byteBuffer()}.
+ * {@link Env#create(org.lmdbjava.BufferProxy)}.
  */
 public final class ByteBufferProxy {
 

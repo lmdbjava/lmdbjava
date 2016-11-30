@@ -47,8 +47,7 @@ import org.lmdbjava.Dbi.KeyExistsException;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import static org.lmdbjava.DbiFlags.MDB_DUPSORT;
 import org.lmdbjava.Env.MapFullException;
-
-import static org.lmdbjava.Env.byteBuffer;
+import static org.lmdbjava.Env.create;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.GetOp.MDB_SET_KEY;
 import org.lmdbjava.LmdbNativeException.ConstantDerviedException;
@@ -69,7 +68,7 @@ public final class DbiTest {
   @Before
   public void before() throws IOException {
     final File path = tmp.newFile();
-    env = byteBuffer()
+    env = create()
         .setMapSize(MEBIBYTES.toBytes(1_024))
         .setMaxReaders(1)
         .setMaxDbs(2)
@@ -187,19 +186,19 @@ public final class DbiTest {
   @Test
   public void putCommitGetByteArray() throws IOException {
     final File path = tmp.newFile();
-    final Env<byte[]> byteArrayEnv = Env.byteArray()
-        .setMapSize(MEBIBYTES.toBytes(1_024))
-        .setMaxReaders(1)
-        .setMaxDbs(2)
-        .open(path, MDB_NOSUBDIR);
+    Env<byte[]> env = create(new ByteArrayProxy())
+      .setMapSize(MEBIBYTES.toBytes(1_024))
+      .setMaxReaders(1)
+      .setMaxDbs(2)
+      .open(path, MDB_NOSUBDIR);
 
-    final Dbi<byte[]> db = byteArrayEnv.openDbi(DB_1, MDB_CREATE);
-    try (final Txn<byte[]> txn = byteArrayEnv.txnWrite()) {
+    final Dbi<byte[]> db = env.openDbi(DB_1, MDB_CREATE);
+    try (final Txn<byte[]> txn = env.txnWrite()) {
       db.put(txn, ba(5), ba(5));
       txn.commit();
     }
 
-    try (final Txn<byte[]> txn = byteArrayEnv.txnWrite()) {
+    try (final Txn<byte[]> txn = env.txnWrite()) {
       final byte[] found = db.get(txn, ba(5));
       assertNotNull(found);
       assertThat(new UnsafeBuffer(txn.val()).getInt(0), is(5));

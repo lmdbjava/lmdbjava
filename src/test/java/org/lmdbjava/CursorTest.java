@@ -43,6 +43,7 @@ import org.lmdbjava.Cursor.ClosedException;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import static org.lmdbjava.DbiFlags.MDB_DUPSORT;
 import static org.lmdbjava.DirectBufferProxy.PROXY_DB;
+import static org.lmdbjava.Env.create;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.GetOp.MDB_SET_KEY;
 import static org.lmdbjava.GetOp.MDB_SET_RANGE;
@@ -443,7 +444,7 @@ public final class CursorTest {
   private <T> Env<T> makeEnv(final BufferProxy<T> proxy) {
     try {
       final File path = tmp.newFile();
-      final Env<T> env = Env.create(proxy)
+      final Env<T> env = create(proxy)
           .setMapSize(KIBIBYTES.toBytes(1_024))
           .setMaxReaders(1)
           .setMaxDbs(1)

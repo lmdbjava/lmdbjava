@@ -44,7 +44,7 @@ import org.lmdbjava.CursorIterator.KeyVal;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import static org.lmdbjava.DbiFlags.MDB_DUPSORT;
 import static org.lmdbjava.DirectBufferProxy.PROXY_DB;
-import static org.lmdbjava.Env.byteBuffer;
+import static org.lmdbjava.Env.create;
 import static org.lmdbjava.Env.open;
 import static org.lmdbjava.GetOp.MDB_SET;
 import static org.lmdbjava.SeekOp.MDB_FIRST;
@@ -83,7 +83,7 @@ public final class TutorialTest {
 
     // We always need an Env. An Env owns a physical on-disk storage file. One
     // Env can store many different databases (ie sorted maps).
-    final Env<ByteBuffer> env = byteBuffer()
+    final Env<ByteBuffer> env = create()
         // LMDB also needs to know how large our DB might be. Over-estimating is OK.
         .setMapSize(MEBIBYTES.toBytes(10))
         // LMDB also needs to know how many DBs (Dbi) we want to store in this Env.
@@ -400,7 +400,7 @@ public final class TutorialTest {
     // There's also a PROXY_SAFE if you want to stop ByteBuffer's Unsafe use.
     // Aside from that and a different type argument, it's the same as usual...
     final File path = tmp.newFolder();
-    final Env<DirectBuffer> env = Env.create(PROXY_DB)
+    final Env<DirectBuffer> env = create(PROXY_DB)
         .setMapSize(MEBIBYTES.toBytes(10))
         .setMaxDbs(1)
         .open(path);
