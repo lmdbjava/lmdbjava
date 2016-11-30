@@ -191,19 +191,19 @@ public final class DbiTest {
   @Test
   public void putCommitGetByteArray() throws IOException {
     final File path = tmp.newFile();
-    Env<byte[]> env = create(new ByteArrayProxy())
-      .setMapSize(MEBIBYTES.toBytes(1_024))
-      .setMaxReaders(1)
-      .setMaxDbs(2)
-      .open(path, MDB_NOSUBDIR);
+    final Env<byte[]> bbEnv = create(new ByteArrayProxy())
+        .setMapSize(MEBIBYTES.toBytes(1_024))
+        .setMaxReaders(1)
+        .setMaxDbs(2)
+        .open(path, MDB_NOSUBDIR);
 
-    final Dbi<byte[]> db = env.openDbi(DB_1, MDB_CREATE);
-    try (final Txn<byte[]> txn = env.txnWrite()) {
+    final Dbi<byte[]> db = bbEnv.openDbi(DB_1, MDB_CREATE);
+    try (Txn<byte[]> txn = bbEnv.txnWrite()) {
       db.put(txn, ba(5), ba(5));
       txn.commit();
     }
 
-    try (final Txn<byte[]> txn = env.txnWrite()) {
+    try (Txn<byte[]> txn = bbEnv.txnWrite()) {
       final byte[] found = db.get(txn, ba(5));
       assertNotNull(found);
       assertThat(new UnsafeBuffer(txn.val()).getInt(0), is(5));

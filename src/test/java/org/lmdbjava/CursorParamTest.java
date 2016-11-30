@@ -235,7 +235,7 @@ public final class CursorParamTest {
 
     @Override
     public byte[] set(final int val) {
-      byte[] buff = new byte[4];
+      final byte[] buff = new byte[4];
       buff[0] = (byte) (val >>> 24);
       buff[1] = (byte) (val >>> 16);
       buff[2] = (byte) (val >>>  8);
