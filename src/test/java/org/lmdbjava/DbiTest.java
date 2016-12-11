@@ -69,7 +69,7 @@ public final class DbiTest {
   public void before() throws IOException {
     final File path = tmp.newFile();
     env = create()
-        .setMapSize(MEBIBYTES.toBytes(1_024))
+        .setMapSize(MEBIBYTES.toBytes(64))
         .setMaxReaders(1)
         .setMaxDbs(2)
         .open(path, MDB_NOSUBDIR);
