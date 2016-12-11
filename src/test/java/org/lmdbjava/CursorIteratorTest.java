@@ -29,6 +29,7 @@ import java.util.LinkedList;
 import java.util.NoSuchElementException;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -53,6 +54,11 @@ public final class CursorIteratorTest {
   private Dbi<ByteBuffer> db;
   private Env<ByteBuffer> env;
   private Deque<Integer> list;
+
+  @After
+  public void after() {
+    env.close();
+  }
 
   @Test
   public void backward() {

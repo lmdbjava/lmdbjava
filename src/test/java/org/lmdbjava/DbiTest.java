@@ -35,6 +35,7 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import org.junit.After;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import org.junit.Before;
@@ -63,6 +64,11 @@ public final class DbiTest {
   @Rule
   public final TemporaryFolder tmp = new TemporaryFolder();
   private Env<ByteBuffer> env;
+
+  @After
+  public void after() {
+    env.close();
+  }
 
   @Before
   public void before() throws IOException {
@@ -177,22 +183,21 @@ public final class DbiTest {
   @Test
   public void putCommitGetByteArray() throws IOException {
     final File path = tmp.newFile();
-    final Env<byte[]> bbEnv = create(new ByteArrayProxy())
-        .setMapSize(MEBIBYTES.toBytes(1_024))
+    try (Env<byte[]> envBa = create(new ByteArrayProxy())
+        .setMapSize(MEBIBYTES.toBytes(64))
         .setMaxReaders(1)
         .setMaxDbs(2)
-        .open(path, MDB_NOSUBDIR);
-
-    final Dbi<byte[]> db = bbEnv.openDbi(DB_1, MDB_CREATE);
-    try (Txn<byte[]> txn = bbEnv.txnWrite()) {
-      db.put(txn, ba(5), ba(5));
-      txn.commit();
-    }
-
-    try (Txn<byte[]> txn = bbEnv.txnWrite()) {
-      final byte[] found = db.get(txn, ba(5));
-      assertNotNull(found);
-      assertThat(new UnsafeBuffer(txn.val()).getInt(0), is(5));
+        .open(path, MDB_NOSUBDIR)) {
+      final Dbi<byte[]> db = envBa.openDbi(DB_1, MDB_CREATE);
+      try (Txn<byte[]> txn = envBa.txnWrite()) {
+        db.put(txn, ba(5), ba(5));
+        txn.commit();
+      }
+      try (Txn<byte[]> txn = envBa.txnWrite()) {
+        final byte[] found = db.get(txn, ba(5));
+        assertNotNull(found);
+        assertThat(new UnsafeBuffer(txn.val()).getInt(0), is(5));
+      }
     }
   }
 

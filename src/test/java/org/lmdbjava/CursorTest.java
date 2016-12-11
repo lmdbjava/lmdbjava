@@ -28,8 +28,10 @@ import static java.lang.Long.MIN_VALUE;
 import java.nio.ByteBuffer;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import org.junit.After;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -56,9 +58,29 @@ public final class CursorTest {
   @Rule
   public final TemporaryFolder tmp = new TemporaryFolder();
 
+  private Env<ByteBuffer> env;
+
+  @After
+  public void after() {
+    env.close();
+  }
+
+  @Before
+  public void before() throws IOException {
+    try {
+      final File path = tmp.newFile();
+      env = create(PROXY_OPTIMAL)
+          .setMapSize(KIBIBYTES.toBytes(1_024))
+          .setMaxReaders(1)
+          .setMaxDbs(1)
+          .open(path, POSIX_MODE, MDB_NOSUBDIR);
+    } catch (final IOException e) {
+      throw new LmdbException("IO failure", e);
+    }
+  }
+
   @Test(expected = ClosedException.class)
   public void closedCursorRejectsSubsequentGets() {
-    final Env<ByteBuffer> env = makeEnv(PROXY_OPTIMAL);
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
       final Cursor<ByteBuffer> c = db.openCursor(txn);
@@ -69,7 +91,6 @@ public final class CursorTest {
 
   @Test
   public void count() {
-    final Env<ByteBuffer> env = makeEnv(PROXY_OPTIMAL);
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
       final Cursor<ByteBuffer> c = db.openCursor(txn);
@@ -86,7 +107,6 @@ public final class CursorTest {
 
   @Test(expected = NotReadyException.class)
   public void cursorCannotCloseIfTransactionCommitted() {
-    final Env<ByteBuffer> env = makeEnv(PROXY_OPTIMAL);
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
       try (Cursor<ByteBuffer> c = db.openCursor(txn);) {
@@ -101,7 +121,6 @@ public final class CursorTest {
 
   @Test
   public void cursorFirstLastNextPrev() {
-    final Env<ByteBuffer> env = makeEnv(PROXY_OPTIMAL);
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
       // populate data
@@ -132,7 +151,6 @@ public final class CursorTest {
 
   @Test
   public void delete() {
-    final Env<ByteBuffer> env = makeEnv(PROXY_OPTIMAL);
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
       final Cursor<ByteBuffer> c = db.openCursor(txn);
@@ -152,7 +170,6 @@ public final class CursorTest {
 
   @Test
   public void renewTxRo() {
-    final Env<ByteBuffer> env = makeEnv(PROXY_OPTIMAL);
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
 
     final Cursor<ByteBuffer> c;
@@ -169,7 +186,6 @@ public final class CursorTest {
 
   @Test(expected = ReadOnlyRequiredException.class)
   public void renewTxRw() {
-    final Env<ByteBuffer> env = makeEnv(PROXY_OPTIMAL);
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
       assertThat(txn.isReadOnly(), is(false));
@@ -181,7 +197,6 @@ public final class CursorTest {
 
   @Test
   public void repeatedCloseCausesNotError() {
-    final Env<ByteBuffer> env = makeEnv(PROXY_OPTIMAL);
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
       final Cursor<ByteBuffer> c = db.openCursor(txn);
@@ -192,7 +207,6 @@ public final class CursorTest {
 
   @Test
   public void reserve() {
-    final Env<ByteBuffer> env = makeEnv(PROXY_OPTIMAL);
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
     final ByteBuffer key = bb(5);
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
@@ -209,19 +223,4 @@ public final class CursorTest {
       assertThat(val.getLong(), is(MIN_VALUE));
     }
   }
-
-  private <T> Env<T> makeEnv(final BufferProxy<T> proxy) {
-    try {
-      final File path = tmp.newFile();
-      final Env<T> env = create(proxy)
-          .setMapSize(KIBIBYTES.toBytes(1_024))
-          .setMaxReaders(1)
-          .setMaxDbs(1)
-          .open(path, POSIX_MODE, MDB_NOSUBDIR);
-      return env;
-    } catch (final IOException e) {
-      throw new LmdbException("IO failure", e);
-    }
-  }
-
 }

@@ -58,10 +58,12 @@ public final class EnvTest {
   @Test
   public void byteUnit() throws IOException {
     final File path = tmp.newFile();
-    final Env<ByteBuffer> env = create().setMapSize(MEBIBYTES.toBytes(1)).open(
-        path, MDB_NOSUBDIR);
-    final EnvInfo info = env.info();
-    assertThat(info.mapSize, is(MEBIBYTES.toBytes(1)));
+    try (Env<ByteBuffer> env
+        = create().setMapSize(MEBIBYTES.toBytes(1)).open(
+        path, MDB_NOSUBDIR)) {
+      final EnvInfo info = env.info();
+      assertThat(info.mapSize, is(MEBIBYTES.toBytes(1)));
+    }
   }
 
   @Test(expected = AlreadyOpenException.class)
@@ -210,20 +212,21 @@ public final class EnvTest {
   @Test
   public void info() throws IOException {
     final File path = tmp.newFile();
-    final Env<ByteBuffer> env = create()
+    try (Env<ByteBuffer> env
+        = create()
         .setMaxReaders(4)
         .setMapSize(123_456)
-        .open(path, MDB_NOSUBDIR);
-    final EnvInfo info = env.info();
-    assertThat(info, is(notNullValue()));
-    assertThat(info.lastPageNumber, is(1L));
-    assertThat(info.lastTransactionId, is(0L));
-    assertThat(info.mapAddress, is(0L));
-    assertThat(info.mapSize, is(123_456L));
-    assertThat(info.maxReaders, is(4));
-    assertThat(info.numReaders, is(0));
-
-    assertThat(env.getMaxKeySize(), is(511));
+        .open(path, MDB_NOSUBDIR)) {
+      final EnvInfo info = env.info();
+      assertThat(info, is(notNullValue()));
+      assertThat(info.lastPageNumber, is(1L));
+      assertThat(info.lastTransactionId, is(0L));
+      assertThat(info.mapAddress, is(0L));
+      assertThat(info.mapSize, is(123_456L));
+      assertThat(info.maxReaders, is(4));
+      assertThat(info.numReaders, is(0));
+      assertThat(env.getMaxKeySize(), is(511));
+    }
   }
 
   @Test(expected = MapFullException.class)
@@ -253,26 +256,27 @@ public final class EnvTest {
       final Dbi<ByteBuffer> rwDb = rwEnv.openDbi(DB_1, MDB_CREATE);
       rwDb.put(bb(1), bb(42));
     }
-    final Env<ByteBuffer> roEnv = create().open(path, MDB_RDONLY_ENV);
-    final Dbi<ByteBuffer> roDb = roEnv.openDbi(DB_1);
-    try (Txn<ByteBuffer> roTxn = roEnv.txnRead()) {
-      assertThat(roDb.get(roTxn, bb(1)), notNullValue());
+    try (Env<ByteBuffer> roEnv = create().open(path, MDB_RDONLY_ENV)) {
+      final Dbi<ByteBuffer> roDb = roEnv.openDbi(DB_1);
+      try (Txn<ByteBuffer> roTxn = roEnv.txnRead()) {
+        assertThat(roDb.get(roTxn, bb(1)), notNullValue());
+      }
     }
   }
 
   @Test
   public void stats() throws IOException {
     final File path = tmp.newFile();
-    final Env<ByteBuffer> env = create()
-        .open(path, MDB_NOSUBDIR);
-    final Stat stat = env.stat();
-    assertThat(stat, is(notNullValue()));
-    assertThat(stat.branchPages, is(0L));
-    assertThat(stat.depth, is(0));
-    assertThat(stat.entries, is(0L));
-    assertThat(stat.leafPages, is(0L));
-    assertThat(stat.overflowPages, is(0L));
-    assertThat(stat.pageSize, is(4_096));
+    try (Env<ByteBuffer> env = create().open(path, MDB_NOSUBDIR)) {
+      final Stat stat = env.stat();
+      assertThat(stat, is(notNullValue()));
+      assertThat(stat.branchPages, is(0L));
+      assertThat(stat.depth, is(0));
+      assertThat(stat.entries, is(0L));
+      assertThat(stat.leafPages, is(0L));
+      assertThat(stat.overflowPages, is(0L));
+      assertThat(stat.pageSize, is(4_096));
+    }
   }
 
   @Test
