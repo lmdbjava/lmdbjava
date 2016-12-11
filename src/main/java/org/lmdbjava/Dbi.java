@@ -183,8 +183,7 @@ public final class Dbi<T> {
       return null;
     }
     checkRc(rc);
-    txn.valOut(); // marked as out in LMDB C docs
-    return txn.val();
+    return txn.valOut(); // marked as out in LMDB C docs
   }
 
   /**

@@ -72,4 +72,10 @@ final class TestUtils {
     return b;
   }
 
+  static byte[] ba(final int value) {
+    final MutableDirectBuffer b = new UnsafeBuffer(new byte[4]);
+    b.putInt(0, value);
+    return b.byteArray();
+  }
+
 }

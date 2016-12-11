@@ -37,6 +37,8 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
+
+import static org.lmdbjava.ByteArrayProxy.PROXY_BA;
 import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
 import static org.lmdbjava.ByteBufferProxy.PROXY_SAFE;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
@@ -76,9 +78,10 @@ public final class CursorParamTest {
   public static Object[] data() {
     final BufferRunner<ByteBuffer> bb1 = new ByteBufferRunner(PROXY_OPTIMAL);
     final BufferRunner<ByteBuffer> bb2 = new ByteBufferRunner(PROXY_SAFE);
+    final BufferRunner<byte[]> ba = new ByteArrayRunner(PROXY_BA);
     final BufferRunner<DirectBuffer> db = new DirectBufferRunner();
     final BufferRunner<ByteBuf> netty = new NettyBufferRunner();
-    return new Object[]{bb1, bb2, db, netty};
+    return new Object[]{bb1, bb2, ba, db, netty};
   }
 
   @Test
@@ -111,6 +114,8 @@ public final class CursorParamTest {
         c.put(set(1), set(2), MDB_NOOVERWRITE);
         c.put(set(3), set(4));
         c.put(set(5), set(6));
+        // we cannot set the value for ByteArrayProxy
+        // but the key is still valid.
         final T valForKey7 = c.reserve(set(7), BYTES);
         set(valForKey7, 8);
 
@@ -122,7 +127,9 @@ public final class CursorParamTest {
         final T key6 = set(6);
         assertThat(c.get(key6, MDB_SET_RANGE), is(true));
         assertThat(get(txn.key()), is(7));
-        assertThat(get(txn.val()), is(8));
+        if (!(this instanceof ByteArrayRunner)) {
+          assertThat(get(txn.val()), is(8));
+        }
         final T key999 = set(999);
         assertThat(c.get(key999, MDB_SET_KEY), is(false));
 
@@ -147,7 +154,9 @@ public final class CursorParamTest {
         // are valid within same txn and across cursor movement
         // MDB_LAST
         assertThat(mdb1, is(7));
-        assertThat(mdb2, is(8));
+        if (!(this instanceof ByteArrayRunner)) {
+          assertThat(mdb2, is(8));
+        }
 
         // MDB_PREV
         assertThat(mdb3, is(5));
@@ -155,7 +164,9 @@ public final class CursorParamTest {
 
         // MDB_NEXT
         assertThat(mdb5, is(7));
-        assertThat(mdb6, is(8));
+        if (!(this instanceof ByteArrayRunner)) {
+          assertThat(mdb6, is(8));
+        }
 
         // MDB_FIRST
         assertThat(mdb7, is(1));
@@ -204,6 +215,44 @@ public final class CursorParamTest {
     }
 
   }
+
+  /**
+   * {@link BufferRunner} for Java byte buffers.
+   */
+  private static class ByteArrayRunner extends AbstractBufferRunner<byte[]> {
+
+    ByteArrayRunner(final BufferProxy<byte[]> proxy) {
+      super(proxy);
+    }
+
+    @Override
+    public int get(final byte[] buff) {
+      return (buff[0] & 0xFF) << 24
+        | (buff[1] & 0xFF) << 16
+        | (buff[2] & 0xFF) << 8
+        | (buff[3] & 0xFF) << 0;
+    }
+
+    @Override
+    public byte[] set(final int val) {
+      final byte[] buff = new byte[4];
+      buff[0] = (byte) (val >>> 24);
+      buff[1] = (byte) (val >>> 16);
+      buff[2] = (byte) (val >>>  8);
+      buff[3] = (byte) (val >>>  0);
+      return buff;
+    }
+
+    @Override
+    public void set(final byte[] buff, final int val) {
+      buff[0] = (byte) (val >>> 24);
+      buff[1] = (byte) (val >>> 16);
+      buff[2] = (byte) (val >>>  8);
+      buff[3] = (byte) (val >>>  0);
+    }
+
+  }
+
 
   /**
    * {@link BufferRunner} for Agrona direct buffer.
