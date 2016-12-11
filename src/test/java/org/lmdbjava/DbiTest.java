@@ -37,7 +37,6 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -176,19 +175,6 @@ public final class DbiTest {
   }
 
   @Test
-  public void putDelete() {
-    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
-
-    try (Txn<ByteBuffer> txn = env.txnWrite()) {
-      db.put(txn, bb(5), bb(5));
-      db.delete(txn, bb(5));
-
-      assertNull(db.get(txn, bb(5)));
-      txn.abort();
-    }
-  }
-
-  @Test
   public void putCommitGetByteArray() throws IOException {
     final File path = tmp.newFile();
     final Env<byte[]> bbEnv = create(new ByteArrayProxy())
@@ -207,6 +193,19 @@ public final class DbiTest {
       final byte[] found = db.get(txn, ba(5));
       assertNotNull(found);
       assertThat(new UnsafeBuffer(txn.val()).getInt(0), is(5));
+    }
+  }
+
+  @Test
+  public void putDelete() {
+    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
+
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
+      db.put(txn, bb(5), bb(5));
+      db.delete(txn, bb(5));
+
+      assertNull(db.get(txn, bb(5)));
+      txn.abort();
     }
   }
 

@@ -42,6 +42,12 @@ final class TestUtils {
   private TestUtils() {
   }
 
+  static byte[] ba(final int value) {
+    final MutableDirectBuffer b = new UnsafeBuffer(new byte[4]);
+    b.putInt(0, value);
+    return b.byteArray();
+  }
+
   static ByteBuffer bb(final int value) {
     final ByteBuffer bb = allocateDirect(BYTES);
     bb.putInt(value).flip();
@@ -70,12 +76,6 @@ final class TestUtils {
     final ByteBuf b = DEFAULT.directBuffer(BYTES);
     b.writeInt(value);
     return b;
-  }
-
-  static byte[] ba(final int value) {
-    final MutableDirectBuffer b = new UnsafeBuffer(new byte[4]);
-    b.putInt(0, value);
-    return b.byteArray();
   }
 
 }

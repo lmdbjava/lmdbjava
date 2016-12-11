@@ -45,7 +45,6 @@ public final class Txn<T> implements AutoCloseable {
 
   private static final MemoryManager MEM_MGR = RUNTIME.getMemoryManager();
   private T k;
-  private T v;
   private final Txn<T> parent;
   private final BufferProxy<T> proxy;
   private final Pointer ptr;
@@ -55,6 +54,7 @@ public final class Txn<T> implements AutoCloseable {
   private final long ptrValAddr;
   private final boolean readOnly;
   private State state;
+  private T v;
 
   Txn(final Env<T> env, final Txn<T> parent, final BufferProxy<T> proxy,
       final TxnFlags... flags) {

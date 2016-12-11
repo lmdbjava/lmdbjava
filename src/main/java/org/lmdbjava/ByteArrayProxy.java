@@ -22,7 +22,6 @@ package org.lmdbjava;
 
 import jnr.ffi.Pointer;
 import jnr.ffi.provider.MemoryManager;
-
 import static org.lmdbjava.Library.RUNTIME;
 
 /**
@@ -31,6 +30,7 @@ import static org.lmdbjava.Library.RUNTIME;
  * {@link Env#create(org.lmdbjava.BufferProxy)}.
  */
 public class ByteArrayProxy extends BufferProxy<byte[]> {
+
   /**
    * The byte array proxy. Guaranteed to never be null.
    */
@@ -49,7 +49,8 @@ public class ByteArrayProxy extends BufferProxy<byte[]> {
   }
 
   @Override
-  protected final void in(final byte[] buffer, final Pointer ptr, final long ptrAddr) {
+  protected final void in(final byte[] buffer, final Pointer ptr,
+                          final long ptrAddr) {
     final Pointer pointer = MEM_MGR.allocateDirect(buffer.length);
     pointer.put(0, buffer, 0, buffer.length);
     ptr.putLong(STRUCT_FIELD_OFFSET_SIZE, buffer.length);
@@ -63,7 +64,8 @@ public class ByteArrayProxy extends BufferProxy<byte[]> {
   }
 
   @Override
-  protected final byte[] out(final byte[] buffer, final Pointer ptr, final long ptrAddr) {
+  protected final byte[] out(final byte[] buffer, final Pointer ptr,
+                             final long ptrAddr) {
     final long addr = ptr.getLong(STRUCT_FIELD_OFFSET_DATA);
     final int size = (int) ptr.getLong(STRUCT_FIELD_OFFSET_SIZE);
     final Pointer pointer = MEM_MGR.newPointer(addr, size);

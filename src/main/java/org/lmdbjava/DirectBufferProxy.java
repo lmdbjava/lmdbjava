@@ -93,7 +93,7 @@ public final class DirectBufferProxy extends
 
   @Override
   protected DirectBuffer out(final DirectBuffer buffer, final Pointer ptr,
-                     final long ptrAddr) {
+                             final long ptrAddr) {
     final long addr = UNSAFE.getLong(ptrAddr + STRUCT_FIELD_OFFSET_DATA);
     final long size = UNSAFE.getLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE);
     buffer.wrap(addr, (int) size);

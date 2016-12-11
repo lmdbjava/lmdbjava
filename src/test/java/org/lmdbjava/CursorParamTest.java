@@ -37,7 +37,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
-
 import static org.lmdbjava.ByteArrayProxy.PROXY_BA;
 import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
 import static org.lmdbjava.ByteBufferProxy.PROXY_SAFE;
@@ -193,6 +192,42 @@ public final class CursorParamTest {
   /**
    * {@link BufferRunner} for Java byte buffers.
    */
+  private static class ByteArrayRunner extends AbstractBufferRunner<byte[]> {
+
+    ByteArrayRunner(final BufferProxy<byte[]> proxy) {
+      super(proxy);
+    }
+
+    @Override
+    public int get(final byte[] buff) {
+      return (buff[0] & 0xFF) << 24
+                 | (buff[1] & 0xFF) << 16
+                 | (buff[2] & 0xFF) << 8
+                 | (buff[3] & 0xFF);
+    }
+
+    @Override
+    public byte[] set(final int val) {
+      final byte[] buff = new byte[4];
+      buff[0] = (byte) (val >>> 24);
+      buff[1] = (byte) (val >>> 16);
+      buff[2] = (byte) (val >>> 8);
+      buff[3] = (byte) val;
+      return buff;
+    }
+
+    @Override
+    public void set(final byte[] buff, final int val) {
+      buff[0] = (byte) (val >>> 24);
+      buff[1] = (byte) (val >>> 16);
+      buff[2] = (byte) (val >>> 8);
+      buff[3] = (byte) val;
+    }
+  }
+
+  /**
+   * {@link BufferRunner} for Java byte buffers.
+   */
   private static class ByteBufferRunner extends AbstractBufferRunner<ByteBuffer> {
 
     ByteBufferRunner(final BufferProxy<ByteBuffer> proxy) {
@@ -215,44 +250,6 @@ public final class CursorParamTest {
     }
 
   }
-
-  /**
-   * {@link BufferRunner} for Java byte buffers.
-   */
-  private static class ByteArrayRunner extends AbstractBufferRunner<byte[]> {
-
-    ByteArrayRunner(final BufferProxy<byte[]> proxy) {
-      super(proxy);
-    }
-
-    @Override
-    public int get(final byte[] buff) {
-      return (buff[0] & 0xFF) << 24
-        | (buff[1] & 0xFF) << 16
-        | (buff[2] & 0xFF) << 8
-        | (buff[3] & 0xFF) << 0;
-    }
-
-    @Override
-    public byte[] set(final int val) {
-      final byte[] buff = new byte[4];
-      buff[0] = (byte) (val >>> 24);
-      buff[1] = (byte) (val >>> 16);
-      buff[2] = (byte) (val >>>  8);
-      buff[3] = (byte) (val >>>  0);
-      return buff;
-    }
-
-    @Override
-    public void set(final byte[] buff, final int val) {
-      buff[0] = (byte) (val >>> 24);
-      buff[1] = (byte) (val >>> 16);
-      buff[2] = (byte) (val >>>  8);
-      buff[3] = (byte) (val >>>  0);
-    }
-
-  }
-
 
   /**
    * {@link BufferRunner} for Agrona direct buffer.
