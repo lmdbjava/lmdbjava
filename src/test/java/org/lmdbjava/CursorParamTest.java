@@ -121,33 +121,33 @@ public final class CursorParamTest {
           // check MDB_SET operations
           final T key3 = set(3);
           assertThat(c.get(key3, MDB_SET_KEY), is(true));
-          assertThat(get(txn.key()), is(3));
-          assertThat(get(txn.val()), is(4));
+          assertThat(get(c.key()), is(3));
+          assertThat(get(c.val()), is(4));
           final T key6 = set(6);
           assertThat(c.get(key6, MDB_SET_RANGE), is(true));
-          assertThat(get(txn.key()), is(7));
+          assertThat(get(c.key()), is(7));
           if (!(this instanceof ByteArrayRunner)) {
-            assertThat(get(txn.val()), is(8));
+            assertThat(get(c.val()), is(8));
           }
           final T key999 = set(999);
           assertThat(c.get(key999, MDB_SET_KEY), is(false));
 
           // check MDB navigation operations
           assertThat(c.seek(MDB_LAST), is(true));
-          final int mdb1 = get(txn.key());
-          final int mdb2 = get(txn.val());
+          final int mdb1 = get(c.key());
+          final int mdb2 = get(c.val());
 
           assertThat(c.seek(MDB_PREV), is(true));
-          final int mdb3 = get(txn.key());
-          final int mdb4 = get(txn.val());
+          final int mdb3 = get(c.key());
+          final int mdb4 = get(c.val());
 
           assertThat(c.seek(MDB_NEXT), is(true));
-          final int mdb5 = get(txn.key());
-          final int mdb6 = get(txn.val());
+          final int mdb5 = get(c.key());
+          final int mdb6 = get(c.val());
 
           assertThat(c.seek(MDB_FIRST), is(true));
-          final int mdb7 = get(txn.key());
-          final int mdb8 = get(txn.val());
+          final int mdb7 = get(c.key());
+          final int mdb8 = get(c.val());
 
           // assert afterwards to ensure memory address from LMDB
           // are valid within same txn and across cursor movement

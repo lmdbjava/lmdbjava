@@ -252,17 +252,17 @@ public final class TutorialTest {
 
       // We can read from the Cursor by key.
       c.get(key, MDB_SET);
-      assertThat(UTF_8.decode(txn.key()).toString(), is("ccc"));
+      assertThat(UTF_8.decode(c.key()).toString(), is("ccc"));
 
       // Let's see that LMDB provides the keys in appropriate order....
       c.seek(MDB_FIRST);
-      assertThat(UTF_8.decode(txn.key()).toString(), is("aaa"));
+      assertThat(UTF_8.decode(c.key()).toString(), is("aaa"));
 
       c.seek(MDB_LAST);
-      assertThat(UTF_8.decode(txn.key()).toString(), is("zzz"));
+      assertThat(UTF_8.decode(c.key()).toString(), is("zzz"));
 
       c.seek(MDB_PREV);
-      assertThat(UTF_8.decode(txn.key()).toString(), is("ccc"));
+      assertThat(UTF_8.decode(c.key()).toString(), is("ccc"));
 
       // Cursors can also delete the current key.
       c.delete();
@@ -388,13 +388,13 @@ public final class TutorialTest {
 
       // Let's position the Cursor. Note sorting still works.
       c.seek(MDB_FIRST);
-      assertThat(UTF_8.decode(txn.val()).toString(), is("kkk"));
+      assertThat(UTF_8.decode(c.val()).toString(), is("kkk"));
 
       c.seek(MDB_LAST);
-      assertThat(UTF_8.decode(txn.val()).toString(), is("xxx"));
+      assertThat(UTF_8.decode(c.val()).toString(), is("xxx"));
 
       c.seek(MDB_PREV);
-      assertThat(UTF_8.decode(txn.val()).toString(), is("lll"));
+      assertThat(UTF_8.decode(c.val()).toString(), is("lll"));
 
       c.close();
       txn.commit();
@@ -436,11 +436,11 @@ public final class TutorialTest {
       c.put(key, val);
 
       c.seek(MDB_FIRST);
-      assertThat(txn.key().getStringWithoutLengthUtf8(0, env.getMaxKeySize()),
+      assertThat(c.key().getStringWithoutLengthUtf8(0, env.getMaxKeySize()),
                  startsWith("ggg"));
 
       c.seek(MDB_LAST);
-      assertThat(txn.key().getStringWithoutLengthUtf8(0, env.getMaxKeySize()),
+      assertThat(c.key().getStringWithoutLengthUtf8(0, env.getMaxKeySize()),
                  startsWith("yyy"));
 
       // DirectBuffer has no notion of a position. Often you don't want to store
@@ -454,8 +454,8 @@ public final class TutorialTest {
       assertThat(key.capacity(), is(keyLen));
       c.put(key, val);
       c.seek(MDB_FIRST);
-      assertThat(txn.key().capacity(), is(keyLen));
-      assertThat(txn.key().getStringWithoutLengthUtf8(0, txn.key().capacity()),
+      assertThat(c.key().capacity(), is(keyLen));
+      assertThat(c.key().getStringWithoutLengthUtf8(0, c.key().capacity()),
                  is("12characters"));
 
       // If we want to store bigger values again, just wrap our original buffer.

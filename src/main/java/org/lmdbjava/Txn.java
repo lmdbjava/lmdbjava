@@ -44,9 +44,9 @@ import static org.lmdbjava.TxnFlags.MDB_RDONLY_TXN;
 public final class Txn<T> implements AutoCloseable {
 
   private static final MemoryManager MEM_MGR = RUNTIME.getMemoryManager();
+  final BufferProxy<T> proxy;
   private T k;
   private final Txn<T> parent;
-  private final BufferProxy<T> proxy;
   private final Pointer ptr;
   private final Pointer ptrKey;
   private final long ptrKeyAddr;
