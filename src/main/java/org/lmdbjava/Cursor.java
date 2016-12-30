@@ -279,8 +279,10 @@ public final class Cursor<T> implements AutoCloseable {
       newTxn.checkReadOnly();
       newTxn.checkReady();
     }
-    checkRc(LIB.mdb_cursor_renew(newTxn.pointer(), ptrCursor));
-    this.txn = newTxn;
+    if (this.txn != newTxn) {
+      checkRc(LIB.mdb_cursor_renew(newTxn.pointer(), ptrCursor));
+      this.txn = newTxn;
+    }
   }
 
   /**
