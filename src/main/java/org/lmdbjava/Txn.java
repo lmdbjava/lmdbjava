@@ -42,14 +42,15 @@ import static org.lmdbjava.TxnFlags.MDB_RDONLY_TXN;
 public final class Txn<T> implements AutoCloseable {
 
   private final KeyVal<T> keyVal;
-
   private final Txn<T> parent;
+  private final BufferProxy<T> proxy;
   private final Pointer ptr;
   private final boolean readOnly;
   private State state;
 
   Txn(final Env<T> env, final Txn<T> parent, final BufferProxy<T> proxy,
       final TxnFlags... flags) {
+    this.proxy = proxy;
     this.keyVal = proxy.keyVal();
     final int flagsMask = mask(flags);
     this.readOnly = isSet(flagsMask, MDB_RDONLY_TXN);
@@ -211,6 +212,10 @@ public final class Txn<T> implements AutoCloseable {
 
   KeyVal<T> kv() {
     return keyVal;
+  }
+
+  KeyVal<T> newKeyVal() {
+    return proxy.keyVal();
   }
 
   Pointer pointer() {

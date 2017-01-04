@@ -131,21 +131,21 @@ public final class CursorTest {
       c.put(bb(7), bb(8));
 
       assertThat(c.first(), is(true));
-      assertThat(txn.key().getInt(0), is(1));
-      assertThat(txn.val().getInt(0), is(2));
+      assertThat(c.key().getInt(0), is(1));
+      assertThat(c.val().getInt(0), is(2));
 
       assertThat(c.last(), is(true));
-      assertThat(txn.key().getInt(0), is(7));
-      assertThat(txn.val().getInt(0), is(8));
+      assertThat(c.key().getInt(0), is(7));
+      assertThat(c.val().getInt(0), is(8));
 
       assertThat(c.prev(), is(true));
-      assertThat(txn.key().getInt(0), is(5));
-      assertThat(txn.val().getInt(0), is(6));
+      assertThat(c.key().getInt(0), is(5));
+      assertThat(c.val().getInt(0), is(6));
 
       assertThat(c.first(), is(true));
       assertThat(c.next(), is(true));
-      assertThat(txn.key().getInt(0), is(3));
-      assertThat(txn.val().getInt(0), is(4));
+      assertThat(c.key().getInt(0), is(3));
+      assertThat(c.val().getInt(0), is(4));
     }
   }
 
@@ -157,12 +157,12 @@ public final class CursorTest {
       c.put(bb(1), bb(2), MDB_NOOVERWRITE);
       c.put(bb(3), bb(4));
       assertThat(c.seek(MDB_FIRST), is(true));
-      assertThat(txn.key().getInt(), is(1));
-      assertThat(txn.val().getInt(), is(2));
+      assertThat(c.key().getInt(), is(1));
+      assertThat(c.val().getInt(), is(2));
       c.delete();
       assertThat(c.seek(MDB_FIRST), is(true));
-      assertThat(txn.key().getInt(), is(3));
-      assertThat(txn.val().getInt(), is(4));
+      assertThat(c.key().getInt(), is(3));
+      assertThat(c.val().getInt(), is(4));
       c.delete();
       assertThat(c.seek(MDB_FIRST), is(false));
     }

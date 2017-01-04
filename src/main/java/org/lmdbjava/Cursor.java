@@ -42,6 +42,7 @@ import static org.lmdbjava.SeekOp.MDB_PREV;
 public final class Cursor<T> implements AutoCloseable {
 
   private boolean closed;
+  private final KeyVal<T> kv;
   private final Pointer ptrCursor;
   private Txn<T> txn;
 
@@ -50,6 +51,7 @@ public final class Cursor<T> implements AutoCloseable {
     requireNonNull(txn);
     this.ptrCursor = ptr;
     this.txn = txn;
+    this.kv = txn.newKeyVal();
   }
 
   /**
@@ -68,6 +70,7 @@ public final class Cursor<T> implements AutoCloseable {
       txn.checkReady();
     }
     LIB.mdb_cursor_close(ptrCursor);
+    kv.close();
     closed = true;
   }
 
@@ -131,9 +134,9 @@ public final class Cursor<T> implements AutoCloseable {
       checkNotClosed();
       txn.checkReady();
     }
-    txn.kv().keyIn(key);
+    kv.keyIn(key);
 
-    final int rc = LIB.mdb_cursor_get(ptrCursor, txn.kv().pointerKey(), txn.kv()
+    final int rc = LIB.mdb_cursor_get(ptrCursor, kv.pointerKey(), kv
                                       .pointerVal(), op.getCode());
 
     if (rc == MDB_NOTFOUND) {
@@ -141,8 +144,8 @@ public final class Cursor<T> implements AutoCloseable {
     }
 
     checkRc(rc);
-    txn.kv().keyOut();
-    txn.kv().valOut();
+    kv.keyOut();
+    kv.valOut();
     return true;
   }
 
@@ -150,7 +153,7 @@ public final class Cursor<T> implements AutoCloseable {
    * @return the key that the cursor is located at.
    */
   public T key() {
-    return txn.key();
+    return kv.key();
   }
 
   /**
@@ -199,13 +202,13 @@ public final class Cursor<T> implements AutoCloseable {
       txn.checkReady();
       txn.checkWritesAllowed();
     }
-    txn.kv().keyIn(key);
-    txn.kv().valIn(val);
+    kv.keyIn(key);
+    kv.valIn(val);
     final int flags = mask(op);
-    checkRc(LIB.mdb_cursor_put(ptrCursor, txn.kv().pointerKey(), txn.kv()
-                               .pointerVal(), flags));
-    txn.kv().keyOut();
-    txn.kv().valOut();
+    checkRc(LIB.mdb_cursor_put(ptrCursor, kv.pointerKey(), kv.pointerVal(),
+                               flags));
+    kv.keyOut();
+    kv.valOut();
   }
 
   /**
@@ -256,13 +259,13 @@ public final class Cursor<T> implements AutoCloseable {
       txn.checkReady();
       txn.checkWritesAllowed();
     }
-    txn.kv().keyIn(key);
-    txn.kv().valIn(size);
+    kv.keyIn(key);
+    kv.valIn(size);
     final int flags = mask(op) | MDB_RESERVE.getMask();
-    checkRc(LIB.mdb_cursor_put(ptrCursor, txn.kv().pointerKey(), txn.kv()
-                               .pointerVal(), flags));
-    txn.kv().valOut();
-    return txn.val();
+    checkRc(LIB.mdb_cursor_put(ptrCursor, kv.pointerKey(), kv.pointerVal(),
+                               flags));
+    kv.valOut();
+    return val();
   }
 
   /**
@@ -278,7 +281,7 @@ public final class Cursor<T> implements AutoCloseable {
       txn.checkReady();
     }
 
-    final int rc = LIB.mdb_cursor_get(ptrCursor, txn.kv().pointerKey(), txn.kv()
+    final int rc = LIB.mdb_cursor_get(ptrCursor, kv.pointerKey(), kv
                                       .pointerVal(), op.getCode());
 
     if (rc == MDB_NOTFOUND) {
@@ -286,8 +289,8 @@ public final class Cursor<T> implements AutoCloseable {
     }
 
     checkRc(rc);
-    txn.kv().keyOut();
-    txn.kv().valOut();
+    kv.keyOut();
+    kv.valOut();
     return true;
   }
 
@@ -295,7 +298,7 @@ public final class Cursor<T> implements AutoCloseable {
    * @return the value that the cursor is located at.
    */
   public T val() {
-    return txn.val();
+    return kv.val();
   }
 
   private void checkNotClosed() throws ClosedException {
