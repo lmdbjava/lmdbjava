@@ -60,7 +60,7 @@ public final class EnvTest {
     final File path = tmp.newFile();
     try (Env<ByteBuffer> env
         = create().setMapSize(MEBIBYTES.toBytes(1)).open(
-        path, MDB_NOSUBDIR)) {
+            path, MDB_NOSUBDIR)) {
       final EnvInfo info = env.info();
       assertThat(info.mapSize, is(MEBIBYTES.toBytes(1)));
     }
@@ -214,19 +214,19 @@ public final class EnvTest {
     final File path = tmp.newFile();
     try (Env<ByteBuffer> env
         = create()
-        .setMaxReaders(4)
-        .setMapSize(123_456)
-        .open(path, MDB_NOSUBDIR)) {
-      final EnvInfo info = env.info();
-      assertThat(info, is(notNullValue()));
-      assertThat(info.lastPageNumber, is(1L));
-      assertThat(info.lastTransactionId, is(0L));
-      assertThat(info.mapAddress, is(0L));
-      assertThat(info.mapSize, is(123_456L));
-      assertThat(info.maxReaders, is(4));
-      assertThat(info.numReaders, is(0));
-      assertThat(env.getMaxKeySize(), is(511));
-    }
+            .setMaxReaders(4)
+            .setMapSize(123_456)
+            .open(path, MDB_NOSUBDIR)) {
+          final EnvInfo info = env.info();
+          assertThat(info, is(notNullValue()));
+          assertThat(info.lastPageNumber, is(1L));
+          assertThat(info.lastTransactionId, is(0L));
+          assertThat(info.mapAddress, is(0L));
+          assertThat(info.mapSize, is(123_456L));
+          assertThat(info.maxReaders, is(4));
+          assertThat(info.numReaders, is(0));
+          assertThat(env.getMaxKeySize(), is(511));
+        }
   }
 
   @Test(expected = MapFullException.class)

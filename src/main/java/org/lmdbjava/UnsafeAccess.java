@@ -59,8 +59,8 @@ final class UnsafeAccess {
       final Field field = Unsafe.class.getDeclaredField(FIELD_NAME_THE_UNSAFE);
       field.setAccessible(true);
       UNSAFE = (Unsafe) field.get(null);
-    } catch (final NoSuchFieldException | SecurityException |
-                   IllegalArgumentException | IllegalAccessException e) {
+    } catch (final NoSuchFieldException | SecurityException
+                   | IllegalArgumentException | IllegalAccessException e) {
       throw new LmdbException("Unsafe unavailable", e);
     }
   }

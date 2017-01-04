@@ -59,9 +59,9 @@ final class TestUtils {
       final Constructor<?> c = clazz.getDeclaredConstructor();
       c.setAccessible(true);
       c.newInstance();
-    } catch (final NoSuchMethodException | InstantiationException |
-                   IllegalAccessException | IllegalArgumentException |
-                   InvocationTargetException e) {
+    } catch (final NoSuchMethodException | InstantiationException
+                   | IllegalAccessException | IllegalArgumentException
+                   | InvocationTargetException e) {
       throw new LmdbException("Private construction failed", e);
     }
   }
