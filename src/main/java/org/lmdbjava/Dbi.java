@@ -125,14 +125,15 @@ public final class Dbi<T> {
       txn.checkWritesAllowed();
     }
 
-    txn.keyIn(key);
+    txn.kv().keyIn(key);
 
     if (val == null) {
-      checkRc(LIB.mdb_del(txn.pointer(), ptr, txn.pointerKey(), null));
+      checkRc(LIB.mdb_del(txn.pointer(), ptr, txn.kv().pointerKey(), null));
     } else {
-      txn.valIn(val);
+      txn.kv().valIn(val);
       checkRc(LIB
-          .mdb_del(txn.pointer(), ptr, txn.pointerKey(), txn.pointerVal()));
+          .mdb_del(txn.pointer(), ptr, txn.kv().pointerKey(), txn.kv()
+                   .pointerVal()));
     }
   }
 
@@ -176,14 +177,14 @@ public final class Dbi<T> {
       requireNonNull(key);
       txn.checkReady();
     }
-    txn.keyIn(key);
-    final int rc = LIB.mdb_get(txn.pointer(), ptr, txn.pointerKey(), txn.
-                               pointerVal());
+    txn.kv().keyIn(key);
+    final int rc = LIB.mdb_get(txn.pointer(), ptr, txn.kv().pointerKey(), txn
+                               .kv().pointerVal());
     if (rc == MDB_NOTFOUND) {
       return null;
     }
     checkRc(rc);
-    return txn.valOut(); // marked as out in LMDB C docs
+    return txn.kv().valOut(); // marked as out in LMDB C docs
   }
 
   /**
@@ -298,13 +299,13 @@ public final class Dbi<T> {
       txn.checkReady();
       txn.checkWritesAllowed();
     }
-    txn.keyIn(key);
-    txn.valIn(val);
+    txn.kv().keyIn(key);
+    txn.kv().valIn(val);
     final int mask = mask(flags);
-    final int rc = LIB.mdb_put(txn.pointer(), ptr, txn.pointerKey(), txn
-                               .pointerVal(), mask);
+    final int rc = LIB.mdb_put(txn.pointer(), ptr, txn.kv().pointerKey(), txn
+                               .kv().pointerVal(), mask);
     if (rc == MDB_KEYEXIST && isSet(mask, MDB_NOOVERWRITE)) {
-      txn.valOut(); // marked as in,out in LMDB C docs
+      txn.kv().valOut(); // marked as in,out in LMDB C docs
     }
     checkRc(rc);
   }
@@ -334,12 +335,12 @@ public final class Dbi<T> {
       txn.checkReady();
       txn.checkWritesAllowed();
     }
-    txn.keyIn(key);
-    txn.valIn(size);
+    txn.kv().keyIn(key);
+    txn.kv().valIn(size);
     final int flags = mask(op) | MDB_RESERVE.getMask();
-    checkRc(LIB.mdb_put(txn.pointer(), ptr, txn.pointerKey(), txn.pointerVal(),
-                        flags));
-    txn.valOut(); // marked as in,out in LMDB C docs
+    checkRc(LIB.mdb_put(txn.pointer(), ptr, txn.kv().pointerKey(), txn.kv()
+                        .pointerVal(), flags));
+    txn.kv().valOut(); // marked as in,out in LMDB C docs
     return txn.val();
   }
 

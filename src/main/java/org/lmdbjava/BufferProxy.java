@@ -100,4 +100,13 @@ public abstract class BufferProxy<T> { // NOPMD
    */
   protected abstract T out(T buffer, Pointer ptr, long ptrAddr);
 
+  /**
+   * Create a new {@link KeyVal} to hold pointers for this buffer proxy.
+   *
+   * @return a non-null key value holder
+   */
+  final KeyVal<T> keyVal() {
+    return new KeyVal<>(this);
+  }
+
 }

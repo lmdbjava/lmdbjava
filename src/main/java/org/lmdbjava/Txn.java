@@ -23,8 +23,6 @@ package org.lmdbjava;
 import static jnr.ffi.Memory.allocateDirect;
 import static jnr.ffi.NativeType.ADDRESS;
 import jnr.ffi.Pointer;
-import jnr.ffi.provider.MemoryManager;
-import static org.lmdbjava.BufferProxy.MDB_VAL_STRUCT_SIZE;
 import static org.lmdbjava.Library.LIB;
 import static org.lmdbjava.Library.RUNTIME;
 import static org.lmdbjava.MaskedFlag.isSet;
@@ -43,22 +41,16 @@ import static org.lmdbjava.TxnFlags.MDB_RDONLY_TXN;
  */
 public final class Txn<T> implements AutoCloseable {
 
-  private static final MemoryManager MEM_MGR = RUNTIME.getMemoryManager();
-  private T k;
+  private final KeyVal<T> keyVal;
+
   private final Txn<T> parent;
-  private final BufferProxy<T> proxy;
   private final Pointer ptr;
-  private final Pointer ptrKey;
-  private final long ptrKeyAddr;
-  private final Pointer ptrVal;
-  private final long ptrValAddr;
   private final boolean readOnly;
   private State state;
-  private T v;
 
   Txn(final Env<T> env, final Txn<T> parent, final BufferProxy<T> proxy,
       final TxnFlags... flags) {
-    this.proxy = proxy;
+    this.keyVal = proxy.keyVal();
     final int flagsMask = mask(flags);
     this.readOnly = isSet(flagsMask, MDB_RDONLY_TXN);
     if (env.isReadOnly() && !this.readOnly) {
@@ -72,13 +64,6 @@ public final class Txn<T> implements AutoCloseable {
     final Pointer txnParentPtr = parent == null ? null : parent.ptr;
     checkRc(LIB.mdb_txn_begin(env.pointer(), txnParentPtr, flagsMask, txnPtr));
     ptr = txnPtr.getPointer(0);
-
-    this.k = proxy.allocate();
-    this.v = proxy.allocate();
-    ptrKey = MEM_MGR.allocateTemporary(MDB_VAL_STRUCT_SIZE, false);
-    ptrKeyAddr = ptrKey.address();
-    ptrVal = MEM_MGR.allocateTemporary(MDB_VAL_STRUCT_SIZE, false);
-    ptrValAddr = ptrVal.address();
 
     state = READY;
   }
@@ -108,8 +93,7 @@ public final class Txn<T> implements AutoCloseable {
     if (state == READY) {
       LIB.mdb_txn_abort(ptr);
     }
-    proxy.deallocate(k);
-    proxy.deallocate(v);
+    keyVal.close();
     state = RELEASED;
   }
 
@@ -158,7 +142,7 @@ public final class Txn<T> implements AutoCloseable {
    * @return the key buffer (never null)
    */
   public T key() {
-    return k;
+    return keyVal.key();
   }
 
   /**
@@ -195,7 +179,7 @@ public final class Txn<T> implements AutoCloseable {
    * @return the value buffer (never null)
    */
   public T val() {
-    return v;
+    return keyVal.val();
   }
 
   void checkReadOnly() throws ReadOnlyRequiredException {
@@ -225,38 +209,12 @@ public final class Txn<T> implements AutoCloseable {
     return state;
   }
 
-  void keyIn(final T key) {
-    proxy.in(key, ptrKey, ptrKeyAddr);
-  }
-
-  T keyOut() {
-    k = proxy.out(k, ptrKey, ptrKeyAddr);
-    return k;
+  KeyVal<T> kv() {
+    return keyVal;
   }
 
   Pointer pointer() {
     return ptr;
-  }
-
-  Pointer pointerKey() {
-    return ptrKey;
-  }
-
-  Pointer pointerVal() {
-    return ptrVal;
-  }
-
-  void valIn(final T val) {
-    proxy.in(val, ptrVal, ptrValAddr);
-  }
-
-  void valIn(final int size) {
-    proxy.in(v, size, ptrVal, ptrValAddr);
-  }
-
-  T valOut() {
-    v = proxy.out(v, ptrVal, ptrValAddr);
-    return v;
   }
 
   /**

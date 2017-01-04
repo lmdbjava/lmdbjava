@@ -131,18 +131,18 @@ public final class Cursor<T> implements AutoCloseable {
       checkNotClosed();
       txn.checkReady();
     }
-    txn.keyIn(key);
+    txn.kv().keyIn(key);
 
-    final int rc = LIB.mdb_cursor_get(ptrCursor, txn.pointerKey(), txn.
-                                      pointerVal(), op.getCode());
+    final int rc = LIB.mdb_cursor_get(ptrCursor, txn.kv().pointerKey(), txn.kv()
+                                      .pointerVal(), op.getCode());
 
     if (rc == MDB_NOTFOUND) {
       return false;
     }
 
     checkRc(rc);
-    txn.keyOut();
-    txn.valOut();
+    txn.kv().keyOut();
+    txn.kv().valOut();
     return true;
   }
 
@@ -199,13 +199,13 @@ public final class Cursor<T> implements AutoCloseable {
       txn.checkReady();
       txn.checkWritesAllowed();
     }
-    txn.keyIn(key);
-    txn.valIn(val);
+    txn.kv().keyIn(key);
+    txn.kv().valIn(val);
     final int flags = mask(op);
-    checkRc(LIB.mdb_cursor_put(ptrCursor, txn.pointerKey(), txn.pointerVal(),
-                               flags));
-    txn.keyOut();
-    txn.valOut();
+    checkRc(LIB.mdb_cursor_put(ptrCursor, txn.kv().pointerKey(), txn.kv()
+                               .pointerVal(), flags));
+    txn.kv().keyOut();
+    txn.kv().valOut();
   }
 
   /**
@@ -256,12 +256,12 @@ public final class Cursor<T> implements AutoCloseable {
       txn.checkReady();
       txn.checkWritesAllowed();
     }
-    txn.keyIn(key);
-    txn.valIn(size);
+    txn.kv().keyIn(key);
+    txn.kv().valIn(size);
     final int flags = mask(op) | MDB_RESERVE.getMask();
-    checkRc(LIB.mdb_cursor_put(ptrCursor, txn.pointerKey(), txn.pointerVal(),
-                               flags));
-    txn.valOut();
+    checkRc(LIB.mdb_cursor_put(ptrCursor, txn.kv().pointerKey(), txn.kv()
+                               .pointerVal(), flags));
+    txn.kv().valOut();
     return txn.val();
   }
 
@@ -278,17 +278,16 @@ public final class Cursor<T> implements AutoCloseable {
       txn.checkReady();
     }
 
-    final int rc = LIB.mdb_cursor_get(ptrCursor, txn.pointerKey(), txn.
-                                      pointerVal(),
-                                      op.getCode());
+    final int rc = LIB.mdb_cursor_get(ptrCursor, txn.kv().pointerKey(), txn.kv()
+                                      .pointerVal(), op.getCode());
 
     if (rc == MDB_NOTFOUND) {
       return false;
     }
 
     checkRc(rc);
-    txn.keyOut();
-    txn.valOut();
+    txn.kv().keyOut();
+    txn.kv().valOut();
     return true;
   }
 
