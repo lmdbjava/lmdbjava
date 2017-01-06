@@ -25,8 +25,13 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import static java.nio.ByteBuffer.allocateDirect;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Map;
 import java.util.Random;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.isA;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import org.junit.Rule;
@@ -46,6 +51,7 @@ import static org.lmdbjava.EnvFlags.MDB_RDONLY_ENV;
 import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.bb;
 import org.lmdbjava.Txn.BadReaderLockException;
+
 
 /**
  * Test {@link Env}.
@@ -287,4 +293,54 @@ public final class EnvTest {
     }
   }
 
+  @Test
+  public void testDbiNames() throws IOException {
+    final File path = tmp.newFolder();
+    try (Env<ByteBuffer> env = create().setMaxDbs(10).open(path)) {
+      assertThat(env.allDbiNames(StandardCharsets.UTF_8),
+          is(Collections.emptyList()));
+      // the third string is a UTF-16 surrogate pair, which should
+      // uncover encoding bugs that ASCII strings will not
+      final String[] names = new String[] {"one", "two", "𤭢"};
+      env.openDbi(names[0], StandardCharsets.UTF_8, MDB_CREATE);
+      env.openDbi(names[1], StandardCharsets.UTF_8, MDB_CREATE);
+      env.openDbi(names[2], StandardCharsets.UTF_8, MDB_CREATE);
+      assertThat(env.allDbiNames(StandardCharsets.UTF_8),
+          is(Arrays.asList(names)));
+    }
+  }
+
+  @Test
+  public void testOpenAll() throws IOException {
+    final File path = tmp.newFolder();
+    // the third string is a UTF-16 surrogate pair, which should
+    // uncover encoding bugs that ASCII strings will not
+    final String[] names = new String[] {"one", "two", "𤭢"};
+    try (Env<ByteBuffer> env = create().setMaxDbs(10).open(path)) {
+      assertThat(env.openAllDbi(StandardCharsets.UTF_8),
+          is(Collections.emptyMap()));
+      env.openDbi(names[0], StandardCharsets.UTF_8, MDB_CREATE);
+      env.openDbi(names[1], StandardCharsets.UTF_8, MDB_CREATE);
+      env.openDbi(names[2], StandardCharsets.UTF_8, MDB_CREATE);
+      final Map<String, Dbi<ByteBuffer>> dbiMap
+          = env.openAllDbi(StandardCharsets.UTF_8);
+      assertThat(dbiMap.size(), is(3));
+      assertThat(dbiMap.get(names[0]), isA(Dbi.class));
+      assertThat(dbiMap.get(names[1]), isA(Dbi.class));
+      assertThat(dbiMap.get(names[2]), isA(Dbi.class));
+    }
+
+    try (Env<ByteBuffer> env
+        = create().setMaxDbs(10).open(path, MDB_RDONLY_ENV)) {
+      final Map<String, Dbi<ByteBuffer>> dbiMap
+          = env.openAllDbi(StandardCharsets.UTF_8);
+      assertThat(dbiMap.size(), is(3));
+      assertThat(dbiMap.get(names[0]), isA(Dbi.class));
+      assertThat(dbiMap.get(names[0]).getName(), is(names[0]));
+      assertThat(dbiMap.get(names[1]), isA(Dbi.class));
+      assertThat(dbiMap.get(names[1]).getName(), is(names[1]));
+      assertThat(dbiMap.get(names[2]), isA(Dbi.class));
+      assertThat(dbiMap.get(names[2]).getName(), is(names[2]));
+    }
+  }
 }
