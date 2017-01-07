@@ -21,6 +21,7 @@
 package org.lmdbjava;
 
 import static java.util.Objects.requireNonNull;
+import static org.lmdbjava.Env.SHOULD_CHECK;
 
 /**
  * Indicates an enum that can provide integers for each of its values.
@@ -64,7 +65,9 @@ public interface MaskedFlag {
    * @return true if set.
    */
   static boolean isSet(final int flags, final MaskedFlag test) {
-    requireNonNull(test);
+    if (SHOULD_CHECK) {
+      requireNonNull(test);
+    }
     return (flags & test.getMask()) == test.getMask();
   }
 }
