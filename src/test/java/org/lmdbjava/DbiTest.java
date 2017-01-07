@@ -43,7 +43,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.lmdbjava.Dbi.DbFullException;
-import org.lmdbjava.Dbi.KeyExistsException;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import static org.lmdbjava.DbiFlags.MDB_DUPSORT;
 import org.lmdbjava.Env.MapFullException;
@@ -120,17 +119,15 @@ public final class DbiTest {
     assertThat(db.getName(), is(DB_1));
   }
 
-  @Test(expected = KeyExistsException.class)
+  @Test
   public void keyExistsException() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
-      db.put(txn, bb(5), bb(6), MDB_NOOVERWRITE); // ok
-      try {
-        db.put(txn, bb(5), bb(8), MDB_NOOVERWRITE); // fails, but gets exist val
-      } catch (final KeyExistsException ke) {
-        assertThat(txn.val().getInt(0), is(6));
-        throw ke;
-      }
+      // ok
+      assertThat(db.put(txn, bb(5), bb(6), MDB_NOOVERWRITE), is(true)); 
+      // fails, but gets exist val
+      assertThat(db.put(txn, bb(5), bb(8), MDB_NOOVERWRITE), is(false));
+      assertThat(txn.val().getInt(0), is(6));
     }
   }
 
