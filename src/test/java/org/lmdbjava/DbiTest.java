@@ -50,6 +50,7 @@ import static org.lmdbjava.Env.create;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.GetOp.MDB_SET_KEY;
 import org.lmdbjava.LmdbNativeException.ConstantDerviedException;
+import static org.lmdbjava.PutFlags.MDB_NODUPDATA;
 import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
 import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.ba;
@@ -120,7 +121,7 @@ public final class DbiTest {
   }
 
   @Test
-  public void keyExistsException() {
+  public void returnValueForNoOverwrite() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
       // ok
@@ -131,6 +132,17 @@ public final class DbiTest {
     }
   }
 
+  @Test
+  public void returnValueForNoDupData() {
+    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
+      // ok
+      assertThat(db.put(txn, bb(5), bb(6), MDB_NODUPDATA), is(true));
+      assertThat(db.put(txn, bb(5), bb(7), MDB_NODUPDATA), is(true));
+      assertThat(db.put(txn, bb(5), bb(6), MDB_NODUPDATA), is(false));
+    }
+  }
+  
   @Test
   public void putAbortGet() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
