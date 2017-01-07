@@ -2,7 +2,7 @@
  * #%L
  * LmdbJava
  * %%
- * Copyright (C) 2016 The LmdbJava Open Source Project
+ * Copyright (C) 2016 - 2017 The LmdbJava Open Source Project
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -59,9 +59,9 @@ final class TestUtils {
       final Constructor<?> c = clazz.getDeclaredConstructor();
       c.setAccessible(true);
       c.newInstance();
-    } catch (final NoSuchMethodException | InstantiationException |
-                   IllegalAccessException | IllegalArgumentException |
-                   InvocationTargetException e) {
+    } catch (final NoSuchMethodException | InstantiationException
+                   | IllegalAccessException | IllegalArgumentException
+                   | InvocationTargetException e) {
       throw new LmdbException("Private construction failed", e);
     }
   }

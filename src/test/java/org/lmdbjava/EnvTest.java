@@ -2,7 +2,7 @@
  * #%L
  * LmdbJava
  * %%
- * Copyright (C) 2016 The LmdbJava Open Source Project
+ * Copyright (C) 2016 - 2017 The LmdbJava Open Source Project
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -60,7 +60,7 @@ public final class EnvTest {
     final File path = tmp.newFile();
     try (Env<ByteBuffer> env
         = create().setMapSize(MEBIBYTES.toBytes(1)).open(
-        path, MDB_NOSUBDIR)) {
+            path, MDB_NOSUBDIR)) {
       final EnvInfo info = env.info();
       assertThat(info.mapSize, is(MEBIBYTES.toBytes(1)));
     }
@@ -212,8 +212,7 @@ public final class EnvTest {
   @Test
   public void info() throws IOException {
     final File path = tmp.newFile();
-    try (Env<ByteBuffer> env
-        = create()
+    try (Env<ByteBuffer> env = create()
         .setMaxReaders(4)
         .setMapSize(123_456)
         .open(path, MDB_NOSUBDIR)) {

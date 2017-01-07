@@ -2,7 +2,7 @@
  * #%L
  * LmdbJava
  * %%
- * Copyright (C) 2016 The LmdbJava Open Source Project
+ * Copyright (C) 2016 - 2017 The LmdbJava Open Source Project
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -99,5 +99,14 @@ public abstract class BufferProxy<T> { // NOPMD
    * @return the buffer for <code>MDB_val</code>
    */
   protected abstract T out(T buffer, Pointer ptr, long ptrAddr);
+
+  /**
+   * Create a new {@link KeyVal} to hold pointers for this buffer proxy.
+   *
+   * @return a non-null key value holder
+   */
+  final KeyVal<T> keyVal() {
+    return new KeyVal<>(this);
+  }
 
 }

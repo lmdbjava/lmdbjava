@@ -2,7 +2,7 @@
  * #%L
  * LmdbJava
  * %%
- * Copyright (C) 2016 The LmdbJava Open Source Project
+ * Copyright (C) 2016 - 2017 The LmdbJava Open Source Project
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -59,8 +59,8 @@ final class UnsafeAccess {
       final Field field = Unsafe.class.getDeclaredField(FIELD_NAME_THE_UNSAFE);
       field.setAccessible(true);
       UNSAFE = (Unsafe) field.get(null);
-    } catch (final NoSuchFieldException | SecurityException |
-                   IllegalArgumentException | IllegalAccessException e) {
+    } catch (final NoSuchFieldException | SecurityException
+                   | IllegalArgumentException | IllegalAccessException e) {
       throw new LmdbException("Unsafe unavailable", e);
     }
   }
