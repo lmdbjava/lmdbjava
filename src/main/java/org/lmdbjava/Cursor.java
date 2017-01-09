@@ -23,7 +23,6 @@ package org.lmdbjava;
 import static java.util.Objects.requireNonNull;
 import jnr.ffi.Pointer;
 import jnr.ffi.byref.NativeLongByReference;
-
 import static org.lmdbjava.Dbi.KeyExistsException.MDB_KEYEXIST;
 import static org.lmdbjava.Dbi.KeyNotFoundException.MDB_NOTFOUND;
 import static org.lmdbjava.Env.SHOULD_CHECK;
@@ -198,7 +197,7 @@ public final class Cursor<T> implements AutoCloseable {
    * @param val data to store
    * @param op  options for this operation
    * @return true if the value was put, false if MDB_NOOVERWRITE or
-   *     MDB_NODUPDATA were set and the key/value existed already.
+   *         MDB_NODUPDATA were set and the key/value existed already.
    */
   public boolean put(final T key, final T val, final PutFlags... op) {
     if (SHOULD_CHECK) {
@@ -211,8 +210,8 @@ public final class Cursor<T> implements AutoCloseable {
     kv.keyIn(key);
     kv.valIn(val);
     final int mask = mask(op);
-    final int rc = LIB.mdb_cursor_put(ptrCursor, kv.pointerKey(), kv.pointerVal(),
-                               mask);
+    final int rc = LIB.mdb_cursor_put(ptrCursor, kv.pointerKey(),
+                                      kv.pointerVal(), mask);
     if (rc == MDB_KEYEXIST) {
       if (isSet(mask, MDB_NOOVERWRITE)) {
         kv.valOut(); // marked as in,out in LMDB C docs

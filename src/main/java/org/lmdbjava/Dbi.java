@@ -291,10 +291,10 @@ public final class Dbi<T> {
    * @param val   value to store in the database (not null)
    * @param flags Special options for this operation
    * @return true if the value was put, false if MDB_NOOVERWRITE or
-   *     MDB_NODUPDATA were set and the key/value existed already.
+   *         MDB_NODUPDATA were set and the key/value existed already.
    */
   public boolean put(final Txn<T> txn, final T key, final T val,
-                  final PutFlags... flags) {
+                     final PutFlags... flags) {
     if (SHOULD_CHECK) {
       requireNonNull(txn);
       requireNonNull(key);

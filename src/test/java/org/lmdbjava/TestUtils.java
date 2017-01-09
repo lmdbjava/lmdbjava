@@ -60,8 +60,8 @@ final class TestUtils {
       c.setAccessible(true);
       c.newInstance();
     } catch (final NoSuchMethodException | InstantiationException
-                   | IllegalAccessException | IllegalArgumentException
-                   | InvocationTargetException e) {
+                       | IllegalAccessException | IllegalArgumentException
+                       | InvocationTargetException e) {
       throw new LmdbException("Private construction failed", e);
     }
   }

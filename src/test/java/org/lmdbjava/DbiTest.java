@@ -121,29 +121,6 @@ public final class DbiTest {
   }
 
   @Test
-  public void returnValueForNoOverwrite() {
-    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
-    try (Txn<ByteBuffer> txn = env.txnWrite()) {
-      // ok
-      assertThat(db.put(txn, bb(5), bb(6), MDB_NOOVERWRITE), is(true)); 
-      // fails, but gets exist val
-      assertThat(db.put(txn, bb(5), bb(8), MDB_NOOVERWRITE), is(false));
-      assertThat(txn.val().getInt(0), is(6));
-    }
-  }
-
-  @Test
-  public void returnValueForNoDupData() {
-    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
-    try (Txn<ByteBuffer> txn = env.txnWrite()) {
-      // ok
-      assertThat(db.put(txn, bb(5), bb(6), MDB_NODUPDATA), is(true));
-      assertThat(db.put(txn, bb(5), bb(7), MDB_NODUPDATA), is(true));
-      assertThat(db.put(txn, bb(5), bb(6), MDB_NODUPDATA), is(false));
-    }
-  }
-  
-  @Test
   public void putAbortGet() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
 
@@ -275,6 +252,29 @@ public final class DbiTest {
       final ByteBuffer found = db.get(txn, bb(5));
       assertNotNull(found);
       assertThat(txn.val().capacity(), is(0));
+    }
+  }
+
+  @Test
+  public void returnValueForNoDupData() {
+    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
+      // ok
+      assertThat(db.put(txn, bb(5), bb(6), MDB_NODUPDATA), is(true));
+      assertThat(db.put(txn, bb(5), bb(7), MDB_NODUPDATA), is(true));
+      assertThat(db.put(txn, bb(5), bb(6), MDB_NODUPDATA), is(false));
+    }
+  }
+
+  @Test
+  public void returnValueForNoOverwrite() {
+    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
+      // ok
+      assertThat(db.put(txn, bb(5), bb(6), MDB_NOOVERWRITE), is(true));
+      // fails, but gets exist val
+      assertThat(db.put(txn, bb(5), bb(8), MDB_NOOVERWRITE), is(false));
+      assertThat(txn.val().getInt(0), is(6));
     }
   }
 
