@@ -29,6 +29,7 @@ import java.io.OutputStream;
 import static java.lang.Boolean.getBoolean;
 import static java.lang.System.getProperty;
 import static java.lang.Thread.currentThread;
+import java.nio.ByteBuffer;
 import static java.util.Locale.ENGLISH;
 import static java.util.Objects.requireNonNull;
 import static jnr.ffi.LibraryLoader.create;
@@ -199,8 +200,13 @@ final class Library {
 
     int mdb_dbi_flags(@In Pointer txn, @In Pointer dbi, int flags);
 
+    // Open the database using the system default encoding of the name
     int mdb_dbi_open(@In Pointer txn, @In String name, int flags,
                      @In Pointer dbiPtr);
+
+    // Open the database using raw bytes for the name
+    int mdb_dbi_open(@In Pointer txn, @In ByteBuffer name, int flags,
+        @In Pointer dbiPtr);
 
     int mdb_del(@In Pointer txn, @In Pointer dbi, @In Pointer key,
                 @In Pointer data);

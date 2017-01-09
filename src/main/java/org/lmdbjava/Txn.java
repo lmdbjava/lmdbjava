@@ -48,7 +48,7 @@ public final class Txn<T> implements AutoCloseable {
   private final boolean readOnly;
   private State state;
 
-  Txn(final Env<T> env, final Txn<T> parent, final BufferProxy<T> proxy,
+  Txn(final Env<?> env, final Txn<T> parent, final BufferProxy<T> proxy,
       final TxnFlags... flags) {
     this.proxy = proxy;
     this.keyVal = proxy.keyVal();

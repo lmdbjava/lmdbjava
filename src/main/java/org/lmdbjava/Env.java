@@ -23,7 +23,13 @@ package org.lmdbjava;
 import java.io.File;
 import static java.lang.Boolean.getBoolean;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import static java.util.Objects.requireNonNull;
+import java.util.function.Function;
 import jnr.ffi.Pointer;
 import jnr.ffi.byref.PointerByReference;
 import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
@@ -211,17 +217,109 @@ public final class Env<T> implements AutoCloseable {
   }
 
   /**
-   * Open the {@link Dbi}.
+   * Open the {@link Dbi}, using the system default encoding of
+   * the database name.
    *
-   * @param name  name of the database (or null if no name is required)
+   * @param name  name of the database (or null if no name is required).
    * @param flags to open the database with
    * @return a database that is ready to use
    */
   public Dbi<T> openDbi(final String name, final DbiFlags... flags) {
-    try (Txn<T> txn = readOnly ? txnRead() : txnWrite()) {
-      final Dbi<T> dbi = new Dbi<>(this, txn, name, flags);
+    return openDbi(txn -> new Dbi<>(this, txn, name, flags));
+  }
+
+  /**
+   * Open the {@link Dbi}.
+   *
+   * @param name  name of the database (or null if no name is required).
+   * @param charset the charset used to encode the name
+   * @param flags to open the database with
+   * @return a database that is ready to use
+   */
+  public Dbi<T> openDbi(final String name, final Charset charset,
+      final DbiFlags... flags) {
+    return openDbi(txn -> new Dbi<>(this, txn, name, charset, flags));
+  }
+
+  private Dbi<T> openDbi(final Function<Txn<?>, Dbi<T>> dbiFunc) {
+    try (Txn<?> txn = readOnly ? txnRead() : txnWrite()) {
+      final Dbi<T> dbi = dbiFunc.apply(txn);
       txn.commit(); // even RO Txns require a commit to retain Dbi in Env
       return dbi;
+    }
+  }
+
+  /**
+   * Provides the name of all {@link Dbi}s currently stored in this
+   * {@code Env}.
+   *
+   * <p>
+   * Note, this method, creates its own read-only transaction and
+   * can not be nested inside other transactions in some cases.
+   *
+   * @param charset the {@link Charset} to use when decoding the database name
+   * @return A {@code List} containing the name of every {@code Dbi}
+   *   in this {@code Env}.  (never null)
+   */
+  public List<String> allDbiNames(final Charset charset) {
+    if (closed) {
+      throw new AlreadyClosedException();
+    }
+    final List<String> result = new ArrayList<>();
+    try (Txn<byte[]> txn
+        = new Txn<>(this, null, ByteArrayProxy.PROXY_BA, MDB_RDONLY_TXN)) {
+      final Dbi<?> names = new Dbi<>(this, txn, null);
+      try (Cursor<byte[]> cursor = names.openCursor(txn)) {
+        if (cursor.first()) {
+          do {
+            final byte[] key = cursor.key();
+            final String name = new String(key, charset); //NOPMD
+            result.add(name);
+          } while (cursor.next());
+        }
+      }
+    }
+    return result;
+  }
+
+  /**
+   * Opens all named {@link Dbi}s.
+   *
+   * <p>
+   * This is useful in use cases where a handle to every {@code Dbi}
+   * is required and can be used for the lifetime of the application.
+   *
+   * <p>
+   * {@code Dbi} instances can be shared across threads and re-used,
+   * and the most common practice is to open them once at the
+   * start of the application.
+   *
+   * <p>
+   * Additionally, this does not require that one know a priori what
+   * the names are, which is useful in some use cases, such as
+   * introspection of the {@code Env} contents or general purpose tooling.
+   *
+   * <p>
+   * Note, this method, like {@link #allDbiNames(Charset)},
+   * creates its own transaction and can not be nested inside other
+   * transactions in some cases.
+   *
+   * @param charset the {@link Charset} to use when decoding database names
+   * @param flags to open all databases with
+   * @return A map from the name of each {@code Dbi} to its instance,
+   *   detached from any transactions. (never null)
+   */
+  public Map<String, Dbi<T>> openAllDbi(final Charset charset,
+      final DbiFlags... flags) {
+    final List<String> allDbiNames = allDbiNames(charset);
+    final Map<String, Dbi<T>> dbiMap = new HashMap<>();
+    try (Txn<T> txn = txnRead()) {
+      for (final String name : allDbiNames) {
+        final Dbi<T> dbi = new Dbi<>(this, txn, name, charset, flags); //NOPMD
+        dbiMap.put(dbi.getName(), dbi);
+      }
+      txn.commit(); // even RO Txns require a commit to retain Dbi in Env
+      return dbiMap;
     }
   }
 

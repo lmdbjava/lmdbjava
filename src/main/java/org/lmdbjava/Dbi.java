@@ -20,6 +20,8 @@
 
 package org.lmdbjava;
 
+import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import static java.util.Objects.requireNonNull;
 import static jnr.ffi.Memory.allocateDirect;
 import static jnr.ffi.NativeType.ADDRESS;
@@ -51,14 +53,23 @@ public final class Dbi<T> {
   private final String name;
   private final Pointer ptr;
 
-  Dbi(final Env<T> env, final Txn<T> txn, final String name,
+  Dbi(final Env<T> env, final Txn<?> txn, final String name,
       final DbiFlags... flags) {
+    final Pointer dbiPtr = allocateDirect(RUNTIME, ADDRESS);
+    checkRc(LIB.mdb_dbi_open(txn.pointer(), name, mask(flags), dbiPtr));
     this.env = env;
     this.name = name;
-    final int flagsMask = mask(flags);
+    this.ptr = dbiPtr.getPointer(0);
+  }
+
+  Dbi(final Env<T> env, final Txn<?> txn, final String name,
+      final Charset charset, final DbiFlags... flags) {
     final Pointer dbiPtr = allocateDirect(RUNTIME, ADDRESS);
-    checkRc(LIB.mdb_dbi_open(txn.pointer(), name, flagsMask, dbiPtr));
-    ptr = dbiPtr.getPointer(0);
+    final ByteBuffer nameBB = ByteBuffer.wrap(name.getBytes(charset));
+    checkRc(LIB.mdb_dbi_open(txn.pointer(), nameBB, mask(flags), dbiPtr));
+    this.env = env;
+    this.name = name;
+    this.ptr = dbiPtr.getPointer(0);
   }
 
   /**
@@ -250,9 +261,10 @@ public final class Dbi<T> {
    * {@link Cursor#renew(org.lmdbjava.Txn)} before finally closing it.
    *
    * @param txn transaction handle (not null; not committed)
+   * @param <B> The buffer type
    * @return cursor handle
    */
-  public Cursor<T> openCursor(final Txn<T> txn) {
+  public <B> Cursor<B> openCursor(final Txn<B> txn) {
     if (SHOULD_CHECK) {
       requireNonNull(txn);
       txn.checkReady();
