@@ -21,7 +21,6 @@
 package org.lmdbjava;
 
 import static java.util.Objects.requireNonNull;
-import static org.lmdbjava.Env.SHOULD_CHECK;
 
 /**
  * Indicates an enum that can provide integers for each of its values.
