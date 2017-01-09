@@ -314,10 +314,9 @@ public final class Dbi<T> {
         checkRc(rc);
       }
       return false;
-    } else {
-      checkRc(rc);
-      return true;
     }
+    checkRc(rc);
+    return true;
   }
 
   /**

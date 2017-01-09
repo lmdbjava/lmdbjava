@@ -202,7 +202,6 @@ public final class Cursor<T> implements AutoCloseable {
    */
   public boolean put(final T key, final T val, final PutFlags... op) {
     if (SHOULD_CHECK) {
-      requireNonNull(txn);
       requireNonNull(key);
       requireNonNull(val);
       checkNotClosed();
@@ -221,10 +220,9 @@ public final class Cursor<T> implements AutoCloseable {
         checkRc(rc);
       }
       return false;
-    } else {
-      checkRc(rc);
-      return true;
     }
+    checkRc(rc);
+    return true;
   }
 
   /**
