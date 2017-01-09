@@ -65,9 +65,7 @@ public interface MaskedFlag {
    * @return true if set.
    */
   static boolean isSet(final int flags, final MaskedFlag test) {
-    if (SHOULD_CHECK) {
-      requireNonNull(test);
-    }
+    requireNonNull(test);
     return (flags & test.getMask()) == test.getMask();
   }
 }
