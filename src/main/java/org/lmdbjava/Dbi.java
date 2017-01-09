@@ -35,6 +35,7 @@ import org.lmdbjava.Library.MDB_stat;
 import static org.lmdbjava.Library.RUNTIME;
 import static org.lmdbjava.MaskedFlag.isSet;
 import static org.lmdbjava.MaskedFlag.mask;
+import static org.lmdbjava.PutFlags.MDB_NODUPDATA;
 import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
 import static org.lmdbjava.PutFlags.MDB_RESERVE;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
@@ -289,8 +290,10 @@ public final class Dbi<T> {
    * @param key   key to store in the database (not null)
    * @param val   value to store in the database (not null)
    * @param flags Special options for this operation
+   * @return true if the value was put, false if MDB_NOOVERWRITE or
+   *     MDB_NODUPDATA were set and the key/value existed already.
    */
-  public void put(final Txn<T> txn, final T key, final T val,
+  public boolean put(final Txn<T> txn, final T key, final T val,
                   final PutFlags... flags) {
     if (SHOULD_CHECK) {
       requireNonNull(txn);
@@ -304,10 +307,16 @@ public final class Dbi<T> {
     final int mask = mask(flags);
     final int rc = LIB.mdb_put(txn.pointer(), ptr, txn.kv().pointerKey(), txn
                                .kv().pointerVal(), mask);
-    if (rc == MDB_KEYEXIST && isSet(mask, MDB_NOOVERWRITE)) {
-      txn.kv().valOut(); // marked as in,out in LMDB C docs
+    if (rc == MDB_KEYEXIST) {
+      if (isSet(mask, MDB_NOOVERWRITE)) {
+        txn.kv().valOut(); // marked as in,out in LMDB C docs
+      } else if (!isSet(mask, MDB_NODUPDATA)) {
+        checkRc(rc);
+      }
+      return false;
     }
     checkRc(rc);
+    return true;
   }
 
   /**

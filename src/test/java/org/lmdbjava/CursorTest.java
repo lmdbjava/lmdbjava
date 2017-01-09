@@ -42,6 +42,7 @@ import static org.lmdbjava.DbiFlags.MDB_DUPSORT;
 import static org.lmdbjava.Env.create;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.PutFlags.MDB_APPENDDUP;
+import static org.lmdbjava.PutFlags.MDB_NODUPDATA;
 import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
 import static org.lmdbjava.SeekOp.MDB_FIRST;
 import static org.lmdbjava.TestUtils.DB_1;
@@ -195,6 +196,31 @@ public final class CursorTest {
     }
   }
 
+  @Test
+  public void returnValueForNoOverwrite() {
+    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
+      final Cursor<ByteBuffer> c = db.openCursor(txn);
+      // ok
+      assertThat(c.put(bb(5), bb(6), MDB_NOOVERWRITE), is(true)); 
+      // fails, but gets exist val
+      assertThat(c.put(bb(5), bb(8), MDB_NOOVERWRITE), is(false));
+      assertThat(c.val().getInt(0), is(6));
+    }
+  }
+
+  @Test
+  public void returnValueForNoDupData() {
+    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
+      final Cursor<ByteBuffer> c = db.openCursor(txn);
+      // ok
+      assertThat(c.put(bb(5), bb(6), MDB_NODUPDATA), is(true));
+      assertThat(c.put(bb(5), bb(7), MDB_NODUPDATA), is(true));
+      assertThat(c.put(bb(5), bb(6), MDB_NODUPDATA), is(false));
+    }
+  }
+  
   @Test
   public void repeatedCloseCausesNotError() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);

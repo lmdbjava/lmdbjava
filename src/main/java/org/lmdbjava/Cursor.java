@@ -23,10 +23,15 @@ package org.lmdbjava;
 import static java.util.Objects.requireNonNull;
 import jnr.ffi.Pointer;
 import jnr.ffi.byref.NativeLongByReference;
+
+import static org.lmdbjava.Dbi.KeyExistsException.MDB_KEYEXIST;
 import static org.lmdbjava.Dbi.KeyNotFoundException.MDB_NOTFOUND;
 import static org.lmdbjava.Env.SHOULD_CHECK;
 import static org.lmdbjava.Library.LIB;
+import static org.lmdbjava.MaskedFlag.isSet;
 import static org.lmdbjava.MaskedFlag.mask;
+import static org.lmdbjava.PutFlags.MDB_NODUPDATA;
+import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
 import static org.lmdbjava.PutFlags.MDB_RESERVE;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
 import static org.lmdbjava.SeekOp.MDB_FIRST;
@@ -187,14 +192,15 @@ public final class Cursor<T> implements AutoCloseable {
    * Store by cursor.
    *
    * <p>
-   * This function stores key/data pairs into the database. The cursor is
-   * positioned at the new item, or on failure usually near it.
+   * This function stores key/data pairs into the database.
    *
    * @param key key to store
    * @param val data to store
    * @param op  options for this operation
+   * @return true if the value was put, false if MDB_NOOVERWRITE or
+   *     MDB_NODUPDATA were set and the key/value existed already.
    */
-  public void put(final T key, final T val, final PutFlags... op) {
+  public boolean put(final T key, final T val, final PutFlags... op) {
     if (SHOULD_CHECK) {
       requireNonNull(key);
       requireNonNull(val);
@@ -204,11 +210,19 @@ public final class Cursor<T> implements AutoCloseable {
     }
     kv.keyIn(key);
     kv.valIn(val);
-    final int flags = mask(op);
-    checkRc(LIB.mdb_cursor_put(ptrCursor, kv.pointerKey(), kv.pointerVal(),
-                               flags));
-    kv.keyOut();
-    kv.valOut();
+    final int mask = mask(op);
+    final int rc = LIB.mdb_cursor_put(ptrCursor, kv.pointerKey(), kv.pointerVal(),
+                               mask);
+    if (rc == MDB_KEYEXIST) {
+      if (isSet(mask, MDB_NOOVERWRITE)) {
+        kv.valOut(); // marked as in,out in LMDB C docs
+      } else if (!isSet(mask, MDB_NODUPDATA)) {
+        checkRc(rc);
+      }
+      return false;
+    }
+    checkRc(rc);
+    return true;
   }
 
   /**
