@@ -23,6 +23,7 @@ package org.lmdbjava;
 import java.io.File;
 import static java.lang.Boolean.getBoolean;
 import java.nio.ByteBuffer;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 import jnr.ffi.Pointer;
 import jnr.ffi.byref.PointerByReference;
@@ -211,13 +212,25 @@ public final class Env<T> implements AutoCloseable {
   }
 
   /**
-   * Open the {@link Dbi}.
+   * Convenience method that opens a {@link Dbi} with a UTF-8 database name.
    *
    * @param name  name of the database (or null if no name is required)
    * @param flags to open the database with
    * @return a database that is ready to use
    */
   public Dbi<T> openDbi(final String name, final DbiFlags... flags) {
+    final byte[] nameBytes = name == null ? null : name.getBytes(UTF_8);
+    return openDbi(nameBytes, flags);
+  }
+
+  /**
+   * Open the {@link Dbi}.
+   *
+   * @param name  name of the database (or null if no name is required)
+   * @param flags to open the database with
+   * @return a database that is ready to use
+   */
+  public Dbi<T> openDbi(final byte[] name, final DbiFlags... flags) {
     try (Txn<T> txn = readOnly ? txnRead() : txnWrite()) {
       final Dbi<T> dbi = new Dbi<>(this, txn, name, flags);
       txn.commit(); // even RO Txns require a commit to retain Dbi in Env

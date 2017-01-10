@@ -199,7 +199,7 @@ final class Library {
 
     int mdb_dbi_flags(@In Pointer txn, @In Pointer dbi, int flags);
 
-    int mdb_dbi_open(@In Pointer txn, @In String name, int flags,
+    int mdb_dbi_open(@In Pointer txn, @In byte[] name, int flags,
                      @In Pointer dbiPtr);
 
     int mdb_del(@In Pointer txn, @In Pointer dbi, @In Pointer key,

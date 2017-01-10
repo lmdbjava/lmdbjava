@@ -20,6 +20,7 @@
 
 package org.lmdbjava;
 
+import java.util.Arrays;
 import static java.util.Objects.requireNonNull;
 import static jnr.ffi.Memory.allocateDirect;
 import static jnr.ffi.NativeType.ADDRESS;
@@ -48,13 +49,13 @@ import static org.lmdbjava.ResultCodeMapper.checkRc;
 public final class Dbi<T> {
 
   private final Env<T> env;
-  private final String name;
+  private final byte[] name;
   private final Pointer ptr;
 
-  Dbi(final Env<T> env, final Txn<T> txn, final String name,
+  Dbi(final Env<T> env, final Txn<T> txn, final byte[] name,
       final DbiFlags... flags) {
     this.env = env;
-    this.name = name;
+    this.name = name == null ? null : Arrays.copyOf(name, name.length);
     final int flagsMask = mask(flags);
     final Pointer dbiPtr = allocateDirect(RUNTIME, ADDRESS);
     checkRc(LIB.mdb_dbi_open(txn.pointer(), name, flagsMask, dbiPtr));
@@ -191,10 +192,10 @@ public final class Dbi<T> {
   /**
    * Obtains the name of this database.
    *
-   * @return the name (may be null or empty)
+   * @return the name (may be null)
    */
-  public String getName() {
-    return name;
+  public byte[] getName() {
+    return name == null ? null : Arrays.copyOf(name, name.length);
   }
 
   /**

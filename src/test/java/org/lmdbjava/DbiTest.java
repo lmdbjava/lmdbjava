@@ -27,6 +27,7 @@ import static java.lang.Long.MAX_VALUE;
 import static java.lang.System.getProperty;
 import java.nio.ByteBuffer;
 import static java.nio.ByteBuffer.allocateDirect;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.nCopies;
 import java.util.Random;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -117,7 +118,7 @@ public final class DbiTest {
   @Test
   public void getName() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
-    assertThat(db.getName(), is(DB_1));
+    assertThat(db.getName(), is(DB_1.getBytes(UTF_8)));
   }
 
   @Test
