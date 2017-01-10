@@ -26,9 +26,11 @@ import java.io.File;
 import java.io.IOException;
 import static java.lang.Long.BYTES;
 import java.nio.ByteBuffer;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import org.junit.Rule;
 import org.junit.Test;
@@ -106,7 +108,9 @@ public final class CursorParamTest {
     @Override
     public final void execute(final TemporaryFolder tmp) {
       try (Env<T> env = env(tmp)) {
+        assertThat(env.getDbiNames(), nullValue());
         final Dbi<T> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
+        assertThat(env.getDbiNames().get(0), is(DB_1.getBytes(UTF_8)));
         try (Txn<T> txn = env.txnWrite()) {
           // populate data
           final Cursor<T> c = db.openCursor(txn);

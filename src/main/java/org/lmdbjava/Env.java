@@ -24,6 +24,8 @@ import java.io.File;
 import static java.lang.Boolean.getBoolean;
 import java.nio.ByteBuffer;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import java.util.ArrayList;
+import java.util.List;
 import static java.util.Objects.requireNonNull;
 import jnr.ffi.Pointer;
 import jnr.ffi.byref.PointerByReference;
@@ -153,6 +155,28 @@ public final class Env<T> implements AutoCloseable {
     }
     final int flagsMask = mask(flags);
     checkRc(LIB.mdb_env_copy2(ptr, path.getAbsolutePath(), flagsMask));
+  }
+
+  /**
+   * Obtain the DBI names.
+   *
+   * @return a list of DBI names or null if none were found
+   */
+  public List<byte[]> getDbiNames() {
+    final List<byte[]> result = new ArrayList<>();
+    final Dbi<T> names = openDbi((byte[]) null);
+    try (Txn<T> txn = txnRead();
+         Cursor<T> cursor = names.openCursor(txn)) {
+      if (!cursor.first()) {
+        return null;
+      }
+      do {
+        final byte[] name = proxy.getBytes(cursor.key());
+        result.add(name);
+      } while (cursor.next());
+    }
+
+    return result;
   }
 
   /**

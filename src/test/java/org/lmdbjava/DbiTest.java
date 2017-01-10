@@ -29,6 +29,7 @@ import java.nio.ByteBuffer;
 import static java.nio.ByteBuffer.allocateDirect;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.nCopies;
+import java.util.List;
 import java.util.Random;
 import org.agrona.concurrent.UnsafeBuffer;
 import static org.hamcrest.CoreMatchers.is;
@@ -119,6 +120,24 @@ public final class DbiTest {
   public void getName() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
     assertThat(db.getName(), is(DB_1.getBytes(UTF_8)));
+  }
+
+  @Test
+  public void getNamesWhenDbisPresent() {
+    final byte[] dbHello = new byte[]{'h', 'e', 'l', 'l', 'o'};
+    final byte[] dbWorld = new byte[]{'w', 'o', 'r', 'l', 'd'};
+    env.openDbi(dbHello, MDB_CREATE);
+    env.openDbi(dbWorld, MDB_CREATE);
+    final List<byte[]> dbiNames = env.getDbiNames();
+    assertThat(dbiNames.size(), is(2));
+    assertThat(dbiNames.get(0), is(dbHello));
+    assertThat(dbiNames.get(1), is(dbWorld));
+  }
+
+  @Test
+  public void getNamesWhenEmpty() {
+    final List<byte[]> dbiNames = env.getDbiNames();
+    assertThat(dbiNames, nullValue());
   }
 
   @Test
