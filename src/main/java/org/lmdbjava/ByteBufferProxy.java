@@ -147,6 +147,14 @@ public final class ByteBufferProxy {
       final ArrayDeque<ByteBuffer> queue = BUFFERS.get();
       queue.offer(buff);
     }
+
+    @Override
+    protected byte[] getBytes(final ByteBuffer buffer) {
+      final byte[] dest = new byte[buffer.limit()];
+      buffer.get(dest, 0, buffer.limit());
+      return dest;
+    }
+
   }
 
   /**

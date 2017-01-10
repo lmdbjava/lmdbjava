@@ -75,6 +75,13 @@ public final class DirectBufferProxy extends
   }
 
   @Override
+  protected byte[] getBytes(final DirectBuffer buffer) {
+    final byte[] dest = new byte[buffer.capacity()];
+    buffer.getBytes(0, dest, 0, buffer.capacity());
+    return dest;
+  }
+
+  @Override
   protected void in(final DirectBuffer buffer, final Pointer ptr,
                     final long ptrAddr) {
     final long addr = buffer.addressOffset();

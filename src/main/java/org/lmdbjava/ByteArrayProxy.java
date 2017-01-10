@@ -20,6 +20,7 @@
 
 package org.lmdbjava;
 
+import java.util.Arrays;
 import jnr.ffi.Pointer;
 import jnr.ffi.provider.MemoryManager;
 import static org.lmdbjava.Library.RUNTIME;
@@ -46,6 +47,11 @@ public class ByteArrayProxy extends BufferProxy<byte[]> {
   @Override
   protected final void deallocate(final byte[] buff) {
     // byte arrays cannot be allocated
+  }
+
+  @Override
+  protected final byte[] getBytes(final byte[] buffer) {
+    return Arrays.copyOf(buffer, buffer.length);
   }
 
   @Override

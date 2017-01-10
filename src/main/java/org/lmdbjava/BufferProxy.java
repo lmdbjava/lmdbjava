@@ -67,6 +67,14 @@ public abstract class BufferProxy<T> { // NOPMD
   protected abstract void deallocate(T buff);
 
   /**
+   * Obtain a copy of the bytes contained within the passed buffer.
+   *
+   * @param buffer a non-null buffer created by this proxy instance
+   * @return a copy of the bytes this buffer is currently representing
+   */
+  protected abstract byte[] getBytes(T buffer);
+
+  /**
    * Called when the <code>MDB_val</code> should be set to reflect the passed
    * buffer. This buffer will have been created by end users, not
    * {@link #allocate()}.

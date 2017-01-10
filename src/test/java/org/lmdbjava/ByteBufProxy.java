@@ -106,6 +106,13 @@ public final class ByteBufProxy extends BufferProxy<ByteBuf> {
   }
 
   @Override
+  protected byte[] getBytes(final ByteBuf buffer) {
+    final byte[] dest = new byte[buffer.capacity()];
+    buffer.getBytes(0, dest);
+    return dest;
+  }
+
+  @Override
   protected void in(final ByteBuf buffer, final Pointer ptr, final long ptrAddr) {
     UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE,
                    buffer.writerIndex() - buffer.readerIndex());
