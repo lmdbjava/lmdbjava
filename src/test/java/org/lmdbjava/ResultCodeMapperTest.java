@@ -26,6 +26,7 @@ import java.util.Set;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.fail;
 import org.junit.Test;
 import org.lmdbjava.Cursor.FullException;
@@ -140,7 +141,7 @@ public final class ResultCodeMapperTest {
         seen.add(ex);
       }
     }
-    assertThat(seen.size(), is(RESULT_CODES.size()));
+    assertThat(seen, hasSize(RESULT_CODES.size()));
   }
 
   @Test

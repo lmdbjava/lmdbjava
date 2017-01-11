@@ -37,6 +37,7 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.collection.IsEmptyCollection.empty;
 import org.junit.After;
 import static org.junit.Assert.assertNotNull;
@@ -130,7 +131,7 @@ public final class DbiTest {
     env.openDbi(dbHello, MDB_CREATE);
     env.openDbi(dbWorld, MDB_CREATE);
     final List<byte[]> dbiNames = env.getDbiNames();
-    assertThat(dbiNames.size(), is(2));
+    assertThat(dbiNames, hasSize(2));
     assertThat(dbiNames.get(0), is(dbHello));
     assertThat(dbiNames.get(1), is(dbWorld));
   }
