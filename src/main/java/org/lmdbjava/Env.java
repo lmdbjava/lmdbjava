@@ -25,6 +25,7 @@ import static java.lang.Boolean.getBoolean;
 import java.nio.ByteBuffer;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import static java.util.Objects.requireNonNull;
 import jnr.ffi.Pointer;
@@ -160,7 +161,7 @@ public final class Env<T> implements AutoCloseable {
   /**
    * Obtain the DBI names.
    *
-   * @return a list of DBI names or null if none were found
+   * @return a list of DBI names (never null)
    */
   public List<byte[]> getDbiNames() {
     final List<byte[]> result = new ArrayList<>();
@@ -168,7 +169,7 @@ public final class Env<T> implements AutoCloseable {
     try (Txn<T> txn = txnRead();
          Cursor<T> cursor = names.openCursor(txn)) {
       if (!cursor.first()) {
-        return null;
+        return Collections.EMPTY_LIST;
       }
       do {
         final byte[] name = proxy.getBytes(cursor.key());

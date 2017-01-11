@@ -37,6 +37,7 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.collection.IsEmptyCollection.empty;
 import org.junit.After;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -137,7 +138,7 @@ public final class DbiTest {
   @Test
   public void getNamesWhenEmpty() {
     final List<byte[]> dbiNames = env.getDbiNames();
-    assertThat(dbiNames, nullValue());
+    assertThat(dbiNames, empty());
   }
 
   @Test
