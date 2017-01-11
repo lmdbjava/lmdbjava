@@ -161,6 +161,11 @@ public final class Env<T> implements AutoCloseable {
   /**
    * Obtain the DBI names.
    *
+   * <p>
+   * This method is only compatible with {@link Env}s that use named databases.
+   * If an unnamed {@link Dbi} is being used to store data, this method will
+   * attempt to return all such keys from the unnamed database.
+   *
    * @return a list of DBI names (never null)
    */
   public List<byte[]> getDbiNames() {
