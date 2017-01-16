@@ -174,7 +174,7 @@ public final class Env<T> implements AutoCloseable {
     try (Txn<T> txn = txnRead();
          Cursor<T> cursor = names.openCursor(txn)) {
       if (!cursor.first()) {
-        return Collections.EMPTY_LIST;
+        return Collections.emptyList();
       }
       do {
         final byte[] name = proxy.getBytes(cursor.key());
