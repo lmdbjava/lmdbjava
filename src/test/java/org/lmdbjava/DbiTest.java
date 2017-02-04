@@ -166,7 +166,8 @@ public final class DbiTest {
       assertNotNull(found);
       assertThat(txn.val().getInt(), is(5));
     }
-    db.delete(bb(5));
+    assertThat(db.delete(bb(5)), is(true));
+    assertThat(db.delete(bb(5)), is(false));
 
     try (Txn<ByteBuffer> txn = env.txnRead()) {
       assertNull(db.get(txn, bb(5)));
@@ -215,7 +216,7 @@ public final class DbiTest {
 
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
       db.put(txn, bb(5), bb(5));
-      db.delete(txn, bb(5));
+      assertThat(db.delete(txn, bb(5)), is(true));
 
       assertNull(db.get(txn, bb(5)));
       txn.abort();
@@ -230,12 +231,15 @@ public final class DbiTest {
       db.put(txn, bb(5), bb(5));
       db.put(txn, bb(5), bb(6));
       db.put(txn, bb(5), bb(7));
-      db.delete(txn, bb(5), bb(6));
+      assertThat(db.delete(txn, bb(5), bb(6)), is(true));
+      assertThat(db.delete(txn, bb(5), bb(6)), is(false));
+      assertThat(db.delete(txn, bb(5), bb(5)), is(true));
+      assertThat(db.delete(txn, bb(5), bb(5)), is(false));
 
       try (Cursor<ByteBuffer> cursor = db.openCursor(txn)) {
         final ByteBuffer key = bb(5);
         cursor.get(key, MDB_SET_KEY);
-        assertThat(cursor.count(), is(2L));
+        assertThat(cursor.count(), is(1L));
       }
       txn.abort();
     }
