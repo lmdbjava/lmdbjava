@@ -87,7 +87,7 @@ public final class Dbi<T> {
    */
   public boolean delete(final T key) {
     try (Txn<T> txn = env.txnWrite()) {
-      boolean ret = delete(txn, key);
+      final boolean ret = delete(txn, key);
       txn.commit();
       return ret;
     }
@@ -136,9 +136,9 @@ public final class Dbi<T> {
       txn.kv().valIn(val);
       data = txn.kv().pointerVal();
     }
-    int rc = LIB.mdb_del(txn.pointer(), ptr, txn.kv().pointerKey(), data);
+    final int rc = LIB.mdb_del(txn.pointer(), ptr, txn.kv().pointerKey(), data);
     if (rc == MDB_NOTFOUND) {
-        return false;
+      return false;
     }
     checkRc(rc);
     return true;
