@@ -81,12 +81,15 @@ public final class Dbi<T> {
    * Starts a new read-write transaction and deletes the key.
    *
    * @param key key to delete from the database (not null)
+   * @return true if the key/data pair was found, false otherwise
+   * 
    * @see #delete(org.lmdbjava.Txn, java.lang.Object, java.lang.Object)
    */
-  public void delete(final T key) {
+  public boolean delete(final T key) {
     try (Txn<T> txn = env.txnWrite()) {
-      delete(txn, key);
+      final boolean ret = delete(txn, key);
       txn.commit();
+      return ret;
     }
   }
 
@@ -95,10 +98,12 @@ public final class Dbi<T> {
    *
    * @param txn transaction handle (not null; not committed; must be R-W)
    * @param key key to delete from the database (not null)
+   * @return true if the key/data pair was found, false otherwise
+   * 
    * @see #delete(org.lmdbjava.Txn, java.lang.Object, java.lang.Object)
    */
-  public void delete(final Txn<T> txn, final T key) {
-    delete(txn, key, null);
+  public boolean delete(final Txn<T> txn, final T key) {
+    return delete(txn, key, null);
   }
 
   /**
@@ -111,15 +116,12 @@ public final class Dbi<T> {
    * the duplicate data items for the key will be deleted. Otherwise, if the
    * data parameter is non-null only the matching data item will be deleted.
    *
-   * <p>
-   * This function will throw {@link KeyNotFoundException} if the key/data pair
-   * is not found.
-   *
    * @param txn transaction handle (not null; not committed; must be R-W)
    * @param key key to delete from the database (not null)
    * @param val value to delete from the database (null permitted)
+   * @return true if the key/data pair was found, false otherwise
    */
-  public void delete(final Txn<T> txn, final T key, final T val) {
+  public boolean delete(final Txn<T> txn, final T key, final T val) {
     if (SHOULD_CHECK) {
       requireNonNull(txn);
       requireNonNull(key);
@@ -129,14 +131,17 @@ public final class Dbi<T> {
 
     txn.kv().keyIn(key);
 
-    if (val == null) {
-      checkRc(LIB.mdb_del(txn.pointer(), ptr, txn.kv().pointerKey(), null));
-    } else {
+    Pointer data = null;
+    if (val != null) {
       txn.kv().valIn(val);
-      checkRc(LIB
-          .mdb_del(txn.pointer(), ptr, txn.kv().pointerKey(), txn.kv()
-                   .pointerVal()));
+      data = txn.kv().pointerVal();
     }
+    final int rc = LIB.mdb_del(txn.pointer(), ptr, txn.kv().pointerKey(), data);
+    if (rc == MDB_NOTFOUND) {
+      return false;
+    }
+    checkRc(rc);
+    return true;
   }
 
   /**
