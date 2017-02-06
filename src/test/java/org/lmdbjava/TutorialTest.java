@@ -20,7 +20,6 @@
 
 package org.lmdbjava;
 
-import static com.jakewharton.byteunits.BinaryByteUnit.MEBIBYTES;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -88,7 +87,7 @@ public final class TutorialTest {
     // Env can store many different databases (ie sorted maps).
     final Env<ByteBuffer> env = create()
         // LMDB also needs to know how large our DB might be. Over-estimating is OK.
-        .setMapSize(MEBIBYTES.toBytes(10))
+        .setMapSize(10_485_760)
         // LMDB also needs to know how many DBs (Dbi) we want to store in this Env.
         .setMaxDbs(1)
         // Now let's open the Env. The same path can be concurrently opened and
@@ -414,7 +413,7 @@ public final class TutorialTest {
     // Aside from that and a different type argument, it's the same as usual...
     final File path = tmp.newFolder();
     final Env<DirectBuffer> env = create(PROXY_DB)
-        .setMapSize(MEBIBYTES.toBytes(10))
+        .setMapSize(10_485_760)
         .setMaxDbs(1)
         .open(path);
 
