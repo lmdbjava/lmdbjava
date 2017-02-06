@@ -104,19 +104,19 @@
     <dependency>
       <groupId>org.lmdbjava</groupId>
       <artifactId>lmdbjava-native-linux-x86_64</artifactId>
-      <version>0.9.20-2</version>
+      <version>0.9.19-1</version>
       <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.lmdbjava</groupId>
       <artifactId>lmdbjava-native-windows-x86_64</artifactId>
-      <version>0.9.20-2</version>
+      <version>0.9.19-1</version>
       <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.lmdbjava</groupId>
       <artifactId>lmdbjava-native-osx-x86_64</artifactId>
-      <version>0.9.20-2</version>
+      <version>0.9.19-1</version>
       <optional>true</optional>
     </dependency>
   </dependencies>
