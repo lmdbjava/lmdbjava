@@ -43,6 +43,7 @@ import org.lmdbjava.ByteBufferProxy.BufferMustBeDirectException;
 import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
 import static org.lmdbjava.ByteBufferProxy.PROXY_SAFE;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
+import org.lmdbjava.Env.ReadersFullException;
 import static org.lmdbjava.Env.create;
 import static org.lmdbjava.Library.RUNTIME;
 import static org.lmdbjava.TestUtils.DB_1;
@@ -84,7 +85,7 @@ public final class ByteBufferProxyTest {
 
   @Test
   public void fieldSuperclassScan() {
-    final Field f = findField(Exception.class, "detailMessage");
+    final Field f = findField(ReadersFullException.class, "rc");
     assertThat(f, is(notNullValue()));
   }
 
