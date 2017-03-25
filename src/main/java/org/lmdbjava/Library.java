@@ -59,12 +59,13 @@ final class Library {
    * avoiding the library copy etc).
    */
   public static final String DISABLE_EXTRACT_PROP = "lmdbjava.disable.extract";
-
+  public static final String OSGI_NATIVE_LMDB_PROP = "osgi.native.lmdb";
   /**
    * Indicates whether automatic extraction of the LMDB system library is
    * permitted.
    */
   public static final boolean SHOULD_EXTRACT = !getBoolean(DISABLE_EXTRACT_PROP);
+  public static final boolean OSGI_ENVIRONMENT = !getBoolean(DISABLE_EXTRACT_PROP);
 
   static final Lmdb LIB;
   static final jnr.ffi.Runtime RUNTIME;
@@ -88,6 +89,8 @@ final class Library {
       libToLoad = extract("org/lmdbjava/lmdbjava-native-osx-x86_64.dylib");
     } else if (SHOULD_EXTRACT && arch64 && windows) {
       libToLoad = extract("org/lmdbjava/lmdbjava-native-windows-x86_64.dll");
+    } else if (OSGI_ENVIRONMENT) {
+      libToLoad = getProperty(OSGI_NATIVE_LMDB_PROP);
     } else {
       libToLoad = LIB_NAME;
     }
