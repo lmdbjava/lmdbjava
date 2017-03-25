@@ -65,7 +65,7 @@ final class Library {
    * permitted.
    */
   public static final boolean SHOULD_EXTRACT = !getBoolean(DISABLE_EXTRACT_PROP);
-  public static final boolean OSGI_ENVIRONMENT = !getBoolean(DISABLE_EXTRACT_PROP);
+  public static final boolean OSGI_ENVIRONMENT = !getBoolean(OSGI_NATIVE_LMDB_PROP);
 
   static final Lmdb LIB;
   static final jnr.ffi.Runtime RUNTIME;
