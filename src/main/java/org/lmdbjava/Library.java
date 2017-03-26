@@ -66,12 +66,14 @@ final class Library {
    * LMDB system library.
    */
   public static final String LMDB_NATIVE_LIB_PROP = "lmdbjava.native.lib";
-
   /**
    * Indicates whether automatic extraction of the LMDB system library is
    * permitted.
    */
   static final boolean SHOULD_EXTRACT = !getBoolean(DISABLE_EXTRACT_PROP);
+  /**
+   * Indicates whether external LMDB system library is provided.
+   */
   static final boolean SHOULD_USE_LIB = !getBoolean(LMDB_NATIVE_LIB_PROP);
 
   static final Lmdb LIB;
