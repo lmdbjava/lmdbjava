@@ -30,6 +30,7 @@ import static java.lang.Boolean.getBoolean;
 import static java.lang.System.getProperty;
 import static java.lang.Thread.currentThread;
 import static java.util.Locale.ENGLISH;
+import static java.util.Objects.nonNull;
 import static java.util.Objects.requireNonNull;
 import static jnr.ffi.LibraryLoader.create;
 import jnr.ffi.Pointer;
@@ -59,12 +60,21 @@ final class Library {
    * avoiding the library copy etc).
    */
   public static final String DISABLE_EXTRACT_PROP = "lmdbjava.disable.extract";
-
+  /**
+   * Java system property name that can be set to provide a custom path to a
+   * external LMDB system library. If set, the system property
+   * DISABLE_EXTRACT_PROP will be overridden.
+   */
+  public static final String LMDB_NATIVE_LIB_PROP = "lmdbjava.native.lib";
   /**
    * Indicates whether automatic extraction of the LMDB system library is
    * permitted.
    */
   public static final boolean SHOULD_EXTRACT = !getBoolean(DISABLE_EXTRACT_PROP);
+  /**
+   * Indicates whether external LMDB system library is provided.
+   */
+  static final boolean SHOULD_USE_LIB = nonNull(getProperty(LMDB_NATIVE_LIB_PROP));
 
   static final Lmdb LIB;
   static final jnr.ffi.Runtime RUNTIME;
@@ -75,14 +85,16 @@ final class Library {
 
     final String arch = getProperty("os.arch");
     final boolean arch64 = "x64".equals(arch) || "amd64".equals(arch)
-                               || "x86_64".equals(arch);
+            || "x86_64".equals(arch);
 
     final String os = getProperty("os.name");
     final boolean linux = os.toLowerCase(ENGLISH).startsWith("linux");
     final boolean osx = os.startsWith("Mac OS X");
     final boolean windows = os.startsWith("Windows");
 
-    if (SHOULD_EXTRACT && arch64 && linux) {
+    if (SHOULD_USE_LIB) {
+      libToLoad = getProperty(LMDB_NATIVE_LIB_PROP);
+    } else if (SHOULD_EXTRACT && arch64 && linux) {
       libToLoad = extract("org/lmdbjava/lmdbjava-native-linux-x86_64.so");
     } else if (SHOULD_EXTRACT && arch64 && osx) {
       libToLoad = extract("org/lmdbjava/lmdbjava-native-osx-x86_64.dylib");
