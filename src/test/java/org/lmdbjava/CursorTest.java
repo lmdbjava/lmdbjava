@@ -121,6 +121,35 @@ public final class CursorTest {
   }
 
   @Test
+  public void testCursorByteBufferDuplicate() {
+    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
+      try (Cursor<ByteBuffer> c = db.openCursor(txn)) {
+        c.put(bb(1), bb(2));
+        c.put(bb(3), bb(4));
+      }
+      txn.commit();
+    }
+    try (Txn<ByteBuffer> txn = env.txnRead()) {
+      try (Cursor<ByteBuffer> c = db.openCursor(txn)) {
+        c.first();
+        final ByteBuffer key1 = c.key().duplicate();
+        final ByteBuffer val1 = c.val().duplicate();
+
+        c.last();
+        final ByteBuffer key2 = c.key().duplicate();
+        final ByteBuffer val2 = c.val().duplicate();
+
+        assertThat(key1.getInt(0), is(1));
+        assertThat(val1.getInt(0), is(2));
+
+        assertThat(key2.getInt(0), is(3));
+        assertThat(val2.getInt(0), is(4));
+      }
+    }
+  }
+
+  @Test
   public void cursorFirstLastNextPrev() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
