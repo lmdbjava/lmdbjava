@@ -181,12 +181,11 @@ public final class CursorParamTest {
     private Env<T> env(final TemporaryFolder tmp) {
       try {
         final File path = tmp.newFile();
-        final Env<T> env = create(proxy)
+        return create(proxy)
             .setMapSize(KIBIBYTES.toBytes(1_024))
             .setMaxReaders(1)
             .setMaxDbs(1)
             .open(path, POSIX_MODE, MDB_NOSUBDIR);
-        return env;
       } catch (final IOException e) {
         throw new LmdbException("IO failure", e);
       }
