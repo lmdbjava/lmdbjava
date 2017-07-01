@@ -217,8 +217,8 @@ public final class Dbi<T> {
    * Iterate the database from the first/last item and forwards/backwards.
    *
    * @param txn  transaction handle (not null; not committed)
-   * @param type direction of iterator
-   * @return iterator
+   * @param type direction of iterator (not null)
+   * @return iterator (never null)
    */
   public CursorIterator<T> iterate(final Txn<T> txn, final IteratorType type) {
     return iterate(txn, null, type);
@@ -229,9 +229,9 @@ public final class Dbi<T> {
    * first seeking to the provided key.
    *
    * @param txn  transaction handle (not null; not committed)
-   * @param key  the key to search from.
-   * @param type direction of iterator
-   * @return iterator
+   * @param key  the key to search from (may be null to denote first record)
+   * @param type direction of iterator (not null)
+   * @return iterator (never null)
    */
   public CursorIterator<T> iterate(final Txn<T> txn, final T key,
                                    final IteratorType type) {
