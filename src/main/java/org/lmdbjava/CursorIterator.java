@@ -39,7 +39,7 @@ public final class CursorIterator<T> implements
     AutoCloseable {
 
   private final Cursor<T> cursor;
-  private KeyVal<T> entry;
+  private final KeyVal<T> entry;
   private boolean first = true;
   private final T key;
   private State state = NOT_READY;
@@ -49,6 +49,7 @@ public final class CursorIterator<T> implements
     this.cursor = cursor;
     this.type = type;
     this.key = key;
+    this.entry = new KeyVal<>();
   }
 
   @Override
@@ -84,9 +85,7 @@ public final class CursorIterator<T> implements
       throw new NoSuchElementException();
     }
     state = NOT_READY;
-    final KeyVal<T> result = entry;
-    entry = null;
-    return result;
+    return entry;
   }
 
   @Override
@@ -96,9 +95,11 @@ public final class CursorIterator<T> implements
 
   private void setEntry(final boolean success) {
     if (success) {
-      this.entry = new KeyVal<>(cursor.key(), cursor.val());
+      this.entry.setKey(cursor.key());
+      this.entry.setVal(cursor.val());
     } else {
-      this.entry = null;
+      this.entry.setKey(null);
+      this.entry.setVal(null);
     }
   }
 
@@ -113,7 +114,7 @@ public final class CursorIterator<T> implements
         setEntry(cursor.last());
       }
       first = false;
-      if (entry == null) {
+      if (entry.isEmpty()) {
         state = DONE;
         return false;
       }
@@ -123,7 +124,7 @@ public final class CursorIterator<T> implements
       } else {
         setEntry(cursor.prev());
       }
-      if (entry == null) {
+      if (entry.isEmpty()) {
         state = DONE;
         return false;
       }
@@ -135,23 +136,17 @@ public final class CursorIterator<T> implements
   /**
    * Holder for a key and value pair.
    *
+   * <p>
+   * The same holder instance will always be returned for a given iterator.
+   * The returned keys and values may change or point to different memory
+   * locations following changes in the iterator, cursor or transaction.
+   *
    * @param <T> buffer type
    */
   public static final class KeyVal<T> {
 
-    private final T k;
-    private final T v;
-
-    /**
-     * Obtain a key-value holder.
-     *
-     * @param key the key
-     * @param val the value
-     */
-    public KeyVal(final T key, final T val) {
-      this.k = key;
-      this.v = val;
-    }
+    private T k;
+    private T v;
 
     /**
      * The key.
@@ -169,6 +164,18 @@ public final class CursorIterator<T> implements
      */
     public T val() {
       return v;
+    }
+
+    void setKey(final T k) {
+      this.k = k;
+    }
+
+    void setVal(final T v) {
+      this.v = v;
+    }
+
+    boolean isEmpty() {
+      return this.k == null && this.v == null;
     }
 
   }
