@@ -26,8 +26,10 @@ import static jnr.ffi.Memory.allocateDirect;
 import static jnr.ffi.NativeType.ADDRESS;
 import jnr.ffi.Pointer;
 import jnr.ffi.byref.PointerByReference;
+import org.lmdbjava.CursorIterator.CursorKeyValPopulator;
 import org.lmdbjava.CursorIterator.IteratorType;
 import static org.lmdbjava.CursorIterator.IteratorType.FORWARD;
+import org.lmdbjava.CursorIterator.KeyValPopulator;
 import static org.lmdbjava.Dbi.KeyExistsException.MDB_KEYEXIST;
 import static org.lmdbjava.Dbi.KeyNotFoundException.MDB_NOTFOUND;
 import static org.lmdbjava.Env.SHOULD_CHECK;
@@ -82,7 +84,7 @@ public final class Dbi<T> {
    *
    * @param key key to delete from the database (not null)
    * @return true if the key/data pair was found, false otherwise
-   * 
+   *
    * @see #delete(org.lmdbjava.Txn, java.lang.Object, java.lang.Object)
    */
   public boolean delete(final T key) {
@@ -99,7 +101,7 @@ public final class Dbi<T> {
    * @param txn transaction handle (not null; not committed; must be R-W)
    * @param key key to delete from the database (not null)
    * @return true if the key/data pair was found, false otherwise
-   * 
+   *
    * @see #delete(org.lmdbjava.Txn, java.lang.Object, java.lang.Object)
    */
   public boolean delete(final Txn<T> txn, final T key) {
@@ -235,11 +237,30 @@ public final class Dbi<T> {
    */
   public CursorIterator<T> iterate(final Txn<T> txn, final T key,
                                    final IteratorType type) {
+    return iterate(txn, key, type, new CursorKeyValPopulator<>());
+  }
+
+  /**
+   * Iterate the database from the first/last item and forwards/backwards by
+   * first seeking to the provided key.
+   *
+   * @param txn       transaction handle (not null; not committed)
+   * @param key       the key to search from (may be null to denote first
+   *                  record)
+   * @param type      direction of iterator (not null)
+   * @param populator key-value populator (not null)
+   * @return iterator (never null)
+   */
+  public CursorIterator<T> iterate(final Txn<T> txn, final T key,
+                                   final IteratorType type,
+                                   final KeyValPopulator<T> populator) {
     if (SHOULD_CHECK) {
       requireNonNull(txn);
+      requireNonNull(type);
+      requireNonNull(populator);
       txn.checkReady();
     }
-    return new CursorIterator<>(openCursor(txn), key, type);
+    return new CursorIterator<>(openCursor(txn), key, type, populator);
   }
 
   /**
