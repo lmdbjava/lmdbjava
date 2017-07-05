@@ -310,7 +310,9 @@ public final class TutorialTest {
       final ByteBuffer key = allocateDirect(env.getMaxKeySize());
       final ByteBuffer val = allocateDirect(700);
 
-      // Insert some data
+      // Insert some data. Note the ByteBuffer byte order is platform specific.
+      // LMDB does not store or set byte order, but it's critical to sort keys.
+      // If your numeric keys don't sort as expected, review buffer byte order.
       val.putInt(100);
       key.putInt(1);
       db.put(txn, key, val);
