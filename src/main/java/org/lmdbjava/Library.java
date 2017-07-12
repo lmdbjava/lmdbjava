@@ -71,13 +71,13 @@ final class Library {
    * permitted.
    */
   public static final boolean SHOULD_EXTRACT = !getBoolean(DISABLE_EXTRACT_PROP);
+  static final Lmdb LIB;
+  static final jnr.ffi.Runtime RUNTIME;
   /**
    * Indicates whether external LMDB system library is provided.
    */
-  static final boolean SHOULD_USE_LIB = nonNull(getProperty(LMDB_NATIVE_LIB_PROP));
-
-  static final Lmdb LIB;
-  static final jnr.ffi.Runtime RUNTIME;
+  static final boolean SHOULD_USE_LIB = nonNull(
+      getProperty(LMDB_NATIVE_LIB_PROP));
   private static final String LIB_NAME = "lmdb";
 
   static {
@@ -85,7 +85,7 @@ final class Library {
 
     final String arch = getProperty("os.arch");
     final boolean arch64 = "x64".equals(arch) || "amd64".equals(arch)
-            || "x86_64".equals(arch);
+                               || "x86_64".equals(arch);
 
     final String os = getProperty("os.name");
     final boolean linux = os.toLowerCase(ENGLISH).startsWith("linux");
