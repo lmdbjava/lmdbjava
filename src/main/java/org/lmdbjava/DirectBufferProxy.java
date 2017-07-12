@@ -23,6 +23,8 @@ package org.lmdbjava;
 import static java.lang.ThreadLocal.withInitial;
 import java.nio.ByteBuffer;
 import static java.nio.ByteBuffer.allocateDirect;
+import static java.nio.ByteOrder.BIG_ENDIAN;
+import static java.util.Objects.requireNonNull;
 import jnr.ffi.Pointer;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
@@ -36,8 +38,7 @@ import static org.lmdbjava.UnsafeAccess.UNSAFE;
  * <p>
  * This class requires {@link UnsafeAccess} and Agrona must be in the classpath.
  */
-public final class DirectBufferProxy extends
-    BufferProxy<DirectBuffer> {
+public final class DirectBufferProxy extends BufferProxy<DirectBuffer> {
 
   /**
    * The {@link MutableDirectBuffer} proxy. Guaranteed to never be null,
@@ -55,6 +56,44 @@ public final class DirectBufferProxy extends
   private static final ThreadLocal<OneToOneConcurrentArrayQueue<DirectBuffer>> BUFFERS
       = withInitial(() -> new OneToOneConcurrentArrayQueue<>(16));
 
+  /**
+   * Lexicographically compare two buffers.
+   *
+   * @param o1 left operand (required)
+   * @param o2 right operand (required)
+   * @return as specified by {@link Comparable} interface
+   */
+  @SuppressWarnings("checkstyle:ReturnCount")
+  public static int compareBuff(final DirectBuffer o1, final DirectBuffer o2) {
+    requireNonNull(o1);
+    requireNonNull(o2);
+    if (o1.equals(o2)) {
+      return 0;
+    }
+    final int minLength = Math.min(o1.capacity(), o2.capacity());
+    final int minWords = minLength / Long.BYTES;
+
+    for (int i = 0; i < minWords * Long.BYTES; i += Long.BYTES) {
+      final long lw = o1.getLong(i, BIG_ENDIAN);
+      final long rw = o2.getLong(i, BIG_ENDIAN);
+      final int diff = Long.compareUnsigned(lw, rw);
+      if (diff != 0) {
+        return diff;
+      }
+    }
+
+    for (int i = minWords * Long.BYTES; i < minLength; i++) {
+      final int lw = Byte.toUnsignedInt(o1.getByte(i));
+      final int rw = Byte.toUnsignedInt(o2.getByte(i));
+      final int result = Integer.compareUnsigned(lw, rw);
+      if (result != 0) {
+        return result;
+      }
+    }
+
+    return o1.capacity() - o2.capacity();
+  }
+
   @Override
   protected DirectBuffer allocate() {
     final OneToOneConcurrentArrayQueue<DirectBuffer> q = BUFFERS.get();
@@ -66,6 +105,11 @@ public final class DirectBufferProxy extends
       final ByteBuffer bb = allocateDirect(0);
       return new UnsafeBuffer(bb);
     }
+  }
+
+  @Override
+  protected int compare(final DirectBuffer o1, final DirectBuffer o2) {
+    return compareBuff(o1, o2);
   }
 
   @Override

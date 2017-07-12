@@ -98,6 +98,11 @@ public final class ByteBufProxy extends BufferProxy<ByteBuf> {
   }
 
   @Override
+  protected int compare(final ByteBuf o1, final ByteBuf o2) {
+    return o1.compareTo(o2);
+  }
+
+  @Override
   protected void deallocate(final ByteBuf buff) {
     final ArrayDeque<ByteBuf> queue = BUFFERS.get();
     if (!queue.offer(buff)) {

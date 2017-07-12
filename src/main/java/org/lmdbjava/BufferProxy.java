@@ -60,6 +60,19 @@ public abstract class BufferProxy<T> { // NOPMD
   protected abstract T allocate();
 
   /**
+   * Compare the two buffers.
+   *
+   * <p>
+   * Implemented as a protected method to discourage use of the buffer proxy
+   * in collections etc (given by design it wraps a temporary value only).
+   *
+   * @param o1 left operand
+   * @param o2 right operand
+   * @return as per {@link Comparable}
+   */
+  protected abstract int compare(T o1, T o2);
+
+  /**
    * Deallocate a buffer that was previously provided by {@link #allocate()}.
    *
    * @param buff the buffer to deallocate (required)

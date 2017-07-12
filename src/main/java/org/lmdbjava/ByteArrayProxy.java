@@ -21,6 +21,7 @@
 package org.lmdbjava;
 
 import java.util.Arrays;
+import static java.util.Objects.requireNonNull;
 import jnr.ffi.Pointer;
 import jnr.ffi.provider.MemoryManager;
 import static org.lmdbjava.Library.RUNTIME;
@@ -39,9 +40,42 @@ public class ByteArrayProxy extends BufferProxy<byte[]> {
 
   private static final MemoryManager MEM_MGR = RUNTIME.getMemoryManager();
 
+  /**
+   * Lexicographically compare two byte arrays.
+   *
+   * @param o1 left operand (required)
+   * @param o2 right operand (required)
+   * @return as specified by {@link Comparable} interface
+   */
+  @SuppressWarnings("checkstyle:ReturnCount")
+  public static int compareArrays(final byte[] o1, final byte[] o2) {
+    requireNonNull(o1);
+    requireNonNull(o2);
+    if (o1 == o2) {
+      return 0;
+    }
+    final int minLength = Math.min(o1.length, o2.length);
+
+    for (int i = 0; i < minLength; i++) {
+      final int lw = Byte.toUnsignedInt(o1[i]);
+      final int rw = Byte.toUnsignedInt(o2[i]);
+      final int result = Integer.compareUnsigned(lw, rw);
+      if (result != 0) {
+        return result;
+      }
+    }
+
+    return o1.length - o2.length;
+  }
+
   @Override
   protected final byte[] allocate() {
     return new byte[0];
+  }
+
+  @Override
+  protected final int compare(final byte[] o1, final byte[] o2) {
+    return compareArrays(o1, o2);
   }
 
   @Override
