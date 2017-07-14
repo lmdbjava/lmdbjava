@@ -23,9 +23,11 @@ package org.lmdbjava;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import static java.util.Arrays.asList;
 import java.util.Deque;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.NoSuchElementException;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -40,6 +42,14 @@ import org.lmdbjava.CursorIterator.KeyVal;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import static org.lmdbjava.Env.open;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
+import static org.lmdbjava.KeyRange.atLeast;
+import static org.lmdbjava.KeyRange.atLeastBackward;
+import static org.lmdbjava.KeyRange.atMost;
+import static org.lmdbjava.KeyRange.atMostBackward;
+import static org.lmdbjava.KeyRange.backward;
+import static org.lmdbjava.KeyRange.forward;
+import static org.lmdbjava.KeyRange.range;
+import static org.lmdbjava.KeyRange.rangeBackward;
 import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
 import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.bb;
@@ -61,7 +71,7 @@ public final class CursorIteratorTest {
   }
 
   @Test
-  public void backward() {
+  public void backwardDeprecated() {
     try (Txn<ByteBuffer> txn = env.txnRead();
          CursorIterator<ByteBuffer> c = db.iterate(txn, BACKWARD)) {
       for (final KeyVal<ByteBuffer> kv : c.iterable()) {
@@ -73,8 +83,14 @@ public final class CursorIteratorTest {
   }
 
   @Test
-  public void backwardSeek() {
-    final ByteBuffer key = bb(5);
+  public void backwardRange() {
+    verify(rangeBackward(bb(7), bb(3)), 6, 4);
+    verify(rangeBackward(bb(6), bb(2)), 6, 4, 2);
+  }
+
+  @Test
+  public void backwardSeekDeprecated() {
+    final ByteBuffer key = bb(6);
     list.pollLast();
     list.pollLast();
     try (Txn<ByteBuffer> txn = env.txnRead();
@@ -86,25 +102,42 @@ public final class CursorIteratorTest {
     }
   }
 
+  @Test
+  public void backwardStart() {
+    verify(atLeastBackward(bb(5)), 4, 2);
+    verify(atLeastBackward(bb(6)), 6, 4, 2);
+  }
+
+  @Test
+  public void backwardStop() {
+    verify(atMostBackward(bb(5)), 8, 6);
+    verify(atMostBackward(bb(6)), 8, 6);
+  }
+
+  @Test
+  public void backwardTest() {
+    verify(backward(), 8, 6, 4, 2);
+  }
+
   @Before
   public void before() throws IOException {
     final File path = tmp.newFile();
     env = open(path, 10, MDB_NOSUBDIR);
     db = env.openDbi(DB_1, MDB_CREATE);
     list = new LinkedList<>();
-    list.addAll(asList(1, 2, 3, 4, 5, 6, 7, 8));
+    list.addAll(asList(2, 3, 4, 5, 6, 7, 8, 9));
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
       final Cursor<ByteBuffer> c = db.openCursor(txn);
-      c.put(bb(1), bb(2), MDB_NOOVERWRITE);
-      c.put(bb(3), bb(4));
-      c.put(bb(5), bb(6));
-      c.put(bb(7), bb(8));
+      c.put(bb(2), bb(3), MDB_NOOVERWRITE);
+      c.put(bb(4), bb(5));
+      c.put(bb(6), bb(7));
+      c.put(bb(8), bb(9));
       txn.commit();
     }
   }
 
   @Test
-  public void forward() {
+  public void forwardDeprecated() {
     try (Txn<ByteBuffer> txn = env.txnRead();
          CursorIterator<ByteBuffer> c = db.iterate(txn, FORWARD)) {
       for (final KeyVal<ByteBuffer> kv : c.iterable()) {
@@ -116,8 +149,14 @@ public final class CursorIteratorTest {
   }
 
   @Test
-  public void forwardSeek() {
-    final ByteBuffer key = bb(3);
+  public void forwardRange() {
+    verify(range(bb(3), bb(7)), 4, 6);
+    verify(range(bb(2), bb(6)), 2, 4, 6);
+  }
+
+  @Test
+  public void forwardSeekDeprecated() {
+    final ByteBuffer key = bb(4);
     list.pollFirst();
     list.pollFirst();
 
@@ -128,6 +167,23 @@ public final class CursorIteratorTest {
         assertThat(kv.val().getInt(), is(list.pollFirst()));
       }
     }
+  }
+
+  @Test
+  public void forwardStart() {
+    verify(atLeast(bb(5)), 6, 8);
+    verify(atLeast(bb(6)), 6, 8);
+  }
+
+  @Test
+  public void forwardStop() {
+    verify(atMost(bb(5)), 2, 4);
+    verify(atMost(bb(6)), 2, 4, 6);
+  }
+
+  @Test
+  public void forwardTest() {
+    verify(forward(), 2, 4, 6, 8);
   }
 
   @Test
@@ -159,6 +215,25 @@ public final class CursorIteratorTest {
     try (Txn<ByteBuffer> txn = env.txnRead();
          CursorIterator<ByteBuffer> c = db.iterate(txn)) {
       c.remove();
+    }
+  }
+
+  private void verify(final KeyRange<ByteBuffer> range, final int... expected) {
+    final List<Integer> results = new ArrayList<>();
+
+    try (Txn<ByteBuffer> txn = env.txnRead();
+         CursorIterator<ByteBuffer> c = db.iterate(txn, range)) {
+      for (final KeyVal<ByteBuffer> kv : c.iterable()) {
+        final int key = kv.key().getInt();
+        final int val = kv.val().getInt();
+        results.add(key);
+        assertThat(val, is(key + 1));
+      }
+    }
+
+    assertThat(results.size(), is(expected.length));
+    for (int idx = 0; idx < results.size(); idx++) {
+      assertThat(results.get(idx), is(expected[idx]));
     }
   }
 
