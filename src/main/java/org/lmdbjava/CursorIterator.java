@@ -20,35 +20,41 @@
 
 package org.lmdbjava;
 
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
-import static org.lmdbjava.CursorIterator.IteratorType.FORWARD;
-import static org.lmdbjava.CursorIterator.State.DONE;
-import static org.lmdbjava.CursorIterator.State.NOT_READY;
-import static org.lmdbjava.CursorIterator.State.READY;
+import static org.lmdbjava.CursorIterator.State.RELEASED;
+import static org.lmdbjava.CursorIterator.State.REQUIRES_INITIAL_OP;
+import static org.lmdbjava.CursorIterator.State.REQUIRES_ITERATOR_OP;
+import static org.lmdbjava.CursorIterator.State.REQUIRES_NEXT_OP;
+import static org.lmdbjava.CursorIterator.State.TERMINATED;
 import static org.lmdbjava.GetOp.MDB_SET_RANGE;
+import org.lmdbjava.KeyRange.CursorOp;
+import org.lmdbjava.KeyRange.IteratorOp;
 
 /**
- * Iterator for entries that follow the same semantics as Cursors with regards
- * to read and write transactions and how they are closed.
+ * {@link Iterator} that iterates over a {@link Cursor} as specified by a
+ * {@link KeyRange}.
+ *
+ * <p>
+ * An instance will create and close its own cursor.
  *
  * @param <T> buffer type
  */
 public final class CursorIterator<T> implements
-    Iterator<CursorIterator.KeyVal<T>>,
-    AutoCloseable {
+    Iterator<CursorIterator.KeyVal<T>>, AutoCloseable {
 
+  private final Comparator<T> comparator;
   private final Cursor<T> cursor;
   private final KeyVal<T> entry;
-  private boolean first = true;
-  private final T key;
-  private State state = NOT_READY;
-  private final IteratorType type;
+  private final KeyRange<T> range;
+  private State state = REQUIRES_INITIAL_OP;
 
-  CursorIterator(final Cursor<T> cursor, final T key, final IteratorType type) {
-    this.cursor = cursor;
-    this.type = type;
-    this.key = key;
+  CursorIterator(final Txn<T> txn, final Dbi<T> dbi, final KeyRange<T> range,
+                 final Comparator<T> comparator) {
+    this.cursor = dbi.openCursor(txn);
+    this.range = range;
+    this.comparator = comparator;
     this.entry = new KeyVal<>();
   }
 
@@ -60,14 +66,10 @@ public final class CursorIterator<T> implements
   @Override
   @SuppressWarnings("checkstyle:returncount")
   public boolean hasNext() {
-    switch (state) {
-      case DONE:
-        return false;
-      case READY:
-        return true;
-      default:
+    while (state != RELEASED && state != TERMINATED) {
+      update();
     }
-    return tryToComputeNext();
+    return state == RELEASED;
   }
 
   /**
@@ -84,7 +86,7 @@ public final class CursorIterator<T> implements
     if (!hasNext()) {
       throw new NoSuchElementException();
     }
-    state = NOT_READY;
+    state = REQUIRES_NEXT_OP;
     return entry;
   }
 
@@ -93,44 +95,67 @@ public final class CursorIterator<T> implements
     throw new UnsupportedOperationException();
   }
 
-  private void setEntry(final boolean success) {
-    if (success) {
-      this.entry.setKey(cursor.key());
-      this.entry.setVal(cursor.val());
-    } else {
-      this.entry.setKey(null);
-      this.entry.setVal(null);
+  private void executeCursorOp(final CursorOp op) {
+    final boolean found;
+    switch (op) {
+      case FIRST:
+        found = cursor.first();
+        break;
+      case LAST:
+        found = cursor.last();
+        break;
+      case NEXT:
+        found = cursor.next();
+        break;
+      case PREV:
+        found = cursor.prev();
+        break;
+      case GET_START_KEY:
+        found = cursor.get(range.getStart(), MDB_SET_RANGE);
+        break;
+      default:
+        throw new IllegalStateException("Unknown cursor operation");
+    }
+    entry.setK(found ? cursor.key() : null);
+    entry.setV(found ? cursor.val() : null);
+  }
+
+  private void executeIteratorOp() {
+    final IteratorOp op = range.iteratorOp(comparator, entry.key());
+    switch (op) {
+      case CALL_NEXT_OP:
+        executeCursorOp(range.nextOp());
+        state = REQUIRES_ITERATOR_OP;
+        break;
+      case TERMINATE:
+        state = TERMINATED;
+        break;
+      case RELEASE:
+        state = RELEASED;
+        break;
+      default:
+        throw new IllegalStateException("Unknown operation");
     }
   }
 
-  @SuppressWarnings("checkstyle:returncount")
-  private boolean tryToComputeNext() {
-    if (first) {
-      if (key != null) { // NOPMD
-        setEntry(cursor.get(key, MDB_SET_RANGE));
-      } else if (type == FORWARD) {
-        setEntry(cursor.first());
-      } else {
-        setEntry(cursor.last());
-      }
-      first = false;
-      if (entry.isEmpty()) {
-        state = DONE;
-        return false;
-      }
-    } else {
-      if (type == FORWARD) {
-        setEntry(cursor.next());
-      } else {
-        setEntry(cursor.prev());
-      }
-      if (entry.isEmpty()) {
-        state = DONE;
-        return false;
-      }
+  private void update() {
+    switch (state) {
+      case REQUIRES_INITIAL_OP:
+        executeCursorOp(range.initialOp());
+        state = REQUIRES_ITERATOR_OP;
+        break;
+      case REQUIRES_NEXT_OP:
+        executeCursorOp(range.nextOp());
+        state = REQUIRES_ITERATOR_OP;
+        break;
+      case REQUIRES_ITERATOR_OP:
+        executeIteratorOp();
+        break;
+      case TERMINATED:
+        break;
+      default:
+        throw new IllegalStateException("Unknown state");
     }
-    state = READY;
-    return true;
   }
 
   /**
@@ -174,13 +199,14 @@ public final class CursorIterator<T> implements
       this.v = val;
     }
 
-    boolean isEmpty() {
-      return this.k == null && this.v == null;
   }
 
   /**
    * Direction in terms of key ordering for CursorIterator.
+   *
+   * @deprecated use {@link KeyRange} instead
    */
+  @Deprecated
   public enum IteratorType {
     /**
      * Move forward.
@@ -196,7 +222,8 @@ public final class CursorIterator<T> implements
    * Represents the internal {@link CursorIterator} state.
    */
   enum State {
-    READY, NOT_READY, DONE, FAILED,
+    REQUIRES_INITIAL_OP, REQUIRES_NEXT_OP, REQUIRES_ITERATOR_OP, RELEASED,
+    TERMINATED
   }
 
 }

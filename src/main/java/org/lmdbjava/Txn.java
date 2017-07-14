@@ -20,6 +20,7 @@
 
 package org.lmdbjava;
 
+import java.util.Comparator;
 import static jnr.ffi.Memory.allocateDirect;
 import static jnr.ffi.NativeType.ADDRESS;
 import jnr.ffi.Pointer;
@@ -199,6 +200,10 @@ public final class Txn<T> implements AutoCloseable {
     if (readOnly) {
       throw new ReadWriteRequiredException();
     }
+  }
+
+  Comparator<T> comparator() {
+    return proxy::compare;
   }
 
   /**

@@ -21,6 +21,7 @@
 package org.lmdbjava;
 
 import java.util.Arrays;
+import java.util.Comparator;
 import static java.util.Objects.requireNonNull;
 import static jnr.ffi.Memory.allocateDirect;
 import static jnr.ffi.NativeType.ADDRESS;
@@ -210,7 +211,7 @@ public final class Dbi<T> {
    * @return iterator
    */
   public CursorIterator<T> iterate(final Txn<T> txn) {
-    return iterate(txn, null, FORWARD);
+    return iterate(txn, KeyRange.forward());
   }
 
   /**
@@ -219,9 +220,16 @@ public final class Dbi<T> {
    * @param txn  transaction handle (not null; not committed)
    * @param type direction of iterator (not null)
    * @return iterator (never null)
+   * @deprecated use iterate method with a {@link KeyRange} instead
    */
+  @Deprecated
   public CursorIterator<T> iterate(final Txn<T> txn, final IteratorType type) {
-    return iterate(txn, null, type);
+    if (SHOULD_CHECK) {
+      requireNonNull(type);
+    }
+    final KeyRange<T> range = type == FORWARD
+        ? KeyRange.forward() : KeyRange.backward();
+    return iterate(txn, range);
   }
 
   /**
@@ -232,14 +240,55 @@ public final class Dbi<T> {
    * @param key  the key to search from (may be null to denote first record)
    * @param type direction of iterator (not null)
    * @return iterator (never null)
+   * @deprecated use iterate method with a {@link KeyRange} instead
    */
+  @Deprecated
   public CursorIterator<T> iterate(final Txn<T> txn, final T key,
                                    final IteratorType type) {
     if (SHOULD_CHECK) {
+      requireNonNull(type);
+    }
+
+    final KeyRange<T> range;
+    if (type == FORWARD) {
+      range = key == null ? KeyRange.forward() : KeyRange.atLeast(key);
+    } else {
+      range = key == null ? KeyRange.backward() : KeyRange.atLeastBackward(key);
+    }
+
+    return iterate(txn, range);
+  }
+
+  /**
+   * Iterate the database in accordance with the provided {@link KeyRange} and
+   * default {@link Comparator} for this buffer type.
+   *
+   * @param txn   transaction handle (not null; not committed)
+   * @param range range of acceptable keys (not null)
+   * @return iterator (never null)
+   */
+  public CursorIterator<T> iterate(final Txn<T> txn, final KeyRange<T> range) {
+    return iterate(txn, range, txn.comparator());
+  }
+
+  /**
+   * Iterate the database in accordance with the provided {@link KeyRange} and
+   * {@link Comparator}.
+   *
+   * @param txn        transaction handle (not null; not committed)
+   * @param range      range of acceptable keys (not null)
+   * @param comparator custom comparator for keys (not null)
+   * @return iterator (never null)
+   */
+  public CursorIterator<T> iterate(final Txn<T> txn, final KeyRange<T> range,
+                                   final Comparator<T> comparator) {
+    if (SHOULD_CHECK) {
       requireNonNull(txn);
+      requireNonNull(range);
+      requireNonNull(comparator);
       txn.checkReady();
     }
-    return new CursorIterator<>(openCursor(txn), key, type);
+    return new CursorIterator<>(txn, this, range, comparator);
   }
 
   /**
