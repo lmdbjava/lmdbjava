@@ -30,6 +30,8 @@ import static org.lmdbjava.KeyRange.CursorOp.PREV;
 import static org.lmdbjava.KeyRange.IteratorOp.CALL_NEXT_OP;
 import static org.lmdbjava.KeyRange.IteratorOp.RELEASE;
 import static org.lmdbjava.KeyRange.IteratorOp.TERMINATE;
+import static org.lmdbjava.KeyRangeType.BACKWARD;
+import static org.lmdbjava.KeyRangeType.FORWARD;
 
 /**
  * Limits the range and direction of keys to iterate.
@@ -42,6 +44,8 @@ import static org.lmdbjava.KeyRange.IteratorOp.TERMINATE;
 @SuppressWarnings({"PMD.CyclomaticComplexity", "PMD.StdCyclomaticComplexity"})
 public final class KeyRange<T> {
 
+  private static final KeyRange BACK = new KeyRange<>(BACKWARD, null, null);
+  private static final KeyRange FORW = new KeyRange<>(FORWARD, null, null);
   private final T start;
   private final T stop;
   private final KeyRangeType type;
@@ -121,7 +125,7 @@ public final class KeyRange<T> {
    * @return a key range (never null)
    */
   public static <T> KeyRange<T> backward() {
-    return new KeyRange<>(KeyRangeType.BACKWARD, null, null);
+    return BACK;
   }
 
   /**
@@ -131,7 +135,7 @@ public final class KeyRange<T> {
    * @return a key range (never null)
    */
   public static <T> KeyRange<T> forward() {
-    return new KeyRange<>(KeyRangeType.FORWARD, null, null);
+    return FORW;
   }
 
   /**
