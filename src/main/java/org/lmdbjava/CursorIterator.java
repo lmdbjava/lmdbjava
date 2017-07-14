@@ -42,17 +42,14 @@ public final class CursorIterator<T> implements
   private final KeyVal<T> entry;
   private boolean first = true;
   private final T key;
-  private final KeyValPopulator<T> populator;
   private State state = NOT_READY;
   private final IteratorType type;
 
-  CursorIterator(final Cursor<T> cursor, final T key, final IteratorType type,
-                 final KeyValPopulator<T> populator) {
+  CursorIterator(final Cursor<T> cursor, final T key, final IteratorType type) {
     this.cursor = cursor;
     this.type = type;
     this.key = key;
     this.entry = new KeyVal<>();
-    this.populator = populator;
   }
 
   @Override
@@ -98,8 +95,8 @@ public final class CursorIterator<T> implements
 
   private void setEntry(final boolean success) {
     if (success) {
-      this.entry.setKey(populator.getKey(cursor));
-      this.entry.setVal(populator.getVal(cursor));
+      this.entry.setKey(cursor.key());
+      this.entry.setVal(cursor.val());
     } else {
       this.entry.setKey(null);
       this.entry.setVal(null);
@@ -169,63 +166,18 @@ public final class CursorIterator<T> implements
       return v;
     }
 
-    void setKey(final T key) {
-      this.k = key;
+    void setKey(final T k) {
+      this.k = k;
     }
 
-    void setVal(final T val) {
-      this.v = val;
+    void setVal(final T v) {
+      this.v = v;
     }
 
     boolean isEmpty() {
       return this.k == null && this.v == null;
     }
 
-  }
-
-  /**
-   * Standard {@link KeyValPopulator} implementation that simply returns the
-   * current cursor's key and value.
-   *
-   * @param <T> buffer type
-   */
-  static final class CursorKeyValPopulator<T> implements KeyValPopulator<T> {
-
-    @Override
-    public T getKey(final Cursor<T> cursor) {
-      return cursor.key();
-    }
-
-    @Override
-    public T getVal(final Cursor<T> cursor) {
-      return cursor.val();
-    }
-
-  }
-
-  /**
-   * Implementation that can provided buffers for populating a {@link KeyVal} on
-   * cursor movement.
-   *
-   * @param <T> buffer type
-   */
-  public interface KeyValPopulator<T> {
-
-    /**
-     * Obtain the key buffer that should be stored in the {@link KeyVal}.
-     *
-     * @param cursor current cursor (never null)
-     * @return the buffer to store (never null)
-     */
-    T getKey(Cursor<T> cursor);
-
-    /**
-     * Obtain the value buffer that should be stored in the {@link KeyVal}.
-     *
-     * @param cursor current cursor (never null)
-     * @return the buffer to store (never null)
-     */
-    T getVal(Cursor<T> cursor);
   }
 
   /**
