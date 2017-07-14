@@ -40,8 +40,6 @@ import static org.junit.Assert.assertNull;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import static org.lmdbjava.CursorIterator.IteratorType.BACKWARD;
-import static org.lmdbjava.CursorIterator.IteratorType.FORWARD;
 import org.lmdbjava.CursorIterator.KeyVal;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import static org.lmdbjava.DbiFlags.MDB_DUPSORT;
@@ -322,25 +320,27 @@ public final class TutorialTest {
       key.clear();
 
       // Each iterator uses a cursor and must be closed when finished.
-      // iterate forward in terms of key ordering starting with the first key
-      try (CursorIterator<ByteBuffer> it = db.iterate(txn, FORWARD)) {
+      // Iterate forward in terms of key ordering starting with the first key.
+      try (CursorIterator<ByteBuffer> it = db.iterate(txn, KeyRange.forward())) {
         for (final KeyVal<ByteBuffer> kv : it.iterable()) {
           assertThat(kv.key(), notNullValue());
           assertThat(kv.val(), notNullValue());
         }
       }
 
-      // iterate backward in terms of key ordering starting with the first key
-      try (CursorIterator<ByteBuffer> it = db.iterate(txn, BACKWARD)) {
+      // Iterate backward in terms of key ordering starting with the last key.
+      try (CursorIterator<ByteBuffer> it = db.iterate(txn, KeyRange.backward())) {
         for (final KeyVal<ByteBuffer> kv : it.iterable()) {
           assertThat(kv.key(), notNullValue());
           assertThat(kv.val(), notNullValue());
         }
       }
 
-      // search for key and iterate forwards/backward from there til the last/first key.
+      // There are many ways to control the desired key range via KeyRange, such
+      // as arbitrary start and stop values, directions etc.
       key.putInt(1);
-      try (CursorIterator<ByteBuffer> it = db.iterate(txn, key, FORWARD)) {
+      final KeyRange<ByteBuffer> range = KeyRange.atLeastBackward(key);
+      try (CursorIterator<ByteBuffer> it = db.iterate(txn, range)) {
         for (final KeyVal<ByteBuffer> kv : it.iterable()) {
           assertThat(kv.key(), notNullValue());
           assertThat(kv.val(), notNullValue());
