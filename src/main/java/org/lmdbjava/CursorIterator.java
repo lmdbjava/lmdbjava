@@ -166,18 +166,16 @@ public final class CursorIterator<T> implements
       return v;
     }
 
-    void setKey(final T k) {
-      this.k = k;
+    void setK(final T key) {
+      this.k = key;
     }
 
-    void setVal(final T v) {
-      this.v = v;
+    void setV(final T val) {
+      this.v = val;
     }
 
     boolean isEmpty() {
       return this.k == null && this.v == null;
-    }
-
   }
 
   /**
