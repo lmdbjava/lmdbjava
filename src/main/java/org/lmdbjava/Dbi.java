@@ -82,7 +82,7 @@ public final class Dbi<T> {
    *
    * @param key key to delete from the database (not null)
    * @return true if the key/data pair was found, false otherwise
-   * 
+   *
    * @see #delete(org.lmdbjava.Txn, java.lang.Object, java.lang.Object)
    */
   public boolean delete(final T key) {
@@ -99,7 +99,7 @@ public final class Dbi<T> {
    * @param txn transaction handle (not null; not committed; must be R-W)
    * @param key key to delete from the database (not null)
    * @return true if the key/data pair was found, false otherwise
-   * 
+   *
    * @see #delete(org.lmdbjava.Txn, java.lang.Object, java.lang.Object)
    */
   public boolean delete(final Txn<T> txn, final T key) {
