@@ -20,10 +20,13 @@
 
 package org.lmdbjava;
 
+import com.google.common.primitives.SignedBytes;
+import com.google.common.primitives.UnsignedBytes;
 import io.netty.buffer.ByteBuf;
 import static io.netty.buffer.PooledByteBufAllocator.DEFAULT;
 import java.nio.ByteBuffer;
 import static java.nio.charset.StandardCharsets.US_ASCII;
+import java.util.Comparator;
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import static org.hamcrest.core.Is.is;
@@ -72,7 +75,9 @@ public final class ComparatorTest {
     final ComparatorRunner ba = new ByteArrayRunner();
     final ComparatorRunner bb = new ByteBufferRunner();
     final ComparatorRunner netty = new NettyRunner();
-    return new Object[]{string, db, ba, bb, netty};
+    final ComparatorRunner gub = new GuavaUnsignedBytes();
+    final ComparatorRunner gsb = new GuavaSignedBytes();
+    return new Object[]{string, db, ba, bb, netty, gub, gsb};
   }
 
   private static byte[] buffer(final int... bytes) {
@@ -165,6 +170,30 @@ public final class ComparatorTest {
       final DirectBuffer o1b = new UnsafeBuffer(o1);
       final DirectBuffer o2b = new UnsafeBuffer(o2);
       return PROXY_DB.compare(o1b, o2b);
+    }
+  }
+
+  /**
+   * Tests using Guava's {@link SignedBytes} comparator.
+   */
+  private static class GuavaSignedBytes implements ComparatorRunner {
+
+    @Override
+    public int compare(final byte[] o1, final byte[] o2) {
+      final Comparator<byte[]> c = SignedBytes.lexicographicalComparator();
+      return c.compare(o1, o2);
+    }
+  }
+
+  /**
+   * Tests using Guava's {@link UnsignedBytes} comparator.
+   */
+  private static class GuavaUnsignedBytes implements ComparatorRunner {
+
+    @Override
+    public int compare(final byte[] o1, final byte[] o2) {
+      final Comparator<byte[]> c = UnsignedBytes.lexicographicalComparator();
+      return c.compare(o1, o2);
     }
   }
 
