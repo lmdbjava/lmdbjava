@@ -45,7 +45,8 @@ import static org.lmdbjava.KeyRangeType.IteratorOp.TERMINATE;
  * <p>
  * In the examples below, it is assumed the table has keys 2, 4, 6 and 8.
  */
-@SuppressWarnings({"PMD.CyclomaticComplexity", "PMD.StdCyclomaticComplexity"})
+@SuppressWarnings({"PMD.CyclomaticComplexity", "PMD.StdCyclomaticComplexity",
+                   "PMD.ModifiedCyclomaticComplexity"})
 public enum KeyRangeType {
 
   /**
@@ -97,6 +98,18 @@ public enum KeyRangeType {
    */
   FORWARD_CLOSED(true, true, true),
   /**
+   * Start after the passed key (but not equal to it) and iterate forward until
+   * no keys remain.
+   *
+   * <p>
+   * The "start" value is required. The "stop" value is ignored.
+   *
+   * <p>
+   * In our example and with a passed search key of 4, the returned keys would
+   * be 6 and 8. With a passed key of 3, the returned keys would be 4, 6 and 8.
+   */
+  FORWARD_GREATER_THAN(true, true, false),
+  /**
    * Start on the last key and iterate backward until no keys remain.
    *
    * <p>
@@ -143,7 +156,19 @@ public enum KeyRangeType {
    * In our example and with a passed search range of 7 - 3, the returned keys
    * would be 6 and 4. With a range of 6 - 2, the keys would be 6, 4 and 2.
    */
-  BACKWARD_CLOSED(false, true, true);
+  BACKWARD_CLOSED(false, true, true),
+  /**
+   * Start immediate prior to the passed key (but not equal to it) and iterate
+   * backward until no keys remain.
+   *
+   * <p>
+   * The "start" value is required. The "stop" value is ignored.
+   *
+   * <p>
+   * In our example and with a passed search key of 6, the returned keys would
+   * be 4 and 2. With a passed key of 7, the returned keys would be 6, 4 and 2.
+   */
+  BACKWARD_GREATER_THAN(false, true, false);
 
   private final boolean directionForward;
   private final boolean startKeyRequired;
@@ -203,6 +228,8 @@ public enum KeyRangeType {
         return FIRST;
       case FORWARD_CLOSED:
         return GET_START_KEY;
+      case FORWARD_GREATER_THAN:
+        return GET_START_KEY;
       case BACKWARD_ALL:
         return LAST;
       case BACKWARD_AT_LEAST:
@@ -210,6 +237,8 @@ public enum KeyRangeType {
       case BACKWARD_AT_MOST:
         return LAST;
       case BACKWARD_CLOSED:
+        return GET_START_KEY;
+      case BACKWARD_GREATER_THAN:
         return GET_START_KEY;
       default:
         throw new IllegalStateException("Invalid type");
@@ -243,6 +272,8 @@ public enum KeyRangeType {
         return c.compare(buffer, stop) > 0 ? TERMINATE : RELEASE;
       case FORWARD_CLOSED:
         return c.compare(buffer, stop) > 0 ? TERMINATE : RELEASE;
+      case FORWARD_GREATER_THAN:
+        return c.compare(buffer, start) == 0 ? CALL_NEXT_OP : RELEASE;
       case BACKWARD_ALL:
         return RELEASE;
       case BACKWARD_AT_LEAST:
@@ -254,6 +285,8 @@ public enum KeyRangeType {
           return CALL_NEXT_OP; // rewind
         }
         return c.compare(buffer, stop) >= 0 ? RELEASE : TERMINATE;
+      case BACKWARD_GREATER_THAN:
+        return c.compare(buffer, start) >= 0 ? CALL_NEXT_OP : RELEASE;
       default:
         throw new IllegalStateException("Invalid type");
     }
