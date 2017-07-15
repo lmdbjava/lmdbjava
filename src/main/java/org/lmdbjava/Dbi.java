@@ -32,6 +32,10 @@ import static org.lmdbjava.CursorIterator.IteratorType.FORWARD;
 import static org.lmdbjava.Dbi.KeyExistsException.MDB_KEYEXIST;
 import static org.lmdbjava.Dbi.KeyNotFoundException.MDB_NOTFOUND;
 import static org.lmdbjava.Env.SHOULD_CHECK;
+import static org.lmdbjava.KeyRange.all;
+import static org.lmdbjava.KeyRange.allBackward;
+import static org.lmdbjava.KeyRange.atLeast;
+import static org.lmdbjava.KeyRange.atLeastBackward;
 import static org.lmdbjava.Library.LIB;
 import org.lmdbjava.Library.MDB_stat;
 import static org.lmdbjava.Library.RUNTIME;
@@ -211,7 +215,7 @@ public final class Dbi<T> {
    * @return iterator
    */
   public CursorIterator<T> iterate(final Txn<T> txn) {
-    return iterate(txn, KeyRange.forward());
+    return iterate(txn, all());
   }
 
   /**
@@ -227,8 +231,7 @@ public final class Dbi<T> {
     if (SHOULD_CHECK) {
       requireNonNull(type);
     }
-    final KeyRange<T> range = type == FORWARD
-        ? KeyRange.forward() : KeyRange.backward();
+    final KeyRange<T> range = type == FORWARD ? all() : allBackward();
     return iterate(txn, range);
   }
 
@@ -251,9 +254,9 @@ public final class Dbi<T> {
 
     final KeyRange<T> range;
     if (type == FORWARD) {
-      range = key == null ? KeyRange.forward() : KeyRange.atLeast(key);
+      range = key == null ? all() : atLeast(key);
     } else {
-      range = key == null ? KeyRange.backward() : KeyRange.atLeastBackward(key);
+      range = key == null ? allBackward() : atLeastBackward(key);
     }
 
     return iterate(txn, range);

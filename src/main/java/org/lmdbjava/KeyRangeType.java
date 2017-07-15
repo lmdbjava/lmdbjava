@@ -24,6 +24,12 @@ package org.lmdbjava;
  * Key range type.
  *
  * <p>
+ * The terminology used in this class is adapted from Google Guava's ranges.
+ * Refer to the <a href="https://github.com/google/guava/wiki/RangesExplained">
+ * Ranges Explained</a> wiki page for more information. LmddJava prepends either
+ * "FORWARD" or "BACKWARD" to denote the iterator order.
+ *
+ * <p>
  * In the examples below, it is assumed the table has keys 2, 4, 6 and 8.
  */
 public enum KeyRangeType {
@@ -37,7 +43,7 @@ public enum KeyRangeType {
    * <p>
    * In our example, the returned keys would be 2, 4, 6 and 8.
    */
-  FORWARD(true, false, false),
+  FORWARD_ALL(true, false, false),
   /**
    * Start on the passed key (or the first key immediately after it) and
    * iterate forward until no keys remain.
@@ -49,7 +55,7 @@ public enum KeyRangeType {
    * In our example and with a passed search key of 5, the returned keys would
    * be 6 and 8. With a passed key of 6, the returned keys would be 6 and 8.
    */
-  FORWARD_START(true, true, false),
+  FORWARD_AT_LEAST(true, true, false),
   /**
    * Start on the first key and iterate forward until a key equal to it (or the
    * first key immediately after it) is reached.
@@ -61,7 +67,7 @@ public enum KeyRangeType {
    * In our example and with a passed search key of 5, the returned keys would
    * be 2 and 4. With a passed key of 6, the returned keys would be 2, 4 and 6.
    */
-  FORWARD_STOP(true, false, true),
+  FORWARD_AT_MOST(true, false, true),
   /**
    * Iterate forward between the passed keys, matching on the first keys
    * directly equal to the passed key (or immediately following it in the case
@@ -75,7 +81,7 @@ public enum KeyRangeType {
    * In our example and with a passed search range of 3 - 7, the returned keys
    * would be 4 and 6. With a range of 2 - 6, the keys would be 2, 4 and 6.
    */
-  FORWARD_RANGE(true, true, true),
+  FORWARD_CLOSED(true, true, true),
   /**
    * Start on the last key and iterate backward until no keys remain.
    *
@@ -85,7 +91,7 @@ public enum KeyRangeType {
    * <p>
    * In our example, the returned keys would be 8, 6, 4 and 2.
    */
-  BACKWARD(false, false, false),
+  BACKWARD_ALL(false, false, false),
   /**
    * Start on the passed key (or the first key immediately preceding it) and
    * iterate backward until no keys remain.
@@ -97,7 +103,7 @@ public enum KeyRangeType {
    * In our example and with a passed search key of 5, the returned keys would
    * be 4 and 2. With a passed key of 6, the returned keys would be 6, 4 and 2.
    */
-  BACKWARD_START(false, true, false),
+  BACKWARD_AT_LEAST(false, true, false),
   /**
    * Start on the last key and iterate backward until a key equal to it (or the
    * first key immediately preceding it it) is reached.
@@ -109,7 +115,7 @@ public enum KeyRangeType {
    * In our example and with a passed search key of 5, the returned keys would
    * be 8 and 6. With a passed key of 6, the returned keys would be 8 and 6.
    */
-  BACKWARD_STOP(false, false, true),
+  BACKWARD_AT_MOST(false, false, true),
   /**
    * Iterate backward between the passed keys, matching on the first keys
    * directly equal to the passed key (or immediately preceding it in the case
@@ -123,7 +129,7 @@ public enum KeyRangeType {
    * In our example and with a passed search range of 7 - 3, the returned keys
    * would be 6 and 4. With a range of 6 - 2, the keys would be 6, 4 and 2.
    */
-  BACKWARD_RANGE(false, true, true);
+  BACKWARD_CLOSED(false, true, true);
 
   private final boolean directionForward;
   private final boolean startKeyRequired;

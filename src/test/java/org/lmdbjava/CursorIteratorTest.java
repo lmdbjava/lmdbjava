@@ -42,14 +42,14 @@ import org.lmdbjava.CursorIterator.KeyVal;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import static org.lmdbjava.Env.open;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
+import static org.lmdbjava.KeyRange.all;
+import static org.lmdbjava.KeyRange.allBackward;
 import static org.lmdbjava.KeyRange.atLeast;
 import static org.lmdbjava.KeyRange.atLeastBackward;
 import static org.lmdbjava.KeyRange.atMost;
 import static org.lmdbjava.KeyRange.atMostBackward;
-import static org.lmdbjava.KeyRange.backward;
-import static org.lmdbjava.KeyRange.forward;
-import static org.lmdbjava.KeyRange.range;
-import static org.lmdbjava.KeyRange.rangeBackward;
+import static org.lmdbjava.KeyRange.closed;
+import static org.lmdbjava.KeyRange.closedBackward;
 import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
 import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.bb;
@@ -71,6 +71,40 @@ public final class CursorIteratorTest {
   }
 
   @Test
+  public void allBackwardTest() {
+    verify(allBackward(), 8, 6, 4, 2);
+  }
+
+  @Test
+  public void allTest() {
+    verify(all(), 2, 4, 6, 8);
+  }
+
+  @Test
+  public void atLeastBackwardTest() {
+    verify(atLeastBackward(bb(5)), 4, 2);
+    verify(atLeastBackward(bb(6)), 6, 4, 2);
+  }
+
+  @Test
+  public void atLeastTest() {
+    verify(atLeast(bb(5)), 6, 8);
+    verify(atLeast(bb(6)), 6, 8);
+  }
+
+  @Test
+  public void atMostBackwardTest() {
+    verify(atMostBackward(bb(5)), 8, 6);
+    verify(atMostBackward(bb(6)), 8, 6);
+  }
+
+  @Test
+  public void atMostTest() {
+    verify(atMost(bb(5)), 2, 4);
+    verify(atMost(bb(6)), 2, 4, 6);
+  }
+
+  @Test
   public void backwardDeprecated() {
     try (Txn<ByteBuffer> txn = env.txnRead();
          CursorIterator<ByteBuffer> c = db.iterate(txn, BACKWARD)) {
@@ -80,12 +114,6 @@ public final class CursorIteratorTest {
         assertThat(c.hasNext(), is(list.peekFirst() != null));
       }
     }
-  }
-
-  @Test
-  public void backwardRange() {
-    verify(rangeBackward(bb(7), bb(3)), 6, 4);
-    verify(rangeBackward(bb(6), bb(2)), 6, 4, 2);
   }
 
   @Test
@@ -100,23 +128,6 @@ public final class CursorIteratorTest {
         assertThat(kv.key().getInt(), is(list.pollLast()));
       }
     }
-  }
-
-  @Test
-  public void backwardStart() {
-    verify(atLeastBackward(bb(5)), 4, 2);
-    verify(atLeastBackward(bb(6)), 6, 4, 2);
-  }
-
-  @Test
-  public void backwardStop() {
-    verify(atMostBackward(bb(5)), 8, 6);
-    verify(atMostBackward(bb(6)), 8, 6);
-  }
-
-  @Test
-  public void backwardTest() {
-    verify(backward(), 8, 6, 4, 2);
   }
 
   @Before
@@ -137,6 +148,18 @@ public final class CursorIteratorTest {
   }
 
   @Test
+  public void closedBackwardTest() {
+    verify(closedBackward(bb(7), bb(3)), 6, 4);
+    verify(closedBackward(bb(6), bb(2)), 6, 4, 2);
+  }
+
+  @Test
+  public void closedTest() {
+    verify(closed(bb(3), bb(7)), 4, 6);
+    verify(closed(bb(2), bb(6)), 2, 4, 6);
+  }
+
+  @Test
   public void forwardDeprecated() {
     try (Txn<ByteBuffer> txn = env.txnRead();
          CursorIterator<ByteBuffer> c = db.iterate(txn, FORWARD)) {
@@ -146,12 +169,6 @@ public final class CursorIteratorTest {
         assertThat(c.hasNext(), is(list.peekFirst() != null));
       }
     }
-  }
-
-  @Test
-  public void forwardRange() {
-    verify(range(bb(3), bb(7)), 4, 6);
-    verify(range(bb(2), bb(6)), 2, 4, 6);
   }
 
   @Test
@@ -167,23 +184,6 @@ public final class CursorIteratorTest {
         assertThat(kv.val().getInt(), is(list.pollFirst()));
       }
     }
-  }
-
-  @Test
-  public void forwardStart() {
-    verify(atLeast(bb(5)), 6, 8);
-    verify(atLeast(bb(6)), 6, 8);
-  }
-
-  @Test
-  public void forwardStop() {
-    verify(atMost(bb(5)), 2, 4);
-    verify(atMost(bb(6)), 2, 4, 6);
-  }
-
-  @Test
-  public void forwardTest() {
-    verify(forward(), 2, 4, 6, 8);
   }
 
   @Test

@@ -321,7 +321,7 @@ public final class TutorialTest {
 
       // Each iterator uses a cursor and must be closed when finished.
       // Iterate forward in terms of key ordering starting with the first key.
-      try (CursorIterator<ByteBuffer> it = db.iterate(txn, KeyRange.forward())) {
+      try (CursorIterator<ByteBuffer> it = db.iterate(txn, KeyRange.all())) {
         for (final KeyVal<ByteBuffer> kv : it.iterable()) {
           assertThat(kv.key(), notNullValue());
           assertThat(kv.val(), notNullValue());
@@ -329,7 +329,8 @@ public final class TutorialTest {
       }
 
       // Iterate backward in terms of key ordering starting with the last key.
-      try (CursorIterator<ByteBuffer> it = db.iterate(txn, KeyRange.backward())) {
+      try (CursorIterator<ByteBuffer> it = db.iterate(txn,
+                                                      KeyRange.allBackward())) {
         for (final KeyVal<ByteBuffer> kv : it.iterable()) {
           assertThat(kv.key(), notNullValue());
           assertThat(kv.val(), notNullValue());
@@ -337,7 +338,8 @@ public final class TutorialTest {
       }
 
       // There are many ways to control the desired key range via KeyRange, such
-      // as arbitrary start and stop values, directions etc.
+      // as arbitrary start and stop values, direction etc. We've adopted Guava's
+      // terminology for our range classes (see KeyRangeType for further details).
       key.putInt(1);
       final KeyRange<ByteBuffer> range = KeyRange.atLeastBackward(key);
       try (CursorIterator<ByteBuffer> it = db.iterate(txn, range)) {

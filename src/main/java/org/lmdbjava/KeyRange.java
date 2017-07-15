@@ -30,8 +30,8 @@ import static org.lmdbjava.KeyRange.CursorOp.PREV;
 import static org.lmdbjava.KeyRange.IteratorOp.CALL_NEXT_OP;
 import static org.lmdbjava.KeyRange.IteratorOp.RELEASE;
 import static org.lmdbjava.KeyRange.IteratorOp.TERMINATE;
-import static org.lmdbjava.KeyRangeType.BACKWARD;
-import static org.lmdbjava.KeyRangeType.FORWARD;
+import static org.lmdbjava.KeyRangeType.BACKWARD_ALL;
+import static org.lmdbjava.KeyRangeType.FORWARD_ALL;
 
 /**
  * Limits the range and direction of keys to iterate.
@@ -44,8 +44,8 @@ import static org.lmdbjava.KeyRangeType.FORWARD;
 @SuppressWarnings({"PMD.CyclomaticComplexity", "PMD.StdCyclomaticComplexity"})
 public final class KeyRange<T> {
 
-  private static final KeyRange BACK = new KeyRange<>(BACKWARD, null, null);
-  private static final KeyRange FORW = new KeyRange<>(FORWARD, null, null);
+  private static final KeyRange BACK = new KeyRange<>(BACKWARD_ALL, null, null);
+  private static final KeyRange FORW = new KeyRange<>(FORWARD_ALL, null, null);
   private final T start;
   private final T stop;
   private final KeyRangeType type;
@@ -75,91 +75,91 @@ public final class KeyRange<T> {
   }
 
   /**
-   * Create a {@link KeyRangeType#FORWARD_START} range.
+   * Create a {@link KeyRangeType#FORWARD_ALL} range.
+   *
+   * @param <T> buffer type
+   * @return a key range (never null)
+   */
+  public static <T> KeyRange<T> all() {
+    return FORW;
+  }
+
+  /**
+   * Create a {@link KeyRangeType#BACKWARD_ALL} range.
+   *
+   * @param <T> buffer type
+   * @return a key range (never null)
+   */
+  public static <T> KeyRange<T> allBackward() {
+    return BACK;
+  }
+
+  /**
+   * Create a {@link KeyRangeType#FORWARD_AT_LEAST} range.
    *
    * @param <T>   buffer type
    * @param start start key (required)
    * @return a key range (never null)
    */
   public static <T> KeyRange<T> atLeast(final T start) {
-    return new KeyRange<>(KeyRangeType.FORWARD_START, start, null);
+    return new KeyRange<>(KeyRangeType.FORWARD_AT_LEAST, start, null);
   }
 
   /**
-   * Create a {@link KeyRangeType#BACKWARD_START} range.
+   * Create a {@link KeyRangeType#BACKWARD_AT_LEAST} range.
    *
    * @param <T>   buffer type
    * @param start start key (required)
    * @return a key range (never null)
    */
   public static <T> KeyRange<T> atLeastBackward(final T start) {
-    return new KeyRange<>(KeyRangeType.BACKWARD_START, start, null);
+    return new KeyRange<>(KeyRangeType.BACKWARD_AT_LEAST, start, null);
   }
 
   /**
-   * Create a {@link KeyRangeType#FORWARD_STOP} range.
+   * Create a {@link KeyRangeType#FORWARD_AT_MOST} range.
    *
    * @param <T>  buffer type
    * @param stop stop key (required)
    * @return a key range (never null)
    */
   public static <T> KeyRange<T> atMost(final T stop) {
-    return new KeyRange<>(KeyRangeType.FORWARD_STOP, null, stop);
+    return new KeyRange<>(KeyRangeType.FORWARD_AT_MOST, null, stop);
   }
 
   /**
-   * Create a {@link KeyRangeType#BACKWARD_STOP} range.
+   * Create a {@link KeyRangeType#BACKWARD_AT_MOST} range.
    *
    * @param <T>  buffer type
    * @param stop stop key (required)
    * @return a key range (never null)
    */
   public static <T> KeyRange<T> atMostBackward(final T stop) {
-    return new KeyRange<>(KeyRangeType.BACKWARD_STOP, null, stop);
+    return new KeyRange<>(KeyRangeType.BACKWARD_AT_MOST, null, stop);
   }
 
   /**
-   * Create a {@link KeyRangeType#BACKWARD} range.
-   *
-   * @param <T> buffer type
-   * @return a key range (never null)
-   */
-  public static <T> KeyRange<T> backward() {
-    return BACK;
-  }
-
-  /**
-   * Create a {@link KeyRangeType#FORWARD} range.
-   *
-   * @param <T> buffer type
-   * @return a key range (never null)
-   */
-  public static <T> KeyRange<T> forward() {
-    return FORW;
-  }
-
-  /**
-   * Create a {@link KeyRangeType#FORWARD_RANGE} range.
+   * Create a {@link KeyRangeType#FORWARD_CLOSED} range.
    *
    * @param <T>   buffer type
    * @param start start key (required)
    * @param stop  stop key (required)
    * @return a key range (never null)
    */
-  public static <T> KeyRange<T> range(final T start, final T stop) {
-    return new KeyRange<>(KeyRangeType.FORWARD_RANGE, start, stop);
+  public static <T> KeyRange<T> closed(final T start, final T stop) {
+    return new KeyRange<>(KeyRangeType.FORWARD_CLOSED, start, stop);
   }
 
   /**
-   * Create a {@link KeyRangeType#BACKWARD_RANGE} range.
+   * Create a {@link KeyRangeType#BACKWARD_CLOSED} range.
    *
    * @param <T>   buffer type
    * @param start start key (required)
    * @param stop  stop key (required)
    * @return a key range (never null)
    */
-  public static <T> KeyRange<T> rangeBackward(final T start, final T stop) {
-    return new KeyRange<>(KeyRangeType.BACKWARD_RANGE, start, stop);
+  public static <T> KeyRange<T> closedBackward(final T start, final T stop) {
+    return new KeyRange<>(KeyRangeType.BACKWARD_CLOSED, start, stop);
   }
 
   /**
@@ -201,21 +201,21 @@ public final class KeyRange<T> {
   @SuppressWarnings("checkstyle:ReturnCount")
   CursorOp initialOp() {
     switch (type) {
-      case FORWARD:
+      case FORWARD_ALL:
         return FIRST;
-      case FORWARD_START:
+      case FORWARD_AT_LEAST:
         return GET_START_KEY;
-      case FORWARD_STOP:
+      case FORWARD_AT_MOST:
         return FIRST;
-      case FORWARD_RANGE:
+      case FORWARD_CLOSED:
         return GET_START_KEY;
-      case BACKWARD:
+      case BACKWARD_ALL:
         return LAST;
-      case BACKWARD_START:
+      case BACKWARD_AT_LEAST:
         return GET_START_KEY;
-      case BACKWARD_STOP:
+      case BACKWARD_AT_MOST:
         return LAST;
-      case BACKWARD_RANGE:
+      case BACKWARD_CLOSED:
         return GET_START_KEY;
       default:
         throw new IllegalStateException("Invalid type");
@@ -238,21 +238,21 @@ public final class KeyRange<T> {
       return TERMINATE;
     }
     switch (type) {
-      case FORWARD:
+      case FORWARD_ALL:
         return RELEASE;
-      case FORWARD_START:
+      case FORWARD_AT_LEAST:
         return RELEASE;
-      case FORWARD_STOP:
+      case FORWARD_AT_MOST:
         return c.compare(buffer, stop) > 0 ? TERMINATE : RELEASE;
-      case FORWARD_RANGE:
+      case FORWARD_CLOSED:
         return c.compare(buffer, stop) > 0 ? TERMINATE : RELEASE;
-      case BACKWARD:
+      case BACKWARD_ALL:
         return RELEASE;
-      case BACKWARD_START:
+      case BACKWARD_AT_LEAST:
         return c.compare(buffer, start) > 0 ? CALL_NEXT_OP : RELEASE; // rewind
-      case BACKWARD_STOP:
+      case BACKWARD_AT_MOST:
         return c.compare(buffer, stop) >= 0 ? RELEASE : TERMINATE;
-      case BACKWARD_RANGE:
+      case BACKWARD_CLOSED:
         if (c.compare(buffer, start) > 0) {
           return CALL_NEXT_OP; // rewind
         }

@@ -31,14 +31,14 @@ import org.lmdbjava.KeyRange.CursorOp;
 import static org.lmdbjava.KeyRange.CursorOp.FIRST;
 import org.lmdbjava.KeyRange.IteratorOp;
 import static org.lmdbjava.KeyRange.IteratorOp.TERMINATE;
+import static org.lmdbjava.KeyRange.all;
+import static org.lmdbjava.KeyRange.allBackward;
 import static org.lmdbjava.KeyRange.atLeast;
 import static org.lmdbjava.KeyRange.atLeastBackward;
 import static org.lmdbjava.KeyRange.atMost;
 import static org.lmdbjava.KeyRange.atMostBackward;
-import static org.lmdbjava.KeyRange.backward;
-import static org.lmdbjava.KeyRange.forward;
-import static org.lmdbjava.KeyRange.range;
-import static org.lmdbjava.KeyRange.rangeBackward;
+import static org.lmdbjava.KeyRange.closed;
+import static org.lmdbjava.KeyRange.closedBackward;
 
 /**
  * Test {@link KeyRange}.
@@ -53,31 +53,54 @@ public final class KeyRangeTest {
   private final FakeCursor cursor = new FakeCursor();
 
   @Test
-  public void backwardRange() {
-    verify(rangeBackward(7, 3), 6, 4);
-    verify(rangeBackward(6, 2), 6, 4, 2);
+  public void allBackwardTest() {
+    verify(allBackward(), 8, 6, 4, 2);
   }
 
   @Test
-  public void backwardStart() {
+  public void allTest() {
+    verify(all(), 2, 4, 6, 8);
+  }
+
+  @Test
+  public void atLeastBackwardTest() {
     verify(atLeastBackward(5), 4, 2);
     verify(atLeastBackward(6), 6, 4, 2);
   }
 
   @Test
-  public void backwardStop() {
+  public void atLeastTest() {
+    verify(atLeast(5), 6, 8);
+    verify(atLeast(6), 6, 8);
+  }
+
+  @Test
+  public void atMostBackwardTest() {
     verify(atMostBackward(5), 8, 6);
     verify(atMostBackward(6), 8, 6);
   }
 
   @Test
-  public void backwardTest() {
-    verify(backward(), 8, 6, 4, 2);
+  public void atMostTest() {
+    verify(atMost(5), 2, 4);
+    verify(atMost(6), 2, 4, 6);
   }
 
   @Before
   public void before() {
     cursor.reset();
+  }
+
+  @Test
+  public void closedBackwardTest() {
+    verify(closedBackward(7, 3), 6, 4);
+    verify(closedBackward(6, 2), 6, 4, 2);
+  }
+
+  @Test
+  public void closedTest() {
+    verify(closed(3, 7), 4, 6);
+    verify(closed(2, 6), 2, 4, 6);
   }
 
   @Test
@@ -94,29 +117,6 @@ public final class KeyRangeTest {
     assertThat(cursor.getWithSetRange(1), is(2));
     assertThat(cursor.last(), is(8));
     assertThat(cursor.getWithSetRange(100), nullValue());
-  }
-
-  @Test
-  public void forwardRange() {
-    verify(range(3, 7), 4, 6);
-    verify(range(2, 6), 2, 4, 6);
-  }
-
-  @Test
-  public void forwardStart() {
-    verify(atLeast(5), 6, 8);
-    verify(atLeast(6), 6, 8);
-  }
-
-  @Test
-  public void forwardStop() {
-    verify(atMost(5), 2, 4);
-    verify(atMost(6), 2, 4, 6);
-  }
-
-  @Test
-  public void forwardTest() {
-    verify(forward(), 2, 4, 6, 8);
   }
 
   private void verify(final KeyRange<Integer> range, final int... expected) {
