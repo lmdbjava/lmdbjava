@@ -143,10 +143,10 @@ public final class KeyRangeTest {
       }
     } while (op != TERMINATE);
 
-    assertThat(results.size(), is(expected.length));
     for (int idx = 0; idx < results.size(); idx++) {
-      assertThat(results.get(idx), is(expected[idx]));
+      assertThat("idx " + idx, results.get(idx), is(expected[idx]));
     }
+    assertThat(results.size(), is(expected.length));
   }
 
   /**
