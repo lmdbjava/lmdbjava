@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import static java.util.Arrays.asList;
+import java.util.Comparator;
 import java.util.Deque;
 import java.util.LinkedList;
 import java.util.List;
@@ -289,10 +290,16 @@ public final class CursorIteratorTest {
   }
 
   private void verify(final KeyRange<ByteBuffer> range, final int... expected) {
+    verify(range, null, expected);
+  }
+
+  private void verify(final KeyRange<ByteBuffer> range,
+                      final Comparator<ByteBuffer> comparator,
+                      final int... expected) {
     final List<Integer> results = new ArrayList<>();
 
     try (Txn<ByteBuffer> txn = env.txnRead();
-         CursorIterator<ByteBuffer> c = db.iterate(txn, range)) {
+         CursorIterator<ByteBuffer> c = db.iterate(txn, range, comparator)) {
       for (final KeyVal<ByteBuffer> kv : c.iterable()) {
         final int key = kv.key().getInt();
         final int val = kv.val().getInt();

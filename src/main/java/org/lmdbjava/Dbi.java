@@ -278,9 +278,12 @@ public final class Dbi<T> {
    * Iterate the database in accordance with the provided {@link KeyRange} and
    * {@link Comparator}.
    *
+   * <p>
+   * If a null comparator is provided, the buffer's default comparator is used.
+   *
    * @param txn        transaction handle (not null; not committed)
    * @param range      range of acceptable keys (not null)
-   * @param comparator custom comparator for keys (not null)
+   * @param comparator custom comparator for keys (may be null)
    * @return iterator (never null)
    */
   public CursorIterator<T> iterate(final Txn<T> txn, final KeyRange<T> range,
@@ -288,10 +291,11 @@ public final class Dbi<T> {
     if (SHOULD_CHECK) {
       requireNonNull(txn);
       requireNonNull(range);
-      requireNonNull(comparator);
       txn.checkReady();
     }
-    return new CursorIterator<>(txn, this, range, comparator);
+    final Comparator<T> useComparator = comparator == null
+        ? txn.comparator() : comparator;
+    return new CursorIterator<>(txn, this, range, useComparator);
   }
 
   /**
