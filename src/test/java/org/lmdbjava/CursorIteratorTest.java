@@ -54,6 +54,8 @@ import static org.lmdbjava.KeyRange.greaterThan;
 import static org.lmdbjava.KeyRange.greaterThanBackward;
 import static org.lmdbjava.KeyRange.lessThan;
 import static org.lmdbjava.KeyRange.lessThanBackward;
+import static org.lmdbjava.KeyRange.open;
+import static org.lmdbjava.KeyRange.openBackward;
 import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
 import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.bb;
@@ -236,6 +238,18 @@ public final class CursorIteratorTest {
       assertThat(c.hasNext(), is(false));
       c.next();
     }
+  }
+
+  @Test
+  public void openBackwardTest() {
+    verify(openBackward(bb(7), bb(2)), 6, 4);
+    verify(openBackward(bb(8), bb(1)), 6, 4, 2);
+  }
+
+  @Test
+  public void openTest() {
+    verify(open(bb(3), bb(7)), 4, 6);
+    verify(open(bb(2), bb(8)), 4, 6);
   }
 
   @Test(expected = UnsupportedOperationException.class)

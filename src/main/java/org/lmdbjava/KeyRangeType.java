@@ -122,6 +122,17 @@ public enum KeyRangeType {
    */
   FORWARD_LESS_THAN(true, false, true),
   /**
+   * Iterate forward between the passed keys but not equal to either of them.
+   *
+   * <p>
+   * The "start" and "stop" values are both required.
+   *
+   * <p>
+   * In our example and with a passed search range of 3 - 7, the returned keys
+   * would be 4 and 6. With a range of 2 - 8, the key would be 4 and 6.
+   */
+  FORWARD_OPEN(true, true, true),
+  /**
    * Start on the last key and iterate backward until no keys remain.
    *
    * <p>
@@ -192,7 +203,19 @@ public enum KeyRangeType {
    * In our example and with a passed search key of 5, the returned keys would
    * be 8 and 6. With a passed key of 2, the returned keys would be 8, 6 and 4
    */
-  BACKWARD_LESS_THAN(false, false, true);
+  BACKWARD_LESS_THAN(false, false, true),
+  /**
+   * Iterate backward between the passed keys, but do not return the passed
+   * keys.
+   *
+   * <p>
+   * The "start" and "stop" values are both required.
+   *
+   * <p>
+   * In our example and with a passed search range of 7 - 2, the returned keys
+   * would be 6 and 4. With a range of 8 - 1, the keys would be 6, 4 and 2.
+   */
+  BACKWARD_OPEN(false, true, true);
 
   private final boolean directionForward;
   private final boolean startKeyRequired;
@@ -256,6 +279,8 @@ public enum KeyRangeType {
         return GET_START_KEY;
       case FORWARD_LESS_THAN:
         return FIRST;
+      case FORWARD_OPEN:
+        return GET_START_KEY;
       case BACKWARD_ALL:
         return LAST;
       case BACKWARD_AT_LEAST:
@@ -268,6 +293,8 @@ public enum KeyRangeType {
         return GET_START_KEY;
       case BACKWARD_LESS_THAN:
         return LAST;
+      case BACKWARD_OPEN:
+        return GET_START_KEY;
       default:
         throw new IllegalStateException("Invalid type");
     }
@@ -304,6 +331,11 @@ public enum KeyRangeType {
         return c.compare(buffer, start) == 0 ? CALL_NEXT_OP : RELEASE;
       case FORWARD_LESS_THAN:
         return c.compare(buffer, stop) >= 0 ? TERMINATE : RELEASE;
+      case FORWARD_OPEN:
+        if (c.compare(buffer, start) == 0) {
+          return CALL_NEXT_OP;
+        }
+        return c.compare(buffer, stop) >= 0 ? TERMINATE : RELEASE;
       case BACKWARD_ALL:
         return RELEASE;
       case BACKWARD_AT_LEAST:
@@ -318,6 +350,11 @@ public enum KeyRangeType {
       case BACKWARD_GREATER_THAN:
         return c.compare(buffer, start) >= 0 ? CALL_NEXT_OP : RELEASE;
       case BACKWARD_LESS_THAN:
+        return c.compare(buffer, stop) > 0 ? RELEASE : TERMINATE;
+      case BACKWARD_OPEN:
+        if (c.compare(buffer, start) >= 0) {
+          return CALL_NEXT_OP; // rewind
+        }
         return c.compare(buffer, stop) > 0 ? RELEASE : TERMINATE;
       default:
         throw new IllegalStateException("Invalid type");
