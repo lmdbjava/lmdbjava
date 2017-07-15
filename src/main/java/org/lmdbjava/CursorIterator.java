@@ -29,8 +29,8 @@ import static org.lmdbjava.CursorIterator.State.REQUIRES_ITERATOR_OP;
 import static org.lmdbjava.CursorIterator.State.REQUIRES_NEXT_OP;
 import static org.lmdbjava.CursorIterator.State.TERMINATED;
 import static org.lmdbjava.GetOp.MDB_SET_RANGE;
-import org.lmdbjava.KeyRange.CursorOp;
-import org.lmdbjava.KeyRange.IteratorOp;
+import org.lmdbjava.KeyRangeType.CursorOp;
+import org.lmdbjava.KeyRangeType.IteratorOp;
 
 /**
  * {@link Iterator} that iterates over a {@link Cursor} as specified by a
@@ -121,10 +121,12 @@ public final class CursorIterator<T> implements
   }
 
   private void executeIteratorOp() {
-    final IteratorOp op = range.iteratorOp(comparator, entry.key());
+    final IteratorOp op = range.getType().iteratorOp(range.getStart(),
+                                                     range.getStop(),
+                                                     entry.key(), comparator);
     switch (op) {
       case CALL_NEXT_OP:
-        executeCursorOp(range.nextOp());
+        executeCursorOp(range.getType().nextOp());
         state = REQUIRES_ITERATOR_OP;
         break;
       case TERMINATE:
@@ -141,11 +143,11 @@ public final class CursorIterator<T> implements
   private void update() {
     switch (state) {
       case REQUIRES_INITIAL_OP:
-        executeCursorOp(range.initialOp());
+        executeCursorOp(range.getType().initialOp());
         state = REQUIRES_ITERATOR_OP;
         break;
       case REQUIRES_NEXT_OP:
-        executeCursorOp(range.nextOp());
+        executeCursorOp(range.getType().nextOp());
         state = REQUIRES_ITERATOR_OP;
         break;
       case REQUIRES_ITERATOR_OP:

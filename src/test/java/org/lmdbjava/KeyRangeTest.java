@@ -27,10 +27,6 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import org.junit.Before;
 import org.junit.Test;
-import org.lmdbjava.KeyRange.CursorOp;
-import static org.lmdbjava.KeyRange.CursorOp.FIRST;
-import org.lmdbjava.KeyRange.IteratorOp;
-import static org.lmdbjava.KeyRange.IteratorOp.TERMINATE;
 import static org.lmdbjava.KeyRange.all;
 import static org.lmdbjava.KeyRange.allBackward;
 import static org.lmdbjava.KeyRange.atLeast;
@@ -39,6 +35,10 @@ import static org.lmdbjava.KeyRange.atMost;
 import static org.lmdbjava.KeyRange.atMostBackward;
 import static org.lmdbjava.KeyRange.closed;
 import static org.lmdbjava.KeyRange.closedBackward;
+import org.lmdbjava.KeyRangeType.CursorOp;
+import static org.lmdbjava.KeyRangeType.CursorOp.FIRST;
+import org.lmdbjava.KeyRangeType.IteratorOp;
+import static org.lmdbjava.KeyRangeType.IteratorOp.TERMINATE;
 
 /**
  * Test {@link KeyRange}.
@@ -122,21 +122,21 @@ public final class KeyRangeTest {
   private void verify(final KeyRange<Integer> range, final int... expected) {
     final List<Integer> results = new ArrayList<>();
 
-    final Integer s = range.getStart();
-    Integer buff = cursor.apply(range.initialOp(), s);
+    Integer buff = cursor.apply(range.getType().initialOp(), range.getStart());
 
     IteratorOp op;
     do {
-      op = range.iteratorOp(Integer::compare, buff);
+      op = range.getType().iteratorOp(range.getStart(), range.getStop(), buff,
+                                      Integer::compare);
       switch (op) {
         case CALL_NEXT_OP:
-          buff = cursor.apply(range.nextOp(), s);
+          buff = cursor.apply(range.getType().nextOp(), range.getStart());
           break;
         case TERMINATE:
           break;
         case RELEASE:
           results.add(buff);
-          buff = cursor.apply(range.nextOp(), s);
+          buff = cursor.apply(range.getType().nextOp(), range.getStart());
           break;
         default:
           throw new IllegalStateException("Unknown operation");
@@ -147,7 +147,6 @@ public final class KeyRangeTest {
     for (int idx = 0; idx < results.size(); idx++) {
       assertThat(results.get(idx), is(expected[idx]));
     }
-
   }
 
   /**

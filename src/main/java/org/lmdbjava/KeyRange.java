@@ -20,16 +20,7 @@
 
 package org.lmdbjava;
 
-import java.util.Comparator;
 import static java.util.Objects.requireNonNull;
-import static org.lmdbjava.KeyRange.CursorOp.FIRST;
-import static org.lmdbjava.KeyRange.CursorOp.GET_START_KEY;
-import static org.lmdbjava.KeyRange.CursorOp.LAST;
-import static org.lmdbjava.KeyRange.CursorOp.NEXT;
-import static org.lmdbjava.KeyRange.CursorOp.PREV;
-import static org.lmdbjava.KeyRange.IteratorOp.CALL_NEXT_OP;
-import static org.lmdbjava.KeyRange.IteratorOp.RELEASE;
-import static org.lmdbjava.KeyRange.IteratorOp.TERMINATE;
 import static org.lmdbjava.KeyRangeType.BACKWARD_ALL;
 import static org.lmdbjava.KeyRangeType.FORWARD_ALL;
 
@@ -41,7 +32,6 @@ import static org.lmdbjava.KeyRangeType.FORWARD_ALL;
  *
  * @param <T> buffer type
  */
-@SuppressWarnings({"PMD.CyclomaticComplexity", "PMD.StdCyclomaticComplexity"})
 public final class KeyRange<T> {
 
   private static final KeyRange BACK = new KeyRange<>(BACKWARD_ALL, null, null);
@@ -187,137 +177,6 @@ public final class KeyRange<T> {
    */
   public KeyRangeType getType() {
     return type;
-  }
-
-  /**
-   * Determine the iterator action to take when iterator first begins.
-   *
-   * <p>
-   * The iterator will perform this action and present the resulting key to
-   * {@link #iteratorOp(java.util.Comparator, java.lang.Object)} for decision.
-   *
-   * @return appropriate action in response to this buffer
-   */
-  @SuppressWarnings("checkstyle:ReturnCount")
-  CursorOp initialOp() {
-    switch (type) {
-      case FORWARD_ALL:
-        return FIRST;
-      case FORWARD_AT_LEAST:
-        return GET_START_KEY;
-      case FORWARD_AT_MOST:
-        return FIRST;
-      case FORWARD_CLOSED:
-        return GET_START_KEY;
-      case BACKWARD_ALL:
-        return LAST;
-      case BACKWARD_AT_LEAST:
-        return GET_START_KEY;
-      case BACKWARD_AT_MOST:
-        return LAST;
-      case BACKWARD_CLOSED:
-        return GET_START_KEY;
-      default:
-        throw new IllegalStateException("Invalid type");
-    }
-  }
-
-  /**
-   * Determine the iterator's response to the presented key.
-   *
-   * @param <C>    comparator for the buffers
-   * @param c      comparator (required)
-   * @param buffer current key returned by LMDB (may be null)
-   * @return response to this key
-   */
-  @SuppressWarnings("checkstyle:ReturnCount")
-  <C extends Comparator<T>> IteratorOp iteratorOp(final C c,
-                                                  final T buffer) {
-    requireNonNull(c, "Comparator required");
-    if (buffer == null) {
-      return TERMINATE;
-    }
-    switch (type) {
-      case FORWARD_ALL:
-        return RELEASE;
-      case FORWARD_AT_LEAST:
-        return RELEASE;
-      case FORWARD_AT_MOST:
-        return c.compare(buffer, stop) > 0 ? TERMINATE : RELEASE;
-      case FORWARD_CLOSED:
-        return c.compare(buffer, stop) > 0 ? TERMINATE : RELEASE;
-      case BACKWARD_ALL:
-        return RELEASE;
-      case BACKWARD_AT_LEAST:
-        return c.compare(buffer, start) > 0 ? CALL_NEXT_OP : RELEASE; // rewind
-      case BACKWARD_AT_MOST:
-        return c.compare(buffer, stop) >= 0 ? RELEASE : TERMINATE;
-      case BACKWARD_CLOSED:
-        if (c.compare(buffer, start) > 0) {
-          return CALL_NEXT_OP; // rewind
-        }
-        return c.compare(buffer, stop) >= 0 ? RELEASE : TERMINATE;
-      default:
-        throw new IllegalStateException("Invalid type");
-    }
-  }
-
-  /**
-   * Determine the iterator action to take when "next" is called or upon request
-   * of {@link #iteratorOp(java.util.Comparator, java.lang.Object)}.
-   *
-   * <p>
-   * The iterator will perform this action and present the resulting key to
-   * {@link #iteratorOp(java.util.Comparator, java.lang.Object)} for decision.
-   *
-   * @return appropriate action for this key range type
-   */
-  CursorOp nextOp() {
-    return type.isDirectionForward() ? NEXT : PREV;
-  }
-
-  /**
-   * Action now required with the iterator.
-   */
-  enum IteratorOp {
-    /**
-     * Consider iterator completed.
-     */
-    TERMINATE,
-    /**
-     * Call {@link KeyRange#nextOp()} again and try again.
-     */
-    CALL_NEXT_OP,
-    /**
-     * Return the key to the user.
-     */
-    RELEASE
-  }
-
-  /**
-   * Action now required with the cursor.
-   */
-  enum CursorOp {
-    /**
-     * Move to first.
-     */
-    FIRST,
-    /**
-     * Move to last.
-     */
-    LAST,
-    /**
-     * Get "start" key with {@link GetOp#MDB_SET_RANGE}.
-     */
-    GET_START_KEY,
-    /**
-     * Move forward.
-     */
-    NEXT,
-    /**
-     * Move backward.
-     */
-    PREV
   }
 
 }
