@@ -52,6 +52,8 @@ import static org.lmdbjava.KeyRange.closed;
 import static org.lmdbjava.KeyRange.closedBackward;
 import static org.lmdbjava.KeyRange.greaterThan;
 import static org.lmdbjava.KeyRange.greaterThanBackward;
+import static org.lmdbjava.KeyRange.lessThan;
+import static org.lmdbjava.KeyRange.lessThanBackward;
 import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
 import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.bb;
@@ -209,6 +211,18 @@ public final class CursorIteratorTest {
         assertThat(kv.val().getInt(), is(list.pollFirst()));
       }
     }
+  }
+
+  @Test
+  public void lessThanBackwardTest() {
+    verify(lessThanBackward(bb(5)), 8, 6);
+    verify(lessThanBackward(bb(2)), 8, 6, 4);
+  }
+
+  @Test
+  public void lessThanTest() {
+    verify(lessThan(bb(5)), 2, 4);
+    verify(lessThan(bb(8)), 2, 4, 6);
   }
 
   @Test(expected = NoSuchElementException.class)

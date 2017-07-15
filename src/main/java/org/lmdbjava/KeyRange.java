@@ -177,6 +177,28 @@ public final class KeyRange<T> {
   }
 
   /**
+   * Create a {@link KeyRangeType#FORWARD_LESS_THAN} range.
+   *
+   * @param <T>  buffer type
+   * @param stop stop key (required)
+   * @return a key range (never null)
+   */
+  public static <T> KeyRange<T> lessThan(final T stop) {
+    return new KeyRange<>(KeyRangeType.FORWARD_LESS_THAN, null, stop);
+  }
+
+  /**
+   * Create a {@link KeyRangeType#BACKWARD_LESS_THAN} range.
+   *
+   * @param <T>  buffer type
+   * @param stop stop key (required)
+   * @return a key range (never null)
+   */
+  public static <T> KeyRange<T> lessThanBackward(final T stop) {
+    return new KeyRange<>(KeyRangeType.BACKWARD_LESS_THAN, null, stop);
+  }
+
+  /**
    * Start key.
    *
    * @return start key (may be null)

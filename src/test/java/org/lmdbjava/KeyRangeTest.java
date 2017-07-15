@@ -37,6 +37,8 @@ import static org.lmdbjava.KeyRange.closed;
 import static org.lmdbjava.KeyRange.closedBackward;
 import static org.lmdbjava.KeyRange.greaterThan;
 import static org.lmdbjava.KeyRange.greaterThanBackward;
+import static org.lmdbjava.KeyRange.lessThan;
+import static org.lmdbjava.KeyRange.lessThanBackward;
 import org.lmdbjava.KeyRangeType.CursorOp;
 import static org.lmdbjava.KeyRangeType.CursorOp.FIRST;
 import org.lmdbjava.KeyRangeType.IteratorOp;
@@ -131,6 +133,18 @@ public final class KeyRangeTest {
   public void greaterThanTest() {
     verify(greaterThan(4), 6, 8);
     verify(greaterThan(3), 4, 6, 8);
+  }
+
+  @Test
+  public void lessThanBackwardTest() {
+    verify(lessThanBackward(5), 8, 6);
+    verify(lessThanBackward(2), 8, 6, 4);
+  }
+
+  @Test
+  public void lessThanTest() {
+    verify(lessThan(5), 2, 4);
+    verify(lessThan(8), 2, 4, 6);
   }
 
   private void verify(final KeyRange<Integer> range, final int... expected) {
