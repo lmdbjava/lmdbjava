@@ -34,8 +34,8 @@ import static org.lmdbjava.KeyRangeType.FORWARD_ALL;
  */
 public final class KeyRange<T> {
 
-  private static final KeyRange BACK = new KeyRange<>(BACKWARD_ALL, null, null);
-  private static final KeyRange FORW = new KeyRange<>(FORWARD_ALL, null, null);
+  private static final KeyRange<?> BK = new KeyRange<>(BACKWARD_ALL, null, null);
+  private static final KeyRange<?> FW = new KeyRange<>(FORWARD_ALL, null, null);
   private final T start;
   private final T stop;
   private final KeyRangeType type;
@@ -70,8 +70,9 @@ public final class KeyRange<T> {
    * @param <T> buffer type
    * @return a key range (never null)
    */
+  @SuppressWarnings({"checkstyle:SuppressWarnings", "unchecked"})
   public static <T> KeyRange<T> all() {
-    return FORW;
+    return (KeyRange<T>) FW;
   }
 
   /**
@@ -80,8 +81,9 @@ public final class KeyRange<T> {
    * @param <T> buffer type
    * @return a key range (never null)
    */
+  @SuppressWarnings({"checkstyle:SuppressWarnings", "unchecked"})
   public static <T> KeyRange<T> allBackward() {
-    return BACK;
+    return (KeyRange<T>) BK;
   }
 
   /**
