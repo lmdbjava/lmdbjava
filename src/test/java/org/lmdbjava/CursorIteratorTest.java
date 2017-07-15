@@ -20,6 +20,7 @@
 
 package org.lmdbjava;
 
+import com.google.common.primitives.UnsignedBytes;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -267,6 +268,24 @@ public final class CursorIteratorTest {
   public void openClosedBackwardTest() {
     verify(openClosedBackward(bb(7), bb(2)), 6, 4, 2);
     verify(openClosedBackward(bb(8), bb(4)), 6, 4);
+  }
+
+  @Test
+  public void openClosedBackwardTestWithGuava() {
+    final Comparator<byte[]> guava = UnsignedBytes.lexicographicalComparator();
+    final Comparator<ByteBuffer> comparator = (bb1, bb2) -> {
+      final byte[] array1 = new byte[bb1.remaining()];
+      final byte[] array2 = new byte[bb2.remaining()];
+      bb1.mark();
+      bb2.mark();
+      bb1.get(array1);
+      bb2.get(array2);
+      bb1.reset();
+      bb2.reset();
+      return guava.compare(array1, array2);
+    };
+    verify(openClosedBackward(bb(7), bb(2)), comparator, 6, 4, 2);
+    verify(openClosedBackward(bb(8), bb(4)), comparator, 6, 4);
   }
 
   @Test
