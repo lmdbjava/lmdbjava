@@ -98,6 +98,20 @@ public enum KeyRangeType {
    */
   FORWARD_CLOSED(true, true, true),
   /**
+   * Iterate forward between the passed keys, matching on the first keys
+   * directly equal to the passed key (or immediately following it in the case
+   * of the "start" key, or immediately preceding it in the case of the "stop"
+   * key). Do not return the "stop" key.
+   *
+   * <p>
+   * The "start" and "stop" values are both required.
+   *
+   * <p>
+   * In our example and with a passed search range of 3 - 8, the returned keys
+   * would be 4 and 6. With a range of 2 - 6, the keys would be 2 and 4.
+   */
+  FORWARD_CLOSED_OPEN(true, true, true),
+  /**
    * Start after the passed key (but not equal to it) and iterate forward until
    * no keys remain.
    *
@@ -180,6 +194,20 @@ public enum KeyRangeType {
    * would be 6 and 4. With a range of 6 - 2, the keys would be 6, 4 and 2.
    */
   BACKWARD_CLOSED(false, true, true),
+  /**
+   * Iterate backward between the passed keys, matching on the first keys
+   * directly equal to the passed key (or immediately preceding it in the case
+   * of the "start" key, or immediately following it in the case of the "stop"
+   * key). Do not return the "stop" key.
+   *
+   * <p>
+   * The "start" and "stop" values are both required.
+   *
+   * <p>
+   * In our example and with a passed search range of 8 - 3, the returned keys
+   * would be 8, 6 and 4. With a range of 7 - 2, the keys would be 6 and 4.
+   */
+  BACKWARD_CLOSED_OPEN(false, true, true),
   /**
    * Start immediate prior to the passed key (but not equal to it) and iterate
    * backward until no keys remain.
@@ -275,6 +303,8 @@ public enum KeyRangeType {
         return FIRST;
       case FORWARD_CLOSED:
         return GET_START_KEY;
+      case FORWARD_CLOSED_OPEN:
+        return GET_START_KEY;
       case FORWARD_GREATER_THAN:
         return GET_START_KEY;
       case FORWARD_LESS_THAN:
@@ -288,6 +318,8 @@ public enum KeyRangeType {
       case BACKWARD_AT_MOST:
         return LAST;
       case BACKWARD_CLOSED:
+        return GET_START_KEY;
+      case BACKWARD_CLOSED_OPEN:
         return GET_START_KEY;
       case BACKWARD_GREATER_THAN:
         return GET_START_KEY;
@@ -327,6 +359,8 @@ public enum KeyRangeType {
         return c.compare(buffer, stop) > 0 ? TERMINATE : RELEASE;
       case FORWARD_CLOSED:
         return c.compare(buffer, stop) > 0 ? TERMINATE : RELEASE;
+      case FORWARD_CLOSED_OPEN:
+        return c.compare(buffer, stop) >= 0 ? TERMINATE : RELEASE;
       case FORWARD_GREATER_THAN:
         return c.compare(buffer, start) == 0 ? CALL_NEXT_OP : RELEASE;
       case FORWARD_LESS_THAN:
@@ -347,6 +381,11 @@ public enum KeyRangeType {
           return CALL_NEXT_OP; // rewind
         }
         return c.compare(buffer, stop) >= 0 ? RELEASE : TERMINATE;
+      case BACKWARD_CLOSED_OPEN:
+        if (c.compare(buffer, start) > 0) {
+          return CALL_NEXT_OP; // rewind
+        }
+        return c.compare(buffer, stop) > 0 ? RELEASE : TERMINATE;
       case BACKWARD_GREATER_THAN:
         return c.compare(buffer, start) >= 0 ? CALL_NEXT_OP : RELEASE;
       case BACKWARD_LESS_THAN:

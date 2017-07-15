@@ -35,6 +35,8 @@ import static org.lmdbjava.KeyRange.atMost;
 import static org.lmdbjava.KeyRange.atMostBackward;
 import static org.lmdbjava.KeyRange.closed;
 import static org.lmdbjava.KeyRange.closedBackward;
+import static org.lmdbjava.KeyRange.closedOpen;
+import static org.lmdbjava.KeyRange.closedOpenBackward;
 import static org.lmdbjava.KeyRange.greaterThan;
 import static org.lmdbjava.KeyRange.greaterThanBackward;
 import static org.lmdbjava.KeyRange.lessThan;
@@ -101,6 +103,18 @@ public final class KeyRangeTest {
   public void closedBackwardTest() {
     verify(closedBackward(7, 3), 6, 4);
     verify(closedBackward(6, 2), 6, 4, 2);
+  }
+
+  @Test
+  public void closedOpenBackwardTest() {
+    verify(closedOpenBackward(8, 3), 8, 6, 4);
+    verify(closedOpenBackward(7, 2), 6, 4);
+  }
+
+  @Test
+  public void closedOpenTest() {
+    verify(closedOpen(3, 8), 4, 6);
+    verify(closedOpen(2, 6), 2, 4);
   }
 
   @Test
