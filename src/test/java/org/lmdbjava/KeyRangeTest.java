@@ -43,6 +43,8 @@ import static org.lmdbjava.KeyRange.lessThan;
 import static org.lmdbjava.KeyRange.lessThanBackward;
 import static org.lmdbjava.KeyRange.open;
 import static org.lmdbjava.KeyRange.openBackward;
+import static org.lmdbjava.KeyRange.openClosed;
+import static org.lmdbjava.KeyRange.openClosedBackward;
 import org.lmdbjava.KeyRangeType.CursorOp;
 import static org.lmdbjava.KeyRangeType.CursorOp.FIRST;
 import org.lmdbjava.KeyRangeType.IteratorOp;
@@ -167,6 +169,18 @@ public final class KeyRangeTest {
   public void openBackwardTest() {
     verify(openBackward(7, 2), 6, 4);
     verify(openBackward(8, 1), 6, 4, 2);
+  }
+
+  @Test
+  public void openClosedBackwardTest() {
+    verify(openClosedBackward(7, 2), 6, 4, 2);
+    verify(openClosedBackward(8, 4), 6, 4);
+  }
+
+  @Test
+  public void openClosedTest() {
+    verify(openClosed(3, 8), 4, 6, 8);
+    verify(openClosed(2, 6), 4, 6);
   }
 
   @Test

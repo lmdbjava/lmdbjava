@@ -58,6 +58,8 @@ import static org.lmdbjava.KeyRange.lessThan;
 import static org.lmdbjava.KeyRange.lessThanBackward;
 import static org.lmdbjava.KeyRange.open;
 import static org.lmdbjava.KeyRange.openBackward;
+import static org.lmdbjava.KeyRange.openClosed;
+import static org.lmdbjava.KeyRange.openClosedBackward;
 import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
 import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.bb;
@@ -258,6 +260,18 @@ public final class CursorIteratorTest {
   public void openBackwardTest() {
     verify(openBackward(bb(7), bb(2)), 6, 4);
     verify(openBackward(bb(8), bb(1)), 6, 4, 2);
+  }
+
+  @Test
+  public void openClosedBackwardTest() {
+    verify(openClosedBackward(bb(7), bb(2)), 6, 4, 2);
+    verify(openClosedBackward(bb(8), bb(4)), 6, 4);
+  }
+
+  @Test
+  public void openClosedTest() {
+    verify(openClosed(bb(3), bb(8)), 4, 6, 8);
+    verify(openClosed(bb(2), bb(6)), 4, 6);
   }
 
   @Test

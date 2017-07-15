@@ -247,6 +247,30 @@ public final class KeyRange<T> {
   }
 
   /**
+   * Create a {@link KeyRangeType#FORWARD_OPEN_CLOSED} range.
+   *
+   * @param <T>   buffer type
+   * @param start start key (required)
+   * @param stop  stop key (required)
+   * @return a key range (never null)
+   */
+  public static <T> KeyRange<T> openClosed(final T start, final T stop) {
+    return new KeyRange<>(KeyRangeType.FORWARD_OPEN_CLOSED, start, stop);
+  }
+
+  /**
+   * Create a {@link KeyRangeType#BACKWARD_OPEN_CLOSED} range.
+   *
+   * @param <T>   buffer type
+   * @param start start key (required)
+   * @param stop  stop key (required)
+   * @return a key range (never null)
+   */
+  public static <T> KeyRange<T> openClosedBackward(final T start, final T stop) {
+    return new KeyRange<>(KeyRangeType.BACKWARD_OPEN_CLOSED, start, stop);
+  }
+
+  /**
    * Start key.
    *
    * @return start key (may be null)

@@ -147,6 +147,18 @@ public enum KeyRangeType {
    */
   FORWARD_OPEN(true, true, true),
   /**
+   * Iterate forward between the passed keys. Do not return the "start" key, but
+   * do return the "stop" key.
+   *
+   * <p>
+   * The "start" and "stop" values are both required.
+   *
+   * <p>
+   * In our example and with a passed search range of 3 - 8, the returned keys
+   * would be 4, 6 and 8. With a range of 2 - 6, the keys would be 4 and 6.
+   */
+  FORWARD_OPEN_CLOSED(true, true, true),
+  /**
    * Start on the last key and iterate backward until no keys remain.
    *
    * <p>
@@ -243,7 +255,19 @@ public enum KeyRangeType {
    * In our example and with a passed search range of 7 - 2, the returned keys
    * would be 6 and 4. With a range of 8 - 1, the keys would be 6, 4 and 2.
    */
-  BACKWARD_OPEN(false, true, true);
+  BACKWARD_OPEN(false, true, true),
+  /**
+   * Iterate backward between the passed keys. Do not return the "start" key,
+   * but do return the "stop" key.
+   *
+   * <p>
+   * The "start" and "stop" values are both required.
+   *
+   * <p>
+   * In our example and with a passed search range of 7 - 2, the returned keys
+   * would be 6, 4 and 2. With a range of 8 - 4, the keys would be 6 and 4.
+   */
+  BACKWARD_OPEN_CLOSED(false, true, true);
 
   private final boolean directionForward;
   private final boolean startKeyRequired;
@@ -311,6 +335,8 @@ public enum KeyRangeType {
         return FIRST;
       case FORWARD_OPEN:
         return GET_START_KEY;
+      case FORWARD_OPEN_CLOSED:
+        return GET_START_KEY;
       case BACKWARD_ALL:
         return LAST;
       case BACKWARD_AT_LEAST:
@@ -326,6 +352,8 @@ public enum KeyRangeType {
       case BACKWARD_LESS_THAN:
         return LAST;
       case BACKWARD_OPEN:
+        return GET_START_KEY;
+      case BACKWARD_OPEN_CLOSED:
         return GET_START_KEY;
       default:
         throw new IllegalStateException("Invalid type");
@@ -343,7 +371,7 @@ public enum KeyRangeType {
    * @param c      comparator (required)
    * @return response to this key
    */
-  @SuppressWarnings("checkstyle:ReturnCount")
+  @SuppressWarnings({"checkstyle:ReturnCount", "PMD.NPathComplexity"})
   <T, C extends Comparator<T>> IteratorOp iteratorOp(final T start, final T stop,
                                                      final T buffer, final C c) {
     requireNonNull(c, "Comparator required");
@@ -370,6 +398,11 @@ public enum KeyRangeType {
           return CALL_NEXT_OP;
         }
         return c.compare(buffer, stop) >= 0 ? TERMINATE : RELEASE;
+      case FORWARD_OPEN_CLOSED:
+        if (c.compare(buffer, start) == 0) {
+          return CALL_NEXT_OP;
+        }
+        return c.compare(buffer, stop) > 0 ? TERMINATE : RELEASE;
       case BACKWARD_ALL:
         return RELEASE;
       case BACKWARD_AT_LEAST:
@@ -395,6 +428,11 @@ public enum KeyRangeType {
           return CALL_NEXT_OP; // rewind
         }
         return c.compare(buffer, stop) > 0 ? RELEASE : TERMINATE;
+      case BACKWARD_OPEN_CLOSED:
+        if (c.compare(buffer, start) >= 0) {
+          return CALL_NEXT_OP; // rewind
+        }
+        return c.compare(buffer, stop) >= 0 ? RELEASE : TERMINATE;
       default:
         throw new IllegalStateException("Invalid type");
     }
