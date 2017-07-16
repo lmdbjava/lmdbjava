@@ -36,6 +36,7 @@ import static jnr.ffi.LibraryLoader.create;
 import jnr.ffi.Pointer;
 import static jnr.ffi.Runtime.getRuntime;
 import jnr.ffi.Struct;
+import jnr.ffi.annotations.Delegate;
 import jnr.ffi.annotations.In;
 import jnr.ffi.annotations.Out;
 import jnr.ffi.byref.IntByReference;
@@ -185,6 +186,16 @@ final class Library {
   }
 
   /**
+   * Custom comparator callback used by <code>mdb_set_compare</code>.
+   */
+  public interface ComparatorCallback {
+
+    @Delegate
+    int compare(@In Pointer keyA, @In Pointer keyB);
+
+  }
+
+  /**
    * JNR API for MDB-defined C functions. Not for external use.
    */
   @SuppressWarnings({"checkstyle:methodname", "PMD.MethodNamingConventions"})
@@ -259,6 +270,8 @@ final class Library {
                 int flags);
 
     int mdb_reader_check(@In Pointer env, int dead);
+
+    int mdb_set_compare(@In Pointer txn, @In Pointer dbi, ComparatorCallback cb);
 
     int mdb_stat(@In Pointer txn, @In Pointer dbi, @Out MDB_stat stat);
 

@@ -36,6 +36,7 @@ import static org.lmdbjava.KeyRange.all;
 import static org.lmdbjava.KeyRange.allBackward;
 import static org.lmdbjava.KeyRange.atLeast;
 import static org.lmdbjava.KeyRange.atLeastBackward;
+import org.lmdbjava.Library.ComparatorCallback;
 import static org.lmdbjava.Library.LIB;
 import org.lmdbjava.Library.MDB_stat;
 import static org.lmdbjava.Library.RUNTIME;
@@ -53,18 +54,39 @@ import static org.lmdbjava.ResultCodeMapper.checkRc;
  */
 public final class Dbi<T> {
 
+  private final Comparator<T> compFunc;
+  private final T compKeyA;
+  private final T compKeyB;
   private final Env<T> env;
   private final byte[] name;
+  private final BufferProxy<T> proxy;
   private final Pointer ptr;
 
   Dbi(final Env<T> env, final Txn<T> txn, final byte[] name,
-      final DbiFlags... flags) {
+      final Comparator<T> comparator, final DbiFlags... flags) {
     this.env = env;
     this.name = name == null ? null : Arrays.copyOf(name, name.length);
     final int flagsMask = mask(flags);
     final Pointer dbiPtr = allocateDirect(RUNTIME, ADDRESS);
     checkRc(LIB.mdb_dbi_open(txn.pointer(), name, flagsMask, dbiPtr));
     ptr = dbiPtr.getPointer(0);
+    if (comparator == null) {
+      proxy = null;
+      compFunc = null;
+      compKeyA = null;
+      compKeyB = null;
+    } else {
+      this.proxy = txn.getProxy();
+      this.compFunc = comparator;
+      this.compKeyA = proxy.allocate();
+      this.compKeyB = proxy.allocate();
+      final ComparatorCallback ccb = (keyA, keyB) -> {
+        proxy.out(compKeyA, keyA, keyA.address());
+        proxy.out(compKeyB, keyB, keyB.address());
+        return compFunc.compare(compKeyA, compKeyB);
+      };
+      LIB.mdb_set_compare(txn.pointer(), ptr, ccb);
+    }
   }
 
   /**
@@ -79,6 +101,10 @@ public final class Dbi<T> {
    * state accordingly.
    */
   public void close() {
+    if (compKeyA != null) {
+      proxy.deallocate(compKeyA);
+      proxy.deallocate(compKeyB);
+    }
     LIB.mdb_dbi_close(env.pointer(), ptr);
   }
 
@@ -264,14 +290,14 @@ public final class Dbi<T> {
 
   /**
    * Iterate the database in accordance with the provided {@link KeyRange} and
-   * default {@link Comparator} for this buffer type.
+   * default {@link Comparator}.
    *
    * @param txn   transaction handle (not null; not committed)
    * @param range range of acceptable keys (not null)
    * @return iterator (never null)
    */
   public CursorIterator<T> iterate(final Txn<T> txn, final KeyRange<T> range) {
-    return iterate(txn, range, txn.comparator());
+    return iterate(txn, range, null);
   }
 
   /**
@@ -279,7 +305,14 @@ public final class Dbi<T> {
    * {@link Comparator}.
    *
    * <p>
-   * If a null comparator is provided, the buffer's default comparator is used.
+   * If a comparator is provided, it must reflect the same ordering as LMDB uses
+   * for cursor operations (eg first, next, last, previous etc).
+   *
+   * <p>
+   * If a null comparator is provided, any comparator provided when opening the
+   * database is used. If no database comparator was specified, the buffer's
+   * default comparator is used. Such buffer comparators reflect LMDB's default
+   * lexicographical order.
    *
    * @param txn        transaction handle (not null; not committed)
    * @param range      range of acceptable keys (not null)
@@ -293,9 +326,13 @@ public final class Dbi<T> {
       requireNonNull(range);
       txn.checkReady();
     }
-    final Comparator<T> useComparator = comparator == null
-        ? txn.comparator() : comparator;
-    return new CursorIterator<>(txn, this, range, useComparator);
+    final Comparator<T> useComp;
+    if (comparator == null) {
+      useComp = compFunc == null ? txn.comparator() : compFunc;
+    } else {
+      useComp = comparator;
+    }
+    return new CursorIterator<>(txn, this, range, useComp);
   }
 
   /**

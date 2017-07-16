@@ -29,6 +29,7 @@ import java.nio.ByteBuffer;
 import static java.nio.ByteBuffer.allocateDirect;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.nCopies;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Random;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -53,6 +54,7 @@ import org.lmdbjava.Env.MapFullException;
 import static org.lmdbjava.Env.create;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.GetOp.MDB_SET_KEY;
+import static org.lmdbjava.KeyRange.atMost;
 import org.lmdbjava.LmdbNativeException.ConstantDerviedException;
 import static org.lmdbjava.PutFlags.MDB_NODUPDATA;
 import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
@@ -90,6 +92,31 @@ public final class DbiTest {
     db.put(bb(1), bb(42));
     db.close();
     db.put(bb(2), bb(42)); // error
+  }
+
+  @Test
+  public void customComparator() {
+    final Comparator<ByteBuffer> reverseOrder = (o1, o2) -> {
+      final int lexicalOrder = ByteBufferProxy.PROXY_OPTIMAL.compare(o1, o2);
+      if (lexicalOrder == 0) {
+        return 0;
+      }
+      return lexicalOrder * -1;
+    };
+    final Dbi<ByteBuffer> db = env.openDbi(DB_1, reverseOrder, MDB_CREATE);
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
+      assertThat(db.put(txn, bb(2), bb(3)), is(true));
+      assertThat(db.put(txn, bb(4), bb(6)), is(true));
+      assertThat(db.put(txn, bb(6), bb(7)), is(true));
+      assertThat(db.put(txn, bb(8), bb(7)), is(true));
+      txn.commit();
+    }
+    try (Txn<ByteBuffer> txn = env.txnRead()) {
+      final CursorIterator<ByteBuffer> iter = db.iterate(txn, atMost(bb(4)));
+      assertThat(iter.next().key(), is(bb(8)));
+      assertThat(iter.next().key(), is(bb(6)));
+      assertThat(iter.next().key(), is(bb(4)));
+    }
   }
 
   @Test(expected = DbFullException.class)

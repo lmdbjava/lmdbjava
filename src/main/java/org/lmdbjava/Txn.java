@@ -207,6 +207,15 @@ public final class Txn<T> implements AutoCloseable {
   }
 
   /**
+   * Obtain the buffer proxy.
+   *
+   * @return proxy (never null)
+   */
+  BufferProxy<T> getProxy() {
+    return proxy;
+  }
+
+  /**
    * Return the state of the transaction.
    *
    * @return the state
