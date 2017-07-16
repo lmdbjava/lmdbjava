@@ -100,8 +100,7 @@ public abstract class BufferProxy<T> { // NOPMD
 
   /**
    * Called when the <code>MDB_val</code> should be set to reflect the passed
-   * buffer. This buffer will have been created by end users, not
-   * {@link #allocate()}.
+   * buffer.
    *
    * @param buffer  the buffer to write to <code>MDB_val</code>
    * @param size    the buffer size to write to <code>MDB_val</code>
