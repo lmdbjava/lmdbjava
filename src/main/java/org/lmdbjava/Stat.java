@@ -67,4 +67,12 @@ public final class Stat {
     this.entries = entries;
   }
 
+  @Override
+  public String toString() {
+    return "Stat{" + "branchPages=" + branchPages + ", depth=" + depth
+               + ", entries=" + entries + ", leafPages=" + leafPages
+               + ", overflowPages=" + overflowPages + ", pageSize=" + pageSize
+               + '}';
+  }
+
 }

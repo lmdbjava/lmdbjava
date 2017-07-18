@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import static java.nio.ByteBuffer.allocateDirect;
 import java.util.Random;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -224,6 +225,7 @@ public final class EnvTest {
       assertThat(info.mapSize, is(123_456L));
       assertThat(info.maxReaders, is(4));
       assertThat(info.numReaders, is(0));
+      assertThat(info.toString(), containsString("maxReaders="));
       assertThat(env.getMaxKeySize(), is(511));
     }
   }
@@ -275,6 +277,7 @@ public final class EnvTest {
       assertThat(stat.leafPages, is(0L));
       assertThat(stat.overflowPages, is(0L));
       assertThat(stat.pageSize, is(4_096));
+      assertThat(stat.toString(), containsString("pageSize="));
     }
   }
 

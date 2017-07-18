@@ -66,4 +66,12 @@ public final class EnvInfo {
     this.numReaders = numReaders;
   }
 
+  @Override
+  public String toString() {
+    return "EnvInfo{" + "lastPageNumber=" + lastPageNumber
+               + ", lastTransactionId=" + lastTransactionId + ", mapAddress="
+               + mapAddress + ", mapSize=" + mapSize + ", maxReaders="
+               + maxReaders + ", numReaders=" + numReaders + '}';
+  }
+
 }
