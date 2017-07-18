@@ -29,6 +29,7 @@ import static org.lmdbjava.Env.SHOULD_CHECK;
 import static org.lmdbjava.Library.LIB;
 import static org.lmdbjava.MaskedFlag.isSet;
 import static org.lmdbjava.MaskedFlag.mask;
+import static org.lmdbjava.PutFlags.MDB_MULTIPLE;
 import static org.lmdbjava.PutFlags.MDB_NODUPDATA;
 import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
 import static org.lmdbjava.PutFlags.MDB_RESERVE;
@@ -222,6 +223,42 @@ public final class Cursor<T> implements AutoCloseable {
     }
     checkRc(rc);
     return true;
+  }
+
+  /**
+   * Put multiple values into the database in one <code>MDB_MULTIPLE</code>
+   * operation.
+   *
+   * <p>
+   * The database must have been opened with {@link DbiFlags#MDB_DUPFIXED}. The
+   * buffer must contain fixed-sized values to be inserted. The size of each
+   * element is calculated from the buffer's size divided by the given element
+   * count. For example, to populate 10 X 4 byte integers at once, present a
+   * buffer of 40 bytes and specify the element as 10.
+   *
+   * @param key      key to store in the database (not null)
+   * @param val      value to store in the database (not null)
+   * @param elements number of elements contained in the passed value buffer
+   * @param op       options for operation (must set <code>MDB_MULTIPLE</code>)
+   */
+  public void putMultiple(final T key, final T val, final int elements,
+                          final PutFlags... op) {
+    if (SHOULD_CHECK) {
+      requireNonNull(txn);
+      requireNonNull(key);
+      requireNonNull(val);
+      txn.checkReady();
+      txn.checkWritesAllowed();
+    }
+    final int mask = mask(op);
+    if (SHOULD_CHECK && !isSet(mask, MDB_MULTIPLE)) {
+      throw new IllegalArgumentException("Must set " + MDB_MULTIPLE + " flag");
+    }
+    txn.kv().keyIn(key);
+    final Pointer dataPtr = txn.kv().valInMulti(val, elements);
+    final int rc = LIB.mdb_cursor_put(ptrCursor, txn.kv().pointerKey(),
+                                      dataPtr, mask);
+    checkRc(rc);
   }
 
   /**

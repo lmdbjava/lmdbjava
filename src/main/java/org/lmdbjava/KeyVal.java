@@ -24,6 +24,7 @@ import static java.util.Objects.requireNonNull;
 import jnr.ffi.Pointer;
 import jnr.ffi.provider.MemoryManager;
 import static org.lmdbjava.BufferProxy.MDB_VAL_STRUCT_SIZE;
+import static org.lmdbjava.BufferProxy.STRUCT_FIELD_OFFSET_SIZE;
 import static org.lmdbjava.Library.RUNTIME;
 
 /**
@@ -37,6 +38,7 @@ final class KeyVal<T> implements AutoCloseable {
   private boolean closed;
   private T k;
   private final BufferProxy<T> proxy;
+  private final Pointer ptrArray;
   private final Pointer ptrKey;
   private final long ptrKeyAddr;
   private final Pointer ptrVal;
@@ -50,7 +52,8 @@ final class KeyVal<T> implements AutoCloseable {
     this.v = proxy.allocate();
     ptrKey = MEM_MGR.allocateTemporary(MDB_VAL_STRUCT_SIZE, false);
     ptrKeyAddr = ptrKey.address();
-    ptrVal = MEM_MGR.allocateTemporary(MDB_VAL_STRUCT_SIZE, false);
+    ptrArray = MEM_MGR.allocateTemporary(MDB_VAL_STRUCT_SIZE * 2, false);
+    ptrVal = ptrArray.slice(0, MDB_VAL_STRUCT_SIZE);
     ptrValAddr = ptrVal.address();
   }
 
@@ -95,6 +98,35 @@ final class KeyVal<T> implements AutoCloseable {
 
   void valIn(final int size) {
     proxy.in(v, size, ptrVal, ptrValAddr);
+  }
+
+  /**
+   * Prepares an array suitable for presentation as the data argument to a
+   * <code>MDB_MULTIPLE</code> put.
+   *
+   * <p>
+   * The returned array is equivalent of two <code>MDB_val</code>s as follows:
+   *
+   * <ul>
+   * <li>ptrVal1.data = pointer to the data address of passed buffer</li>
+   * <li>ptrVal1.size = size of each individual data element</li>
+   * <li>ptrVal2.data = unused</li>
+   * <li>ptrVal2.size = number of data elements (as passed to this method)</li>
+   * </ul>
+   *
+   * @param val      a user-provided buffer with data elements (required)
+   * @param elements number of data elements the user has provided
+   * @return a properly-prepared pointer to an array for the operation
+   */
+  Pointer valInMulti(final T val, final int elements) {
+    final long ptrVal2SizeOff = MDB_VAL_STRUCT_SIZE + STRUCT_FIELD_OFFSET_SIZE;
+    ptrArray.putLong(ptrVal2SizeOff, elements); // ptrVal2.size
+    proxy.in(val, ptrVal, ptrValAddr); // ptrVal1.data
+    final long totalBufferSize = ptrVal.getLong(STRUCT_FIELD_OFFSET_SIZE);
+    final long elemSize = totalBufferSize / elements;
+    ptrVal.putLong(STRUCT_FIELD_OFFSET_SIZE, elemSize); // ptrVal1.size
+
+    return ptrArray;
   }
 
   T valOut() {

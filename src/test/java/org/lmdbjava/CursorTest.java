@@ -26,6 +26,7 @@ import java.io.IOException;
 import static java.lang.Long.BYTES;
 import static java.lang.Long.MIN_VALUE;
 import java.nio.ByteBuffer;
+import static java.nio.ByteBuffer.allocateDirect;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import org.junit.After;
@@ -38,10 +39,12 @@ import org.junit.rules.TemporaryFolder;
 import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
 import org.lmdbjava.Cursor.ClosedException;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
+import static org.lmdbjava.DbiFlags.MDB_DUPFIXED;
 import static org.lmdbjava.DbiFlags.MDB_DUPSORT;
 import static org.lmdbjava.Env.create;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.PutFlags.MDB_APPENDDUP;
+import static org.lmdbjava.PutFlags.MDB_MULTIPLE;
 import static org.lmdbjava.PutFlags.MDB_NODUPDATA;
 import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
 import static org.lmdbjava.SeekOp.MDB_FIRST;
@@ -166,6 +169,36 @@ public final class CursorTest {
       assertThat(c.val().getInt(), is(4));
       c.delete();
       assertThat(c.seek(MDB_FIRST), is(false));
+    }
+  }
+
+  @Test
+  public void putMultiple() {
+    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT,
+                                           MDB_DUPFIXED);
+    final int elemCount = 20;
+
+    final ByteBuffer values = allocateDirect(Integer.BYTES * elemCount);
+    for (int i = 1; i <= elemCount; i++) {
+      values.putInt(i);
+    }
+    values.flip();
+
+    final int key = 100;
+    final ByteBuffer k = bb(key);
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
+      final Cursor<ByteBuffer> c = db.openCursor(txn);
+      c.putMultiple(k, values, elemCount, MDB_MULTIPLE);
+      assertThat(c.count(), is((long) elemCount));
+    }
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void putMultipleWithoutMdbMultipleFlag() {
+    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
+      final Cursor<ByteBuffer> c = db.openCursor(txn);
+      c.putMultiple(bb(100), bb(1), 1);
     }
   }
 
