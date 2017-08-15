@@ -23,6 +23,7 @@ package org.lmdbjava;
 import static java.lang.Integer.MAX_VALUE;
 import java.util.HashSet;
 import java.util.Set;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -105,6 +106,16 @@ public final class ResultCodeMapperTest {
   @Test(expected = ConstantDerviedException.class)
   public void checkErrConstantDerived() {
     checkRc(20);
+  }
+
+  @Test
+  public void checkErrConstantDerivedMessage() {
+    try {
+      checkRc(2);
+      fail("Should have raised exception");
+    } catch (final ConstantDerviedException ex) {
+      assertThat(ex.getMessage(), containsString("No such file or directory"));
+    }
   }
 
   @Test(expected = FullException.class)
