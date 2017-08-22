@@ -29,6 +29,7 @@ import java.nio.ByteBuffer;
 import static java.nio.ByteBuffer.allocateDirect;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.nCopies;
+
 import java.util.Comparator;
 import java.util.List;
 import java.util.Random;
@@ -142,6 +143,38 @@ public final class DbiTest {
       db.put(txn, bb(2), bb(42));
       assertThat(db.get(txn, bb(1)), not(nullValue()));
       assertThat(db.get(txn, bb(2)), not(nullValue()));
+    }
+  }
+
+  @Test
+  public void dropAndDelete() {
+    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
+    final Dbi<ByteBuffer> nameDb = env.openDbi((byte[]) null);
+    final byte[] dbNameBytes = DB_1.getBytes(UTF_8);
+    final ByteBuffer dbNameBuffer = allocateDirect(dbNameBytes.length);
+    dbNameBuffer.put(dbNameBytes).flip();
+
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
+      assertThat(nameDb.get(txn, dbNameBuffer), not(nullValue()));
+      db.drop(txn, true);
+      assertThat(nameDb.get(txn, dbNameBuffer), is(nullValue()));
+      txn.commit();
+    }
+  }
+
+  @Test
+  public void dropAndDeleteAnonymousDb() {
+    env.openDbi(DB_1, MDB_CREATE);
+    final Dbi<ByteBuffer> nameDb = env.openDbi((byte[]) null);
+    final byte[] dbNameBytes = DB_1.getBytes(UTF_8);
+    final ByteBuffer dbNameBuffer = allocateDirect(dbNameBytes.length);
+    dbNameBuffer.put(dbNameBytes).flip();
+
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
+      assertThat(nameDb.get(txn, dbNameBuffer), not(nullValue()));
+      nameDb.drop(txn, true);
+      assertThat(nameDb.get(txn, dbNameBuffer), is(nullValue()));
+      txn.commit();
     }
   }
 

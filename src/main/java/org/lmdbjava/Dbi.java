@@ -62,6 +62,8 @@ public final class Dbi<T> {
   private final BufferProxy<T> proxy;
   private final Pointer ptr;
 
+  private boolean isClean;
+
   Dbi(final Env<T> env, final Txn<T> txn, final byte[] name,
       final Comparator<T> comparator, final DbiFlags... flags) {
     this.env = env;
@@ -101,11 +103,19 @@ public final class Dbi<T> {
    * state accordingly.
    */
   public void close() {
+    clean();
+    LIB.mdb_dbi_close(env.pointer(), ptr);
+  }
+
+  private void clean() {
+    if (isClean) {
+      return;
+    }
+    isClean = true;
     if (compKeyA != null) {
       proxy.deallocate(compKeyA);
       proxy.deallocate(compKeyB);
     }
-    LIB.mdb_dbi_close(env.pointer(), ptr);
   }
 
   /**
@@ -186,12 +196,28 @@ public final class Dbi<T> {
    * @param txn transaction handle (not null; not committed; must be R-W)
    */
   public void drop(final Txn<T> txn) {
+    drop(txn, false);
+  }
+
+  /**
+   * Drops the database. If delete is set to true, the database will be deleted
+   * and handle will be closed. See {@link #close()} for implication of handle close.
+   * Otherwise, only the data in this database will be dropped.
+   *
+   * @param txn transaction handle (not null; not committed; must be R-W)
+   * @param delete whether database should be deleted.
+   */
+  public void drop(final Txn<T> txn, final boolean delete) {
     if (SHOULD_CHECK) {
       requireNonNull(txn);
       txn.checkReady();
       txn.checkWritesAllowed();
     }
-    checkRc(LIB.mdb_drop(txn.pointer(), ptr, 0));
+    if (delete) {
+      clean();
+    }
+    final int del = delete ? 1 : 0;
+    checkRc(LIB.mdb_drop(txn.pointer(), ptr, del));
   }
 
   /**
