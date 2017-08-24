@@ -29,7 +29,6 @@ import java.nio.ByteBuffer;
 import static java.nio.ByteBuffer.allocateDirect;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.nCopies;
-
 import java.util.Comparator;
 import java.util.List;
 import java.util.Random;
@@ -176,6 +175,8 @@ public final class DbiTest {
       assertThat(nameDb.get(txn, dbNameBuffer), is(nullValue()));
       txn.commit();
     }
+    
+    nameDb.close(); // explicit close after drop is OK
   }
 
   @Test

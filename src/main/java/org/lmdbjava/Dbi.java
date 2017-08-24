@@ -54,6 +54,7 @@ import static org.lmdbjava.ResultCodeMapper.checkRc;
  */
 public final class Dbi<T> {
 
+  private boolean cleaned;
   private final Comparator<T> compFunc;
   private final T compKeyA;
   private final T compKeyB;
@@ -61,8 +62,6 @@ public final class Dbi<T> {
   private final byte[] name;
   private final BufferProxy<T> proxy;
   private final Pointer ptr;
-
-  private boolean isClean;
 
   Dbi(final Env<T> env, final Txn<T> txn, final byte[] name,
       final Comparator<T> comparator, final DbiFlags... flags) {
@@ -105,17 +104,6 @@ public final class Dbi<T> {
   public void close() {
     clean();
     LIB.mdb_dbi_close(env.pointer(), ptr);
-  }
-
-  private void clean() {
-    if (isClean) {
-      return;
-    }
-    isClean = true;
-    if (compKeyA != null) {
-      proxy.deallocate(compKeyA);
-      proxy.deallocate(compKeyB);
-    }
   }
 
   /**
@@ -201,10 +189,10 @@ public final class Dbi<T> {
 
   /**
    * Drops the database. If delete is set to true, the database will be deleted
-   * and handle will be closed. See {@link #close()} for implication of handle close.
-   * Otherwise, only the data in this database will be dropped.
+   * and handle will be closed. See {@link #close()} for implication of handle
+   * close. Otherwise, only the data in this database will be dropped.
    *
-   * @param txn transaction handle (not null; not committed; must be R-W)
+   * @param txn    transaction handle (not null; not committed; must be R-W)
    * @param delete whether database should be deleted.
    */
   public void drop(final Txn<T> txn, final boolean delete) {
@@ -498,6 +486,17 @@ public final class Dbi<T> {
         stat.f3_ms_leaf_pages.longValue(),
         stat.f4_ms_overflow_pages.longValue(),
         stat.f5_ms_entries.longValue());
+  }
+
+  private void clean() {
+    if (cleaned) {
+      return;
+    }
+    cleaned = true;
+    if (compKeyA != null) {
+      proxy.deallocate(compKeyA);
+      proxy.deallocate(compKeyB);
+    }
   }
 
   /**
