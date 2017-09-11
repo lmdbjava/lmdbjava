@@ -155,6 +155,8 @@ public final class Cursor<T> implements AutoCloseable {
   }
 
   /**
+   * Obtain the key.
+   *
    * @return the key that the cursor is located at.
    */
   public T key() {
@@ -345,6 +347,8 @@ public final class Cursor<T> implements AutoCloseable {
   }
 
   /**
+   * Obtain the value.
+   *
    * @return the value that the cursor is located at.
    */
   public T val() {
