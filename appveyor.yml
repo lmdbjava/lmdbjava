@@ -3,7 +3,7 @@ version: '{build}'
 clone_depth: 50
 
 environment:
-  MVN_VER: 3.3.9
+  MVN_VER: 3.5.2
   PYTHON: "C:\\Python35"
 
 cache:
