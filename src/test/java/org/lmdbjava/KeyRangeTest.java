@@ -46,7 +46,6 @@ import static org.lmdbjava.KeyRange.openBackward;
 import static org.lmdbjava.KeyRange.openClosed;
 import static org.lmdbjava.KeyRange.openClosedBackward;
 import org.lmdbjava.KeyRangeType.CursorOp;
-import static org.lmdbjava.KeyRangeType.CursorOp.FIRST;
 import org.lmdbjava.KeyRangeType.IteratorOp;
 import static org.lmdbjava.KeyRangeType.IteratorOp.TERMINATE;
 
@@ -233,6 +232,7 @@ public final class KeyRangeTest {
 
     @SuppressWarnings("checkstyle:ReturnCount")
     Integer apply(final CursorOp op, final Integer startKey) {
+      final Integer key;
       switch (op) {
         case FIRST:
           return first();
@@ -244,6 +244,12 @@ public final class KeyRangeTest {
           return prev();
         case GET_START_KEY:
           return getWithSetRange(startKey);
+        case GET_START_KEY_BACKWARD:
+          key = getWithSetRange(startKey);
+          if (key != null) {
+            return key;
+          }
+          return last();
         default:
           throw new IllegalStateException("Unknown operation");
       }

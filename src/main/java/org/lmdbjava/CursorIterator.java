@@ -113,6 +113,9 @@ public final class CursorIterator<T> implements
       case GET_START_KEY:
         found = cursor.get(range.getStart(), MDB_SET_RANGE);
         break;
+      case GET_START_KEY_BACKWARD:
+        found = cursor.get(range.getStart(), MDB_SET_RANGE) || cursor.last();
+        break;
       default:
         throw new IllegalStateException("Unknown cursor operation");
     }

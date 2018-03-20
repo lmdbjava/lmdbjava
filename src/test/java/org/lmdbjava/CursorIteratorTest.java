@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -163,6 +164,7 @@ public final class CursorIteratorTest {
   public void closedBackwardTest() {
     verify(closedBackward(bb(7), bb(3)), 6, 4);
     verify(closedBackward(bb(6), bb(2)), 6, 4, 2);
+    verify(closedBackward(bb(9), bb(3)), 8, 6, 4);
   }
 
   @Test
@@ -181,6 +183,7 @@ public final class CursorIteratorTest {
   public void closedTest() {
     verify(closed(bb(3), bb(7)), 4, 6);
     verify(closed(bb(2), bb(6)), 2, 4, 6);
+    verify(closed(bb(1), bb(7)), 2, 4, 6);
   }
 
   @Test
@@ -327,7 +330,7 @@ public final class CursorIteratorTest {
       }
     }
 
-    assertThat(results.size(), is(expected.length));
+    assertThat(results, hasSize(expected.length));
     for (int idx = 0; idx < results.size(); idx++) {
       assertThat(results.get(idx), is(expected[idx]));
     }
