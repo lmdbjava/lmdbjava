@@ -27,6 +27,8 @@ import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
 import static java.nio.ByteBuffer.allocate;
 import static java.nio.ByteBuffer.allocateDirect;
+import static java.nio.ByteOrder.BIG_ENDIAN;
+import static java.nio.ByteOrder.LITTLE_ENDIAN;
 import jnr.ffi.Pointer;
 import jnr.ffi.provider.MemoryManager;
 import static org.hamcrest.CoreMatchers.is;
@@ -70,6 +72,19 @@ public final class ByteBufferProxyTest {
       final ByteBuffer val = allocate(100);
       val.putInt(1).flip();
       db.put(key, val); // error
+    }
+  }
+
+  @Test
+  public void byteOrderResets() {
+    final int retries = 100;
+    for (int i = 0; i < retries; i++) {
+      final ByteBuffer bb = PROXY_OPTIMAL.allocate();
+      bb.order(LITTLE_ENDIAN);
+      PROXY_OPTIMAL.deallocate(bb);
+    }
+    for (int i = 0; i < retries; i++) {
+      assertThat(PROXY_OPTIMAL.allocate().order(), is(BIG_ENDIAN));
     }
   }
 
