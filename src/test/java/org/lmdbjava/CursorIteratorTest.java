@@ -308,12 +308,23 @@ public final class CursorIteratorTest {
     verify(open(bb(2), bb(8)), 4, 6);
   }
 
-  @Test(expected = UnsupportedOperationException.class)
-  public void removeUnsupported() {
-    try (Txn<ByteBuffer> txn = env.txnRead();
-         CursorIterator<ByteBuffer> c = db.iterate(txn)) {
-      c.remove();
+  @Test
+  public void removeOddElements() {
+    verify(all(), 2, 4, 6, 8);
+    int idx = -1;
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
+      try (CursorIterator<ByteBuffer> c = db.iterate(txn)) {
+        while (c.hasNext()) {
+          c.next();
+          idx++;
+          if (idx % 2 == 0) {
+            c.remove();
+          }
+        }
+      }
+      txn.commit();
     }
+    verify(all(), 4, 8);
   }
 
   private void verify(final KeyRange<ByteBuffer> range, final int... expected) {

@@ -92,7 +92,7 @@ public final class CursorIterator<T> implements
 
   @Override
   public void remove() {
-    throw new UnsupportedOperationException();
+    cursor.delete();
   }
 
   private void executeCursorOp(final CursorOp op) {
