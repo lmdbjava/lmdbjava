@@ -75,6 +75,7 @@ public final class KeyRangeTest {
   public void atLeastBackwardTest() {
     verify(atLeastBackward(5), 4, 2);
     verify(atLeastBackward(6), 6, 4, 2);
+    verify(atLeastBackward(9), 8, 6, 4, 2);
   }
 
   @Test
@@ -104,12 +105,14 @@ public final class KeyRangeTest {
   public void closedBackwardTest() {
     verify(closedBackward(7, 3), 6, 4);
     verify(closedBackward(6, 2), 6, 4, 2);
+    verify(closedBackward(9, 3), 8, 6, 4);
   }
 
   @Test
   public void closedOpenBackwardTest() {
     verify(closedOpenBackward(8, 3), 8, 6, 4);
     verify(closedOpenBackward(7, 2), 6, 4);
+    verify(closedOpenBackward(9, 3), 8, 6, 4);
   }
 
   @Test
@@ -144,6 +147,7 @@ public final class KeyRangeTest {
   public void greaterThanBackwardTest() {
     verify(greaterThanBackward(6), 4, 2);
     verify(greaterThanBackward(7), 6, 4, 2);
+    verify(greaterThanBackward(9), 8, 6, 4, 2);
   }
 
   @Test
@@ -168,12 +172,14 @@ public final class KeyRangeTest {
   public void openBackwardTest() {
     verify(openBackward(7, 2), 6, 4);
     verify(openBackward(8, 1), 6, 4, 2);
+    verify(openBackward(9, 4), 8, 6);
   }
 
   @Test
   public void openClosedBackwardTest() {
     verify(openClosedBackward(7, 2), 6, 4, 2);
     verify(openClosedBackward(8, 4), 6, 4);
+    verify(openClosedBackward(9, 4), 8, 6, 4);
   }
 
   @Test

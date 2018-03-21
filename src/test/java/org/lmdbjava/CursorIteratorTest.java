@@ -97,6 +97,7 @@ public final class CursorIteratorTest {
   public void atLeastBackwardTest() {
     verify(atLeastBackward(bb(5)), 4, 2);
     verify(atLeastBackward(bb(6)), 6, 4, 2);
+    verify(atLeastBackward(bb(9)), 8, 6, 4, 2);
   }
 
   @Test
@@ -171,6 +172,7 @@ public final class CursorIteratorTest {
   public void closedOpenBackwardTest() {
     verify(closedOpenBackward(bb(8), bb(3)), 8, 6, 4);
     verify(closedOpenBackward(bb(7), bb(2)), 6, 4);
+    verify(closedOpenBackward(bb(9), bb(3)), 8, 6, 4);
   }
 
   @Test
@@ -217,6 +219,7 @@ public final class CursorIteratorTest {
   public void greaterThanBackwardTest() {
     verify(greaterThanBackward(bb(6)), 4, 2);
     verify(greaterThanBackward(bb(7)), 6, 4, 2);
+    verify(greaterThanBackward(bb(9)), 8, 6, 4, 2);
   }
 
   @Test
@@ -265,12 +268,14 @@ public final class CursorIteratorTest {
   public void openBackwardTest() {
     verify(openBackward(bb(7), bb(2)), 6, 4);
     verify(openBackward(bb(8), bb(1)), 6, 4, 2);
+    verify(openBackward(bb(9), bb(4)), 8, 6);
   }
 
   @Test
   public void openClosedBackwardTest() {
     verify(openClosedBackward(bb(7), bb(2)), 6, 4, 2);
     verify(openClosedBackward(bb(8), bb(4)), 6, 4);
+    verify(openClosedBackward(bb(9), bb(4)), 8, 6, 4);
   }
 
   @Test

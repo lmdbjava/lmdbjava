@@ -177,6 +177,7 @@ public enum KeyRangeType {
    * <p>
    * In our example and with a passed search key of 5, the returned keys would
    * be 4 and 2. With a passed key of 6, the returned keys would be 6, 4 and 2.
+   * With a passed key of 9, the returned keys would be 8, 6, 4 and 2.
    */
   BACKWARD_AT_LEAST(false, true, false),
   /**
@@ -203,6 +204,7 @@ public enum KeyRangeType {
    * <p>
    * In our example and with a passed search range of 7 - 3, the returned keys
    * would be 6 and 4. With a range of 6 - 2, the keys would be 6, 4 and 2.
+   * With a range of 9 - 3, the returned keys would be 8, 6 and 4.
    */
   BACKWARD_CLOSED(false, true, true),
   /**
@@ -217,6 +219,7 @@ public enum KeyRangeType {
    * <p>
    * In our example and with a passed search range of 8 - 3, the returned keys
    * would be 8, 6 and 4. With a range of 7 - 2, the keys would be 6 and 4.
+   * With a range of 9 - 3, the keys would be 8, 6 and 4.
    */
   BACKWARD_CLOSED_OPEN(false, true, true),
   /**
@@ -229,6 +232,7 @@ public enum KeyRangeType {
    * <p>
    * In our example and with a passed search key of 6, the returned keys would
    * be 4 and 2. With a passed key of 7, the returned keys would be 6, 4 and 2.
+   * With a passed key of 9, the returned keys would be 8, 6, 4 and 2.
    */
   BACKWARD_GREATER_THAN(false, true, false),
   /**
@@ -253,6 +257,7 @@ public enum KeyRangeType {
    * <p>
    * In our example and with a passed search range of 7 - 2, the returned keys
    * would be 6 and 4. With a range of 8 - 1, the keys would be 6, 4 and 2.
+   * With a range of 9 - 4, the keys would be 8 and 6.
    */
   BACKWARD_OPEN(false, true, true),
   /**
@@ -265,6 +270,7 @@ public enum KeyRangeType {
    * <p>
    * In our example and with a passed search range of 7 - 2, the returned keys
    * would be 6, 4 and 2. With a range of 8 - 4, the keys would be 6 and 4.
+   * With a range of 9 - 4, the keys would be 8, 6 and 4.
    */
   BACKWARD_OPEN_CLOSED(false, true, true);
 
