@@ -22,13 +22,12 @@ package org.lmdbjava;
 
 import java.util.Comparator;
 import static java.util.Objects.requireNonNull;
-import static org.lmdbjava.KeyRangeType.BACKWARD_ALL;
 import static org.lmdbjava.KeyRangeType.CursorOp.FIRST;
 import static org.lmdbjava.KeyRangeType.CursorOp.GET_START_KEY;
+import static org.lmdbjava.KeyRangeType.CursorOp.GET_START_KEY_BACKWARD;
 import static org.lmdbjava.KeyRangeType.CursorOp.LAST;
 import static org.lmdbjava.KeyRangeType.CursorOp.NEXT;
 import static org.lmdbjava.KeyRangeType.CursorOp.PREV;
-import static org.lmdbjava.KeyRangeType.FORWARD_ALL;
 import static org.lmdbjava.KeyRangeType.IteratorOp.CALL_NEXT_OP;
 import static org.lmdbjava.KeyRangeType.IteratorOp.RELEASE;
 import static org.lmdbjava.KeyRangeType.IteratorOp.TERMINATE;
@@ -178,6 +177,7 @@ public enum KeyRangeType {
    * <p>
    * In our example and with a passed search key of 5, the returned keys would
    * be 4 and 2. With a passed key of 6, the returned keys would be 6, 4 and 2.
+   * With a passed key of 9, the returned keys would be 8, 6, 4 and 2.
    */
   BACKWARD_AT_LEAST(false, true, false),
   /**
@@ -204,6 +204,7 @@ public enum KeyRangeType {
    * <p>
    * In our example and with a passed search range of 7 - 3, the returned keys
    * would be 6 and 4. With a range of 6 - 2, the keys would be 6, 4 and 2.
+   * With a range of 9 - 3, the returned keys would be 8, 6 and 4.
    */
   BACKWARD_CLOSED(false, true, true),
   /**
@@ -218,6 +219,7 @@ public enum KeyRangeType {
    * <p>
    * In our example and with a passed search range of 8 - 3, the returned keys
    * would be 8, 6 and 4. With a range of 7 - 2, the keys would be 6 and 4.
+   * With a range of 9 - 3, the keys would be 8, 6 and 4.
    */
   BACKWARD_CLOSED_OPEN(false, true, true),
   /**
@@ -230,6 +232,7 @@ public enum KeyRangeType {
    * <p>
    * In our example and with a passed search key of 6, the returned keys would
    * be 4 and 2. With a passed key of 7, the returned keys would be 6, 4 and 2.
+   * With a passed key of 9, the returned keys would be 8, 6, 4 and 2.
    */
   BACKWARD_GREATER_THAN(false, true, false),
   /**
@@ -254,6 +257,7 @@ public enum KeyRangeType {
    * <p>
    * In our example and with a passed search range of 7 - 2, the returned keys
    * would be 6 and 4. With a range of 8 - 1, the keys would be 6, 4 and 2.
+   * With a range of 9 - 4, the keys would be 8 and 6.
    */
   BACKWARD_OPEN(false, true, true),
   /**
@@ -266,6 +270,7 @@ public enum KeyRangeType {
    * <p>
    * In our example and with a passed search range of 7 - 2, the returned keys
    * would be 6, 4 and 2. With a range of 8 - 4, the keys would be 6 and 4.
+   * With a range of 9 - 4, the keys would be 8, 6 and 4.
    */
   BACKWARD_OPEN_CLOSED(false, true, true);
 
@@ -340,21 +345,21 @@ public enum KeyRangeType {
       case BACKWARD_ALL:
         return LAST;
       case BACKWARD_AT_LEAST:
-        return GET_START_KEY;
+        return GET_START_KEY_BACKWARD;
       case BACKWARD_AT_MOST:
         return LAST;
       case BACKWARD_CLOSED:
-        return GET_START_KEY;
+        return GET_START_KEY_BACKWARD;
       case BACKWARD_CLOSED_OPEN:
-        return GET_START_KEY;
+        return GET_START_KEY_BACKWARD;
       case BACKWARD_GREATER_THAN:
-        return GET_START_KEY;
+        return GET_START_KEY_BACKWARD;
       case BACKWARD_LESS_THAN:
         return LAST;
       case BACKWARD_OPEN:
-        return GET_START_KEY;
+        return GET_START_KEY_BACKWARD;
       case BACKWARD_OPEN_CLOSED:
-        return GET_START_KEY;
+        return GET_START_KEY_BACKWARD;
       default:
         throw new IllegalStateException("Invalid type");
     }
@@ -486,6 +491,10 @@ public enum KeyRangeType {
      * Get "start" key with {@link GetOp#MDB_SET_RANGE}.
      */
     GET_START_KEY,
+    /**
+     * Get "start" key with {@link GetOp#MDB_SET_RANGE}, fall back to LAST.
+     */
+    GET_START_KEY_BACKWARD,
     /**
      * Move forward.
      */
