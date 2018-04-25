@@ -106,6 +106,12 @@
       <artifactId>guava</artifactId>
       <version>24.1-jre</version>
       <scope>test</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>com.google.code.findbugs</groupId>
+          <artifactId>jsr305</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.lmdbjava</groupId>
@@ -124,6 +130,10 @@
       <artifactId>lmdbjava-native-osx-x86_64</artifactId>
       <version>0.9.22-2</version>
       <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>com.google.code.findbugs</groupId>
+      <artifactId>annotations</artifactId>
     </dependency>
   </dependencies>
   <build>

@@ -20,6 +20,7 @@
 
 package org.lmdbjava;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.File;
 import static java.io.File.createTempFile;
 import java.io.FileOutputStream;
@@ -113,6 +114,7 @@ final class Library {
   }
 
   @SuppressWarnings("NestedAssignment")
+  @SuppressFBWarnings("OBL_UNSATISFIED_OBLIGATION") // Spotbugs issue #432
   private static String extract(final String name) {
     final String suffix = name.substring(name.lastIndexOf('.'));
     final File file;
