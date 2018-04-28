@@ -113,7 +113,7 @@ final class Library {
   private Library() {
   }
 
-  @SuppressWarnings("NestedAssignment")
+  @SuppressWarnings("PMD.AssignmentInOperand")
   @SuppressFBWarnings("OBL_UNSATISFIED_OBLIGATION") // Spotbugs issue #432
   private static String extract(final String name) {
     final String suffix = name.substring(name.lastIndexOf('.'));
@@ -200,7 +200,7 @@ final class Library {
   /**
    * JNR API for MDB-defined C functions. Not for external use.
    */
-  @SuppressWarnings({"checkstyle:methodname", "PMD.MethodNamingConventions"})
+  @SuppressWarnings("checkstyle:methodname")
   public interface Lmdb {
 
     void mdb_cursor_close(@In Pointer cursor);

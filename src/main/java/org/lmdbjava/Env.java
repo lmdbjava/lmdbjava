@@ -439,6 +439,7 @@ public final class Env<T> implements AutoCloseable {
      * @param flags the flags for this new environment
      * @return an environment ready for use
      */
+    @SuppressWarnings("PMD.AccessorClassGeneration")
     public Env<T> open(final File path, final int mode,
                        final EnvFlags... flags) {
       requireNonNull(path);
@@ -456,7 +457,7 @@ public final class Env<T> implements AutoCloseable {
         final int flagsMask = mask(flags);
         final boolean readOnly = isSet(flagsMask, MDB_RDONLY_ENV);
         checkRc(LIB.mdb_env_open(ptr, path.getAbsolutePath(), flagsMask, mode));
-        return new Env<>(proxy, ptr, readOnly); // NOPMD
+        return new Env<>(proxy, ptr, readOnly);
       } catch (final LmdbNativeException e) {
         LIB.mdb_env_close(ptr);
         throw e;
@@ -470,8 +471,9 @@ public final class Env<T> implements AutoCloseable {
      * @param flags the flags for this new environment
      * @return an environment ready for use
      */
+    @SuppressWarnings("PMD.AvoidUsingOctalValues")
     public Env<T> open(final File path, final EnvFlags... flags) {
-      return open(path, 0664, flags); // NOPMD
+      return open(path, 0664, flags);
     }
 
     /**

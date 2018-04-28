@@ -44,8 +44,7 @@ import static org.lmdbjava.KeyRangeType.IteratorOp.TERMINATE;
  * <p>
  * In the examples below, it is assumed the table has keys 2, 4, 6 and 8.
  */
-@SuppressWarnings({"PMD.CyclomaticComplexity", "PMD.StdCyclomaticComplexity",
-                   "PMD.ModifiedCyclomaticComplexity"})
+@SuppressWarnings("PMD.CyclomaticComplexity")
 public enum KeyRangeType {
 
   /**
@@ -376,7 +375,7 @@ public enum KeyRangeType {
    * @param c      comparator (required)
    * @return response to this key
    */
-  @SuppressWarnings({"checkstyle:ReturnCount", "PMD.NPathComplexity"})
+  @SuppressWarnings("checkstyle:ReturnCount")
   <T, C extends Comparator<T>> IteratorOp iteratorOp(final T start, final T stop,
                                                      final T buffer, final C c) {
     requireNonNull(c, "Comparator required");

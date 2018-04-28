@@ -34,7 +34,7 @@ import jnr.ffi.Pointer;
  * @param <T> buffer type
  */
 @SuppressWarnings("checkstyle:abstractclassname")
-public abstract class BufferProxy<T> { // NOPMD
+public abstract class BufferProxy<T> {
 
   /**
    * Size of a <code>MDB_val</code> pointer in bytes.

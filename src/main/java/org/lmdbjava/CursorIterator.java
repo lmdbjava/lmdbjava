@@ -95,6 +95,7 @@ public final class CursorIterator<T> implements
     cursor.delete();
   }
 
+  @SuppressWarnings({"PMD.CyclomaticComplexity", "PMD.NullAssignment"})
   private void executeCursorOp(final CursorOp op) {
     final boolean found;
     switch (op) {

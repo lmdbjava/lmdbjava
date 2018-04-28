@@ -34,7 +34,7 @@ import org.lmdbjava.Txn.TxFullException;
  * The immutable nature of all LMDB exceptions means the mapper internally
  * maintains a table of them.
  */
-@SuppressWarnings({"PMD.CyclomaticComplexity", "PMD.StdCyclomaticComplexity"})
+@SuppressWarnings("PMD.CyclomaticComplexity")
 final class ResultCodeMapper {
 
   /**
