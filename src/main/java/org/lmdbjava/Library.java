@@ -23,13 +23,13 @@ package org.lmdbjava;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.File;
 import static java.io.File.createTempFile;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import static java.lang.Boolean.getBoolean;
 import static java.lang.System.getProperty;
 import static java.lang.Thread.currentThread;
+import java.nio.file.Files;
 import static java.util.Locale.ENGLISH;
 import static java.util.Objects.nonNull;
 import static java.util.Objects.requireNonNull;
@@ -123,7 +123,7 @@ final class Library {
       file.deleteOnExit();
       final ClassLoader cl = currentThread().getContextClassLoader();
       try (InputStream in = cl.getResourceAsStream(name);
-           OutputStream out = new FileOutputStream(file)) {
+           OutputStream out = Files.newOutputStream(file.toPath())) {
         requireNonNull(in, "Classpath resource not found");
         int bytes;
         final byte[] buffer = new byte[4_096];
