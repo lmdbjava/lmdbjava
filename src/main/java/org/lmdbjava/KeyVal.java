@@ -32,7 +32,7 @@ import static org.lmdbjava.Library.RUNTIME;
  *
  * @param <T> buffer type
  */
-final class KeyVal<T> implements AutoCloseable {
+public final class KeyVal<T> implements AutoCloseable {
 
   private static final MemoryManager MEM_MGR = RUNTIME.getMemoryManager();
   private boolean closed;
