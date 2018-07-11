@@ -28,12 +28,12 @@ import static org.lmdbjava.UnsafeAccess.UNSAFE;
 
 import java.nio.ByteBuffer;
 
+import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.OneToOneConcurrentArrayQueue;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import jnr.ffi.Pointer;
-import sun.nio.ch.DirectBuffer;
 
 /**
  * A buffer proxy backed by Agrona's {@link DirectBuffer}.

@@ -45,6 +45,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.ExecutorService;
 
+import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Rule;
@@ -54,8 +55,6 @@ import org.lmdbjava.CursorIterator.KeyVal;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
-import sun.nio.ch.DirectBuffer;
-
 /**
  * Welcome to LmdbJava!
  *
@@ -497,27 +496,21 @@ public final class TutorialTest {
 	      final Cursor<ByteBuf> c = db.openCursor(txn);
 
 	      val.writeCharSequence("The Value", UTF_8);
-	      key.writeCharSequence("yyy", UTF_8);
+	      key.writeCharSequence("key#1", UTF_8);
 	      c.put(key, val);
 
 	      key.clear();
-	      key.writeCharSequence("ggg", UTF_8);
+	      key.writeCharSequence("key#2", UTF_8);
 	      c.put(key, val);
 
 	      c.seek(MDB_FIRST);
-	      assertThat(c.key().readCharSequence(3, UTF_8).toString(),
-	                 startsWith("ggg"));
+	      assertThat(c.key().readCharSequence(5, UTF_8).toString(),
+	                 startsWith("key#1"));
 
 	      c.seek(MDB_LAST);
-	      assertThat(c.key().readCharSequence(3, UTF_8).toString(),
-	                 startsWith("yyy"));
+	      assertThat(c.key().readCharSequence(5, UTF_8).toString(),
+	                 startsWith("key#2"));
 
-	      // DirectBuffer has no notion of a position. Often you don't want to store
-	      // the unnecessary bytes of a varying-size buffer. Let's have a look...
-	      key.clear();
-	      final int keyLen = key.writeCharSequence("12characters", UTF_8);
-	      assertThat(keyLen, is(12));
-	      assertThat(key.capacity(), is(env.getMaxKeySize()));
 	      c.close();
 	      txn.commit();
 	    }
