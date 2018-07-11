@@ -20,14 +20,16 @@
 
 package org.lmdbjava;
 
-import io.netty.buffer.ByteBuf;
 import static io.netty.buffer.PooledByteBufAllocator.DEFAULT;
 import static java.lang.Class.forName;
 import static java.lang.ThreadLocal.withInitial;
+import static org.lmdbjava.UnsafeAccess.UNSAFE;
+
 import java.lang.reflect.Field;
 import java.util.ArrayDeque;
+
+import io.netty.buffer.ByteBuf;
 import jnr.ffi.Pointer;
-import static org.lmdbjava.UnsafeAccess.UNSAFE;
 
 /**
  * A buffer proxy backed by Netty's {@link ByteBuf}.
@@ -65,6 +67,13 @@ public final class ByteBufProxy extends BufferProxy<ByteBuf> {
       throw new LmdbException("Field access error", e);
     }
   }
+  
+  /**
+   * {@link BufferProxy} for Netty {@link ByteBuf} implementations.
+   * 
+   * Note: attempts to access this when Netty is unavailable will fail.
+   */
+  public static final BufferProxy<ByteBuf> BUFFER_PROXY_INSTANCE = new ByteBufProxy();
 
   static Field findField(final String c, final String name) {
     Class<?> clazz;

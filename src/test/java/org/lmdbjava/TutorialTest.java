@@ -20,27 +20,16 @@
 
 package org.lmdbjava;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.ByteBuffer;
 import static java.nio.ByteBuffer.allocateDirect;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import java.util.concurrent.ExecutorService;
 import static java.util.concurrent.Executors.newCachedThreadPool;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-import org.lmdbjava.CursorIterator.KeyVal;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import static org.lmdbjava.DbiFlags.MDB_DUPSORT;
 import static org.lmdbjava.DirectBufferProxy.PROXY_DB;
@@ -50,6 +39,22 @@ import static org.lmdbjava.GetOp.MDB_SET;
 import static org.lmdbjava.SeekOp.MDB_FIRST;
 import static org.lmdbjava.SeekOp.MDB_LAST;
 import static org.lmdbjava.SeekOp.MDB_PREV;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.concurrent.ExecutorService;
+
+import org.agrona.MutableDirectBuffer;
+import org.agrona.concurrent.UnsafeBuffer;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+import org.lmdbjava.CursorIterator.KeyVal;
+
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
+import sun.nio.ch.DirectBuffer;
 
 /**
  * Welcome to LmdbJava!
@@ -405,7 +410,7 @@ public final class TutorialTest {
   }
 
   /**
-   * In this final tutorial we'll look at using Agrona's DirectBuffer.
+   * In this tutorial we'll look at using Agrona's DirectBuffer.
    *
    * @throws IOException if a path was unavailable for memory mapping
    */
@@ -468,6 +473,54 @@ public final class TutorialTest {
       c.close();
       txn.commit();
     }
+  }
+  
+  /**
+   * In this tutorial we will use the popular <a href="https://netty.io/">Netty Framework</a>. If your application is already using Netty
+   * to do high-speed, low-latency networking than lmdbjava can be used an optimal storage solution. Bytes can be lifted off the wire and
+   * persisted to disk in a performant, zero-garbage manner. 
+   */
+  public void tutorial_netty_1() throws IOException {
+	  final File path = tmp.newFolder();
+	  final Env<ByteBuf> env = create(ByteBufProxy.BUFFER_PROXY_INSTANCE)
+			  .setMapSize(10_485_760)
+			  .setMaxDbs(1)
+			  .open(path);
+	  
+	  final Dbi<ByteBuf> db = env.openDbi(DB_NAME, MDB_CREATE);
+	  
+	  final ByteBufAllocator bufferAllocator = ByteBufAllocator.DEFAULT;
+	  final ByteBuf key = bufferAllocator.directBuffer(env.getMaxKeySize(), env.getMaxKeySize());
+	  final ByteBuf val = bufferAllocator.directBuffer(700);
+	  
+	  try (Txn<ByteBuf> txn = env.txnWrite()) {
+	      final Cursor<ByteBuf> c = db.openCursor(txn);
+
+	      val.writeCharSequence("The Value", UTF_8);
+	      key.writeCharSequence("yyy", UTF_8);
+	      c.put(key, val);
+
+	      key.clear();
+	      key.writeCharSequence("ggg", UTF_8);
+	      c.put(key, val);
+
+	      c.seek(MDB_FIRST);
+	      assertThat(c.key().readCharSequence(3, UTF_8).toString(),
+	                 startsWith("ggg"));
+
+	      c.seek(MDB_LAST);
+	      assertThat(c.key().readCharSequence(3, UTF_8).toString(),
+	                 startsWith("yyy"));
+
+	      // DirectBuffer has no notion of a position. Often you don't want to store
+	      // the unnecessary bytes of a varying-size buffer. Let's have a look...
+	      key.clear();
+	      final int keyLen = key.writeCharSequence("12characters", UTF_8);
+	      assertThat(keyLen, is(12));
+	      assertThat(key.capacity(), is(env.getMaxKeySize()));
+	      c.close();
+	      txn.commit();
+	    }
   }
 
   // You've finished! There are lots of other neat things we could show you (eg

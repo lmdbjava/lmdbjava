@@ -59,6 +59,7 @@
     <github.org>lmdbjava</github.org>
     <github.repo>lmdbjava</github.repo>
     <license.licenseName>apache_v2</license.licenseName>
+    <netty.version>4.1.24.Final</netty.version>
   </properties>
   <dependencies>
     <dependency>
@@ -96,11 +97,16 @@
       <optional>true</optional>
     </dependency>
     <dependency>
-      <groupId>io.netty</groupId>
-      <artifactId>netty-all</artifactId>
-      <version>4.1.24.Final</version>
-      <scope>test</scope>
-    </dependency>
+    	<groupId>io.netty</groupId>
+    	<artifactId>netty-buffer</artifactId>
+    	<version>${netty.version}</version>
+	</dependency>
+	<dependency>
+    	<groupId>io.netty</groupId>
+    	<artifactId>netty-common</artifactId>
+    	<version>${netty.version}</version>
+	</dependency>
+    
     <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
