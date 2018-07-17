@@ -301,7 +301,7 @@ public final class TxnTest {
       }
 
       System.out.println(keysFound);
-      assertEquals(2, keysFound.size());
+      assertEquals(3, keysFound.size());
 
     }
   }
