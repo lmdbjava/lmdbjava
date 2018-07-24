@@ -129,6 +129,37 @@ public final class Cursor<T> implements AutoCloseable {
    * Reposition the key/value buffers based on the passed key and operation.
    *
    * @param key to search for
+   * @param data to search for
+   * @param op  options for this operation
+   * @return false if key not found
+   */
+  public boolean get(final T key, final T data, final SeekOp op) {
+    if (SHOULD_CHECK) {
+      requireNonNull(key);
+      requireNonNull(op);
+      checkNotClosed();
+      txn.checkReady();
+    }
+    kv.keyIn(key);
+    kv.valIn(data);
+
+    final int rc = LIB.mdb_cursor_get(ptrCursor, kv.pointerKey(), kv
+                                      .pointerVal(), op.getCode());
+
+    if (rc == MDB_NOTFOUND) {
+      return false;
+    }
+
+    checkRc(rc);
+    kv.keyOut();
+    kv.valOut();
+    return true;
+  }
+
+  /**
+   * Reposition the key/value buffers based on the passed key and operation.
+   *
+   * @param key to search for
    * @param op  options for this operation
    * @return false if key not found
    */
