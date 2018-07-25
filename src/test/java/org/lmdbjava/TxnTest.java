@@ -28,23 +28,20 @@ import static java.nio.ByteBuffer.allocateDirect;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
-
 import static java.nio.charset.StandardCharsets.UTF_8;
+import java.util.concurrent.atomic.AtomicLong;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import org.lmdbjava.Dbi.BadValueSizeException;
-
 import static org.junit.Assert.assertEquals;
+import org.lmdbjava.Dbi.BadValueSizeException;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import org.lmdbjava.Env.AlreadyClosedException;
 import static org.lmdbjava.Env.create;
@@ -288,14 +285,14 @@ public final class TxnTest {
     db.put(key, bb(2));
 
     try (Txn<ByteBuffer> txn = env.txnRead()) {
-      ByteBuffer start = allocateDirect(env.getMaxKeySize());
+      final ByteBuffer start = allocateDirect(env.getMaxKeySize());
       start.put("a".getBytes(UTF_8)).flip();
 
-      ByteBuffer end = allocateDirect(env.getMaxKeySize());
+      final ByteBuffer end = allocateDirect(env.getMaxKeySize());
       end.put("z".getBytes(UTF_8)).flip();
 
-      List<String> keysFound = new ArrayList<>();
-      CursorIterator<ByteBuffer> ckr = db.iterate(txn, KeyRange.closed(start, end));
+      final List<String> keysFound = new ArrayList<>();
+      final CursorIterator<ByteBuffer> ckr = db.iterate(txn, KeyRange.closed(start, end));
       for (final CursorIterator.KeyVal<ByteBuffer> kv : ckr.iterable()) {
         keysFound.add(UTF_8.decode(kv.key()).toString());
       }
