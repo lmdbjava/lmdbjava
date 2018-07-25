@@ -296,7 +296,6 @@ public final class TxnTest {
         keysFound.add(UTF_8.decode(kv.key()).toString());
       }
 
-      System.out.println(keysFound);
       assertEquals(3, keysFound.size());
 
     }
