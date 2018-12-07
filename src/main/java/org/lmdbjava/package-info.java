@@ -46,8 +46,8 @@
  * </ul>
  *
  * <p>
- * The classes in this package are NOT thread safe. In addition, the LMBC C API
- * requires you to respect specific thread rules (eg do not share transactions
+ * The classes in LmdbJava DO NOT provide any concurrency guarantees. Instead
+ * you MUST observe LMDB's specific thread rules (eg do not share transactions
  * between threads). LmdbJava does not shield you from these requirements, as
  * doing so would impose locking overhead on use cases that may not require it
  * or have already carefully implemented application threading (as most low
