@@ -76,7 +76,24 @@
     <dependency>
       <groupId>com.github.jnr</groupId>
       <artifactId>jnr-ffi</artifactId>
-      <version>2.1.7</version>
+      <version>2.1.9</version>
+      <exclusions>
+        <exclusion>
+          <groupId>com.github.jnr</groupId>
+          <artifactId>jffi</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>com.github.jnr</groupId>
+      <artifactId>jffi</artifactId>
+      <version>1.2.18</version>
+    </dependency>
+    <dependency>
+      <groupId>com.github.jnr</groupId>
+      <artifactId>jffi</artifactId>
+      <classifier>native</classifier>
+      <version>1.2.18</version>
     </dependency>
     <dependency>
       <groupId>com.github.jnr</groupId>
@@ -149,6 +166,9 @@
             <usedDependency>org.lmdbjava:lmdbjava-native-windows-x86_64</usedDependency>
             <usedDependency>org.lmdbjava:lmdbjava-native-osx-x86_64</usedDependency>
           </usedDependencies>
+          <ignoredDependencies>
+            <ignoredDependency>com.github.jnr:jffi</ignoredDependency>
+          </ignoredDependencies>
         </configuration>
       </plugin>
       <plugin>
