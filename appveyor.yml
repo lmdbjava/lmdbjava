@@ -1,9 +1,12 @@
 version: '{build}'
 
+image: Visual Studio 2017
+
 clone_depth: 50
 
 environment:
-  MVN_VER: 3.5.2
+  JAVA_HOME: "C:\\Program Files\\Java\\jdk11"
+  MVN_VER: 3.6.0
   PYTHON: "C:\\Python35"
 
 cache:

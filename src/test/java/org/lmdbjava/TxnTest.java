@@ -25,6 +25,9 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import static java.nio.ByteBuffer.allocateDirect;
+import static java.nio.charset.StandardCharsets.UTF_8;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
@@ -32,6 +35,7 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import org.junit.After;
+import static org.junit.Assert.assertEquals;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -260,6 +264,41 @@ public final class TxnTest {
     key.putInt(1);
     assertThat(key.remaining(), is(0)); // because key.flip() skipped
     dbi.put(key, bb(2));
+  }
+
+
+  @Test
+  public void rangeSearch() {
+    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
+
+    final ByteBuffer key = allocateDirect(env.getMaxKeySize());
+    key.put("cherry".getBytes(UTF_8)).flip();
+    db.put(key, bb(1));
+
+    key.clear();
+    key.put("strawberry".getBytes(UTF_8)).flip();
+    db.put(key, bb(3));
+
+    key.clear();
+    key.put("pineapple".getBytes(UTF_8)).flip();
+    db.put(key, bb(2));
+
+    try (Txn<ByteBuffer> txn = env.txnRead()) {
+      final ByteBuffer start = allocateDirect(env.getMaxKeySize());
+      start.put("a".getBytes(UTF_8)).flip();
+
+      final ByteBuffer end = allocateDirect(env.getMaxKeySize());
+      end.put("z".getBytes(UTF_8)).flip();
+
+      final List<String> keysFound = new ArrayList<>();
+      final CursorIterator<ByteBuffer> ckr = db.iterate(txn, KeyRange.closed(start, end));
+      for (final CursorIterator.KeyVal<ByteBuffer> kv : ckr.iterable()) {
+        keysFound.add(UTF_8.decode(kv.key()).toString());
+      }
+
+      assertEquals(3, keysFound.size());
+
+    }
   }
 
 }
