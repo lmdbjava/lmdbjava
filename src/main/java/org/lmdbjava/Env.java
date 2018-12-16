@@ -384,6 +384,15 @@ public final class Env<T> implements AutoCloseable {
   }
 
   /**
+   * Set the size of the data memory map.
+   *
+   * @param mapSize the new size, in bytes
+   */
+  public void setMapSize(final long mapSize) {
+    checkRc(LIB.mdb_env_set_mapsize(ptr, mapSize));
+  }
+
+  /**
    * Object has already been closed and the operation is therefore prohibited.
    */
   public static final class AlreadyClosedException extends LmdbException {

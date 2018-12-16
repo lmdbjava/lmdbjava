@@ -251,6 +251,54 @@ public final class EnvTest {
   }
 
   @Test
+  public void setMapSize() throws IOException {
+    final File path = tmp.newFolder();
+    final byte[] k = new byte[500];
+    final ByteBuffer key = allocateDirect(500);
+    final ByteBuffer val = allocateDirect(1_024);
+    final Random rnd = new Random();
+    try (Env<ByteBuffer> env = create().setMapSize(50_000)
+            .setMaxDbs(1).open(path)) {
+      final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
+
+      db.put(bb(1), bb(42));
+      boolean mapFullExThrown = false;
+      try {
+        for (int i = 0; i < 30; i++) {
+          rnd.nextBytes(k);
+          key.clear();
+          key.put(k).flip();
+          val.clear();
+          db.put(key, val);
+        }
+      } catch (final MapFullException mfE) {
+        mapFullExThrown = true;
+      }
+      assertThat(mapFullExThrown, is(true));
+
+      env.setMapSize(500_000);
+
+      try (Txn<ByteBuffer> roTxn = env.txnRead()) {
+        assertThat(db.get(roTxn, bb(1)), is(bb(42)));
+      }
+
+      mapFullExThrown = false;
+      try {
+        for (int i = 0; i < 30; i++) {
+          rnd.nextBytes(k);
+          key.clear();
+          key.put(k).flip();
+          val.clear();
+          db.put(key, val);
+        }
+      } catch (final MapFullException mfE) {
+        mapFullExThrown = true;
+      }
+      assertThat(mapFullExThrown, is(false));
+    }
+  }
+
+  @Test
   public void readOnlySupported() throws IOException {
     final File path = tmp.newFolder();
     try (Env<ByteBuffer> rwEnv = create().open(path)) {
