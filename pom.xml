@@ -109,7 +109,7 @@
     <dependency>
       <groupId>org.agrona</groupId>
       <artifactId>agrona</artifactId>
-      <version>0.9.27</version>
+      <version>0.9.28</version>
       <optional>true</optional>
     </dependency>
     <dependency>
