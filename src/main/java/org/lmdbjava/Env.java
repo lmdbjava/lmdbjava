@@ -188,6 +188,15 @@ public final class Env<T> implements AutoCloseable {
   }
 
   /**
+   * Set the size of the data memory map.
+   *
+   * @param mapSize the new size, in bytes
+   */
+  public void setMapSize(final long mapSize) {
+    checkRc(LIB.mdb_env_set_mapsize(ptr, mapSize));
+  }
+
+  /**
    * Get the maximum size of keys and MDB_DUPSORT data we can write.
    *
    * @return the maximum size of keys.
@@ -381,15 +390,6 @@ public final class Env<T> implements AutoCloseable {
 
   Pointer pointer() {
     return ptr;
-  }
-
-  /**
-   * Set the size of the data memory map.
-   *
-   * @param mapSize the new size, in bytes
-   */
-  public void setMapSize(final long mapSize) {
-    checkRc(LIB.mdb_env_set_mapsize(ptr, mapSize));
   }
 
   /**

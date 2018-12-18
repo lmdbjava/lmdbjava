@@ -96,6 +96,41 @@ public final class TxnTest {
   }
 
   @Test
+  public void rangeSearch() {
+    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
+
+    final ByteBuffer key = allocateDirect(env.getMaxKeySize());
+    key.put("cherry".getBytes(UTF_8)).flip();
+    db.put(key, bb(1));
+
+    key.clear();
+    key.put("strawberry".getBytes(UTF_8)).flip();
+    db.put(key, bb(3));
+
+    key.clear();
+    key.put("pineapple".getBytes(UTF_8)).flip();
+    db.put(key, bb(2));
+
+    try (Txn<ByteBuffer> txn = env.txnRead()) {
+      final ByteBuffer start = allocateDirect(env.getMaxKeySize());
+      start.put("a".getBytes(UTF_8)).flip();
+
+      final ByteBuffer end = allocateDirect(env.getMaxKeySize());
+      end.put("z".getBytes(UTF_8)).flip();
+
+      final List<String> keysFound = new ArrayList<>();
+      final CursorIterator<ByteBuffer> ckr = db.iterate(txn, KeyRange.closed(
+                                                        start, end));
+      for (final CursorIterator.KeyVal<ByteBuffer> kv : ckr.iterable()) {
+        keysFound.add(UTF_8.decode(kv.key()).toString());
+      }
+
+      assertEquals(3, keysFound.size());
+
+    }
+  }
+
+  @Test
   public void readOnlyTxnAllowedInReadOnlyEnv() {
     env.openDbi(DB_1, MDB_CREATE);
     final Env<ByteBuffer> roEnv = create().open(path, MDB_NOSUBDIR,
@@ -264,41 +299,6 @@ public final class TxnTest {
     key.putInt(1);
     assertThat(key.remaining(), is(0)); // because key.flip() skipped
     dbi.put(key, bb(2));
-  }
-
-
-  @Test
-  public void rangeSearch() {
-    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
-
-    final ByteBuffer key = allocateDirect(env.getMaxKeySize());
-    key.put("cherry".getBytes(UTF_8)).flip();
-    db.put(key, bb(1));
-
-    key.clear();
-    key.put("strawberry".getBytes(UTF_8)).flip();
-    db.put(key, bb(3));
-
-    key.clear();
-    key.put("pineapple".getBytes(UTF_8)).flip();
-    db.put(key, bb(2));
-
-    try (Txn<ByteBuffer> txn = env.txnRead()) {
-      final ByteBuffer start = allocateDirect(env.getMaxKeySize());
-      start.put("a".getBytes(UTF_8)).flip();
-
-      final ByteBuffer end = allocateDirect(env.getMaxKeySize());
-      end.put("z".getBytes(UTF_8)).flip();
-
-      final List<String> keysFound = new ArrayList<>();
-      final CursorIterator<ByteBuffer> ckr = db.iterate(txn, KeyRange.closed(start, end));
-      for (final CursorIterator.KeyVal<ByteBuffer> kv : ckr.iterable()) {
-        keysFound.add(UTF_8.decode(kv.key()).toString());
-      }
-
-      assertEquals(3, keysFound.size());
-
-    }
   }
 
 }

@@ -175,7 +175,7 @@ public final class DbiTest {
       assertThat(nameDb.get(txn, dbNameBuffer), is(nullValue()));
       txn.commit();
     }
-    
+
     nameDb.close(); // explicit close after drop is OK
   }
 

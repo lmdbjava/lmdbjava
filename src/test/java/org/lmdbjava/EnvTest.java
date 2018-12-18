@@ -251,6 +251,21 @@ public final class EnvTest {
   }
 
   @Test
+  public void readOnlySupported() throws IOException {
+    final File path = tmp.newFolder();
+    try (Env<ByteBuffer> rwEnv = create().open(path)) {
+      final Dbi<ByteBuffer> rwDb = rwEnv.openDbi(DB_1, MDB_CREATE);
+      rwDb.put(bb(1), bb(42));
+    }
+    try (Env<ByteBuffer> roEnv = create().open(path, MDB_RDONLY_ENV)) {
+      final Dbi<ByteBuffer> roDb = roEnv.openDbi(DB_1);
+      try (Txn<ByteBuffer> roTxn = roEnv.txnRead()) {
+        assertThat(roDb.get(roTxn, bb(1)), notNullValue());
+      }
+    }
+  }
+
+  @Test
   public void setMapSize() throws IOException {
     final File path = tmp.newFolder();
     final byte[] k = new byte[500];
@@ -258,7 +273,7 @@ public final class EnvTest {
     final ByteBuffer val = allocateDirect(1_024);
     final Random rnd = new Random();
     try (Env<ByteBuffer> env = create().setMapSize(50_000)
-            .setMaxDbs(1).open(path)) {
+        .setMaxDbs(1).open(path)) {
       final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
 
       db.put(bb(1), bb(42));
@@ -295,21 +310,6 @@ public final class EnvTest {
         mapFullExThrown = true;
       }
       assertThat(mapFullExThrown, is(false));
-    }
-  }
-
-  @Test
-  public void readOnlySupported() throws IOException {
-    final File path = tmp.newFolder();
-    try (Env<ByteBuffer> rwEnv = create().open(path)) {
-      final Dbi<ByteBuffer> rwDb = rwEnv.openDbi(DB_1, MDB_CREATE);
-      rwDb.put(bb(1), bb(42));
-    }
-    try (Env<ByteBuffer> roEnv = create().open(path, MDB_RDONLY_ENV)) {
-      final Dbi<ByteBuffer> roDb = roEnv.openDbi(DB_1);
-      try (Txn<ByteBuffer> roTxn = roEnv.txnRead()) {
-        assertThat(roDb.get(roTxn, bb(1)), notNullValue());
-      }
     }
   }
 
