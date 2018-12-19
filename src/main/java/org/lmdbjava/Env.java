@@ -431,7 +431,7 @@ public final class Env<T> implements AutoCloseable {
 
     private long mapSize = 1_024 * 1_024;
     private int maxDbs = 1;
-    private int maxReaders = 1;
+    private int maxReaders = 126;
     private boolean opened;
     private final BufferProxy<T> proxy;
 
