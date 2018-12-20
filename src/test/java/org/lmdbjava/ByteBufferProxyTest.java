@@ -65,7 +65,9 @@ public final class ByteBufferProxyTest {
   @Test(expected = BufferMustBeDirectException.class)
   public void buffersMustBeDirect() throws IOException {
     final File path = tmp.newFolder();
-    try (Env<ByteBuffer> env = create().open(path)) {
+    try (Env<ByteBuffer> env = create()
+        .setMaxReaders(1)
+        .open(path)) {
       final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
       final ByteBuffer key = allocate(100);
       key.putInt(1).flip();

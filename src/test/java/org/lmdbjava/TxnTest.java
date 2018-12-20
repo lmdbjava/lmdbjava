@@ -133,18 +133,22 @@ public final class TxnTest {
   @Test
   public void readOnlyTxnAllowedInReadOnlyEnv() {
     env.openDbi(DB_1, MDB_CREATE);
-    final Env<ByteBuffer> roEnv = create().open(path, MDB_NOSUBDIR,
-                                                MDB_RDONLY_ENV);
-    assertThat(roEnv.txnRead(), is(notNullValue()));
+    try (Env<ByteBuffer> roEnv = create()
+        .setMaxReaders(1)
+        .open(path, MDB_NOSUBDIR, MDB_RDONLY_ENV)) {
+      assertThat(roEnv.txnRead(), is(notNullValue()));
+    }
   }
 
   @Test(expected = EnvIsReadOnly.class)
   public void readWriteTxnDeniedInReadOnlyEnv() {
     env.openDbi(DB_1, MDB_CREATE);
     env.close();
-    final Env<ByteBuffer> roEnv = create().open(path, MDB_NOSUBDIR,
-                                                MDB_RDONLY_ENV);
-    roEnv.txnWrite(); // error
+    try (Env<ByteBuffer> roEnv = create()
+        .setMaxReaders(1)
+        .open(path, MDB_NOSUBDIR, MDB_RDONLY_ENV)) {
+      roEnv.txnWrite(); // error
+    }
   }
 
   @Test(expected = NotReadyException.class)
