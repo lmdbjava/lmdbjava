@@ -41,8 +41,8 @@ import org.lmdbjava.KeyRangeType.IteratorOp;
  *
  * <p>
  * If iterating over keys stored with {@link DbiFlags#MDB_INTEGERKEY} you must
- * provide a Java iterator when constructing the {@link Dbi} or this class. It
- * is more efficient to use an iterator only with this class, as this avoids
+ * provide a Java comparator when constructing the {@link Dbi} or this class. It
+ * is more efficient to use a comparator only with this class, as this avoids
  * LMDB calling back into Java code to perform the integer key comparison.
  *
  * @param <T> buffer type
