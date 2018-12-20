@@ -333,6 +333,8 @@ public final class EnvTest {
   public void testDefaultOpen() throws IOException {
     final File path = tmp.newFolder();
     try (Env<ByteBuffer> env = open(path, 10)) {
+      final EnvInfo info = env.info();
+      assertThat(info.maxReaders, is(MAX_READERS_DEFAULT));
       final Dbi<ByteBuffer> db = env.openDbi("test", MDB_CREATE);
       db.put(allocateDirect(1), allocateDirect(1));
     }
