@@ -1,6 +1,6 @@
 version: '{build}'
 
-image: Visual Studio 2017
+image: Visual Studio 2015
 
 clone_depth: 50
 
