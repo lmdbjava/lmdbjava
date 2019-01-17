@@ -2,7 +2,7 @@
  * #%L
  * LmdbJava
  * %%
- * Copyright (C) 2016 - 2018 The LmdbJava Open Source Project
+ * Copyright (C) 2016 - 2019 The LmdbJava Open Source Project
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,6 +38,12 @@ import org.lmdbjava.KeyRangeType.IteratorOp;
  *
  * <p>
  * An instance will create and close its own cursor.
+ *
+ * <p>
+ * If iterating over keys stored with {@link DbiFlags#MDB_INTEGERKEY} you must
+ * provide a Java comparator when constructing the {@link Dbi} or this class. It
+ * is more efficient to use a comparator only with this class, as this avoids
+ * LMDB calling back into Java code to perform the integer key comparison.
  *
  * @param <T> buffer type
  */

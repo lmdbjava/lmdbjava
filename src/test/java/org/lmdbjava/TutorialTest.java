@@ -2,7 +2,7 @@
  * #%L
  * LmdbJava
  * %%
- * Copyright (C) 2016 - 2018 The LmdbJava Open Source Project
+ * Copyright (C) 2016 - 2019 The LmdbJava Open Source Project
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -76,6 +76,7 @@ public final class TutorialTest {
    * @throws IOException if a path was unavailable for memory mapping
    */
   @Test
+  @SuppressWarnings("ConvertToTryWithResources")
   public void tutorial1() throws IOException {
     // We need a storage directory first.
     // The path cannot be on a remote file system.
@@ -135,6 +136,8 @@ public final class TutorialTest {
     try (Txn<ByteBuffer> txn = env.txnRead()) {
       assertNull(db.get(txn, key));
     }
+
+    env.close();
   }
 
   /**
@@ -211,6 +214,7 @@ public final class TutorialTest {
     // have avoided this if we used a try-with-resources block, but we wanted to
     // play around with multiple concurrent Txns to demonstrate the "I" in ACID.
     rtx.close();
+    env.close();
   }
 
   /**
@@ -289,6 +293,7 @@ public final class TutorialTest {
     c.seek(MDB_LAST);
 
     tx2.close();
+    env.close();
   }
 
   /**
@@ -298,6 +303,7 @@ public final class TutorialTest {
    * @throws IOException if a path was unavailable for memory mapping
    */
   @Test
+  @SuppressWarnings("ConvertToTryWithResources")
   public void tutorial4() throws IOException {
     // As per tutorial1...
     final File path = tmp.newFolder();
@@ -349,6 +355,8 @@ public final class TutorialTest {
         }
       }
     }
+
+    env.close();
   }
 
   /**
@@ -402,6 +410,8 @@ public final class TutorialTest {
       c.close();
       txn.commit();
     }
+
+    env.close();
   }
 
   /**
@@ -428,46 +438,46 @@ public final class TutorialTest {
     final MutableDirectBuffer val = new UnsafeBuffer(allocateDirect(700));
 
     try (Txn<DirectBuffer> txn = env.txnWrite()) {
-      final Cursor<DirectBuffer> c = db.openCursor(txn);
+      try (Cursor<DirectBuffer> c = db.openCursor(txn)) {
+        // Agrona is faster than ByteBuffer and its methods are nicer...
+        val.putStringWithoutLengthUtf8(0, "The Value");
+        key.putStringWithoutLengthUtf8(0, "yyy");
+        c.put(key, val);
 
-      // Agrona is not only faster than ByteBuffer, but its methods are nicer...
-      val.putStringWithoutLengthUtf8(0, "The Value");
-      key.putStringWithoutLengthUtf8(0, "yyy");
-      c.put(key, val);
+        key.putStringWithoutLengthUtf8(0, "ggg");
+        c.put(key, val);
 
-      key.putStringWithoutLengthUtf8(0, "ggg");
-      c.put(key, val);
+        c.seek(MDB_FIRST);
+        assertThat(c.key().getStringWithoutLengthUtf8(0, env.getMaxKeySize()),
+                   startsWith("ggg"));
 
-      c.seek(MDB_FIRST);
-      assertThat(c.key().getStringWithoutLengthUtf8(0, env.getMaxKeySize()),
-                 startsWith("ggg"));
+        c.seek(MDB_LAST);
+        assertThat(c.key().getStringWithoutLengthUtf8(0, env.getMaxKeySize()),
+                   startsWith("yyy"));
 
-      c.seek(MDB_LAST);
-      assertThat(c.key().getStringWithoutLengthUtf8(0, env.getMaxKeySize()),
-                 startsWith("yyy"));
+        // DirectBuffer has no position concept. Often you don't want to store
+        // the unnecessary bytes of a varying-size buffer. Let's have a look...
+        final int keyLen = key.putStringWithoutLengthUtf8(0, "12characters");
+        assertThat(keyLen, is(12));
+        assertThat(key.capacity(), is(env.getMaxKeySize()));
 
-      // DirectBuffer has no notion of a position. Often you don't want to store
-      // the unnecessary bytes of a varying-size buffer. Let's have a look...
-      final int keyLen = key.putStringWithoutLengthUtf8(0, "12characters");
-      assertThat(keyLen, is(12));
-      assertThat(key.capacity(), is(env.getMaxKeySize()));
+        // To only store the 12 characters, we simply call wrap:
+        key.wrap(key, 0, keyLen);
+        assertThat(key.capacity(), is(keyLen));
+        c.put(key, val);
+        c.seek(MDB_FIRST);
+        assertThat(c.key().capacity(), is(keyLen));
+        assertThat(c.key().getStringWithoutLengthUtf8(0, c.key().capacity()),
+                   is("12characters"));
 
-      // To only store the 12 characters, we simply call wrap:
-      key.wrap(key, 0, keyLen);
-      assertThat(key.capacity(), is(keyLen));
-      c.put(key, val);
-      c.seek(MDB_FIRST);
-      assertThat(c.key().capacity(), is(keyLen));
-      assertThat(c.key().getStringWithoutLengthUtf8(0, c.key().capacity()),
-                 is("12characters"));
-
-      // If we want to store bigger values again, just wrap our original buffer.
-      key.wrap(keyBb);
-      assertThat(key.capacity(), is(env.getMaxKeySize()));
-
-      c.close();
+        // To store bigger values again, just wrap the original buffer.
+        key.wrap(keyBb);
+        assertThat(key.capacity(), is(env.getMaxKeySize()));
+      }
       txn.commit();
     }
+
+    env.close();
   }
 
   // You've finished! There are lots of other neat things we could show you (eg

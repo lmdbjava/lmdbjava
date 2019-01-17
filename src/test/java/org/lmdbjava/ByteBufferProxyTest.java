@@ -2,7 +2,7 @@
  * #%L
  * LmdbJava
  * %%
- * Copyright (C) 2016 - 2018 The LmdbJava Open Source Project
+ * Copyright (C) 2016 - 2019 The LmdbJava Open Source Project
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -65,7 +65,9 @@ public final class ByteBufferProxyTest {
   @Test(expected = BufferMustBeDirectException.class)
   public void buffersMustBeDirect() throws IOException {
     final File path = tmp.newFolder();
-    try (Env<ByteBuffer> env = create().open(path)) {
+    try (Env<ByteBuffer> env = create()
+        .setMaxReaders(1)
+        .open(path)) {
       final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
       final ByteBuffer key = allocate(100);
       key.putInt(1).flip();

@@ -2,7 +2,7 @@
  * #%L
  * LmdbJava
  * %%
- * Copyright (C) 2016 - 2018 The LmdbJava Open Source Project
+ * Copyright (C) 2016 - 2019 The LmdbJava Open Source Project
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@
 package org.lmdbjava;
 
 import com.google.common.primitives.UnsignedBytes;
+import static com.jakewharton.byteunits.BinaryByteUnit.KIBIBYTES;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -43,7 +44,7 @@ import static org.lmdbjava.CursorIterator.IteratorType.BACKWARD;
 import static org.lmdbjava.CursorIterator.IteratorType.FORWARD;
 import org.lmdbjava.CursorIterator.KeyVal;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
-import static org.lmdbjava.Env.open;
+import static org.lmdbjava.Env.create;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.KeyRange.all;
 import static org.lmdbjava.KeyRange.allBackward;
@@ -65,6 +66,7 @@ import static org.lmdbjava.KeyRange.openClosed;
 import static org.lmdbjava.KeyRange.openClosedBackward;
 import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
 import static org.lmdbjava.TestUtils.DB_1;
+import static org.lmdbjava.TestUtils.POSIX_MODE;
 import static org.lmdbjava.TestUtils.bb;
 
 /**
@@ -147,7 +149,11 @@ public final class CursorIteratorTest {
   @Before
   public void before() throws IOException {
     final File path = tmp.newFile();
-    env = open(path, 10, MDB_NOSUBDIR);
+    env = create()
+        .setMapSize(KIBIBYTES.toBytes(100))
+        .setMaxReaders(1)
+        .setMaxDbs(1)
+        .open(path, POSIX_MODE, MDB_NOSUBDIR);
     db = env.openDbi(DB_1, MDB_CREATE);
     list = new LinkedList<>();
     list.addAll(asList(2, 3, 4, 5, 6, 7, 8, 9));

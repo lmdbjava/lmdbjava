@@ -4,11 +4,11 @@
   <parent>
     <groupId>au.com.acegi</groupId>
     <artifactId>acegi-standard-project</artifactId>
-    <version>0.1.7</version>
+    <version>0.1.9</version>
   </parent>
   <groupId>org.lmdbjava</groupId>
   <artifactId>lmdbjava</artifactId>
-  <version>0.6.2-SNAPSHOT</version>
+  <version>0.6.3-SNAPSHOT</version>
   <packaging>jar</packaging>
   <name>LmdbJava</name>
   <description>Low latency Java API for the ultra-fast, embedded Symas Lightning Database (LMDB)</description>
@@ -67,21 +67,34 @@
     </dependency>
     <dependency>
       <groupId>org.hamcrest</groupId>
-      <artifactId>hamcrest-core</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.hamcrest</groupId>
-      <artifactId>hamcrest-library</artifactId>
+      <artifactId>hamcrest</artifactId>
     </dependency>
     <dependency>
       <groupId>com.github.jnr</groupId>
       <artifactId>jnr-ffi</artifactId>
-      <version>2.1.7</version>
+      <version>2.1.9</version>
+      <exclusions>
+        <exclusion>
+          <groupId>com.github.jnr</groupId>
+          <artifactId>jffi</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>com.github.jnr</groupId>
+      <artifactId>jffi</artifactId>
+      <version>1.2.18</version>
+    </dependency>
+    <dependency>
+      <groupId>com.github.jnr</groupId>
+      <artifactId>jffi</artifactId>
+      <classifier>native</classifier>
+      <version>1.2.18</version>
     </dependency>
     <dependency>
       <groupId>com.github.jnr</groupId>
       <artifactId>jnr-constants</artifactId>
-      <version>0.9.9</version>
+      <version>0.9.12</version>
     </dependency>
     <dependency>
       <groupId>com.jakewharton.byteunits</groupId>
@@ -92,19 +105,19 @@
     <dependency>
       <groupId>org.agrona</groupId>
       <artifactId>agrona</artifactId>
-      <version>0.9.16</version>
+      <version>0.9.28</version>
       <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>io.netty</groupId>
       <artifactId>netty-all</artifactId>
-      <version>4.1.24.Final</version>
+      <version>4.1.32.Final</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
-      <version>25.0-jre</version>
+      <version>27.0.1-jre</version>
       <scope>test</scope>
       <exclusions>
         <exclusion>
@@ -149,6 +162,9 @@
             <usedDependency>org.lmdbjava:lmdbjava-native-windows-x86_64</usedDependency>
             <usedDependency>org.lmdbjava:lmdbjava-native-osx-x86_64</usedDependency>
           </usedDependencies>
+          <ignoredDependencies>
+            <ignoredDependency>com.github.jnr:jffi</ignoredDependency>
+          </ignoredDependencies>
         </configuration>
       </plugin>
       <plugin>

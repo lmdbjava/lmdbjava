@@ -2,7 +2,7 @@
  * #%L
  * LmdbJava
  * %%
- * Copyright (C) 2016 - 2018 The LmdbJava Open Source Project
+ * Copyright (C) 2016 - 2019 The LmdbJava Open Source Project
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -185,6 +185,15 @@ public final class Env<T> implements AutoCloseable {
     }
 
     return result;
+  }
+
+  /**
+   * Set the size of the data memory map.
+   *
+   * @param mapSize the new size, in bytes
+   */
+  public void setMapSize(final long mapSize) {
+    checkRc(LIB.mdb_env_set_mapsize(ptr, mapSize));
   }
 
   /**
@@ -420,9 +429,10 @@ public final class Env<T> implements AutoCloseable {
    */
   public static final class Builder<T> {
 
+    static final int MAX_READERS_DEFAULT = 126;
     private long mapSize = 1_024 * 1_024;
     private int maxDbs = 1;
-    private int maxReaders = 1;
+    private int maxReaders = MAX_READERS_DEFAULT;
     private boolean opened;
     private final BufferProxy<T> proxy;
 

@@ -2,7 +2,7 @@
  * #%L
  * LmdbJava
  * %%
- * Copyright (C) 2016 - 2018 The LmdbJava Open Source Project
+ * Copyright (C) 2016 - 2019 The LmdbJava Open Source Project
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -128,7 +128,7 @@ public final class ByteBufferProxy {
       if (o1.equals(o2)) {
         return 0;
       }
-      final int minLength = Math.min(o1.capacity(), o2.capacity());
+      final int minLength = Math.min(o1.limit(), o2.limit());
       final int minWords = minLength / Long.BYTES;
 
       final boolean reverse1 = o1.order() == LITTLE_ENDIAN;
