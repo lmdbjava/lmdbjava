@@ -121,8 +121,8 @@ public final class ByteBufProxy extends BufferProxy<ByteBuf> {
   protected void in(final ByteBuf buffer, final Pointer ptr, final long ptrAddr) {
     UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE,
                    buffer.writerIndex() - buffer.readerIndex());
-    UNSAFE.putAddress(ptrAddr + STRUCT_FIELD_OFFSET_DATA,
-                      buffer.memoryAddress() + buffer.readerIndex());
+    UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_DATA,
+                   buffer.memoryAddress() + buffer.readerIndex());
   }
 
   @Override
@@ -130,14 +130,14 @@ public final class ByteBufProxy extends BufferProxy<ByteBuf> {
                     final long ptrAddr) {
     UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE,
                    size);
-    UNSAFE.putAddress(ptrAddr + STRUCT_FIELD_OFFSET_DATA,
-                      buffer.memoryAddress() + buffer.readerIndex());
+    UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_DATA,
+                   buffer.memoryAddress() + buffer.readerIndex());
   }
 
   @Override
   protected ByteBuf out(final ByteBuf buffer, final Pointer ptr,
                         final long ptrAddr) {
-    final long addr = UNSAFE.getAddress(ptrAddr + STRUCT_FIELD_OFFSET_DATA);
+    final long addr = UNSAFE.getLong(ptrAddr + STRUCT_FIELD_OFFSET_DATA);
     final long size = UNSAFE.getLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE);
     UNSAFE.putLong(buffer, ADDRESS_OFFSET, addr);
     UNSAFE.putInt(buffer, LENGTH_OFFSET, (int) size);
