@@ -94,7 +94,7 @@ public class ByteArrayProxy extends BufferProxy<byte[]> {
     final Pointer pointer = MEM_MGR.allocateDirect(buffer.length);
     pointer.put(0, buffer, 0, buffer.length);
     ptr.putLong(STRUCT_FIELD_OFFSET_SIZE, buffer.length);
-    ptr.putLong(STRUCT_FIELD_OFFSET_DATA, pointer.address());
+    ptr.putAddress(STRUCT_FIELD_OFFSET_DATA, pointer.address());
   }
 
   @Override
@@ -106,7 +106,7 @@ public class ByteArrayProxy extends BufferProxy<byte[]> {
   @Override
   protected final byte[] out(final byte[] buffer, final Pointer ptr,
                              final long ptrAddr) {
-    final long addr = ptr.getLong(STRUCT_FIELD_OFFSET_DATA);
+    final long addr = ptr.getAddress(STRUCT_FIELD_OFFSET_DATA);
     final int size = (int) ptr.getLong(STRUCT_FIELD_OFFSET_SIZE);
     final Pointer pointer = MEM_MGR.newPointer(addr, size);
     final byte[] bytes = new byte[size];

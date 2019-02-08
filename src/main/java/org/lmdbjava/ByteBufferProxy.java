@@ -225,7 +225,7 @@ public final class ByteBufferProxy {
     @Override
     protected void in(final ByteBuffer buffer, final Pointer ptr,
                       final long ptrAddr) {
-      ptr.putLong(STRUCT_FIELD_OFFSET_DATA, address(buffer));
+      ptr.putAddress(STRUCT_FIELD_OFFSET_DATA, address(buffer));
       ptr.putLong(STRUCT_FIELD_OFFSET_SIZE, buffer.remaining());
     }
 
@@ -233,13 +233,13 @@ public final class ByteBufferProxy {
     protected void in(final ByteBuffer buffer, final int size, final Pointer ptr,
                       final long ptrAddr) {
       ptr.putLong(STRUCT_FIELD_OFFSET_SIZE, size);
-      ptr.putLong(STRUCT_FIELD_OFFSET_DATA, address(buffer));
+      ptr.putAddress(STRUCT_FIELD_OFFSET_DATA, address(buffer));
     }
 
     @Override
     protected ByteBuffer out(final ByteBuffer buffer, final Pointer ptr,
                              final long ptrAddr) {
-      final long addr = ptr.getLong(STRUCT_FIELD_OFFSET_DATA);
+      final long addr = ptr.getAddress(STRUCT_FIELD_OFFSET_DATA);
       final long size = ptr.getLong(STRUCT_FIELD_OFFSET_SIZE);
       try {
         ADDRESS_FIELD.set(buffer, addr);
@@ -277,20 +277,20 @@ public final class ByteBufferProxy {
     protected void in(final ByteBuffer buffer, final Pointer ptr,
                       final long ptrAddr) {
       UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE, buffer.remaining());
-      UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_DATA, address(buffer));
+      UNSAFE.putAddress(ptrAddr + STRUCT_FIELD_OFFSET_DATA, address(buffer));
     }
 
     @Override
     protected void in(final ByteBuffer buffer, final int size, final Pointer ptr,
                       final long ptrAddr) {
       UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE, size);
-      UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_DATA, address(buffer));
+      UNSAFE.putAddress(ptrAddr + STRUCT_FIELD_OFFSET_DATA, address(buffer));
     }
 
     @Override
     protected ByteBuffer out(final ByteBuffer buffer, final Pointer ptr,
                              final long ptrAddr) {
-      final long addr = UNSAFE.getLong(ptrAddr + STRUCT_FIELD_OFFSET_DATA);
+      final long addr = UNSAFE.getAddress(ptrAddr + STRUCT_FIELD_OFFSET_DATA);
       final long size = UNSAFE.getLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE);
       UNSAFE.putLong(buffer, ADDRESS_OFFSET, addr);
       UNSAFE.putInt(buffer, CAPACITY_OFFSET, (int) size);
