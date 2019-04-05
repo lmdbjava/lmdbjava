@@ -40,6 +40,7 @@ import static org.junit.Assert.assertNull;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
 import org.lmdbjava.CursorIterator.KeyVal;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import static org.lmdbjava.DbiFlags.MDB_DUPSORT;
@@ -415,13 +416,41 @@ public final class TutorialTest {
   }
 
   /**
-   * In this final tutorial we'll look at using Agrona's DirectBuffer.
+   * Next up we'll show you how to easily check your platform (operating system
+   * and Java version) is working properly with LmdbJava and the embedded LMDB
+   * native library.
    *
    * @throws IOException if a path was unavailable for memory mapping
    */
   @Test
   @SuppressWarnings("ConvertToTryWithResources")
   public void tutorial6() throws IOException {
+    final File path = tmp.newFolder();
+
+    // Note we need to specify the Verifier's DBI_COUNT for the Env.
+    final Env<ByteBuffer> env = create(PROXY_OPTIMAL)
+        .setMapSize(10_485_760)
+        .setMaxDbs(Verifier.DBI_COUNT)
+        .open(path);
+
+    // Create a Verifier (it's a Callable<Long> for those needing full control).
+    final Verifier v = new Verifier(env);
+
+    // We now run the verifier for 3 seconds; it raises an exception on failure.
+    // The method returns the number of entries it successfully verified.
+    v.runFor(3, SECONDS);
+
+    env.close();
+  }
+
+  /**
+   * In this final tutorial we'll look at using Agrona's DirectBuffer.
+   *
+   * @throws IOException if a path was unavailable for memory mapping
+   */
+  @Test
+  @SuppressWarnings("ConvertToTryWithResources")
+  public void tutorial7() throws IOException {
     // The critical difference is we pass the PROXY_DB field to Env.create().
     // There's also a PROXY_SAFE if you want to stop ByteBuffer's Unsafe use.
     // Aside from that and a different type argument, it's the same as usual...
