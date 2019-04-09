@@ -54,6 +54,7 @@ import static org.lmdbjava.ResultCodeMapper.checkRc;
  */
 public final class Dbi<T> {
 
+  private final ComparatorCallback ccb;
   private boolean cleaned;
   private final Comparator<T> compFunc;
   private final T compKeyA;
@@ -76,12 +77,13 @@ public final class Dbi<T> {
       compFunc = null;
       compKeyA = null;
       compKeyB = null;
+      ccb = null;
     } else {
       this.proxy = txn.getProxy();
       this.compFunc = comparator;
       this.compKeyA = proxy.allocate();
       this.compKeyB = proxy.allocate();
-      final ComparatorCallback ccb = (keyA, keyB) -> {
+      this.ccb = (keyA, keyB) -> {
         proxy.out(compKeyA, keyA, keyA.address());
         proxy.out(compKeyB, keyB, keyB.address());
         return compFunc.compare(compKeyA, compKeyB);
