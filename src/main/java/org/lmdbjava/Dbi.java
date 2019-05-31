@@ -57,8 +57,6 @@ public final class Dbi<T> {
   private final ComparatorCallback ccb;
   private boolean cleaned;
   private final Comparator<T> compFunc;
-  private final T compKeyA;
-  private final T compKeyB;
   private final Env<T> env;
   private final byte[] name;
   private final BufferProxy<T> proxy;
@@ -75,18 +73,19 @@ public final class Dbi<T> {
     if (comparator == null) {
       proxy = null;
       compFunc = null;
-      compKeyA = null;
-      compKeyB = null;
       ccb = null;
     } else {
       this.proxy = txn.getProxy();
       this.compFunc = comparator;
-      this.compKeyA = proxy.allocate();
-      this.compKeyB = proxy.allocate();
       this.ccb = (keyA, keyB) -> {
+        final T compKeyA = proxy.allocate();
+        final T compKeyB = proxy.allocate();
         proxy.out(compKeyA, keyA, keyA.address());
         proxy.out(compKeyB, keyB, keyB.address());
-        return compFunc.compare(compKeyA, compKeyB);
+        final int result = compFunc.compare(compKeyA, compKeyB);
+        proxy.deallocate(compKeyA);
+        proxy.deallocate(compKeyB);
+        return result;
       };
       LIB.mdb_set_compare(txn.pointer(), ptr, ccb);
     }
@@ -495,10 +494,6 @@ public final class Dbi<T> {
       return;
     }
     cleaned = true;
-    if (compKeyA != null) {
-      proxy.deallocate(compKeyA);
-      proxy.deallocate(compKeyB);
-    }
   }
 
   /**

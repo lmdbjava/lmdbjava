@@ -28,16 +28,27 @@ import static java.lang.System.getProperty;
 import java.nio.ByteBuffer;
 import static java.nio.ByteBuffer.allocateDirect;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import java.util.ArrayList;
 import static java.util.Collections.nCopies;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.IntStream.range;
 import org.agrona.concurrent.UnsafeBuffer;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import org.hamcrest.Matchers;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.collection.IsEmptyCollection.empty;
 import org.junit.After;
@@ -47,6 +58,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
 import org.lmdbjava.Dbi.DbFullException;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import static org.lmdbjava.DbiFlags.MDB_DUPSORT;
@@ -81,7 +93,7 @@ public final class DbiTest {
     final File path = tmp.newFile();
     env = create()
         .setMapSize(MEBIBYTES.toBytes(64))
-        .setMaxReaders(1)
+        .setMaxReaders(2)
         .setMaxDbs(2)
         .open(path, MDB_NOSUBDIR);
   }
@@ -125,6 +137,51 @@ public final class DbiTest {
     env.openDbi("db1 is OK", MDB_CREATE);
     env.openDbi("db2 is OK", MDB_CREATE);
     env.openDbi("db3 fails", MDB_CREATE);
+  }
+
+  @Test
+  public void dbiWithComparatorThreadSafety() {
+    final Dbi<ByteBuffer> db = env.openDbi(DB_1, PROXY_OPTIMAL::compare,
+                                           MDB_CREATE);
+
+    final List<Integer> keys = range(0, 1000).boxed().collect(toList());
+
+    final ExecutorService pool = Executors.newCachedThreadPool();
+    final AtomicBoolean proceed = new AtomicBoolean(true);
+    final Future<?> reader = pool.submit(() -> {
+      while (proceed.get()) {
+        try (Txn<ByteBuffer> txn = env.txnRead()) {
+          db.get(txn, bb(50));
+        }
+      }
+    });
+
+    for (final Integer key : keys) {
+      try (Txn<ByteBuffer> txn = env.txnWrite()) {
+        db.put(txn, bb(key), bb(3));
+        txn.commit();
+      }
+    }
+
+    try (Txn<ByteBuffer> txn = env.txnRead()) {
+      final CursorIterator<ByteBuffer> iter = db.iterate(txn);
+
+      final List<Integer> result = new ArrayList<>();
+      while (iter.hasNext()) {
+        result.add(iter.next().key().getInt());
+      }
+
+      assertThat(result, Matchers.contains(keys.toArray(new Integer[0])));
+    }
+
+    proceed.set(false);
+    try {
+      reader.get(1, SECONDS);
+      pool.shutdown();
+      pool.awaitTermination(1, SECONDS);
+    } catch (ExecutionException | InterruptedException | TimeoutException e) {
+      throw new IllegalStateException(e);
+    }
   }
 
   @Test
