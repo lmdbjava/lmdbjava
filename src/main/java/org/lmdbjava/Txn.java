@@ -184,19 +184,19 @@ public final class Txn<T> implements AutoCloseable {
     return keyVal.val();
   }
 
-  void checkReadOnly() throws ReadOnlyRequiredException {
+  void checkReadOnly() {
     if (!readOnly) {
       throw new ReadOnlyRequiredException();
     }
   }
 
-  void checkReady() throws NotReadyException {
+  void checkReady() {
     if (state != READY) {
       throw new NotReadyException();
     }
   }
 
-  void checkWritesAllowed() throws ReadWriteRequiredException {
+  void checkWritesAllowed() {
     if (readOnly) {
       throw new ReadWriteRequiredException();
     }

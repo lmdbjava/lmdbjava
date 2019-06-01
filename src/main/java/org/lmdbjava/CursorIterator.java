@@ -88,7 +88,7 @@ public final class CursorIterator<T> implements
   }
 
   @Override
-  public KeyVal<T> next() throws NoSuchElementException {
+  public KeyVal<T> next() {
     if (!hasNext()) {
       throw new NoSuchElementException();
     }

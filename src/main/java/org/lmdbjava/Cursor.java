@@ -355,7 +355,7 @@ public final class Cursor<T> implements AutoCloseable {
     return kv.val();
   }
 
-  private void checkNotClosed() throws ClosedException {
+  private void checkNotClosed() {
     if (closed) {
       throw new ClosedException();
     }

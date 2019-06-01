@@ -56,9 +56,8 @@ final class ResultCodeMapper {
    * Checks the result code and raises an exception is not {@link #MDB_SUCCESS}.
    *
    * @param rc the LMDB result code
-   * @throws LmdbNativeException the resolved exception
    */
-  static void checkRc(final int rc) throws LmdbNativeException {
+  static void checkRc(final int rc) {
     switch (rc) {
       case MDB_SUCCESS:
         return;
