@@ -48,6 +48,7 @@ public final class ByteBufProxy extends BufferProxy<ByteBuf> {
   private static final ThreadLocal<ArrayDeque<ByteBuf>> BUFFERS = withInitial(()
       -> new ArrayDeque<>(16));
 
+  private static final int BUFFER_RETRIES = 10;
   private static final String FIELD_NAME_ADDRESS = "memoryAddress";
   private static final String FIELD_NAME_LENGTH = "length";
   private static final long LENGTH_OFFSET;
@@ -55,11 +56,7 @@ public final class ByteBufProxy extends BufferProxy<ByteBuf> {
 
   static {
     try {
-      // create buffer (first is SimpleLeakAwareByteBuff but we need PooledUDBB)
-      final ByteBuf bb = DEFAULT.directBuffer(0);
-      if (!NAME.equals(bb.getClass().getName())) {
-        throw new IllegalStateException("Netty buffer must be " + NAME);
-      }
+      createBuffer();
       final Field address = findField(NAME, FIELD_NAME_ADDRESS);
       final Field length = findField(NAME, FIELD_NAME_LENGTH);
       ADDRESS_OFFSET = UNSAFE.objectFieldOffset(address);
@@ -88,6 +85,16 @@ public final class ByteBufProxy extends BufferProxy<ByteBuf> {
     throw new LmdbException(name + " not found");
   }
 
+  private static ByteBuf createBuffer() {
+    for (int i = 0; i < BUFFER_RETRIES; i++) {
+      final ByteBuf bb = DEFAULT.directBuffer(0);
+      if (NAME.equals(bb.getClass().getName())) {
+        return bb;
+      }
+    }
+    throw new IllegalStateException("Netty buffer must be " + NAME);
+  }
+
   @Override
   protected ByteBuf allocate() {
     final ArrayDeque<ByteBuf> queue = BUFFERS.get();
@@ -96,7 +103,7 @@ public final class ByteBufProxy extends BufferProxy<ByteBuf> {
     if (buffer != null && buffer.capacity() >= 0) {
       return buffer;
     } else {
-      return DEFAULT.directBuffer(0);
+      return createBuffer();
     }
   }
 
