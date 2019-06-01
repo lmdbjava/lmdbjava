@@ -46,7 +46,6 @@ import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import static org.lmdbjava.DbiFlags.MDB_DUPSORT;
 import static org.lmdbjava.DirectBufferProxy.PROXY_DB;
 import static org.lmdbjava.Env.create;
-import static org.lmdbjava.Env.open;
 import static org.lmdbjava.GetOp.MDB_SET;
 import static org.lmdbjava.SeekOp.MDB_FIRST;
 import static org.lmdbjava.SeekOp.MDB_LAST;
@@ -151,10 +150,7 @@ public final class TutorialTest {
   @SuppressWarnings({"ConvertToTryWithResources",
                      "checkstyle:executablestatementcount"})
   public void tutorial2() throws IOException, InterruptedException {
-    final File path = tmp.newFolder();
-    // Here we use a shortcut to open a 10 MB environment with one database.
-    final Env<ByteBuffer> env = open(path, 10);
-
+    final Env<ByteBuffer> env = createSimpleEnv(tmp.newFolder());
     final Dbi<ByteBuffer> db = env.openDbi(DB_NAME, MDB_CREATE);
     final ByteBuffer key = allocateDirect(env.getMaxKeySize());
     final ByteBuffer val = allocateDirect(700);
@@ -229,9 +225,7 @@ public final class TutorialTest {
   @SuppressWarnings({"ConvertToTryWithResources",
                      "checkstyle:executablestatementcount"})
   public void tutorial3() throws IOException {
-    // As per tutorial1...
-    final File path = tmp.newFolder();
-    final Env<ByteBuffer> env = open(path, 10);
+    final Env<ByteBuffer> env = createSimpleEnv(tmp.newFolder());
     final Dbi<ByteBuffer> db = env.openDbi(DB_NAME, MDB_CREATE);
     final ByteBuffer key = allocateDirect(env.getMaxKeySize());
     final ByteBuffer val = allocateDirect(700);
@@ -306,9 +300,7 @@ public final class TutorialTest {
   @Test
   @SuppressWarnings("ConvertToTryWithResources")
   public void tutorial4() throws IOException {
-    // As per tutorial1...
-    final File path = tmp.newFolder();
-    final Env<ByteBuffer> env = open(path, 10);
+    final Env<ByteBuffer> env = createSimpleEnv(tmp.newFolder());
     final Dbi<ByteBuffer> db = env.openDbi(DB_NAME, MDB_CREATE);
 
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
@@ -368,9 +360,7 @@ public final class TutorialTest {
   @Test
   @SuppressWarnings("ConvertToTryWithResources")
   public void tutorial5() throws IOException {
-    // As per tutorial1...
-    final File path = tmp.newFolder();
-    final Env<ByteBuffer> env = open(path, 10);
+    final Env<ByteBuffer> env = createSimpleEnv(tmp.newFolder());
 
     // This time we're going to tell the Dbi it can store > 1 value per key.
     // There are other flags available if we're storing integers etc.
@@ -425,13 +415,11 @@ public final class TutorialTest {
   @Test
   @SuppressWarnings("ConvertToTryWithResources")
   public void tutorial6() throws IOException {
-    final File path = tmp.newFolder();
-
     // Note we need to specify the Verifier's DBI_COUNT for the Env.
     final Env<ByteBuffer> env = create(PROXY_OPTIMAL)
         .setMapSize(10_485_760)
         .setMaxDbs(Verifier.DBI_COUNT)
-        .open(path);
+        .open(tmp.newFolder());
 
     // Create a Verifier (it's a Callable<Long> for those needing full control).
     final Verifier v = new Verifier(env);
@@ -454,11 +442,10 @@ public final class TutorialTest {
     // The critical difference is we pass the PROXY_DB field to Env.create().
     // There's also a PROXY_SAFE if you want to stop ByteBuffer's Unsafe use.
     // Aside from that and a different type argument, it's the same as usual...
-    final File path = tmp.newFolder();
     final Env<DirectBuffer> env = create(PROXY_DB)
         .setMapSize(10_485_760)
         .setMaxDbs(1)
-        .open(path);
+        .open(tmp.newFolder());
 
     final Dbi<DirectBuffer> db = env.openDbi(DB_NAME, MDB_CREATE);
 
@@ -513,4 +500,13 @@ public final class TutorialTest {
   // how to speed up inserts by appending them in key order, using integer
   // or reverse ordered keys, using Env.DISABLE_CHECKS_PROP etc), but you now
   // know enough to tackle the JavaDocs with confidence. Have fun!
+
+  private Env<ByteBuffer> createSimpleEnv(final File path) {
+    return create()
+        .setMapSize(10_485_760)
+        .setMaxDbs(1)
+        .setMaxReaders(1)
+        .open(path);
+  }
+
 }
