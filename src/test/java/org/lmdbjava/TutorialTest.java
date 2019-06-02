@@ -500,7 +500,6 @@ public final class TutorialTest {
   // how to speed up inserts by appending them in key order, using integer
   // or reverse ordered keys, using Env.DISABLE_CHECKS_PROP etc), but you now
   // know enough to tackle the JavaDocs with confidence. Have fun!
-
   private Env<ByteBuffer> createSimpleEnv(final File path) {
     return create()
         .setMapSize(10_485_760)
