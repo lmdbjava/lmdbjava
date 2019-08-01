@@ -57,11 +57,11 @@ public class LmdbNativeException extends LmdbException {
   /**
    * Exception raised from a system constant table lookup.
    */
-  public static final class ConstantDerviedException extends LmdbNativeException {
+  public static final class ConstantDerivedException extends LmdbNativeException {
 
     private static final long serialVersionUID = 1L;
 
-    ConstantDerviedException(final int rc, final String message) {
+    ConstantDerivedException(final int rc, final String message) {
       super(rc, "Platform constant error code: " + message);
     }
   }

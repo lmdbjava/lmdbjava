@@ -67,7 +67,7 @@ import static org.lmdbjava.Env.create;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.GetOp.MDB_SET_KEY;
 import static org.lmdbjava.KeyRange.atMost;
-import org.lmdbjava.LmdbNativeException.ConstantDerviedException;
+import org.lmdbjava.LmdbNativeException.ConstantDerivedException;
 import static org.lmdbjava.PutFlags.MDB_NODUPDATA;
 import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
 import static org.lmdbjava.TestUtils.DB_1;
@@ -98,7 +98,7 @@ public final class DbiTest {
         .open(path, MDB_NOSUBDIR);
   }
 
-  @Test(expected = ConstantDerviedException.class)
+  @Test(expected = ConstantDerivedException.class)
   public void close() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
     db.put(bb(1), bb(42));

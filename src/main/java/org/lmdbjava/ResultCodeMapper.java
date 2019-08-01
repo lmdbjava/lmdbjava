@@ -110,7 +110,7 @@ final class ResultCodeMapper {
       throw new IllegalArgumentException("Unknown result code " + rc);
     }
     final String msg = constant.name() + " " + constant.toString();
-    throw new LmdbNativeException.ConstantDerviedException(rc, msg);
+    throw new LmdbNativeException.ConstantDerivedException(rc, msg);
   }
 
 }
