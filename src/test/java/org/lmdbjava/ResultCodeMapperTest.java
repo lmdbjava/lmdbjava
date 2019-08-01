@@ -43,7 +43,7 @@ import org.lmdbjava.Env.FileInvalidException;
 import org.lmdbjava.Env.MapFullException;
 import org.lmdbjava.Env.ReadersFullException;
 import org.lmdbjava.Env.VersionMismatchException;
-import org.lmdbjava.LmdbNativeException.ConstantDerviedException;
+import org.lmdbjava.LmdbNativeException.ConstantDerivedException;
 import org.lmdbjava.LmdbNativeException.PageCorruptedException;
 import org.lmdbjava.LmdbNativeException.PageFullException;
 import org.lmdbjava.LmdbNativeException.PageNotFoundException;
@@ -103,7 +103,7 @@ public final class ResultCodeMapperTest {
     }
   }
 
-  @Test(expected = ConstantDerviedException.class)
+  @Test(expected = ConstantDerivedException.class)
   public void checkErrConstantDerived() {
     checkRc(20);
   }
@@ -113,7 +113,7 @@ public final class ResultCodeMapperTest {
     try {
       checkRc(2);
       fail("Should have raised exception");
-    } catch (final ConstantDerviedException ex) {
+    } catch (final ConstantDerivedException ex) {
       assertThat(ex.getMessage(), containsString("No such file or directory"));
     }
   }
