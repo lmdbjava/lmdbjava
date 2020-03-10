@@ -20,10 +20,15 @@
 
 package org.lmdbjava;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.List;
+
 import static java.util.Objects.requireNonNull;
 import static jnr.ffi.Memory.allocateDirect;
+
+import jnr.ffi.NativeType;
 import static jnr.ffi.NativeType.ADDRESS;
 import jnr.ffi.Pointer;
 import jnr.ffi.byref.PointerByReference;
@@ -487,6 +492,29 @@ public final class Dbi<T> {
         stat.f3_ms_leaf_pages.longValue(),
         stat.f4_ms_overflow_pages.longValue(),
         stat.f5_ms_entries.longValue());
+  }
+
+  /*
+  * Return DbiFlags for this Dbi.
+  *
+  * @param txn transaction handle (not null; not committed)
+  * @return the list of flags this Dbi was created with
+  */
+  public List<DbiFlags> listFlags(final Txn<T> txn) {
+    final Pointer resultPtr = allocateDirect(RUNTIME, NativeType.UINT);
+    checkRc(LIB.mdb_dbi_flags(txn.pointer(), ptr, resultPtr));
+
+    final int flags = resultPtr.getInt(0);
+
+    final List<DbiFlags> result = new ArrayList<>();
+
+    for (final DbiFlags flag : DbiFlags.values()) {
+      if (MaskedFlag.isSet(flags, flag)) {
+        result.add(flag);
+      }
+    }
+
+    return result;
   }
 
   private void clean() {

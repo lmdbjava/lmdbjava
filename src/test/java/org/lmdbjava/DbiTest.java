@@ -49,6 +49,7 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import org.hamcrest.Matchers;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.collection.IsEmptyCollection.empty;
 import org.junit.After;
@@ -62,6 +63,7 @@ import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
 import org.lmdbjava.Dbi.DbFullException;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import static org.lmdbjava.DbiFlags.MDB_DUPSORT;
+import static org.lmdbjava.DbiFlags.MDB_REVERSEKEY;
 import org.lmdbjava.Env.MapFullException;
 import static org.lmdbjava.Env.create;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
@@ -473,5 +475,15 @@ public final class DbiTest {
             db.put(bb(random.nextInt()), bb(random.nextInt()));
           }
         });
+  }
+
+  @Test
+  public void listsFlags() {
+    final Dbi<ByteBuffer> dbi = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT, MDB_REVERSEKEY);
+
+    try (Txn<ByteBuffer> txn = env.txnRead()) {
+      final List<DbiFlags> flags = dbi.listFlags(txn);
+      assertThat(flags, containsInAnyOrder(MDB_DUPSORT, MDB_REVERSEKEY));
+    }
   }
 }
