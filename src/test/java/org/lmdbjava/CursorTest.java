@@ -84,6 +84,7 @@ public final class CursorTest {
   }
 
   @Test(expected = ClosedException.class)
+  @SuppressWarnings("PMD.CloseResource")
   public void closedCursorRejectsSubsequentGets() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
@@ -94,6 +95,7 @@ public final class CursorTest {
   }
 
   @Test
+  @SuppressWarnings("PMD.CloseResource")
   public void count() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
@@ -124,6 +126,7 @@ public final class CursorTest {
   }
 
   @Test
+  @SuppressWarnings("PMD.CloseResource")
   public void cursorFirstLastNextPrev() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
@@ -154,6 +157,7 @@ public final class CursorTest {
   }
 
   @Test
+  @SuppressWarnings("PMD.CloseResource")
   public void delete() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
@@ -173,6 +177,7 @@ public final class CursorTest {
   }
 
   @Test
+  @SuppressWarnings("PMD.CloseResource")
   public void putMultiple() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT,
                                            MDB_DUPFIXED);
@@ -194,6 +199,7 @@ public final class CursorTest {
   }
 
   @Test(expected = IllegalArgumentException.class)
+  @SuppressWarnings("PMD.CloseResource")
   public void putMultipleWithoutMdbMultipleFlag() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
@@ -203,6 +209,7 @@ public final class CursorTest {
   }
 
   @Test
+  @SuppressWarnings("PMD.CloseResource")
   public void renewTxRo() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
 
@@ -219,6 +226,7 @@ public final class CursorTest {
   }
 
   @Test(expected = ReadOnlyRequiredException.class)
+  @SuppressWarnings("PMD.CloseResource")
   public void renewTxRw() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
@@ -230,6 +238,7 @@ public final class CursorTest {
   }
 
   @Test
+  @SuppressWarnings("PMD.CloseResource")
   public void repeatedCloseCausesNotError() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
@@ -240,6 +249,7 @@ public final class CursorTest {
   }
 
   @Test
+  @SuppressWarnings("PMD.CloseResource")
   public void reserve() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
     final ByteBuffer key = bb(5);
@@ -259,6 +269,7 @@ public final class CursorTest {
   }
 
   @Test
+  @SuppressWarnings("PMD.CloseResource")
   public void returnValueForNoDupData() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
@@ -271,6 +282,7 @@ public final class CursorTest {
   }
 
   @Test
+  @SuppressWarnings("PMD.CloseResource")
   public void returnValueForNoOverwrite() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
@@ -284,6 +296,7 @@ public final class CursorTest {
   }
 
   @Test
+  @SuppressWarnings("PMD.CloseResource")
   public void testCursorByteBufferDuplicate() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
     try (Txn<ByteBuffer> txn = env.txnWrite()) {

@@ -107,6 +107,7 @@ public final class DbiTest {
   }
 
   @Test
+  @SuppressWarnings("PMD.CloseResource")
   public void customComparator() {
     final Comparator<ByteBuffer> reverseOrder = (o1, o2) -> {
       final int lexicalOrder = ByteBufferProxy.PROXY_OPTIMAL.compare(o1, o2);
@@ -140,6 +141,7 @@ public final class DbiTest {
   }
 
   @Test
+  @SuppressWarnings({"PMD.CloseResource", "PMD.DoNotUseThreads"})
   public void dbiWithComparatorThreadSafety() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, PROXY_OPTIMAL::compare,
                                            MDB_CREATE);

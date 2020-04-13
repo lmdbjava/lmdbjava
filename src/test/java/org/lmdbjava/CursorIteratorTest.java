@@ -147,6 +147,7 @@ public final class CursorIteratorTest {
   }
 
   @Before
+  @SuppressWarnings("PMD.CloseResource")
   public void before() throws IOException {
     final File path = tmp.newFile();
     env = create()

@@ -100,6 +100,7 @@ public final class EnvTest {
   }
 
   @Test(expected = AlreadyClosedException.class)
+  @SuppressWarnings("PMD.CloseResource")
   public void cannotInfoOnceClosed() throws IOException {
     final File path = tmp.newFile();
     final Env<ByteBuffer> env = create()
@@ -129,6 +130,7 @@ public final class EnvTest {
   }
 
   @Test(expected = AlreadyClosedException.class)
+  @SuppressWarnings("PMD.CloseResource")
   public void cannotStatOnceClosed() throws IOException {
     final File path = tmp.newFile();
     final Env<ByteBuffer> env = create()
@@ -139,6 +141,7 @@ public final class EnvTest {
   }
 
   @Test(expected = AlreadyClosedException.class)
+  @SuppressWarnings("PMD.CloseResource")
   public void cannotSyncOnceClosed() throws IOException {
     final File path = tmp.newFile();
     final Env<ByteBuffer> env = create()
@@ -200,6 +203,7 @@ public final class EnvTest {
   }
 
   @Test
+  @SuppressWarnings("PMD.CloseResource")
   public void createAsDirectory() throws IOException {
     final File path = tmp.newFolder();
     final Env<ByteBuffer> env = create()

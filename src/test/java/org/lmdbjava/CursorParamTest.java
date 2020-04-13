@@ -104,7 +104,7 @@ public final class CursorParamTest {
       this.proxy = proxy;
     }
 
-    @SuppressWarnings("checkstyle:executablestatementcount")
+    @SuppressWarnings({"checkstyle:executablestatementcount", "PMD.CloseResource"})
     @Override
     public final void execute(final TemporaryFolder tmp) {
       try (Env<T> env = env(tmp)) {

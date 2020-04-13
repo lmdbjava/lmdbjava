@@ -64,6 +64,7 @@ import static org.lmdbjava.SeekOp.MDB_PREV;
  * need to install the LMDB system library yourself. 32-bit platforms are not
  * supported.
  */
+@SuppressWarnings("PMD.CloseResource")
 public final class TutorialTest {
 
   private static final String DB_NAME = "my DB";
@@ -147,7 +148,7 @@ public final class TutorialTest {
    * @throws InterruptedException if executor shutdown interrupted
    */
   @Test
-  @SuppressWarnings({"ConvertToTryWithResources",
+  @SuppressWarnings({"ConvertToTryWithResources", "PMD.DoNotUseThreads",
                      "checkstyle:executablestatementcount"})
   public void tutorial2() throws IOException, InterruptedException {
     final Env<ByteBuffer> env = createSimpleEnv(tmp.newFolder());
