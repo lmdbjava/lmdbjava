@@ -22,7 +22,7 @@ install:
   - pip install codecov
 
 build_script:
-  - mvn -V -B -Dcheckstyle.skip=true --settings .travis-settings.xml -e verify
+  - mvn -V -B -Dpmd.ruleset=C:\projects\lmdbjava\target/acegi-standard-resources/au/com/acegi/standard/rule-set-pmd.xml -Dcheckstyle.skip=true --settings .travis-settings.xml -e verify
   - codecov -X gcov -f target/site/jacoco/jacoco.xml
 
 notifications:
