@@ -26,9 +26,9 @@ import java.util.Comparator;
 import java.util.List;
 import static java.util.Objects.requireNonNull;
 import static jnr.ffi.Memory.allocateDirect;
-import jnr.ffi.NativeType;
 import static jnr.ffi.NativeType.ADDRESS;
 import jnr.ffi.Pointer;
+import jnr.ffi.byref.IntByReference;
 import jnr.ffi.byref.PointerByReference;
 import org.lmdbjava.CursorIterator.IteratorType;
 import static org.lmdbjava.CursorIterator.IteratorType.FORWARD;
@@ -500,15 +500,15 @@ public final class Dbi<T> {
   * @return the list of flags this Dbi was created with
   */
   public List<DbiFlags> listFlags(final Txn<T> txn) {
-    final Pointer resultPtr = allocateDirect(RUNTIME, NativeType.UINT);
+    final IntByReference resultPtr = new IntByReference();
     checkRc(LIB.mdb_dbi_flags(txn.pointer(), ptr, resultPtr));
 
-    final int flags = resultPtr.getInt(0);
+    final int flags = resultPtr.intValue();
 
     final List<DbiFlags> result = new ArrayList<>();
 
     for (final DbiFlags flag : DbiFlags.values()) {
-      if (MaskedFlag.isSet(flags, flag)) {
+      if (isSet(flags, flag)) {
         result.add(flag);
       }
     }
