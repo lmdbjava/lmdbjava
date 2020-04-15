@@ -9,7 +9,7 @@ on:
 jobs:
   build:
     name: Java 11 Build and Verify
-    runs-on: ubuntu-16.04
+    runs-on: ubuntu-latest
 
     steps:
     - name: Check out Git repository
@@ -43,7 +43,7 @@ jobs:
 
     strategy:
       matrix:
-        os: [ubuntu-16.04, macos-latest, windows-latest]
+        os: [ubuntu-16.04, ubuntu-latest, macos-latest, windows-latest]
         java: [8, 11, 14]
 
     steps:
