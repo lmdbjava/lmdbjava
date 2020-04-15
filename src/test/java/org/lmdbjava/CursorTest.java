@@ -48,6 +48,7 @@ import static org.lmdbjava.PutFlags.MDB_MULTIPLE;
 import static org.lmdbjava.PutFlags.MDB_NODUPDATA;
 import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
 import static org.lmdbjava.SeekOp.MDB_FIRST;
+import static org.lmdbjava.SeekOp.MDB_GET_BOTH;
 import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.POSIX_MODE;
 import static org.lmdbjava.TestUtils.bb;
@@ -169,6 +170,27 @@ public final class CursorTest {
       assertThat(c.val().getInt(), is(4));
       c.delete();
       assertThat(c.seek(MDB_FIRST), is(false));
+    }
+  }
+
+  @Test
+  public void getKeyVal() {
+    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
+    try (Txn<ByteBuffer> txn = env.txnWrite();
+         Cursor<ByteBuffer> c = db.openCursor(txn)) {
+      c.put(bb(1), bb(2), MDB_APPENDDUP);
+      c.put(bb(1), bb(4), MDB_APPENDDUP);
+      c.put(bb(1), bb(6), MDB_APPENDDUP);
+      c.put(bb(2), bb(1), MDB_APPENDDUP);
+      c.put(bb(2), bb(2), MDB_APPENDDUP);
+      c.put(bb(2), bb(3), MDB_APPENDDUP);
+      c.put(bb(2), bb(4), MDB_APPENDDUP);
+      assertThat(c.get(bb(1), bb(2), MDB_GET_BOTH), is(true));
+      assertThat(c.count(), is(3L));
+      assertThat(c.get(bb(1), bb(3), MDB_GET_BOTH), is(false));
+      assertThat(c.get(bb(2), bb(1), MDB_GET_BOTH), is(true));
+      assertThat(c.count(), is(4L));
+      assertThat(c.get(bb(2), bb(0), MDB_GET_BOTH), is(false));
     }
   }
 
