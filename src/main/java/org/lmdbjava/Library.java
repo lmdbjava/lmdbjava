@@ -222,7 +222,7 @@ final class Library {
 
     void mdb_dbi_close(@In Pointer env, @In Pointer dbi);
 
-    int mdb_dbi_flags(@In Pointer txn, @In Pointer dbi, int flags);
+    int mdb_dbi_flags(@In Pointer txn, @In Pointer dbi, @Out Pointer flags);
 
     int mdb_dbi_open(@In Pointer txn, @In byte[] name, int flags,
                      @In Pointer dbiPtr);
