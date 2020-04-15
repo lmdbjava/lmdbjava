@@ -24,10 +24,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
-
 import static java.util.Objects.requireNonNull;
 import static jnr.ffi.Memory.allocateDirect;
-
 import jnr.ffi.NativeType;
 import static jnr.ffi.NativeType.ADDRESS;
 import jnr.ffi.Pointer;
@@ -57,6 +55,7 @@ import static org.lmdbjava.ResultCodeMapper.checkRc;
  *
  * @param <T> buffer type
  */
+@SuppressWarnings("PMD.GodClass")
 public final class Dbi<T> {
 
   private final ComparatorCallback ccb;
