@@ -107,7 +107,6 @@ public final class DbiTest {
   }
 
   @Test
-  @SuppressWarnings("PMD.CloseResource")
   public void customComparator() {
     final Comparator<ByteBuffer> reverseOrder = (o1, o2) -> {
       final int lexicalOrder = ByteBufferProxy.PROXY_OPTIMAL.compare(o1, o2);
@@ -124,8 +123,8 @@ public final class DbiTest {
       assertThat(db.put(txn, bb(8), bb(7)), is(true));
       txn.commit();
     }
-    try (Txn<ByteBuffer> txn = env.txnRead()) {
-      final CursorIterator<ByteBuffer> iter = db.iterate(txn, atMost(bb(4)));
+    try (Txn<ByteBuffer> txn = env.txnRead();
+         CursorIterator<ByteBuffer> iter = db.iterate(txn, atMost(bb(4)))) {
       assertThat(iter.next().key(), is(bb(8)));
       assertThat(iter.next().key(), is(bb(6)));
       assertThat(iter.next().key(), is(bb(4)));
@@ -141,7 +140,7 @@ public final class DbiTest {
   }
 
   @Test
-  @SuppressWarnings({"PMD.CloseResource", "PMD.DoNotUseThreads"})
+  @SuppressWarnings("PMD.DoNotUseThreads")
   public void dbiWithComparatorThreadSafety() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, PROXY_OPTIMAL::compare,
                                            MDB_CREATE);
@@ -165,8 +164,8 @@ public final class DbiTest {
       }
     }
 
-    try (Txn<ByteBuffer> txn = env.txnRead()) {
-      final CursorIterator<ByteBuffer> iter = db.iterate(txn);
+    try (Txn<ByteBuffer> txn = env.txnRead();
+         CursorIterator<ByteBuffer> iter = db.iterate(txn)) {
 
       final List<Integer> result = new ArrayList<>();
       while (iter.hasNext()) {

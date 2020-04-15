@@ -46,6 +46,7 @@ import org.lmdbjava.Env.AlreadyClosedException;
 import static org.lmdbjava.Env.create;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.EnvFlags.MDB_RDONLY_ENV;
+import static org.lmdbjava.KeyRange.closed;
 import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.POSIX_MODE;
 import static org.lmdbjava.TestUtils.bb;
@@ -96,7 +97,6 @@ public final class TxnTest {
   }
 
   @Test
-  @SuppressWarnings("PMD.CloseResource")
   public void rangeSearch() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
 
@@ -120,10 +120,10 @@ public final class TxnTest {
       end.put("z".getBytes(UTF_8)).flip();
 
       final List<String> keysFound = new ArrayList<>();
-      final CursorIterator<ByteBuffer> ckr = db.iterate(txn, KeyRange.closed(
-                                                        start, end));
-      for (final CursorIterator.KeyVal<ByteBuffer> kv : ckr.iterable()) {
-        keysFound.add(UTF_8.decode(kv.key()).toString());
+      try (CursorIterator<ByteBuffer> ckr = db.iterate(txn, closed(start, end))) {
+        for (final CursorIterator.KeyVal<ByteBuffer> kv : ckr.iterable()) {
+          keysFound.add(UTF_8.decode(kv.key()).toString());
+        }
       }
 
       assertEquals(3, keysFound.size());
@@ -153,25 +153,25 @@ public final class TxnTest {
   }
 
   @Test(expected = NotReadyException.class)
-  @SuppressWarnings("PMD.CloseResource")
   public void testCheckNotCommitted() {
-    final Txn<ByteBuffer> txn = env.txnRead();
-    txn.commit();
-    txn.checkReady();
+    try (Txn<ByteBuffer> txn = env.txnRead()) {
+      txn.commit();
+      txn.checkReady();
+    }
   }
 
   @Test(expected = ReadOnlyRequiredException.class)
-  @SuppressWarnings("PMD.CloseResource")
   public void testCheckReadOnly() {
-    final Txn<ByteBuffer> txn = env.txnWrite();
-    txn.checkReadOnly();
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
+      txn.checkReadOnly();
+    }
   }
 
   @Test(expected = ReadWriteRequiredException.class)
-  @SuppressWarnings("PMD.CloseResource")
   public void testCheckWritesAllowed() {
-    final Txn<ByteBuffer> txn = env.txnRead();
-    txn.checkWritesAllowed();
+    try (Txn<ByteBuffer> txn = env.txnRead()) {
+      txn.checkWritesAllowed();
+    }
   }
 
   @Test
@@ -214,11 +214,11 @@ public final class TxnTest {
   }
 
   @Test(expected = NotReadyException.class)
-  @SuppressWarnings("PMD.CloseResource")
   public void txCannotCommitTwice() {
-    final Txn<ByteBuffer> txn = env.txnRead();
-    txn.commit();
-    txn.commit(); // error
+    try (Txn<ByteBuffer> txn = env.txnRead()) {
+      txn.commit();
+      txn.commit(); // error
+    }
   }
 
   @Test(expected = AlreadyClosedException.class)
@@ -229,45 +229,45 @@ public final class TxnTest {
   }
 
   @Test
-  @SuppressWarnings("PMD.CloseResource")
   public void txParent() {
-    final Txn<ByteBuffer> txRoot = env.txnWrite();
-    final Txn<ByteBuffer> txChild = env.txn(txRoot);
-    assertThat(txRoot.getParent(), is(nullValue()));
-    assertThat(txChild.getParent(), is(txRoot));
+    try (Txn<ByteBuffer> txRoot = env.txnWrite();
+         Txn<ByteBuffer> txChild = env.txn(txRoot)) {
+      assertThat(txRoot.getParent(), is(nullValue()));
+      assertThat(txChild.getParent(), is(txRoot));
+    }
   }
 
   @Test(expected = IncompatibleParent.class)
-  @SuppressWarnings("PMD.CloseResource")
   public void txParentROChildRWIncompatible() {
-    final Txn<ByteBuffer> txRoot = env.txnRead();
-    env.txn(txRoot); // error
+    try (Txn<ByteBuffer> txRoot = env.txnRead()) {
+      env.txn(txRoot); // error
+    }
   }
 
   @Test(expected = IncompatibleParent.class)
-  @SuppressWarnings("PMD.CloseResource")
   public void txParentRWChildROIncompatible() {
-    final Txn<ByteBuffer> txRoot = env.txnWrite();
-    env.txn(txRoot, MDB_RDONLY_TXN); // error
+    try (Txn<ByteBuffer> txRoot = env.txnWrite()) {
+      env.txn(txRoot, MDB_RDONLY_TXN); // error
+    }
   }
 
   @Test
-  @SuppressWarnings("PMD.CloseResource")
   public void txReadOnly() {
-    final Txn<ByteBuffer> txn = env.txnRead();
-    assertThat(txn.getParent(), is(nullValue()));
-    assertThat(txn.getState(), is(READY));
-    assertThat(txn.isReadOnly(), is(true));
-    txn.checkReady();
-    txn.checkReadOnly();
-    txn.reset();
-    assertThat(txn.getState(), is(RESET));
-    txn.renew();
-    assertThat(txn.getState(), is(READY));
-    txn.commit();
-    assertThat(txn.getState(), is(DONE));
-    txn.close();
-    assertThat(txn.getState(), is(RELEASED));
+    try (Txn<ByteBuffer> txn = env.txnRead()) {
+      assertThat(txn.getParent(), is(nullValue()));
+      assertThat(txn.getState(), is(READY));
+      assertThat(txn.isReadOnly(), is(true));
+      txn.checkReady();
+      txn.checkReadOnly();
+      txn.reset();
+      assertThat(txn.getState(), is(RESET));
+      txn.renew();
+      assertThat(txn.getState(), is(READY));
+      txn.commit();
+      assertThat(txn.getState(), is(DONE));
+      txn.close();
+      assertThat(txn.getState(), is(RELEASED));
+    }
   }
 
   @Test
@@ -286,31 +286,30 @@ public final class TxnTest {
   }
 
   @Test(expected = NotResetException.class)
-  @SuppressWarnings("PMD.CloseResource")
   public void txRenewDeniedWithoutPriorReset() {
-    final Txn<ByteBuffer> txn = env.txnRead();
-    txn.renew();
+    try (Txn<ByteBuffer> txn = env.txnRead()) {
+      txn.renew();
+    }
   }
 
   @Test(expected = ResetException.class)
-  @SuppressWarnings("PMD.CloseResource")
   public void txResetDeniedForAlreadyResetTransaction() {
-    final Txn<ByteBuffer> txn = env.txnRead();
-    txn.reset();
-    txn.renew();
-    txn.reset();
-    txn.reset();
+    try (Txn<ByteBuffer> txn = env.txnRead()) {
+      txn.reset();
+      txn.renew();
+      txn.reset();
+      txn.reset();
+    }
   }
 
   @Test(expected = ReadOnlyRequiredException.class)
-  @SuppressWarnings("PMD.CloseResource")
   public void txResetDeniedForReadWriteTransaction() {
-    final Txn<ByteBuffer> txn = env.txnWrite();
-    txn.reset();
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
+      txn.reset();
+    }
   }
 
   @Test(expected = BadValueSizeException.class)
-  @SuppressWarnings("PMD.CloseResource")
   public void zeroByteKeysRejected() throws IOException {
     final Dbi<ByteBuffer> dbi = env.openDbi(DB_1, MDB_CREATE);
     final ByteBuffer key = allocateDirect(4);

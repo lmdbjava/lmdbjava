@@ -95,11 +95,10 @@ public final class CursorTest {
   }
 
   @Test
-  @SuppressWarnings("PMD.CloseResource")
   public void count() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
-    try (Txn<ByteBuffer> txn = env.txnWrite()) {
-      final Cursor<ByteBuffer> c = db.openCursor(txn);
+    try (Txn<ByteBuffer> txn = env.txnWrite();
+         Cursor<ByteBuffer> c = db.openCursor(txn)) {
       c.put(bb(1), bb(2), MDB_APPENDDUP);
       assertThat(c.count(), is(1L));
       c.put(bb(1), bb(4), MDB_APPENDDUP);
@@ -126,12 +125,10 @@ public final class CursorTest {
   }
 
   @Test
-  @SuppressWarnings("PMD.CloseResource")
   public void cursorFirstLastNextPrev() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
-    try (Txn<ByteBuffer> txn = env.txnWrite()) {
-      // populate data
-      final Cursor<ByteBuffer> c = db.openCursor(txn);
+    try (Txn<ByteBuffer> txn = env.txnWrite();
+         Cursor<ByteBuffer> c = db.openCursor(txn)) {
       c.put(bb(1), bb(2), MDB_NOOVERWRITE);
       c.put(bb(3), bb(4));
       c.put(bb(5), bb(6));
@@ -157,11 +154,10 @@ public final class CursorTest {
   }
 
   @Test
-  @SuppressWarnings("PMD.CloseResource")
   public void delete() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
-    try (Txn<ByteBuffer> txn = env.txnWrite()) {
-      final Cursor<ByteBuffer> c = db.openCursor(txn);
+    try (Txn<ByteBuffer> txn = env.txnWrite();
+         Cursor<ByteBuffer> c = db.openCursor(txn)) {
       c.put(bb(1), bb(2), MDB_NOOVERWRITE);
       c.put(bb(3), bb(4));
       assertThat(c.seek(MDB_FIRST), is(true));
@@ -177,7 +173,6 @@ public final class CursorTest {
   }
 
   @Test
-  @SuppressWarnings("PMD.CloseResource")
   public void putMultiple() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT,
                                            MDB_DUPFIXED);
@@ -191,19 +186,18 @@ public final class CursorTest {
 
     final int key = 100;
     final ByteBuffer k = bb(key);
-    try (Txn<ByteBuffer> txn = env.txnWrite()) {
-      final Cursor<ByteBuffer> c = db.openCursor(txn);
+    try (Txn<ByteBuffer> txn = env.txnWrite();
+         Cursor<ByteBuffer> c = db.openCursor(txn)) {
       c.putMultiple(k, values, elemCount, MDB_MULTIPLE);
       assertThat(c.count(), is((long) elemCount));
     }
   }
 
   @Test(expected = IllegalArgumentException.class)
-  @SuppressWarnings("PMD.CloseResource")
   public void putMultipleWithoutMdbMultipleFlag() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
-    try (Txn<ByteBuffer> txn = env.txnWrite()) {
-      final Cursor<ByteBuffer> c = db.openCursor(txn);
+    try (Txn<ByteBuffer> txn = env.txnWrite();
+         Cursor<ByteBuffer> c = db.openCursor(txn)) {
       c.putMultiple(bb(100), bb(1), 1);
     }
   }
@@ -223,17 +217,19 @@ public final class CursorTest {
       c.renew(txn);
       txn.commit();
     }
+
+    c.close();
   }
 
   @Test(expected = ReadOnlyRequiredException.class)
-  @SuppressWarnings("PMD.CloseResource")
   public void renewTxRw() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
       assertThat(txn.isReadOnly(), is(false));
 
-      final Cursor<ByteBuffer> c = db.openCursor(txn);
-      c.renew(txn);
+      try (Cursor<ByteBuffer> c = db.openCursor(txn)) {
+        c.renew(txn);
+      }
     }
   }
 
@@ -249,16 +245,16 @@ public final class CursorTest {
   }
 
   @Test
-  @SuppressWarnings("PMD.CloseResource")
   public void reserve() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
     final ByteBuffer key = bb(5);
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
-      final Cursor<ByteBuffer> c = db.openCursor(txn);
       assertNull(db.get(txn, key));
-      final ByteBuffer val = c.reserve(key, BYTES * 2);
-      assertNotNull(db.get(txn, key));
-      val.putLong(MIN_VALUE).flip();
+      try (Cursor<ByteBuffer> c = db.openCursor(txn)) {
+        final ByteBuffer val = c.reserve(key, BYTES * 2);
+        assertNotNull(db.get(txn, key));
+        val.putLong(MIN_VALUE).flip();
+      }
       txn.commit();
     }
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
@@ -269,11 +265,10 @@ public final class CursorTest {
   }
 
   @Test
-  @SuppressWarnings("PMD.CloseResource")
   public void returnValueForNoDupData() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
-    try (Txn<ByteBuffer> txn = env.txnWrite()) {
-      final Cursor<ByteBuffer> c = db.openCursor(txn);
+    try (Txn<ByteBuffer> txn = env.txnWrite();
+         Cursor<ByteBuffer> c = db.openCursor(txn)) {
       // ok
       assertThat(c.put(bb(5), bb(6), MDB_NODUPDATA), is(true));
       assertThat(c.put(bb(5), bb(7), MDB_NODUPDATA), is(true));
@@ -282,11 +277,10 @@ public final class CursorTest {
   }
 
   @Test
-  @SuppressWarnings("PMD.CloseResource")
   public void returnValueForNoOverwrite() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
-    try (Txn<ByteBuffer> txn = env.txnWrite()) {
-      final Cursor<ByteBuffer> c = db.openCursor(txn);
+    try (Txn<ByteBuffer> txn = env.txnWrite();
+         Cursor<ByteBuffer> c = db.openCursor(txn)) {
       // ok
       assertThat(c.put(bb(5), bb(6), MDB_NOOVERWRITE), is(true));
       // fails, but gets exist val
@@ -296,7 +290,6 @@ public final class CursorTest {
   }
 
   @Test
-  @SuppressWarnings("PMD.CloseResource")
   public void testCursorByteBufferDuplicate() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
     try (Txn<ByteBuffer> txn = env.txnWrite()) {

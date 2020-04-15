@@ -104,16 +104,16 @@ public final class CursorParamTest {
       this.proxy = proxy;
     }
 
-    @SuppressWarnings({"checkstyle:executablestatementcount", "PMD.CloseResource"})
+    @SuppressWarnings("checkstyle:executablestatementcount")
     @Override
     public final void execute(final TemporaryFolder tmp) {
       try (Env<T> env = env(tmp)) {
         assertThat(env.getDbiNames(), empty());
         final Dbi<T> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
         assertThat(env.getDbiNames().get(0), is(DB_1.getBytes(UTF_8)));
-        try (Txn<T> txn = env.txnWrite()) {
+        try (Txn<T> txn = env.txnWrite();
+             Cursor<T> c = db.openCursor(txn)) {
           // populate data
-          final Cursor<T> c = db.openCursor(txn);
           c.put(set(1), set(2), MDB_NOOVERWRITE);
           c.put(set(3), set(4));
           c.put(set(5), set(6));
