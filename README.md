@@ -1,5 +1,4 @@
-[![Build Status](https://travis-ci.org/lmdbjava/lmdbjava.svg?branch=master)](https://travis-ci.org/lmdbjava/lmdbjava)
-[![Build Status](https://ci.appveyor.com/api/projects/status/0w4yb9ybx22g2pwp?svg=true)](https://ci.appveyor.com/project/benalexau/lmdbjava)
+[![Maven Build and Deployment](https://github.com/lmdbjava/lmdbjava/workflows/Maven%20Build%20and%20Deployment/badge.svg)](https://github.com/lmdbjava/lmdbjava/actions)
 [![codecov](https://codecov.io/gh/lmdbjava/lmdbjava/branch/master/graph/badge.svg)](https://codecov.io/gh/lmdbjava/lmdbjava)
 [![Javadocs](http://www.javadoc.io/badge/org.lmdbjava/lmdbjava.svg?color=blue)](http://www.javadoc.io/doc/org.lmdbjava/lmdbjava)
 [![Maven Central](https://img.shields.io/maven-central/v/org.lmdbjava/lmdbjava.svg?maxAge=3600)](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22org.lmdbjava%22%20AND%20a%3A%22lmdbjava%22)
@@ -35,9 +34,10 @@
 * Community questions and contributions are welcome through [GitHub tickets](https://github.com/lmdbjava/lmdbjava/issues)
 * Mature code (commenced in 2016) and used for heavy production workloads (eg > 500 TB of HFT data)
 * Actively maintained and with a "Zero Bug Policy" before every release (see [issues](https://github.com/lmdbjava/lmdbjava/issues))
-* Available from [Maven Central](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22org.lmdbjava%22%20AND%20a%3A%22lmdbjava%22) and [OSS Sonatype Snapshots](https://oss.sonatype.org/content/repositories/snapshots/org/lmdbjava/lmdbjava) (see [Change Log](https://github.com/lmdbjava/lmdbjava/wiki/Change-Log))
-* Comprehensive [JavaDocs](http://www.javadoc.io/doc/org.lmdbjava/lmdbjava)
-* [Linux](https://travis-ci.org/lmdbjava/lmdbjava), [OS X](https://travis-ci.org/lmdbjava/lmdbjava) and [Windows](https://ci.appveyor.com/project/benalexau/lmdbjava) CI
+* Available from [Maven Central](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22org.lmdbjava%22%20AND%20a%3A%22lmdbjava%22) and [OSS Sonatype Snapshots](https://oss.sonatype.org/content/repositories/snapshots/org/lmdbjava/lmdbjava)
+* Detailed [JavaDocs](http://www.javadoc.io/doc/org.lmdbjava/lmdbjava)
+* [Change Log](https://github.com/lmdbjava/lmdbjava/wiki/Change-Log) to assist with upgrades
+* [Continuous integration](https://github.com/lmdbjava/lmdbjava/actions) testing on Linux, Windows and macOS across Java versions 8, 11 and 14
 
 ### Performance
 

@@ -1,0 +1,100 @@
+name: Maven Build and Deployment
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    name: Java 11 Build and Verify
+    runs-on: ubuntu-16.04
+
+    steps:
+    - name: Check out Git repository
+      uses: actions/checkout@v2
+
+    - name: Set up Java and Maven
+      uses: actions/setup-java@v1
+      with:
+        java-version: 11
+
+    - name: Cache Maven packages
+      uses: actions/cache@v1
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+
+    - name: Build with Maven
+      run: mvn -B verify
+
+    - name: Upload code coverage to Codecov
+      uses: codecov/codecov-action@v1
+
+  compatibility-checks:
+    name: Java ${{ matrix.java }} on ${{ matrix.os }} Compatibility
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ubuntu-16.04, macos-latest, windows-latest]
+        java: [8, 11, 14]
+
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v2
+
+      - name: Set up Java and Maven
+        uses: actions/setup-java@v1
+        with:
+          java-version: ${{ matrix.java }}
+
+      - name: Cache Maven packages
+        uses: actions/cache@v1
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-${{ matrix.java }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-${{ matrix.java }}-m2
+
+      - name: Test with Maven
+        run: mvn -B test
+
+      - name: Upload Surefire reports on test failure
+        uses: actions/upload-artifact@v1
+        if: failure()
+        with:
+          name: surefire-test-log
+          path: target/surefire-reports
+
+  deploy:
+    name: Deploy to OSSRH
+    needs: [build, compatibility-checks]
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check out Git repository
+      uses: actions/checkout@v2
+
+    - name: Set up Java and Maven
+      uses: actions/setup-java@v1
+      with:
+        java-version: 11
+
+    - name: Cache Maven packages
+      uses: actions/cache@v1
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+
+    - name: Publish Maven package
+      uses: samuelmeuli/action-maven-publish@v1
+      with:
+        gpg_private_key: ${{ secrets.gpg_private_key }}
+        gpg_passphrase: ${{ secrets.gpg_passphrase }}
+        nexus_username: ${{ secrets.nexus_username }}
+        nexus_password: ${{ secrets.nexus_password }}
+        maven_args: "-DskipTests"
