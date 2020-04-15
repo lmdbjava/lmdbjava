@@ -32,7 +32,7 @@ jobs:
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
 
     - name: Build with Maven
-      run: mvn -B -Dtest='!TutorialTest' verify
+      run: mvn -B verify
 
     - name: Upload code coverage to Codecov
       uses: codecov/codecov-action@v1
@@ -67,10 +67,7 @@ jobs:
           key: ${{ runner.os }}-${{ matrix.java }}-m2-${{ hashFiles('**/pom.xml') }}
 
       - name: Test with Maven
-        run: mvn -B -Dtest='!TutorialTest' test
-
-      - name: Test with Maven 2
-        run: mvn -B -Dtest='TutorialTest' test
+        run: mvn -B test
 
       - name: Upload Surefire reports on test failure
         uses: actions/upload-artifact@v1
