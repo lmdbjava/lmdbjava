@@ -20,12 +20,16 @@ jobs:
       with:
         java-version: 11
 
+    - name: Add OSSRH to the snapshot repositories list
+      uses: s4u/maven-settings-action@v2.1.0
+      with:
+        sonatypeSnapshots: true
+
     - name: Cache Maven packages
       uses: actions/cache@v1
       with:
         path: ~/.m2
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-        restore-keys: ${{ runner.os }}-m2
 
     - name: Build with Maven
       run: mvn -B verify
@@ -51,12 +55,16 @@ jobs:
         with:
           java-version: ${{ matrix.java }}
 
+      - name: Add OSSRH to the snapshot repositories list
+        uses: s4u/maven-settings-action@v2.1.0
+        with:
+          sonatypeSnapshots: true
+
       - name: Cache Maven packages
         uses: actions/cache@v1
         with:
           path: ~/.m2
           key: ${{ runner.os }}-${{ matrix.java }}-m2-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-${{ matrix.java }}-m2
 
       - name: Test with Maven
         run: mvn -B test
@@ -83,12 +91,16 @@ jobs:
       with:
         java-version: 11
 
+    - name: Add OSSRH to the snapshot repositories list
+      uses: s4u/maven-settings-action@v2.1.0
+      with:
+        sonatypeSnapshots: true
+
     - name: Cache Maven packages
       uses: actions/cache@v1
       with:
         path: ~/.m2
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-        restore-keys: ${{ runner.os }}-m2
 
     - name: Publish Maven package
       uses: samuelmeuli/action-maven-publish@v1

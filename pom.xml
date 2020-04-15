@@ -8,7 +8,7 @@
   </parent>
   <groupId>org.lmdbjava</groupId>
   <artifactId>lmdbjava</artifactId>
-  <version>0.7.1-SNAPSHOT</version>
+  <version>0.8.0-SNAPSHOT</version>
   <packaging>jar</packaging>
   <name>LmdbJava</name>
   <description>Low latency Java API for the ultra-fast, embedded Symas Lightning Database (LMDB)</description>
@@ -135,19 +135,19 @@
     <dependency>
       <groupId>org.lmdbjava</groupId>
       <artifactId>lmdbjava-native-linux-x86_64</artifactId>
-      <version>0.9.23-1</version>
+      <version>0.9.24-1-SNAPSHOT</version>
       <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.lmdbjava</groupId>
       <artifactId>lmdbjava-native-windows-x86_64</artifactId>
-      <version>0.9.23-1</version>
+      <version>0.9.24-1-SNAPSHOT</version>
       <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.lmdbjava</groupId>
       <artifactId>lmdbjava-native-osx-x86_64</artifactId>
-      <version>0.9.23-1</version>
+      <version>0.9.24-1-SNAPSHOT</version>
       <optional>true</optional>
     </dependency>
     <dependency>
