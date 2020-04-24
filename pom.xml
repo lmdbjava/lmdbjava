@@ -110,13 +110,7 @@
     </dependency>
     <dependency>
       <groupId>io.netty</groupId>
-      <artifactId>netty-buffer</artifactId>
-      <version>4.1.48.Final</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.netty</groupId>
-      <artifactId>netty-common</artifactId>
+      <artifactId>netty-all</artifactId>
       <version>4.1.48.Final</version>
       <scope>test</scope>
     </dependency>
@@ -170,7 +164,6 @@
           </usedDependencies>
           <ignoredDependencies>
             <ignoredDependency>com.github.jnr:jffi</ignoredDependency>
-            <ignoredDependency>io.netty:netty-common</ignoredDependency>
           </ignoredDependencies>
         </configuration>
       </plugin>
