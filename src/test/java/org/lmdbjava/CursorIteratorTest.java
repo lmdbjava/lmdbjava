@@ -235,6 +235,15 @@ public final class CursorIteratorTest {
     verify(greaterThan(bb(3)), 4, 6, 8);
   }
 
+  @Test(expected = IllegalStateException.class)
+  public void iterableOnlyReturnedOnce() {
+    try (Txn<ByteBuffer> txn = env.txnRead();
+         CursorIterator<ByteBuffer> c = db.iterate(txn)) {
+      c.iterable(); // ok
+      c.iterable(); // fails
+    }
+  }
+
   @Test
   public void iterate() {
     try (Txn<ByteBuffer> txn = env.txnRead();

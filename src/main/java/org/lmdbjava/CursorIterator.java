@@ -53,6 +53,7 @@ public final class CursorIterator<T> implements
   private final Comparator<T> comparator;
   private final Cursor<T> cursor;
   private final KeyVal<T> entry;
+  private boolean iterableReturned;
   private final KeyRange<T> range;
   private State state = REQUIRES_INITIAL_OP;
 
@@ -79,11 +80,20 @@ public final class CursorIterator<T> implements
   }
 
   /**
-   * Obtain an iterator.
+   * Obtain an iterable.
+   *
+   * <p>
+   * As iteration of the returned iterable will cause movement of the underlying
+   * LMDB cursor, an {@link IllegalStateException} is thrown if an attempt is
+   * made to obtain the iterator more than once.
    *
    * @return an iterator
    */
   public Iterable<KeyVal<T>> iterable() {
+    if (iterableReturned) {
+      throw new IllegalStateException("Iterable can only be returned once");
+    }
+    iterableReturned = true;
     return () -> CursorIterator.this;
   }
 
