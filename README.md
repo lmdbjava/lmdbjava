@@ -29,15 +29,10 @@
 * Buffer agnostic (Java `ByteBuffer`, Agrona `DirectBuffer`, Netty `ByteBuf`, your own buffer)
 * 100% stock-standard, officially-released, widely-tested LMDB C code ([no extra](https://github.com/lmdbjava/native) C/JNI code)
 * Low latency design (allocation-free; buffer pools; optional checks can be easily disabled in production etc)
-* Automatically tested with Java 8 and Java 11
-* Easy to use (just work through our step-by-step, CI-tested, fully-executable [tutorial](https://github.com/lmdbjava/lmdbjava/tree/master/src/test/java/org/lmdbjava/TutorialTest.java))
-* Community questions and contributions are welcome through [GitHub tickets](https://github.com/lmdbjava/lmdbjava/issues)
 * Mature code (commenced in 2016) and used for heavy production workloads (eg > 500 TB of HFT data)
 * Actively maintained and with a "Zero Bug Policy" before every release (see [issues](https://github.com/lmdbjava/lmdbjava/issues))
 * Available from [Maven Central](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22org.lmdbjava%22%20AND%20a%3A%22lmdbjava%22) and [OSS Sonatype Snapshots](https://oss.sonatype.org/content/repositories/snapshots/org/lmdbjava/lmdbjava)
-* Detailed [JavaDocs](http://www.javadoc.io/doc/org.lmdbjava/lmdbjava)
-* [Change Log](https://github.com/lmdbjava/lmdbjava/wiki/Change-Log) to assist with upgrades
-* [Continuous integration](https://github.com/lmdbjava/lmdbjava/actions) testing on Linux, Windows and macOS across Java versions 8, 11 and 14
+* [Continuous integration](https://github.com/lmdbjava/lmdbjava/actions) testing on Linux, Windows and macOS with Java 8, 11 and 14
 
 ### Performance
 
@@ -46,6 +41,13 @@
 ![img](https://raw.githubusercontent.com/lmdbjava/benchmarks/master/results/20160710/4-intKey-rnd-summary.png)
 
 Full details are in the [latest benchmark report](https://github.com/lmdbjava/benchmarks/blob/master/results/20160710/README.md).
+
+### Documentation
+
+* [Wiki](https://github.com/lmdbjava/lmdbjava/wiki/)
+* [Tutorial](https://github.com/lmdbjava/lmdbjava/tree/master/src/test/java/org/lmdbjava/TutorialTest.java)
+* [JavaDocs](http://www.javadoc.io/doc/org.lmdbjava/lmdbjava)
+* [Change Log](https://github.com/lmdbjava/lmdbjava/wiki/Change-Log)
 
 ### Support
 
