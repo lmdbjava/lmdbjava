@@ -229,23 +229,6 @@ public final class CursorIterable<T> implements
   }
 
   /**
-   * Represents the internal {@link CursorIterable} state.
-   *
-   * @deprecated use {@link Dbi} iterate method with a {@link KeyRange} instead
-   */
-  @Deprecated
-  public enum IteratorType {
-    /**
-     * Move forward.
-     */
-    FORWARD,
-    /**
-     * Move backward.
-     */
-    BACKWARD
-  }
-
-  /**
    * Represents the internal {@link CursorIterator} state.
    */
   enum State {

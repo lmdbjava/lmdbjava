@@ -41,8 +41,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import static org.lmdbjava.CursorIterable.IteratorType.BACKWARD;
-import static org.lmdbjava.CursorIterable.IteratorType.FORWARD;
 import org.lmdbjava.CursorIterable.KeyVal;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import static org.lmdbjava.Env.create;
@@ -121,31 +119,6 @@ public final class CursorIteratorTest {
     verify(atMost(bb(6)), 2, 4, 6);
   }
 
-  @Test
-  public void backwardDeprecated() {
-    try (Txn<ByteBuffer> txn = env.txnRead();
-         CursorIterable<ByteBuffer> c = db.iterate(txn, BACKWARD)) {
-      for (final KeyVal<ByteBuffer> kv : c) {
-        assertThat(kv.val().getInt(), is(list.pollLast()));
-        assertThat(kv.key().getInt(), is(list.pollLast()));
-      }
-    }
-  }
-
-  @Test
-  public void backwardSeekDeprecated() {
-    final ByteBuffer key = bb(6);
-    list.pollLast();
-    list.pollLast();
-    try (Txn<ByteBuffer> txn = env.txnRead();
-         CursorIterable<ByteBuffer> c = db.iterate(txn, key, BACKWARD)) {
-      for (final KeyVal<ByteBuffer> kv : c) {
-        assertThat(kv.val().getInt(), is(list.pollLast()));
-        assertThat(kv.key().getInt(), is(list.pollLast()));
-      }
-    }
-  }
-
   @Before
   @SuppressWarnings("PMD.CloseResource")
   public void before() throws IOException {
@@ -193,32 +166,6 @@ public final class CursorIteratorTest {
     verify(closed(bb(3), bb(7)), 4, 6);
     verify(closed(bb(2), bb(6)), 2, 4, 6);
     verify(closed(bb(1), bb(7)), 2, 4, 6);
-  }
-
-  @Test
-  public void forwardDeprecated() {
-    try (Txn<ByteBuffer> txn = env.txnRead();
-         CursorIterable<ByteBuffer> c = db.iterate(txn, FORWARD)) {
-      for (final KeyVal<ByteBuffer> kv : c) {
-        assertThat(kv.key().getInt(), is(list.pollFirst()));
-        assertThat(kv.val().getInt(), is(list.pollFirst()));
-      }
-    }
-  }
-
-  @Test
-  public void forwardSeekDeprecated() {
-    final ByteBuffer key = bb(4);
-    list.pollFirst();
-    list.pollFirst();
-
-    try (Txn<ByteBuffer> txn = env.txnRead();
-         CursorIterable<ByteBuffer> c = db.iterate(txn, key, FORWARD)) {
-      for (final KeyVal<ByteBuffer> kv : c) {
-        assertThat(kv.key().getInt(), is(list.pollFirst()));
-        assertThat(kv.val().getInt(), is(list.pollFirst()));
-      }
-    }
   }
 
   @Test

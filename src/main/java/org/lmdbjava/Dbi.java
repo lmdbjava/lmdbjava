@@ -30,15 +30,10 @@ import static jnr.ffi.NativeType.ADDRESS;
 import jnr.ffi.Pointer;
 import jnr.ffi.byref.IntByReference;
 import jnr.ffi.byref.PointerByReference;
-import org.lmdbjava.CursorIterable.IteratorType;
-import static org.lmdbjava.CursorIterable.IteratorType.FORWARD;
 import static org.lmdbjava.Dbi.KeyExistsException.MDB_KEYEXIST;
 import static org.lmdbjava.Dbi.KeyNotFoundException.MDB_NOTFOUND;
 import static org.lmdbjava.Env.SHOULD_CHECK;
 import static org.lmdbjava.KeyRange.all;
-import static org.lmdbjava.KeyRange.allBackward;
-import static org.lmdbjava.KeyRange.atLeast;
-import static org.lmdbjava.KeyRange.atLeastBackward;
 import org.lmdbjava.Library.ComparatorCallback;
 import static org.lmdbjava.Library.LIB;
 import org.lmdbjava.Library.MDB_stat;
@@ -55,7 +50,6 @@ import static org.lmdbjava.ResultCodeMapper.checkRc;
  *
  * @param <T> buffer type
  */
-@SuppressWarnings("PMD.GodClass")
 public final class Dbi<T> {
 
   private final ComparatorCallback ccb;
@@ -261,50 +255,6 @@ public final class Dbi<T> {
    */
   public CursorIterable<T> iterate(final Txn<T> txn) {
     return iterate(txn, all());
-  }
-
-  /**
-   * Iterate the database from the first/last item and forwards/backwards.
-   *
-   * @param txn  transaction handle (not null; not committed)
-   * @param type direction of iterator (not null)
-   * @return iterator (never null)
-   * @deprecated use iterate method with a {@link KeyRange} instead
-   */
-  @Deprecated
-  public CursorIterable<T> iterate(final Txn<T> txn, final IteratorType type) {
-    if (SHOULD_CHECK) {
-      requireNonNull(type);
-    }
-    final KeyRange<T> range = type == FORWARD ? all() : allBackward();
-    return iterate(txn, range);
-  }
-
-  /**
-   * Iterate the database from the first/last item and forwards/backwards by
-   * first seeking to the provided key.
-   *
-   * @param txn  transaction handle (not null; not committed)
-   * @param key  the key to search from (may be null to denote first record)
-   * @param type direction of iterator (not null)
-   * @return iterator (never null)
-   * @deprecated use iterate method with a {@link KeyRange} instead
-   */
-  @Deprecated
-  public CursorIterable<T> iterate(final Txn<T> txn, final T key,
-                                   final IteratorType type) {
-    if (SHOULD_CHECK) {
-      requireNonNull(type);
-    }
-
-    final KeyRange<T> range;
-    if (type == FORWARD) {
-      range = key == null ? all() : atLeast(key);
-    } else {
-      range = key == null ? allBackward() : atLeastBackward(key);
-    }
-
-    return iterate(txn, range);
   }
 
   /**
