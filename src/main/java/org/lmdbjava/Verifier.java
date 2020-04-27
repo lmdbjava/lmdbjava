@@ -82,7 +82,7 @@ public final class Verifier implements Callable<Long> {
    */
   public static final int DBI_COUNT = 5;
   private static final int BATCH_SIZE = 64;
-  private static final int BUFFER_LEN = 1024 * BATCH_SIZE;
+  private static final int BUFFER_LEN = 1_024 * BATCH_SIZE;
   private static final int CRC_LENGTH = Long.BYTES;
   private static final int KEY_LENGTH = Long.BYTES;
   private final byte[] ba = new byte[BUFFER_LEN];
@@ -269,7 +269,7 @@ public final class Verifier implements Callable<Long> {
 
   private int valueSize(final long forId) {
     final int mod = (int) (forId % BATCH_SIZE);
-    final int base = 1024 * mod;
+    final int base = 1_024 * mod;
     final int value = base == 0 ? 512 : base;
     return value - CRC_LENGTH - KEY_LENGTH; // aim to minimise partial pages
   }

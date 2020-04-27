@@ -147,7 +147,7 @@ public final class DbiTest {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, PROXY_OPTIMAL::compare,
                                            MDB_CREATE);
 
-    final List<Integer> keys = range(0, 1000).boxed().collect(toList());
+    final List<Integer> keys = range(0, 1_000).boxed().collect(toList());
 
     final ExecutorService pool = Executors.newCachedThreadPool();
     final AtomicBoolean proceed = new AtomicBoolean(true);
