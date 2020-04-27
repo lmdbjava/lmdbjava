@@ -229,7 +229,7 @@ public final class CursorIterable<T> implements
   }
 
   /**
-   * Represents the internal {@link CursorIterator} state.
+   * Represents the internal {@link CursorIterable} state.
    */
   enum State {
     REQUIRES_INITIAL_OP, REQUIRES_NEXT_OP, REQUIRES_ITERATOR_OP, RELEASED,

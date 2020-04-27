@@ -301,7 +301,7 @@ public final class Env<T> implements AutoCloseable {
    * If a custom comparator is specified, this comparator is called from LMDB
    * any time it needs to compare two keys. The comparator must be used any time
    * any time this database is opened, otherwise database corruption may occur.
-   * The custom comparator will also be used whenever a {@link CursorIterator}
+   * The custom comparator will also be used whenever a {@link CursorIterable}
    * is created from the returned {@link Dbi}. If a custom comparator is not
    * specified, LMDB's native default lexicographical order is used. The default
    * comparator is typically more efficient (as there is no need for the native
