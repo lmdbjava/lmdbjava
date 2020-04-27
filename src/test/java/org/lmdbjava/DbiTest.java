@@ -130,9 +130,9 @@ public final class DbiTest {
     try (Txn<ByteBuffer> txn = env.txnRead();
          CursorIterable<ByteBuffer> ci = db.iterate(txn, atMost(bb(4)))) {
       final Iterator<KeyVal<ByteBuffer>> iter = ci.iterator();
-      assertThat(iter.next().key(), is(bb(8)));
-      assertThat(iter.next().key(), is(bb(6)));
-      assertThat(iter.next().key(), is(bb(4)));
+      assertThat(iter.next().key().getInt(), is(8));
+      assertThat(iter.next().key().getInt(), is(6));
+      assertThat(iter.next().key().getInt(), is(4));
     }
   }
 

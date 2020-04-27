@@ -333,7 +333,7 @@ public final class EnvTest {
       env.setMapSize(500_000);
 
       try (Txn<ByteBuffer> roTxn = env.txnRead()) {
-        assertThat(db.get(roTxn, bb(1)), is(bb(42)));
+        assertThat(db.get(roTxn, bb(1)).getInt(), is(42));
       }
 
       mapFullExThrown = false;
