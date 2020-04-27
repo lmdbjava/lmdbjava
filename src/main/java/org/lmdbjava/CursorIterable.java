@@ -33,8 +33,8 @@ import org.lmdbjava.KeyRangeType.CursorOp;
 import org.lmdbjava.KeyRangeType.IteratorOp;
 
 /**
- * {@link Iterator} that iterates over a {@link Cursor} as specified by a
- * {@link KeyRange}.
+ * {@link Iterable} that creates a single {@link Iterator} that will iterate
+ * over a {@link Cursor}as specified by a {@link KeyRange}.
  *
  * <p>
  * An instance will create and close its own cursor.
@@ -47,8 +47,8 @@ import org.lmdbjava.KeyRangeType.IteratorOp;
  *
  * @param <T> buffer type
  */
-public final class CursorIterator<T> implements
-    Iterator<CursorIterator.KeyVal<T>>, AutoCloseable {
+public final class CursorIterable<T> implements
+    Iterable<CursorIterable.KeyVal<T>>, AutoCloseable {
 
   private final Comparator<T> comparator;
   private final Cursor<T> cursor;
@@ -57,7 +57,7 @@ public final class CursorIterator<T> implements
   private final KeyRange<T> range;
   private State state = REQUIRES_INITIAL_OP;
 
-  CursorIterator(final Txn<T> txn, final Dbi<T> dbi, final KeyRange<T> range,
+  CursorIterable(final Txn<T> txn, final Dbi<T> dbi, final KeyRange<T> range,
                  final Comparator<T> comparator) {
     this.cursor = dbi.openCursor(txn);
     this.range = range;
@@ -70,45 +70,50 @@ public final class CursorIterator<T> implements
     cursor.close();
   }
 
-  @Override
-  @SuppressWarnings("checkstyle:returncount")
-  public boolean hasNext() {
-    while (state != RELEASED && state != TERMINATED) {
-      update();
-    }
-    return state == RELEASED;
-  }
-
   /**
-   * Obtain an iterable.
+   * Obtain an iterator.
    *
    * <p>
-   * As iteration of the returned iterable will cause movement of the underlying
+   * As iteration of the returned iterator will cause movement of the underlying
    * LMDB cursor, an {@link IllegalStateException} is thrown if an attempt is
-   * made to obtain the iterator more than once.
+   * made to obtain the iterator more than once. For advanced cursor control
+   * (such as being able to iterate over the same data multiple times etc)
+   * please instead refer to {@link Dbi#openCursor(org.lmdbjava.Txn)}.
    *
    * @return an iterator
    */
-  public Iterable<KeyVal<T>> iterable() {
+  @Override
+  @SuppressWarnings("checkstyle:AnonInnerLength")
+  public Iterator<KeyVal<T>> iterator() {
     if (iterableReturned) {
       throw new IllegalStateException("Iterable can only be returned once");
     }
     iterableReturned = true;
-    return () -> CursorIterator.this;
-  }
 
-  @Override
-  public KeyVal<T> next() {
-    if (!hasNext()) {
-      throw new NoSuchElementException();
-    }
-    state = REQUIRES_NEXT_OP;
-    return entry;
-  }
+    return new Iterator<KeyVal<T>>() {
+      @Override
+      @SuppressWarnings("checkstyle:returncount")
+      public boolean hasNext() {
+        while (state != RELEASED && state != TERMINATED) {
+          update();
+        }
+        return state == RELEASED;
+      }
 
-  @Override
-  public void remove() {
-    cursor.delete();
+      @Override
+      public KeyVal<T> next() {
+        if (!hasNext()) {
+          throw new NoSuchElementException();
+        }
+        state = REQUIRES_NEXT_OP;
+        return entry;
+      }
+
+      @Override
+      public void remove() {
+        cursor.delete();
+      }
+    };
   }
 
   @SuppressWarnings({"PMD.CyclomaticComplexity", "PMD.NullAssignment"})
@@ -224,9 +229,9 @@ public final class CursorIterator<T> implements
   }
 
   /**
-   * Direction in terms of key ordering for CursorIterator.
+   * Represents the internal {@link CursorIterable} state.
    *
-   * @deprecated use {@link KeyRange} instead
+   * @deprecated use {@link Dbi} iterate method with a {@link KeyRange} instead
    */
   @Deprecated
   public enum IteratorType {

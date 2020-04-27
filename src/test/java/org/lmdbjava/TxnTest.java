@@ -120,8 +120,8 @@ public final class TxnTest {
       end.put("z".getBytes(UTF_8)).flip();
 
       final List<String> keysFound = new ArrayList<>();
-      try (CursorIterator<ByteBuffer> ckr = db.iterate(txn, closed(start, end))) {
-        for (final CursorIterator.KeyVal<ByteBuffer> kv : ckr.iterable()) {
+      try (CursorIterable<ByteBuffer> ckr = db.iterate(txn, closed(start, end))) {
+        for (final CursorIterable.KeyVal<ByteBuffer> kv : ckr) {
           keysFound.add(UTF_8.decode(kv.key()).toString());
         }
       }

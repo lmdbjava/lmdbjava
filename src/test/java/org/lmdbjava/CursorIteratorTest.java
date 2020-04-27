@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import static java.util.Arrays.asList;
 import java.util.Comparator;
 import java.util.Deque;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -40,9 +41,9 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import static org.lmdbjava.CursorIterator.IteratorType.BACKWARD;
-import static org.lmdbjava.CursorIterator.IteratorType.FORWARD;
-import org.lmdbjava.CursorIterator.KeyVal;
+import static org.lmdbjava.CursorIterable.IteratorType.BACKWARD;
+import static org.lmdbjava.CursorIterable.IteratorType.FORWARD;
+import org.lmdbjava.CursorIterable.KeyVal;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import static org.lmdbjava.Env.create;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
@@ -70,7 +71,7 @@ import static org.lmdbjava.TestUtils.POSIX_MODE;
 import static org.lmdbjava.TestUtils.bb;
 
 /**
- * Test {@link CursorIterator}.
+ * Test {@link CursorIterable}.
  */
 public final class CursorIteratorTest {
 
@@ -123,11 +124,10 @@ public final class CursorIteratorTest {
   @Test
   public void backwardDeprecated() {
     try (Txn<ByteBuffer> txn = env.txnRead();
-         CursorIterator<ByteBuffer> c = db.iterate(txn, BACKWARD)) {
-      for (final KeyVal<ByteBuffer> kv : c.iterable()) {
+         CursorIterable<ByteBuffer> c = db.iterate(txn, BACKWARD)) {
+      for (final KeyVal<ByteBuffer> kv : c) {
         assertThat(kv.val().getInt(), is(list.pollLast()));
         assertThat(kv.key().getInt(), is(list.pollLast()));
-        assertThat(c.hasNext(), is(list.peekFirst() != null));
       }
     }
   }
@@ -138,8 +138,8 @@ public final class CursorIteratorTest {
     list.pollLast();
     list.pollLast();
     try (Txn<ByteBuffer> txn = env.txnRead();
-         CursorIterator<ByteBuffer> c = db.iterate(txn, key, BACKWARD)) {
-      for (final KeyVal<ByteBuffer> kv : c.iterable()) {
+         CursorIterable<ByteBuffer> c = db.iterate(txn, key, BACKWARD)) {
+      for (final KeyVal<ByteBuffer> kv : c) {
         assertThat(kv.val().getInt(), is(list.pollLast()));
         assertThat(kv.key().getInt(), is(list.pollLast()));
       }
@@ -198,11 +198,10 @@ public final class CursorIteratorTest {
   @Test
   public void forwardDeprecated() {
     try (Txn<ByteBuffer> txn = env.txnRead();
-         CursorIterator<ByteBuffer> c = db.iterate(txn, FORWARD)) {
-      for (final KeyVal<ByteBuffer> kv : c.iterable()) {
+         CursorIterable<ByteBuffer> c = db.iterate(txn, FORWARD)) {
+      for (final KeyVal<ByteBuffer> kv : c) {
         assertThat(kv.key().getInt(), is(list.pollFirst()));
         assertThat(kv.val().getInt(), is(list.pollFirst()));
-        assertThat(c.hasNext(), is(list.peekFirst() != null));
       }
     }
   }
@@ -214,8 +213,8 @@ public final class CursorIteratorTest {
     list.pollFirst();
 
     try (Txn<ByteBuffer> txn = env.txnRead();
-         CursorIterator<ByteBuffer> c = db.iterate(txn, key, FORWARD)) {
-      for (final KeyVal<ByteBuffer> kv : c.iterable()) {
+         CursorIterable<ByteBuffer> c = db.iterate(txn, key, FORWARD)) {
+      for (final KeyVal<ByteBuffer> kv : c) {
         assertThat(kv.key().getInt(), is(list.pollFirst()));
         assertThat(kv.val().getInt(), is(list.pollFirst()));
       }
@@ -238,20 +237,29 @@ public final class CursorIteratorTest {
   @Test(expected = IllegalStateException.class)
   public void iterableOnlyReturnedOnce() {
     try (Txn<ByteBuffer> txn = env.txnRead();
-         CursorIterator<ByteBuffer> c = db.iterate(txn)) {
-      c.iterable(); // ok
-      c.iterable(); // fails
+         CursorIterable<ByteBuffer> c = db.iterate(txn)) {
+      c.iterator(); // ok
+      c.iterator(); // fails
     }
   }
 
   @Test
   public void iterate() {
     try (Txn<ByteBuffer> txn = env.txnRead();
-         CursorIterator<ByteBuffer> c = db.iterate(txn)) {
-      for (final KeyVal<ByteBuffer> kv : c.iterable()) {
+         CursorIterable<ByteBuffer> c = db.iterate(txn)) {
+      for (final KeyVal<ByteBuffer> kv : c) {
         assertThat(kv.key().getInt(), is(list.pollFirst()));
         assertThat(kv.val().getInt(), is(list.pollFirst()));
       }
+    }
+  }
+
+  @Test(expected = IllegalStateException.class)
+  public void iteratorOnlyReturnedOnce() {
+    try (Txn<ByteBuffer> txn = env.txnRead();
+         CursorIterable<ByteBuffer> c = db.iterate(txn)) {
+      c.iterator(); // ok
+      c.iterator(); // fails
     }
   }
 
@@ -270,13 +278,15 @@ public final class CursorIteratorTest {
   @Test(expected = NoSuchElementException.class)
   public void nextThrowsNoSuchElementExceptionIfNoMoreElements() {
     try (Txn<ByteBuffer> txn = env.txnRead();
-         CursorIterator<ByteBuffer> c = db.iterate(txn)) {
-      for (final KeyVal<ByteBuffer> kv : c.iterable()) {
+         CursorIterable<ByteBuffer> c = db.iterate(txn)) {
+      final Iterator<KeyVal<ByteBuffer>> i = c.iterator();
+      while (i.hasNext()) {
+        final KeyVal<ByteBuffer> kv = i.next();
         assertThat(kv.key().getInt(), is(list.pollFirst()));
         assertThat(kv.val().getInt(), is(list.pollFirst()));
       }
-      assertThat(c.hasNext(), is(false));
-      c.next();
+      assertThat(i.hasNext(), is(false));
+      i.next();
     }
   }
 
@@ -329,7 +339,8 @@ public final class CursorIteratorTest {
     verify(all(), 2, 4, 6, 8);
     int idx = -1;
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
-      try (CursorIterator<ByteBuffer> c = db.iterate(txn)) {
+      try (CursorIterable<ByteBuffer> ci = db.iterate(txn)) {
+        final Iterator<KeyVal<ByteBuffer>> c = ci.iterator();
         while (c.hasNext()) {
           c.next();
           idx++;
@@ -353,8 +364,8 @@ public final class CursorIteratorTest {
     final List<Integer> results = new ArrayList<>();
 
     try (Txn<ByteBuffer> txn = env.txnRead();
-         CursorIterator<ByteBuffer> c = db.iterate(txn, range, comparator)) {
-      for (final KeyVal<ByteBuffer> kv : c.iterable()) {
+         CursorIterable<ByteBuffer> c = db.iterate(txn, range, comparator)) {
+      for (final KeyVal<ByteBuffer> kv : c) {
         final int key = kv.key().getInt();
         final int val = kv.val().getInt();
         results.add(key);

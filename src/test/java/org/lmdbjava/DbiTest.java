@@ -31,6 +31,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.util.ArrayList;
 import static java.util.Collections.nCopies;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.ExecutionException;
@@ -60,6 +61,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
+import org.lmdbjava.CursorIterable.KeyVal;
 import org.lmdbjava.Dbi.DbFullException;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import static org.lmdbjava.DbiFlags.MDB_DUPSORT;
@@ -126,7 +128,8 @@ public final class DbiTest {
       txn.commit();
     }
     try (Txn<ByteBuffer> txn = env.txnRead();
-         CursorIterator<ByteBuffer> iter = db.iterate(txn, atMost(bb(4)))) {
+         CursorIterable<ByteBuffer> ci = db.iterate(txn, atMost(bb(4)))) {
+      final Iterator<KeyVal<ByteBuffer>> iter = ci.iterator();
       assertThat(iter.next().key(), is(bb(8)));
       assertThat(iter.next().key(), is(bb(6)));
       assertThat(iter.next().key(), is(bb(4)));
@@ -167,8 +170,8 @@ public final class DbiTest {
     }
 
     try (Txn<ByteBuffer> txn = env.txnRead();
-         CursorIterator<ByteBuffer> iter = db.iterate(txn)) {
-
+         CursorIterable<ByteBuffer> ci = db.iterate(txn)) {
+      final Iterator<KeyVal<ByteBuffer>> iter = ci.iterator();
       final List<Integer> result = new ArrayList<>();
       while (iter.hasNext()) {
         result.add(iter.next().key().getInt());

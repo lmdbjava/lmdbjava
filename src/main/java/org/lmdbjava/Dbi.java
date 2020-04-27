@@ -30,8 +30,8 @@ import static jnr.ffi.NativeType.ADDRESS;
 import jnr.ffi.Pointer;
 import jnr.ffi.byref.IntByReference;
 import jnr.ffi.byref.PointerByReference;
-import org.lmdbjava.CursorIterator.IteratorType;
-import static org.lmdbjava.CursorIterator.IteratorType.FORWARD;
+import org.lmdbjava.CursorIterable.IteratorType;
+import static org.lmdbjava.CursorIterable.IteratorType.FORWARD;
 import static org.lmdbjava.Dbi.KeyExistsException.MDB_KEYEXIST;
 import static org.lmdbjava.Dbi.KeyNotFoundException.MDB_NOTFOUND;
 import static org.lmdbjava.Env.SHOULD_CHECK;
@@ -259,7 +259,7 @@ public final class Dbi<T> {
    * @param txn transaction handle (not null; not committed)
    * @return iterator
    */
-  public CursorIterator<T> iterate(final Txn<T> txn) {
+  public CursorIterable<T> iterate(final Txn<T> txn) {
     return iterate(txn, all());
   }
 
@@ -272,7 +272,7 @@ public final class Dbi<T> {
    * @deprecated use iterate method with a {@link KeyRange} instead
    */
   @Deprecated
-  public CursorIterator<T> iterate(final Txn<T> txn, final IteratorType type) {
+  public CursorIterable<T> iterate(final Txn<T> txn, final IteratorType type) {
     if (SHOULD_CHECK) {
       requireNonNull(type);
     }
@@ -291,7 +291,7 @@ public final class Dbi<T> {
    * @deprecated use iterate method with a {@link KeyRange} instead
    */
   @Deprecated
-  public CursorIterator<T> iterate(final Txn<T> txn, final T key,
+  public CursorIterable<T> iterate(final Txn<T> txn, final T key,
                                    final IteratorType type) {
     if (SHOULD_CHECK) {
       requireNonNull(type);
@@ -315,7 +315,7 @@ public final class Dbi<T> {
    * @param range range of acceptable keys (not null)
    * @return iterator (never null)
    */
-  public CursorIterator<T> iterate(final Txn<T> txn, final KeyRange<T> range) {
+  public CursorIterable<T> iterate(final Txn<T> txn, final KeyRange<T> range) {
     return iterate(txn, range, null);
   }
 
@@ -338,7 +338,7 @@ public final class Dbi<T> {
    * @param comparator custom comparator for keys (may be null)
    * @return iterator (never null)
    */
-  public CursorIterator<T> iterate(final Txn<T> txn, final KeyRange<T> range,
+  public CursorIterable<T> iterate(final Txn<T> txn, final KeyRange<T> range,
                                    final Comparator<T> comparator) {
     if (SHOULD_CHECK) {
       requireNonNull(txn);
@@ -351,7 +351,7 @@ public final class Dbi<T> {
     } else {
       useComp = comparator;
     }
-    return new CursorIterator<>(txn, this, range, useComp);
+    return new CursorIterable<>(txn, this, range, useComp);
   }
 
   /*

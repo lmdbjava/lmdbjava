@@ -41,7 +41,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
-import org.lmdbjava.CursorIterator.KeyVal;
+import org.lmdbjava.CursorIterable.KeyVal;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import static org.lmdbjava.DbiFlags.MDB_DUPSORT;
 import static org.lmdbjava.DirectBufferProxy.PROXY_DB;
@@ -319,19 +319,19 @@ public final class TutorialTest {
       db.put(txn, key, val);
       key.clear();
 
-      // Each iterator uses a cursor and must be closed when finished.
-      // Iterate forward in terms of key ordering starting with the first key.
-      try (CursorIterator<ByteBuffer> it = db.iterate(txn, KeyRange.all())) {
-        for (final KeyVal<ByteBuffer> kv : it.iterable()) {
+      // Each iterable uses a cursor and must be closed when finished. Iterate
+      // forward in terms of key ordering starting with the first key.
+      try (CursorIterable<ByteBuffer> ci = db.iterate(txn, KeyRange.all())) {
+        for (final KeyVal<ByteBuffer> kv : ci) {
           assertThat(kv.key(), notNullValue());
           assertThat(kv.val(), notNullValue());
         }
       }
 
       // Iterate backward in terms of key ordering starting with the last key.
-      try (CursorIterator<ByteBuffer> it = db.iterate(txn,
+      try (CursorIterable<ByteBuffer> ci = db.iterate(txn,
                                                       KeyRange.allBackward())) {
-        for (final KeyVal<ByteBuffer> kv : it.iterable()) {
+        for (final KeyVal<ByteBuffer> kv : ci) {
           assertThat(kv.key(), notNullValue());
           assertThat(kv.val(), notNullValue());
         }
@@ -342,8 +342,8 @@ public final class TutorialTest {
       // terminology for our range classes (see KeyRangeType for further details).
       key.putInt(1);
       final KeyRange<ByteBuffer> range = KeyRange.atLeastBackward(key);
-      try (CursorIterator<ByteBuffer> it = db.iterate(txn, range)) {
-        for (final KeyVal<ByteBuffer> kv : it.iterable()) {
+      try (CursorIterable<ByteBuffer> ci = db.iterate(txn, range)) {
+        for (final KeyVal<ByteBuffer> kv : ci) {
           assertThat(kv.key(), notNullValue());
           assertThat(kv.val(), notNullValue());
         }
