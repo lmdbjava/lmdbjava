@@ -34,7 +34,7 @@ import org.lmdbjava.KeyRangeType.IteratorOp;
 
 /**
  * {@link Iterable} that creates a single {@link Iterator} that will iterate
- * over a {@link Cursor}as specified by a {@link KeyRange}.
+ * over a {@link Cursor} as specified by a {@link KeyRange}.
  *
  * <p>
  * An instance will create and close its own cursor.
