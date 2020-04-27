@@ -71,7 +71,7 @@ import static org.lmdbjava.TestUtils.bb;
 /**
  * Test {@link CursorIterable}.
  */
-public final class CursorIteratorTest {
+public final class CursorIterableTest {
 
   @Rule
   public final TemporaryFolder tmp = new TemporaryFolder();
