@@ -53,7 +53,7 @@ public final class CursorIterable<T> implements
   private final Comparator<T> comparator;
   private final Cursor<T> cursor;
   private final KeyVal<T> entry;
-  private boolean iterableReturned;
+  private boolean iteratorReturned;
   private final KeyRange<T> range;
   private State state = REQUIRES_INITIAL_OP;
 
@@ -85,10 +85,10 @@ public final class CursorIterable<T> implements
   @Override
   @SuppressWarnings("checkstyle:AnonInnerLength")
   public Iterator<KeyVal<T>> iterator() {
-    if (iterableReturned) {
-      throw new IllegalStateException("Iterable can only be returned once");
+    if (iteratorReturned) {
+      throw new IllegalStateException("Iterator can only be returned once");
     }
-    iterableReturned = true;
+    iteratorReturned = true;
 
     return new Iterator<KeyVal<T>>() {
       @Override
