@@ -57,7 +57,7 @@ public enum EnvFlags implements MaskedFlag {
    */
   MDB_RDONLY_ENV(0x2_0000),
   /**
-   * Use a writeable memory map unless {@link #MDB_RDONLY} is set.
+   * Use a writeable memory map unless {@link #MDB_RDONLY_ENV} is set.
    *
    * <p>
    * This is faster and uses fewer mallocs, but loses protection from
@@ -73,7 +73,7 @@ public enum EnvFlags implements MaskedFlag {
    * <p>
    * Flush system buffers to disk only once per transaction, omit the metadata
    * flush. Defer that until the system flushes files to disk, or next
-   * non-{@link #MDB_RDONLY} commit or {@link Env#sync(boolean)}. This
+   * non-{@link #MDB_RDONLY_ENV} commit or {@link Env#sync(boolean)}. This
    * optimization* maintains database integrity, but a system crash may undo the
    * last* committed transaction. I.e. it preserves the ACI (atomicity,
    * consistency, isolation) but not D (durability) database property.
