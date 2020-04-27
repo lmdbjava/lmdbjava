@@ -2,6 +2,8 @@
 [![codecov](https://codecov.io/gh/lmdbjava/lmdbjava/branch/master/graph/badge.svg)](https://codecov.io/gh/lmdbjava/lmdbjava)
 [![Javadocs](http://www.javadoc.io/badge/org.lmdbjava/lmdbjava.svg?color=blue)](http://www.javadoc.io/doc/org.lmdbjava/lmdbjava)
 [![Maven Central](https://img.shields.io/maven-central/v/org.lmdbjava/lmdbjava.svg?maxAge=3600)](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22org.lmdbjava%22%20AND%20a%3A%22lmdbjava%22)
+[![Total alerts](https://img.shields.io/lgtm/alerts/g/lmdbjava/lmdbjava.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/lmdbjava/lmdbjava/alerts/)
+[![Language grade: Java](https://img.shields.io/lgtm/grade/java/g/lmdbjava/lmdbjava.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/lmdbjava/lmdbjava/context:java)
 
 # LMDB for Java
 
