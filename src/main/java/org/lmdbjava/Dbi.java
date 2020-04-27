@@ -354,6 +354,29 @@ public final class Dbi<T> {
     return new CursorIterator<>(txn, this, range, useComp);
   }
 
+  /*
+  * Return DbiFlags for this Dbi.
+  *
+  * @param txn transaction handle (not null; not committed)
+  * @return the list of flags this Dbi was created with
+   */
+  public List<DbiFlags> listFlags(final Txn<T> txn) {
+    final IntByReference resultPtr = new IntByReference();
+    checkRc(LIB.mdb_dbi_flags(txn.pointer(), ptr, resultPtr));
+
+    final int flags = resultPtr.intValue();
+
+    final List<DbiFlags> result = new ArrayList<>();
+
+    for (final DbiFlags flag : DbiFlags.values()) {
+      if (isSet(flags, flag)) {
+        result.add(flag);
+      }
+    }
+
+    return result;
+  }
+
   /**
    * Create a cursor handle.
    *
@@ -491,29 +514,6 @@ public final class Dbi<T> {
         stat.f3_ms_leaf_pages.longValue(),
         stat.f4_ms_overflow_pages.longValue(),
         stat.f5_ms_entries.longValue());
-  }
-
-  /*
-  * Return DbiFlags for this Dbi.
-  *
-  * @param txn transaction handle (not null; not committed)
-  * @return the list of flags this Dbi was created with
-  */
-  public List<DbiFlags> listFlags(final Txn<T> txn) {
-    final IntByReference resultPtr = new IntByReference();
-    checkRc(LIB.mdb_dbi_flags(txn.pointer(), ptr, resultPtr));
-
-    final int flags = resultPtr.intValue();
-
-    final List<DbiFlags> result = new ArrayList<>();
-
-    for (final DbiFlags flag : DbiFlags.values()) {
-      if (isSet(flags, flag)) {
-        result.add(flag);
-      }
-    }
-
-    return result;
   }
 
   private void clean() {

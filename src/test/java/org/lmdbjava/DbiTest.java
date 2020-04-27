@@ -264,6 +264,17 @@ public final class DbiTest {
   }
 
   @Test
+  public void listsFlags() {
+    final Dbi<ByteBuffer> dbi = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT,
+                                            MDB_REVERSEKEY);
+
+    try (Txn<ByteBuffer> txn = env.txnRead()) {
+      final List<DbiFlags> flags = dbi.listFlags(txn);
+      assertThat(flags, containsInAnyOrder(MDB_DUPSORT, MDB_REVERSEKEY));
+    }
+  }
+
+  @Test
   public void putAbortGet() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
 
@@ -478,13 +489,4 @@ public final class DbiTest {
         });
   }
 
-  @Test
-  public void listsFlags() {
-    final Dbi<ByteBuffer> dbi = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT, MDB_REVERSEKEY);
-
-    try (Txn<ByteBuffer> txn = env.txnRead()) {
-      final List<DbiFlags> flags = dbi.listFlags(txn);
-      assertThat(flags, containsInAnyOrder(MDB_DUPSORT, MDB_REVERSEKEY));
-    }
-  }
 }
