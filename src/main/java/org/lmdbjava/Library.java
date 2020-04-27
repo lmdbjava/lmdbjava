@@ -63,6 +63,15 @@ final class Library {
    */
   public static final String DISABLE_EXTRACT_PROP = "lmdbjava.disable.extract";
   /**
+   * Java system property name that can be set to the path of an existing
+   * directory into which the LMDB system library will be extracted from the
+   * LmdbJava JAR. If unspecified the LMDB system library is extracted to the
+   * <code>java.io.tmpdir</code>. Ignored if the LMDB system library is not
+   * being extracted from the LmdbJava JAR (as would be the case if other
+   * system properties defined in <code>Library</code> have been set).
+   */
+  public static final String LMDB_EXTRACT_DIR_PROP = "lmdbjava.extract.dir";
+  /**
    * Java system property name that can be set to provide a custom path to a
    * external LMDB system library. If set, the system property
    * DISABLE_EXTRACT_PROP will be overridden.
@@ -73,6 +82,11 @@ final class Library {
    * permitted.
    */
   public static final boolean SHOULD_EXTRACT = !getBoolean(DISABLE_EXTRACT_PROP);
+  /**
+   * Indicates the directory where the LMDB system library will be extracted.
+   */
+  static final String EXTRACT_DIR = getProperty(LMDB_EXTRACT_DIR_PROP,
+                                                getProperty("java.io.tmpdir"));
   static final Lmdb LIB;
   static final jnr.ffi.Runtime RUNTIME;
   /**
@@ -119,7 +133,11 @@ final class Library {
     final String suffix = name.substring(name.lastIndexOf('.'));
     final File file;
     try {
-      file = createTempFile("lmdbjava-native-library-", suffix);
+      final File dir = new File(EXTRACT_DIR);
+      if (!dir.exists() || !dir.isDirectory()) {
+        throw new IllegalStateException("Invalid extraction directory " + dir);
+      }
+      file = createTempFile("lmdbjava-native-library-", suffix, dir);
       file.deleteOnExit();
       final ClassLoader cl = currentThread().getContextClassLoader();
       try (InputStream in = cl.getResourceAsStream(name);
