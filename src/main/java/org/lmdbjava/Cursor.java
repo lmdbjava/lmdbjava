@@ -128,9 +128,9 @@ public final class Cursor<T> implements AutoCloseable {
   /**
    * Reposition the key/value buffers based on the passed key and operation.
    *
-   * @param key to search for
+   * @param key  to search for
    * @param data to search for
-   * @param op  options for this operation
+   * @param op   options for this operation
    * @return false if key not found
    */
   public boolean get(final T key, final T data, final SeekOp op) {
