@@ -40,6 +40,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 import static org.lmdbjava.ByteArrayProxy.PROXY_BA;
+import static org.lmdbjava.ByteBufProxy.PROXY_NETTY;
 import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
 import static org.lmdbjava.ByteBufferProxy.PROXY_SAFE;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
@@ -287,7 +288,7 @@ public final class CursorParamTest {
   private static class NettyBufferRunner extends AbstractBufferRunner<ByteBuf> {
 
     NettyBufferRunner() {
-      super(new ByteBufProxy());
+      super(PROXY_NETTY);
     }
 
     @Override

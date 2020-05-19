@@ -38,6 +38,13 @@ import static org.lmdbjava.UnsafeAccess.UNSAFE;
  */
 public final class ByteBufProxy extends BufferProxy<ByteBuf> {
 
+  /**
+   * A proxy for using Netty {@link ByteBuf}. Guaranteed to never be null,
+   * although a class initialization exception will occur if an attempt is made
+   * to access this field when Netty is unavailable.
+   */
+  public static final BufferProxy<ByteBuf> PROXY_NETTY = new ByteBufProxy();
+
   private static final long ADDRESS_OFFSET;
 
   /**
@@ -64,6 +71,9 @@ public final class ByteBufProxy extends BufferProxy<ByteBuf> {
     } catch (final SecurityException e) {
       throw new LmdbException("Field access error", e);
     }
+  }
+
+  private ByteBufProxy() {
   }
 
   static Field findField(final String c, final String name) {

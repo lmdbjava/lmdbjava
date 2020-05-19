@@ -208,7 +208,7 @@ public final class ComparatorTest {
       final ByteBuf o2b = DEFAULT.directBuffer(o2.length);
       o1b.writeBytes(o1);
       o2b.writeBytes(o2);
-      return new ByteBufProxy().compare(o1b, o2b);
+      return ByteBufProxy.PROXY_NETTY.compare(o1b, o2b);
     }
   }
 
