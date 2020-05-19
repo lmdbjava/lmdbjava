@@ -60,6 +60,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import static org.lmdbjava.ByteArrayProxy.PROXY_BA;
 import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
 import org.lmdbjava.CursorIterable.KeyVal;
 import org.lmdbjava.Dbi.DbFullException;
@@ -327,7 +328,7 @@ public final class DbiTest {
   @Test
   public void putCommitGetByteArray() throws IOException {
     final File path = tmp.newFile();
-    try (Env<byte[]> envBa = create(new ByteArrayProxy())
+    try (Env<byte[]> envBa = create(PROXY_BA)
         .setMapSize(MEBIBYTES.toBytes(64))
         .setMaxReaders(1)
         .setMaxDbs(2)

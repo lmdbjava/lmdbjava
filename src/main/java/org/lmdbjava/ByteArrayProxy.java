@@ -40,6 +40,9 @@ public final class ByteArrayProxy extends BufferProxy<byte[]> {
 
   private static final MemoryManager MEM_MGR = RUNTIME.getMemoryManager();
 
+  private ByteArrayProxy() {
+  }
+
   /**
    * Lexicographically compare two byte arrays.
    *
