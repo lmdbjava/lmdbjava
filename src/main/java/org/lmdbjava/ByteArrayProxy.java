@@ -31,7 +31,7 @@ import static org.lmdbjava.Library.RUNTIME;
  *
  * {@link Env#create(org.lmdbjava.BufferProxy)}.
  */
-public class ByteArrayProxy extends BufferProxy<byte[]> {
+public final class ByteArrayProxy extends BufferProxy<byte[]> {
 
   /**
    * The byte array proxy. Guaranteed to never be null.
@@ -69,28 +69,28 @@ public class ByteArrayProxy extends BufferProxy<byte[]> {
   }
 
   @Override
-  protected final byte[] allocate() {
+  protected byte[] allocate() {
     return new byte[0];
   }
 
   @Override
-  protected final int compare(final byte[] o1, final byte[] o2) {
+  protected int compare(final byte[] o1, final byte[] o2) {
     return compareArrays(o1, o2);
   }
 
   @Override
-  protected final void deallocate(final byte[] buff) {
+  protected void deallocate(final byte[] buff) {
     // byte arrays cannot be allocated
   }
 
   @Override
-  protected final byte[] getBytes(final byte[] buffer) {
+  protected byte[] getBytes(final byte[] buffer) {
     return Arrays.copyOf(buffer, buffer.length);
   }
 
   @Override
-  protected final void in(final byte[] buffer, final Pointer ptr,
-                          final long ptrAddr) {
+  protected void in(final byte[] buffer, final Pointer ptr,
+                    final long ptrAddr) {
     final Pointer pointer = MEM_MGR.allocateDirect(buffer.length);
     pointer.put(0, buffer, 0, buffer.length);
     ptr.putLong(STRUCT_FIELD_OFFSET_SIZE, buffer.length);
@@ -98,13 +98,13 @@ public class ByteArrayProxy extends BufferProxy<byte[]> {
   }
 
   @Override
-  protected final void in(final byte[] buffer, final int size, final Pointer ptr,
+  protected void in(final byte[] buffer, final int size, final Pointer ptr,
                           final long ptrAddr) {
     // cannot reserve for byte arrays
   }
 
   @Override
-  protected final byte[] out(final byte[] buffer, final Pointer ptr,
+  protected byte[] out(final byte[] buffer, final Pointer ptr,
                              final long ptrAddr) {
     final long addr = ptr.getAddress(STRUCT_FIELD_OFFSET_DATA);
     final int size = (int) ptr.getLong(STRUCT_FIELD_OFFSET_SIZE);
