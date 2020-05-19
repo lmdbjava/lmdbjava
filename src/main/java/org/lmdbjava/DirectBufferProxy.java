@@ -56,6 +56,9 @@ public final class DirectBufferProxy extends BufferProxy<DirectBuffer> {
   private static final ThreadLocal<OneToOneConcurrentArrayQueue<DirectBuffer>> BUFFERS
       = withInitial(() -> new OneToOneConcurrentArrayQueue<>(16));
 
+  private DirectBufferProxy() {
+  }
+
   /**
    * Lexicographically compare two buffers.
    *
