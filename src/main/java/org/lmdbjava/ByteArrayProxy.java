@@ -102,13 +102,13 @@ public final class ByteArrayProxy extends BufferProxy<byte[]> {
 
   @Override
   protected void in(final byte[] buffer, final int size, final Pointer ptr,
-                          final long ptrAddr) {
+                    final long ptrAddr) {
     // cannot reserve for byte arrays
   }
 
   @Override
   protected byte[] out(final byte[] buffer, final Pointer ptr,
-                             final long ptrAddr) {
+                       final long ptrAddr) {
     final long addr = ptr.getAddress(STRUCT_FIELD_OFFSET_DATA);
     final int size = (int) ptr.getLong(STRUCT_FIELD_OFFSET_SIZE);
     final Pointer pointer = MEM_MGR.newPointer(addr, size);
