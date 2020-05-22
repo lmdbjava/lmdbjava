@@ -30,6 +30,7 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.greaterThan;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -152,7 +153,7 @@ public final class EnvTest {
   }
 
   @Test
-  public void copy() throws IOException {
+  public void copyDirectoryBased() throws IOException {
     final File dest = tmp.newFolder();
     assertThat(dest.exists(), is(true));
     assertThat(dest.isDirectory(), is(true));
@@ -167,7 +168,7 @@ public final class EnvTest {
   }
 
   @Test(expected = InvalidCopyDestination.class)
-  public void copyRejectsFileDestination() throws IOException {
+  public void copyDirectoryRejectsFileDestination() throws IOException {
     final File dest = tmp.newFile();
     final File src = tmp.newFolder();
     try (Env<ByteBuffer> env = create()
@@ -178,7 +179,7 @@ public final class EnvTest {
   }
 
   @Test(expected = InvalidCopyDestination.class)
-  public void copyRejectsMissingDestination() throws IOException {
+  public void copyDirectoryRejectsMissingDestination() throws IOException {
     final File dest = tmp.newFolder();
     assertThat(dest.delete(), is(true));
     final File src = tmp.newFolder();
@@ -190,7 +191,7 @@ public final class EnvTest {
   }
 
   @Test(expected = InvalidCopyDestination.class)
-  public void copyRejectsNonEmptyDestination() throws IOException {
+  public void copyDirectoryRejectsNonEmptyDestination() throws IOException {
     final File dest = tmp.newFolder();
     final File subDir = new File(dest, "hello");
     assertThat(subDir.mkdir(), is(true));
@@ -198,6 +199,32 @@ public final class EnvTest {
     try (Env<ByteBuffer> env = create()
         .setMaxReaders(1)
         .open(src)) {
+      env.copy(dest, MDB_CP_COMPACT);
+    }
+  }
+
+  @Test
+  public void copyFileBased() throws IOException {
+    final File dest = tmp.newFile();
+    assertThat(dest.delete(), is(true));
+    assertThat(dest.exists(), is(false));
+    final File src = tmp.newFile();
+    try (Env<ByteBuffer> env = create()
+        .setMaxReaders(1)
+        .open(src, MDB_NOSUBDIR)) {
+      env.copy(dest, MDB_CP_COMPACT);
+    }
+    assertThat(dest.length(), greaterThan(0L));
+  }
+
+  @Test(expected = InvalidCopyDestination.class)
+  public void copyFileRejectsExistingDestination() throws IOException {
+    final File dest = tmp.newFile();
+    assertThat(dest.exists(), is(true));
+    final File src = tmp.newFile();
+    try (Env<ByteBuffer> env = create()
+        .setMaxReaders(1)
+        .open(src, MDB_NOSUBDIR)) {
       env.copy(dest, MDB_CP_COMPACT);
     }
   }

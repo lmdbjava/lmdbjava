@@ -32,6 +32,7 @@ import static java.util.Objects.requireNonNull;
 import jnr.ffi.Pointer;
 import jnr.ffi.byref.PointerByReference;
 import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
+import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.EnvFlags.MDB_RDONLY_ENV;
 import static org.lmdbjava.Library.LIB;
 import org.lmdbjava.Library.MDB_envinfo;
@@ -65,14 +66,16 @@ public final class Env<T> implements AutoCloseable {
 
   private boolean closed;
   private final int maxKeySize;
+  private final boolean noSubDir;
   private final BufferProxy<T> proxy;
   private final Pointer ptr;
   private final boolean readOnly;
 
   private Env(final BufferProxy<T> proxy, final Pointer ptr,
-              final boolean readOnly) {
+              final boolean readOnly, final boolean noSubDir) {
     this.proxy = proxy;
     this.readOnly = readOnly;
+    this.noSubDir = noSubDir;
     this.ptr = ptr;
     // cache max key size to avoid further JNI calls
     this.maxKeySize = LIB.mdb_env_get_maxkeysize(ptr);
@@ -137,25 +140,22 @@ public final class Env<T> implements AutoCloseable {
    * lockfile is created, since it gets recreated at need.
    *
    * <p>
+   * If this environment was created using {@link EnvFlags#MDB_NOSUBDIR}, the
+   * destination path must be a directory that exists but contains no files. If
+   * {@link EnvFlags#MDB_NOSUBDIR} was used, the destination path must not
+   * exist, but it must be possible to create a file at the provided path.
+   *
+   * <p>
    * Note: This call can trigger significant file size growth if run in parallel
    * with write transactions, because it employs a read-only transaction. See
    * long-lived transactions under "Caveats" in the LMDB native documentation.
    *
-   * @param path  destination directory, which must exist, be writable and empty
+   * @param path  writable destination path as described above
    * @param flags special options for this copy
    */
   public void copy(final File path, final CopyFlags... flags) {
     requireNonNull(path);
-    if (!path.exists()) {
-      throw new InvalidCopyDestination("Path must exist");
-    }
-    if (!path.isDirectory()) {
-      throw new InvalidCopyDestination("Path must be a directory");
-    }
-    final String[] files = path.list();
-    if (files != null && files.length > 0) {
-      throw new InvalidCopyDestination("Path must contain no files");
-    }
+    validatePath(path);
     final int flagsMask = mask(flags);
     checkRc(LIB.mdb_env_copy2(ptr, path.getAbsolutePath(), flagsMask));
   }
@@ -392,6 +392,29 @@ public final class Env<T> implements AutoCloseable {
     return ptr;
   }
 
+  private void validateDirectoryEmpty(final File path) {
+    if (!path.exists()) {
+      throw new InvalidCopyDestination("Path does not exist");
+    }
+    if (!path.isDirectory()) {
+      throw new InvalidCopyDestination("Path must be a directory");
+    }
+    final String[] files = path.list();
+    if (files != null && files.length > 0) {
+      throw new InvalidCopyDestination("Path must contain no files");
+    }
+  }
+
+  private void validatePath(final File path) {
+    if (noSubDir) {
+      if (path.exists()) {
+        throw new InvalidCopyDestination("Path must not exist for MDB_NOSUBDIR");
+      }
+      return;
+    }
+    validateDirectoryEmpty(path);
+  }
+
   /**
    * Object has already been closed and the operation is therefore prohibited.
    */
@@ -466,8 +489,9 @@ public final class Env<T> implements AutoCloseable {
         checkRc(LIB.mdb_env_set_maxreaders(ptr, maxReaders));
         final int flagsMask = mask(flags);
         final boolean readOnly = isSet(flagsMask, MDB_RDONLY_ENV);
+        final boolean noSubDir = isSet(flagsMask, MDB_NOSUBDIR);
         checkRc(LIB.mdb_env_open(ptr, path.getAbsolutePath(), flagsMask, mode));
-        return new Env<>(proxy, ptr, readOnly);
+        return new Env<>(proxy, ptr, readOnly, noSubDir);
       } catch (final LmdbNativeException e) {
         LIB.mdb_env_close(ptr);
         throw e;
