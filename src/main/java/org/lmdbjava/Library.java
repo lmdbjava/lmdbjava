@@ -158,8 +158,8 @@ final class Library {
   /**
    * Structure to wrap a native <code>MDB_envinfo</code>. Not for external use.
    */
-  @SuppressWarnings({"checkstyle:typename", "checkstyle:visibilitymodifier",
-                     "checkstyle:membername"})
+  @SuppressWarnings({"checkstyle:TypeName", "checkstyle:VisibilityModifier",
+                     "checkstyle:MemberName"})
   public static final class MDB_envinfo extends Struct {
 
     public final Pointer f0_me_mapaddr;
@@ -183,8 +183,8 @@ final class Library {
   /**
    * Structure to wrap a native <code>MDB_stat</code>. Not for external use.
    */
-  @SuppressWarnings({"checkstyle:typename", "checkstyle:visibilitymodifier",
-                     "checkstyle:membername"})
+  @SuppressWarnings({"checkstyle:TypeName", "checkstyle:VisibilityModifier",
+                     "checkstyle:MemberName"})
   public static final class MDB_stat extends Struct {
 
     public final u_int32_t f0_ms_psize;
@@ -218,7 +218,7 @@ final class Library {
   /**
    * JNR API for MDB-defined C functions. Not for external use.
    */
-  @SuppressWarnings("checkstyle:methodname")
+  @SuppressWarnings("checkstyle:MethodName")
   public interface Lmdb {
 
     void mdb_cursor_close(@In Pointer cursor);

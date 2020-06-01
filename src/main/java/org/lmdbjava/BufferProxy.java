@@ -33,7 +33,7 @@ import jnr.ffi.Pointer;
  *
  * @param <T> buffer type
  */
-@SuppressWarnings("checkstyle:abstractclassname")
+@SuppressWarnings("checkstyle:AbstractClassName")
 public abstract class BufferProxy<T> {
 
   /**

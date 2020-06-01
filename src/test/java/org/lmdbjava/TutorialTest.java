@@ -149,7 +149,7 @@ public final class TutorialTest {
    */
   @Test
   @SuppressWarnings({"ConvertToTryWithResources", "PMD.DoNotUseThreads",
-                     "checkstyle:executablestatementcount"})
+                     "checkstyle:ExecutableStatementCount"})
   public void tutorial2() throws IOException, InterruptedException {
     final Env<ByteBuffer> env = createSimpleEnv(tmp.newFolder());
     final Dbi<ByteBuffer> db = env.openDbi(DB_NAME, MDB_CREATE);
@@ -224,7 +224,7 @@ public final class TutorialTest {
    */
   @Test
   @SuppressWarnings({"ConvertToTryWithResources",
-                     "checkstyle:executablestatementcount"})
+                     "checkstyle:ExecutableStatementCount"})
   public void tutorial3() throws IOException {
     final Env<ByteBuffer> env = createSimpleEnv(tmp.newFolder());
     final Dbi<ByteBuffer> db = env.openDbi(DB_NAME, MDB_CREATE);
