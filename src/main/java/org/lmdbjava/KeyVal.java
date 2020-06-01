@@ -21,11 +21,12 @@
 package org.lmdbjava;
 
 import static java.util.Objects.requireNonNull;
-import jnr.ffi.Pointer;
-import jnr.ffi.provider.MemoryManager;
 import static org.lmdbjava.BufferProxy.MDB_VAL_STRUCT_SIZE;
 import static org.lmdbjava.BufferProxy.STRUCT_FIELD_OFFSET_SIZE;
 import static org.lmdbjava.Library.RUNTIME;
+
+import jnr.ffi.Pointer;
+import jnr.ffi.provider.MemoryManager;
 
 /**
  * Represents off-heap memory holding a key and value pair.

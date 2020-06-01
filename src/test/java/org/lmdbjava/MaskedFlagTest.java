@@ -23,12 +23,13 @@ package org.lmdbjava;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.arrayWithSize;
-import org.junit.Test;
 import static org.lmdbjava.EnvFlags.MDB_FIXEDMAP;
 import static org.lmdbjava.EnvFlags.MDB_NOSYNC;
 import static org.lmdbjava.EnvFlags.MDB_RDONLY_ENV;
 import static org.lmdbjava.MaskedFlag.isSet;
 import static org.lmdbjava.MaskedFlag.mask;
+
+import org.junit.Test;
 
 /**
  * Test {@link MaskedFlag}.

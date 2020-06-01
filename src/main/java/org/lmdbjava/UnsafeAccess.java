@@ -21,7 +21,9 @@
 package org.lmdbjava;
 
 import static java.lang.Boolean.getBoolean;
+
 import java.lang.reflect.Field;
+
 import sun.misc.Unsafe;
 
 /**

@@ -20,13 +20,15 @@
 
 package org.lmdbjava;
 
-import io.netty.buffer.ByteBuf;
 import static io.netty.buffer.PooledByteBufAllocator.DEFAULT;
 import static java.lang.Integer.BYTES;
+import static java.nio.ByteBuffer.allocateDirect;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
-import static java.nio.ByteBuffer.allocateDirect;
+
+import io.netty.buffer.ByteBuf;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 

@@ -20,8 +20,9 @@
 
 package org.lmdbjava;
 
-import jnr.ffi.byref.IntByReference;
 import static org.lmdbjava.Library.LIB;
+
+import jnr.ffi.byref.IntByReference;
 
 /**
  * LMDB metadata functions.

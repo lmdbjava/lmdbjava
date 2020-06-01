@@ -21,23 +21,14 @@
 package org.lmdbjava;
 
 import static com.jakewharton.byteunits.BinaryByteUnit.KIBIBYTES;
-import java.io.File;
-import java.io.IOException;
 import static java.lang.Long.BYTES;
 import static java.lang.Long.MIN_VALUE;
-import java.nio.ByteBuffer;
 import static java.nio.ByteBuffer.allocateDirect;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import org.junit.After;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
-import org.lmdbjava.Cursor.ClosedException;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import static org.lmdbjava.DbiFlags.MDB_DUPFIXED;
 import static org.lmdbjava.DbiFlags.MDB_DUPSORT;
@@ -52,6 +43,17 @@ import static org.lmdbjava.SeekOp.MDB_GET_BOTH;
 import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.POSIX_MODE;
 import static org.lmdbjava.TestUtils.bb;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+import org.lmdbjava.Cursor.ClosedException;
 import org.lmdbjava.Txn.NotReadyException;
 import org.lmdbjava.Txn.ReadOnlyRequiredException;
 

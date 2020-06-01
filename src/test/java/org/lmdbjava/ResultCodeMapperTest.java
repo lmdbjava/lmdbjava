@@ -21,17 +21,21 @@
 package org.lmdbjava;
 
 import static java.lang.Integer.MAX_VALUE;
-import java.util.HashSet;
-import java.util.Set;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.fail;
+import static org.lmdbjava.Cursor.FullException.MDB_CURSOR_FULL;
+import static org.lmdbjava.ResultCodeMapper.checkRc;
+import static org.lmdbjava.TestUtils.invokePrivateConstructor;
+
+import java.util.HashSet;
+import java.util.Set;
+
 import org.junit.Test;
 import org.lmdbjava.Cursor.FullException;
-import static org.lmdbjava.Cursor.FullException.MDB_CURSOR_FULL;
 import org.lmdbjava.Dbi.BadDbiException;
 import org.lmdbjava.Dbi.BadValueSizeException;
 import org.lmdbjava.Dbi.DbFullException;
@@ -49,8 +53,6 @@ import org.lmdbjava.LmdbNativeException.PageFullException;
 import org.lmdbjava.LmdbNativeException.PageNotFoundException;
 import org.lmdbjava.LmdbNativeException.PanicException;
 import org.lmdbjava.LmdbNativeException.TlsFullException;
-import static org.lmdbjava.ResultCodeMapper.checkRc;
-import static org.lmdbjava.TestUtils.invokePrivateConstructor;
 import org.lmdbjava.Txn.BadException;
 import org.lmdbjava.Txn.BadReaderLockException;
 import org.lmdbjava.Txn.TxFullException;

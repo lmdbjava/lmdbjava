@@ -20,11 +20,13 @@
 
 package org.lmdbjava;
 
-import java.nio.ByteBuffer;
 import static java.nio.ByteOrder.BIG_ENDIAN;
+import static java.util.Objects.requireNonNull;
+import static org.lmdbjava.DbiFlags.MDB_CREATE;
+
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
-import static java.util.Objects.requireNonNull;
 import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -34,7 +36,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.zip.CRC32;
-import static org.lmdbjava.DbiFlags.MDB_CREATE;
 
 /**
  * Verifies correct operation of LmdbJava in a given environment.

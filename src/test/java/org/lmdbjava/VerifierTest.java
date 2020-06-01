@@ -21,17 +21,19 @@
 package org.lmdbjava;
 
 import static com.jakewharton.byteunits.BinaryByteUnit.MEBIBYTES;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.lmdbjava.Env.create;
+import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.TimeUnit;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.greaterThan;
+
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import static org.lmdbjava.Env.create;
-import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 
 /**
  * Test {@link Verifier}.

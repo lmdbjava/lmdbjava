@@ -20,10 +20,8 @@
 
 package org.lmdbjava;
 
-import java.util.Comparator;
 import static jnr.ffi.Memory.allocateDirect;
 import static jnr.ffi.NativeType.ADDRESS;
-import jnr.ffi.Pointer;
 import static org.lmdbjava.Library.LIB;
 import static org.lmdbjava.Library.RUNTIME;
 import static org.lmdbjava.MaskedFlag.isSet;
@@ -34,6 +32,10 @@ import static org.lmdbjava.Txn.State.READY;
 import static org.lmdbjava.Txn.State.RELEASED;
 import static org.lmdbjava.Txn.State.RESET;
 import static org.lmdbjava.TxnFlags.MDB_RDONLY_TXN;
+
+import java.util.Comparator;
+
+import jnr.ffi.Pointer;
 
 /**
  * LMDB transaction.

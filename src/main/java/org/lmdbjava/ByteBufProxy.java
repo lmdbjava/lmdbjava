@@ -20,14 +20,16 @@
 
 package org.lmdbjava;
 
-import io.netty.buffer.ByteBuf;
 import static io.netty.buffer.PooledByteBufAllocator.DEFAULT;
 import static java.lang.Class.forName;
 import static java.lang.ThreadLocal.withInitial;
+import static org.lmdbjava.UnsafeAccess.UNSAFE;
+
 import java.lang.reflect.Field;
 import java.util.ArrayDeque;
+
+import io.netty.buffer.ByteBuf;
 import jnr.ffi.Pointer;
-import static org.lmdbjava.UnsafeAccess.UNSAFE;
 
 /**
  * A buffer proxy backed by Netty's {@link ByteBuf}.

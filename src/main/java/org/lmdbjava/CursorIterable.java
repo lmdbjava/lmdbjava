@@ -20,15 +20,17 @@
 
 package org.lmdbjava;
 
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.NoSuchElementException;
 import static org.lmdbjava.CursorIterable.State.RELEASED;
 import static org.lmdbjava.CursorIterable.State.REQUIRES_INITIAL_OP;
 import static org.lmdbjava.CursorIterable.State.REQUIRES_ITERATOR_OP;
 import static org.lmdbjava.CursorIterable.State.REQUIRES_NEXT_OP;
 import static org.lmdbjava.CursorIterable.State.TERMINATED;
 import static org.lmdbjava.GetOp.MDB_SET_RANGE;
+
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
+
 import org.lmdbjava.KeyRangeType.CursorOp;
 import org.lmdbjava.KeyRangeType.IteratorOp;
 

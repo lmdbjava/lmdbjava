@@ -20,23 +20,14 @@
 
 package org.lmdbjava;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.List;
 import static java.util.Objects.requireNonNull;
 import static jnr.ffi.Memory.allocateDirect;
 import static jnr.ffi.NativeType.ADDRESS;
-import jnr.ffi.Pointer;
-import jnr.ffi.byref.IntByReference;
-import jnr.ffi.byref.PointerByReference;
 import static org.lmdbjava.Dbi.KeyExistsException.MDB_KEYEXIST;
 import static org.lmdbjava.Dbi.KeyNotFoundException.MDB_NOTFOUND;
 import static org.lmdbjava.Env.SHOULD_CHECK;
 import static org.lmdbjava.KeyRange.all;
-import org.lmdbjava.Library.ComparatorCallback;
 import static org.lmdbjava.Library.LIB;
-import org.lmdbjava.Library.MDB_stat;
 import static org.lmdbjava.Library.RUNTIME;
 import static org.lmdbjava.MaskedFlag.isSet;
 import static org.lmdbjava.MaskedFlag.mask;
@@ -44,6 +35,17 @@ import static org.lmdbjava.PutFlags.MDB_NODUPDATA;
 import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
 import static org.lmdbjava.PutFlags.MDB_RESERVE;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
+
+import jnr.ffi.Pointer;
+import jnr.ffi.byref.IntByReference;
+import jnr.ffi.byref.PointerByReference;
+import org.lmdbjava.Library.ComparatorCallback;
+import org.lmdbjava.Library.MDB_stat;
 
 /**
  * LMDB Database.

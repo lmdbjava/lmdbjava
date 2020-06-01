@@ -20,11 +20,13 @@
 
 package org.lmdbjava;
 
-import java.util.Arrays;
 import static java.util.Objects.requireNonNull;
+import static org.lmdbjava.Library.RUNTIME;
+
+import java.util.Arrays;
+
 import jnr.ffi.Pointer;
 import jnr.ffi.provider.MemoryManager;
-import static org.lmdbjava.Library.RUNTIME;
 
 /**
  * Byte array proxy.

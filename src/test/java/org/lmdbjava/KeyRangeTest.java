@@ -20,13 +20,9 @@
 
 package org.lmdbjava;
 
-import java.util.ArrayList;
-import java.util.List;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
-import org.junit.Before;
-import org.junit.Test;
 import static org.lmdbjava.KeyRange.all;
 import static org.lmdbjava.KeyRange.allBackward;
 import static org.lmdbjava.KeyRange.atLeast;
@@ -45,9 +41,15 @@ import static org.lmdbjava.KeyRange.open;
 import static org.lmdbjava.KeyRange.openBackward;
 import static org.lmdbjava.KeyRange.openClosed;
 import static org.lmdbjava.KeyRange.openClosedBackward;
+import static org.lmdbjava.KeyRangeType.IteratorOp.TERMINATE;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.junit.Before;
+import org.junit.Test;
 import org.lmdbjava.KeyRangeType.CursorOp;
 import org.lmdbjava.KeyRangeType.IteratorOp;
-import static org.lmdbjava.KeyRangeType.IteratorOp.TERMINATE;
 
 /**
  * Test {@link KeyRange}.

@@ -21,16 +21,18 @@
 package org.lmdbjava;
 
 import static java.lang.ThreadLocal.withInitial;
-import java.nio.ByteBuffer;
 import static java.nio.ByteBuffer.allocateDirect;
 import static java.nio.ByteOrder.BIG_ENDIAN;
 import static java.util.Objects.requireNonNull;
+import static org.lmdbjava.UnsafeAccess.UNSAFE;
+
+import java.nio.ByteBuffer;
+
 import jnr.ffi.Pointer;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.OneToOneConcurrentArrayQueue;
 import org.agrona.concurrent.UnsafeBuffer;
-import static org.lmdbjava.UnsafeAccess.UNSAFE;
 
 /**
  * A buffer proxy backed by Agrona's {@link DirectBuffer}.

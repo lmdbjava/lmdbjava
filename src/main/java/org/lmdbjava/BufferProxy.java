@@ -21,6 +21,7 @@
 package org.lmdbjava;
 
 import static java.lang.Long.BYTES;
+
 import jnr.ffi.Pointer;
 
 /**

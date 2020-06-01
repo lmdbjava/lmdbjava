@@ -21,24 +21,11 @@
 package org.lmdbjava;
 
 import static com.jakewharton.byteunits.BinaryByteUnit.KIBIBYTES;
-import io.netty.buffer.ByteBuf;
-import java.io.File;
-import java.io.IOException;
 import static java.lang.Long.BYTES;
-import java.nio.ByteBuffer;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.collection.IsEmptyCollection.empty;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameter;
-import org.junit.runners.Parameterized.Parameters;
 import static org.lmdbjava.ByteArrayProxy.PROXY_BA;
 import static org.lmdbjava.ByteBufProxy.PROXY_NETTY;
 import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
@@ -60,6 +47,21 @@ import static org.lmdbjava.TestUtils.POSIX_MODE;
 import static org.lmdbjava.TestUtils.bb;
 import static org.lmdbjava.TestUtils.mdb;
 import static org.lmdbjava.TestUtils.nb;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+
+import io.netty.buffer.ByteBuf;
+import org.agrona.DirectBuffer;
+import org.agrona.MutableDirectBuffer;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Test {@link Cursor} with different buffer implementations.

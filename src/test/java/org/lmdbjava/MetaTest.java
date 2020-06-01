@@ -24,11 +24,12 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
-import org.junit.Test;
 import static org.lmdbjava.LmdbNativeException.PageCorruptedException.MDB_CORRUPTED;
-import org.lmdbjava.Meta.Version;
 import static org.lmdbjava.Meta.error;
 import static org.lmdbjava.TestUtils.invokePrivateConstructor;
+
+import org.junit.Test;
+import org.lmdbjava.Meta.Version;
 
 /**
  * Test {@link Meta}.

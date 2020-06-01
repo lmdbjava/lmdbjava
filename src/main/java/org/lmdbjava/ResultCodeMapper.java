@@ -20,9 +20,10 @@
 
 package org.lmdbjava;
 
+import static jnr.constants.ConstantSet.getConstantSet;
+
 import jnr.constants.Constant;
 import jnr.constants.ConstantSet;
-import static jnr.constants.ConstantSet.getConstantSet;
 import org.lmdbjava.Txn.BadException;
 import org.lmdbjava.Txn.BadReaderLockException;
 import org.lmdbjava.Txn.TxFullException;

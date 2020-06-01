@@ -21,8 +21,6 @@
 package org.lmdbjava;
 
 import static java.util.Objects.requireNonNull;
-import jnr.ffi.Pointer;
-import jnr.ffi.byref.NativeLongByReference;
 import static org.lmdbjava.Dbi.KeyExistsException.MDB_KEYEXIST;
 import static org.lmdbjava.Dbi.KeyNotFoundException.MDB_NOTFOUND;
 import static org.lmdbjava.Env.SHOULD_CHECK;
@@ -38,6 +36,9 @@ import static org.lmdbjava.SeekOp.MDB_FIRST;
 import static org.lmdbjava.SeekOp.MDB_LAST;
 import static org.lmdbjava.SeekOp.MDB_NEXT;
 import static org.lmdbjava.SeekOp.MDB_PREV;
+
+import jnr.ffi.Pointer;
+import jnr.ffi.byref.NativeLongByReference;
 
 /**
  * A cursor handle.

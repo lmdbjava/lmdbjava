@@ -22,17 +22,19 @@ package org.lmdbjava;
 
 import static java.lang.Long.reverseBytes;
 import static java.lang.ThreadLocal.withInitial;
-import java.lang.reflect.Field;
-import java.nio.Buffer;
-import java.nio.ByteBuffer;
 import static java.nio.ByteBuffer.allocateDirect;
 import static java.nio.ByteOrder.BIG_ENDIAN;
 import static java.nio.ByteOrder.LITTLE_ENDIAN;
-import java.util.ArrayDeque;
 import static java.util.Objects.requireNonNull;
-import jnr.ffi.Pointer;
 import static org.lmdbjava.Env.SHOULD_CHECK;
 import static org.lmdbjava.UnsafeAccess.UNSAFE;
+
+import java.lang.reflect.Field;
+import java.nio.Buffer;
+import java.nio.ByteBuffer;
+import java.util.ArrayDeque;
+
+import jnr.ffi.Pointer;
 
 /**
  * {@link ByteBuffer}-based proxy.

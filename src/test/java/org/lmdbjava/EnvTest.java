@@ -21,33 +21,35 @@
 package org.lmdbjava;
 
 import static com.jakewharton.byteunits.BinaryByteUnit.MEBIBYTES;
-import java.io.File;
-import java.io.IOException;
-import java.nio.ByteBuffer;
 import static java.nio.ByteBuffer.allocateDirect;
-import java.util.Random;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 import static org.lmdbjava.CopyFlags.MDB_CP_COMPACT;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
-import org.lmdbjava.Env.AlreadyClosedException;
-import org.lmdbjava.Env.AlreadyOpenException;
-import org.lmdbjava.Env.Builder;
 import static org.lmdbjava.Env.Builder.MAX_READERS_DEFAULT;
-import org.lmdbjava.Env.InvalidCopyDestination;
-import org.lmdbjava.Env.MapFullException;
 import static org.lmdbjava.Env.create;
 import static org.lmdbjava.Env.open;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.EnvFlags.MDB_RDONLY_ENV;
 import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.bb;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.Random;
+
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+import org.lmdbjava.Env.AlreadyClosedException;
+import org.lmdbjava.Env.AlreadyOpenException;
+import org.lmdbjava.Env.Builder;
+import org.lmdbjava.Env.InvalidCopyDestination;
+import org.lmdbjava.Env.MapFullException;
 import org.lmdbjava.Txn.BadReaderLockException;
 
 /**

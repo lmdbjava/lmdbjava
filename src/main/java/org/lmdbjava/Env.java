@@ -20,28 +20,30 @@
 
 package org.lmdbjava;
 
-import java.io.File;
 import static java.lang.Boolean.getBoolean;
-import java.nio.ByteBuffer;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
 import static java.util.Objects.requireNonNull;
-import jnr.ffi.Pointer;
-import jnr.ffi.byref.PointerByReference;
 import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.EnvFlags.MDB_RDONLY_ENV;
 import static org.lmdbjava.Library.LIB;
-import org.lmdbjava.Library.MDB_envinfo;
-import org.lmdbjava.Library.MDB_stat;
 import static org.lmdbjava.Library.RUNTIME;
 import static org.lmdbjava.MaskedFlag.isSet;
 import static org.lmdbjava.MaskedFlag.mask;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
 import static org.lmdbjava.TxnFlags.MDB_RDONLY_TXN;
+
+import java.io.File;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+
+import jnr.ffi.Pointer;
+import jnr.ffi.byref.PointerByReference;
+import org.lmdbjava.Library.MDB_envinfo;
+import org.lmdbjava.Library.MDB_stat;
 
 /**
  * LMDB environment.

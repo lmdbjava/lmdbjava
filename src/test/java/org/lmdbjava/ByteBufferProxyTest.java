@@ -20,37 +20,39 @@
 
 package org.lmdbjava;
 
-import java.io.File;
-import java.io.IOException;
 import static java.lang.Integer.BYTES;
-import java.lang.reflect.Field;
-import java.nio.ByteBuffer;
 import static java.nio.ByteBuffer.allocate;
 import static java.nio.ByteBuffer.allocateDirect;
 import static java.nio.ByteOrder.BIG_ENDIAN;
 import static java.nio.ByteOrder.LITTLE_ENDIAN;
-import jnr.ffi.Pointer;
-import jnr.ffi.provider.MemoryManager;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 import static org.lmdbjava.BufferProxy.MDB_VAL_STRUCT_SIZE;
 import static org.lmdbjava.ByteBufferProxy.AbstractByteBufferProxy.findField;
-import org.lmdbjava.ByteBufferProxy.BufferMustBeDirectException;
 import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
 import static org.lmdbjava.ByteBufferProxy.PROXY_SAFE;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
-import org.lmdbjava.Env.ReadersFullException;
 import static org.lmdbjava.Env.create;
 import static org.lmdbjava.Library.RUNTIME;
 import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.invokePrivateConstructor;
 import static org.lmdbjava.UnsafeAccess.ALLOW_UNSAFE;
+
+import java.io.File;
+import java.io.IOException;
+import java.lang.reflect.Field;
+import java.nio.ByteBuffer;
+
+import jnr.ffi.Pointer;
+import jnr.ffi.provider.MemoryManager;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+import org.lmdbjava.ByteBufferProxy.BufferMustBeDirectException;
+import org.lmdbjava.Env.ReadersFullException;
 
 /**
  * Test {@link ByteBufferProxy}.

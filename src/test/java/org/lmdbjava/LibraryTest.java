@@ -23,10 +23,11 @@ package org.lmdbjava;
 import static java.lang.Long.BYTES;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import org.junit.Test;
-import org.lmdbjava.Library.MDB_envinfo;
 import static org.lmdbjava.Library.RUNTIME;
 import static org.lmdbjava.TestUtils.invokePrivateConstructor;
+
+import org.junit.Test;
+import org.lmdbjava.Library.MDB_envinfo;
 
 /**
  * Test {@link Library}.

@@ -21,28 +21,15 @@
 package org.lmdbjava;
 
 import static com.jakewharton.byteunits.BinaryByteUnit.KIBIBYTES;
-import java.io.File;
-import java.io.IOException;
-import java.nio.ByteBuffer;
 import static java.nio.ByteBuffer.allocateDirect;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
-import org.junit.After;
 import static org.junit.Assert.assertEquals;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-import org.lmdbjava.Dbi.BadValueSizeException;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
-import org.lmdbjava.Env.AlreadyClosedException;
 import static org.lmdbjava.Env.create;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.EnvFlags.MDB_RDONLY_ENV;
@@ -50,6 +37,26 @@ import static org.lmdbjava.KeyRange.closed;
 import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.POSIX_MODE;
 import static org.lmdbjava.TestUtils.bb;
+import static org.lmdbjava.Txn.State.DONE;
+import static org.lmdbjava.Txn.State.READY;
+import static org.lmdbjava.Txn.State.RELEASED;
+import static org.lmdbjava.Txn.State.RESET;
+import static org.lmdbjava.TxnFlags.MDB_RDONLY_TXN;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
+
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+import org.lmdbjava.Dbi.BadValueSizeException;
+import org.lmdbjava.Env.AlreadyClosedException;
 import org.lmdbjava.Txn.EnvIsReadOnly;
 import org.lmdbjava.Txn.IncompatibleParent;
 import org.lmdbjava.Txn.NotReadyException;
@@ -57,11 +64,6 @@ import org.lmdbjava.Txn.NotResetException;
 import org.lmdbjava.Txn.ReadOnlyRequiredException;
 import org.lmdbjava.Txn.ReadWriteRequiredException;
 import org.lmdbjava.Txn.ResetException;
-import static org.lmdbjava.Txn.State.DONE;
-import static org.lmdbjava.Txn.State.READY;
-import static org.lmdbjava.Txn.State.RELEASED;
-import static org.lmdbjava.Txn.State.RESET;
-import static org.lmdbjava.TxnFlags.MDB_RDONLY_TXN;
 
 /**
  * Test {@link Txn}.

@@ -20,22 +20,10 @@
 
 package org.lmdbjava;
 
-import com.google.common.primitives.SignedBytes;
-import com.google.common.primitives.UnsignedBytes;
-import io.netty.buffer.ByteBuf;
 import static io.netty.buffer.PooledByteBufAllocator.DEFAULT;
-import java.nio.ByteBuffer;
 import static java.nio.charset.StandardCharsets.US_ASCII;
-import java.util.Comparator;
-import org.agrona.DirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameter;
-import org.junit.runners.Parameterized.Parameters;
 import static org.lmdbjava.ByteArrayProxy.PROXY_BA;
 import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
 import static org.lmdbjava.ComparatorTest.ComparatorResult.EQUAL_TO;
@@ -43,6 +31,20 @@ import static org.lmdbjava.ComparatorTest.ComparatorResult.GREATER_THAN;
 import static org.lmdbjava.ComparatorTest.ComparatorResult.LESS_THAN;
 import static org.lmdbjava.ComparatorTest.ComparatorResult.get;
 import static org.lmdbjava.DirectBufferProxy.PROXY_DB;
+
+import java.nio.ByteBuffer;
+import java.util.Comparator;
+
+import com.google.common.primitives.SignedBytes;
+import com.google.common.primitives.UnsignedBytes;
+import io.netty.buffer.ByteBuf;
+import org.agrona.DirectBuffer;
+import org.agrona.concurrent.UnsafeBuffer;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Tests comparator functions are consistent across buffers.

@@ -20,7 +20,6 @@
 
 package org.lmdbjava;
 
-import java.util.Comparator;
 import static java.util.Objects.requireNonNull;
 import static org.lmdbjava.KeyRangeType.CursorOp.FIRST;
 import static org.lmdbjava.KeyRangeType.CursorOp.GET_START_KEY;
@@ -31,6 +30,8 @@ import static org.lmdbjava.KeyRangeType.CursorOp.PREV;
 import static org.lmdbjava.KeyRangeType.IteratorOp.CALL_NEXT_OP;
 import static org.lmdbjava.KeyRangeType.IteratorOp.RELEASE;
 import static org.lmdbjava.KeyRangeType.IteratorOp.TERMINATE;
+
+import java.util.Comparator;
 
 /**
  * Key range type.
