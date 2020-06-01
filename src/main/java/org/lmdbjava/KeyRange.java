@@ -70,7 +70,6 @@ public final class KeyRange<T> {
    * @param <T> buffer type
    * @return a key range (never null)
    */
-  @SuppressWarnings({"checkstyle:SuppressWarnings", "unchecked"})
   public static <T> KeyRange<T> all() {
     return (KeyRange<T>) FW;
   }
@@ -81,7 +80,6 @@ public final class KeyRange<T> {
    * @param <T> buffer type
    * @return a key range (never null)
    */
-  @SuppressWarnings({"checkstyle:SuppressWarnings", "unchecked"})
   public static <T> KeyRange<T> allBackward() {
     return (KeyRange<T>) BK;
   }
