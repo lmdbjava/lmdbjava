@@ -20,13 +20,30 @@
   <dependencies>
     <dependency>
       <groupId>com.github.jnr</groupId>
+      <artifactId>jffi</artifactId>
+      <version>1.2.23</version>
+    </dependency>
+    <dependency>
+      <groupId>com.github.jnr</groupId>
+      <artifactId>jffi</artifactId>
+      <version>1.2.23</version>
+      <classifier>native</classifier>
+    </dependency>
+    <dependency>
+      <groupId>com.github.jnr</groupId>
       <artifactId>jnr-constants</artifactId>
       <version>0.9.15</version>
     </dependency>
     <dependency>
       <groupId>com.github.jnr</groupId>
       <artifactId>jnr-ffi</artifactId>
-      <version>2.1.15</version>
+      <version>2.1.13</version>
+      <exclusions>
+        <exclusion>
+          <groupId>com.github.jnr</groupId>
+          <artifactId>jffi</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>com.google.code.findbugs</groupId>
@@ -116,6 +133,9 @@
             <usedDependency>org.lmdbjava:lmdbjava-native-windows-x86_64</usedDependency>
             <usedDependency>org.lmdbjava:lmdbjava-native-osx-x86_64</usedDependency>
           </usedDependencies>
+          <ignoredDependencies>
+            <ignoredDependency>com.github.jnr:jffi</ignoredDependency>
+          </ignoredDependencies>
         </configuration>
       </plugin>
       <plugin>
