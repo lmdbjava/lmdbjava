@@ -320,7 +320,6 @@ public enum KeyRangeType {
    *
    * @return appropriate action in response to this buffer
    */
-  @SuppressWarnings("checkstyle:ReturnCount")
   CursorOp initialOp() {
     switch (this) {
       case FORWARD_ALL:
@@ -375,7 +374,6 @@ public enum KeyRangeType {
    * @param c      comparator (required)
    * @return response to this key
    */
-  @SuppressWarnings("checkstyle:ReturnCount")
   <T, C extends Comparator<T>> IteratorOp iteratorOp(final T start, final T stop,
                                                      final T buffer, final C c) {
     requireNonNull(c, "Comparator required");

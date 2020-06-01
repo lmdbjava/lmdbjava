@@ -49,7 +49,6 @@ import static org.lmdbjava.UnsafeAccess.UNSAFE;
  * {@link #PROXY_OPTIMAL} or {@link #PROXY_SAFE} field when invoking
  * {@link Env#create(org.lmdbjava.BufferProxy)}.
  */
-@SuppressWarnings("PMD.AvoidCatchingGenericException")
 public final class ByteBufferProxy {
 
   /**
@@ -121,7 +120,7 @@ public final class ByteBufferProxy {
      * @param o2 right operand (required)
      * @return as specified by {@link Comparable} interface
      */
-    @SuppressWarnings({"checkstyle:ReturnCount", "PMD.CyclomaticComplexity"})
+    @SuppressWarnings("PMD.CyclomaticComplexity")
     public static int compareBuff(final ByteBuffer o1, final ByteBuffer o2) {
       requireNonNull(o1);
       requireNonNull(o2);

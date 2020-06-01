@@ -92,7 +92,6 @@ public final class CursorIterable<T> implements
 
     return new Iterator<KeyVal<T>>() {
       @Override
-      @SuppressWarnings("checkstyle:ReturnCount")
       public boolean hasNext() {
         while (state != RELEASED && state != TERMINATED) {
           update();

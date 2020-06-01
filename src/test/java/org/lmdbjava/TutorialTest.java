@@ -64,7 +64,6 @@ import static org.lmdbjava.SeekOp.MDB_PREV;
  * need to install the LMDB system library yourself. 32-bit platforms are not
  * supported.
  */
-@SuppressWarnings("PMD.CloseResource")
 public final class TutorialTest {
 
   private static final String DB_NAME = "my DB";
@@ -148,8 +147,7 @@ public final class TutorialTest {
    * @throws InterruptedException if executor shutdown interrupted
    */
   @Test
-  @SuppressWarnings({"ConvertToTryWithResources", "PMD.DoNotUseThreads",
-                     "checkstyle:ExecutableStatementCount"})
+  @SuppressWarnings("ConvertToTryWithResources")
   public void tutorial2() throws IOException, InterruptedException {
     final Env<ByteBuffer> env = createSimpleEnv(tmp.newFolder());
     final Dbi<ByteBuffer> db = env.openDbi(DB_NAME, MDB_CREATE);
@@ -223,8 +221,7 @@ public final class TutorialTest {
    * @throws IOException if a path was unavailable for memory mapping
    */
   @Test
-  @SuppressWarnings({"ConvertToTryWithResources",
-                     "checkstyle:ExecutableStatementCount"})
+  @SuppressWarnings("ConvertToTryWithResources")
   public void tutorial3() throws IOException {
     final Env<ByteBuffer> env = createSimpleEnv(tmp.newFolder());
     final Dbi<ByteBuffer> db = env.openDbi(DB_NAME, MDB_CREATE);

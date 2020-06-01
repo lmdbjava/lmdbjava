@@ -236,7 +236,6 @@ public final class KeyRangeTest {
     private static final int[] KEYS = new int[]{2, 4, 6, 8};
     private int position;
 
-    @SuppressWarnings("checkstyle:ReturnCount")
     Integer apply(final CursorOp op, final Integer startKey) {
       final Integer key;
       switch (op) {

@@ -146,7 +146,6 @@ public final class DbiTest {
   }
 
   @Test
-  @SuppressWarnings("PMD.DoNotUseThreads")
   public void dbiWithComparatorThreadSafety() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, PROXY_OPTIMAL::compare,
                                            MDB_CREATE);

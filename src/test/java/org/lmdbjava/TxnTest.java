@@ -271,7 +271,6 @@ public final class TxnTest {
   }
 
   @Test
-  @SuppressWarnings("PMD.CloseResource")
   public void txReadWrite() {
     final Txn<ByteBuffer> txn = env.txnWrite();
     assertThat(txn.getParent(), is(nullValue()));

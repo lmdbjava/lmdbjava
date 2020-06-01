@@ -66,7 +66,6 @@ public final class DirectBufferProxy extends BufferProxy<DirectBuffer> {
    * @param o2 right operand (required)
    * @return as specified by {@link Comparable} interface
    */
-  @SuppressWarnings("checkstyle:ReturnCount")
   public static int compareBuff(final DirectBuffer o1, final DirectBuffer o2) {
     requireNonNull(o1);
     requireNonNull(o2);

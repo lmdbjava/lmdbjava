@@ -120,7 +120,6 @@ public final class CursorIterableTest {
   }
 
   @Before
-  @SuppressWarnings("PMD.CloseResource")
   public void before() throws IOException {
     final File path = tmp.newFile();
     env = create()

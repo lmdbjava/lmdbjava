@@ -105,7 +105,6 @@ public final class CursorParamTest {
       this.proxy = proxy;
     }
 
-    @SuppressWarnings("checkstyle:ExecutableStatementCount")
     @Override
     public final void execute(final TemporaryFolder tmp) {
       try (Env<T> env = env(tmp)) {

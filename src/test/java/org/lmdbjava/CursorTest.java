@@ -85,7 +85,6 @@ public final class CursorTest {
   }
 
   @Test(expected = ClosedException.class)
-  @SuppressWarnings("PMD.CloseResource")
   public void closedCursorRejectsSubsequentGets() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
@@ -225,7 +224,6 @@ public final class CursorTest {
   }
 
   @Test
-  @SuppressWarnings("PMD.CloseResource")
   public void renewTxRo() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
 
@@ -256,7 +254,6 @@ public final class CursorTest {
   }
 
   @Test
-  @SuppressWarnings("PMD.CloseResource")
   public void repeatedCloseCausesNotError() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
     try (Txn<ByteBuffer> txn = env.txnWrite()) {

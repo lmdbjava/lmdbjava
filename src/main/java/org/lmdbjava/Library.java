@@ -127,7 +127,6 @@ final class Library {
   private Library() {
   }
 
-  @SuppressWarnings("PMD.AssignmentInOperand")
   @SuppressFBWarnings("OBL_UNSATISFIED_OBLIGATION") // Spotbugs issue #432
   private static String extract(final String name) {
     final String suffix = name.substring(name.lastIndexOf('.'));

@@ -50,7 +50,6 @@ public final class ByteArrayProxy extends BufferProxy<byte[]> {
    * @param o2 right operand (required)
    * @return as specified by {@link Comparable} interface
    */
-  @SuppressWarnings("checkstyle:ReturnCount")
   public static int compareArrays(final byte[] o1, final byte[] o2) {
     requireNonNull(o1);
     requireNonNull(o2);

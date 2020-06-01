@@ -163,7 +163,6 @@ public final class Verifier implements Callable<Long> {
    * @param unit     units used to express the duration
    * @return number of database rows successfully verified
    */
-  @SuppressWarnings("PMD.DoNotUseThreads")
   public long runFor(final long duration, final TimeUnit unit) {
     final long deadline = System.currentTimeMillis() + unit.toMillis(duration);
     final ExecutorService es = Executors.newSingleThreadExecutor();
