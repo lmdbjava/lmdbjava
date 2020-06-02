@@ -20,18 +20,6 @@
   <dependencies>
     <dependency>
       <groupId>com.github.jnr</groupId>
-      <artifactId>jffi</artifactId>
-      <version>1.2.23</version>
-    </dependency>
-    <dependency>
-      <groupId>com.github.jnr</groupId>
-      <artifactId>jffi</artifactId>
-      <version>1.2.23</version>
-      <classifier>native</classifier>
-      <scope>runtime</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.github.jnr</groupId>
       <artifactId>jnr-constants</artifactId>
       <version>0.9.15</version>
     </dependency>
@@ -39,12 +27,6 @@
       <groupId>com.github.jnr</groupId>
       <artifactId>jnr-ffi</artifactId>
       <version>2.1.15</version>
-      <exclusions>
-        <exclusion>
-          <groupId>com.github.jnr</groupId>
-          <artifactId>jffi</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
     <dependency>
       <groupId>com.google.code.findbugs</groupId>
