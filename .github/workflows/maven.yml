@@ -89,7 +89,8 @@ jobs:
     - name: Set up Java and Maven
       uses: actions/setup-java@v1
       with:
-        java-version: 11
+        # Java version 8 required due to https://github.com/lmdbjava/lmdbjava/issues/116
+        java-version: 8
 
     - name: Add OSSRH to the snapshot repositories list
       uses: s4u/maven-settings-action@v2.1.0
