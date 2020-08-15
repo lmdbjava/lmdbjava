@@ -105,6 +105,7 @@ final class Library {
     final boolean arch64 = "x64".equals(arch) || "amd64".equals(arch)
                                || "x86_64".equals(arch);
     final boolean aarch64 = "aarch64".equals(arch);
+    final boolean ppc64le = "ppc64le".equals(arch);
 
     final String os = getProperty("os.name");
     final boolean linux = os.toLowerCase(ENGLISH).startsWith("linux");
@@ -115,6 +116,8 @@ final class Library {
       libToLoad = getProperty(LMDB_NATIVE_LIB_PROP);
     } else if (SHOULD_EXTRACT && aarch64 && linux) {
       libToLoad = extract("org/lmdbjava/lmdbjava-native-linux-aarch64.so");
+    } else if (SHOULD_EXTRACT && ppc64le && linux) {
+      libToLoad = extract("org/lmdbjava/lmdbjava-native-linux-ppc64le.so");
     } else if (SHOULD_EXTRACT && arch64 && linux) {
       libToLoad = extract("org/lmdbjava/lmdbjava-native-linux-x86_64.so");
     } else if (SHOULD_EXTRACT && arch64 && osx) {

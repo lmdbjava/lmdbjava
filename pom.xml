@@ -78,6 +78,12 @@
     </dependency>
     <dependency>
       <groupId>org.lmdbjava</groupId>
+      <artifactId>lmdbjava-native-linux-ppc64le</artifactId>
+      <version>0.9.24-2-SNAPSHOT</version>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.lmdbjava</groupId>
       <artifactId>lmdbjava-native-linux-x86_64</artifactId>
       <version>0.9.24-1</version>
       <optional>true</optional>
@@ -118,6 +124,7 @@
         <artifactId>maven-dependency-plugin</artifactId>
         <configuration>
           <usedDependencies>
+            <usedDependency>org.lmdbjava:lmdbjava-native-linux-ppc64le</usedDependency>
             <usedDependency>org.lmdbjava:lmdbjava-native-linux-aarch64</usedDependency>
             <usedDependency>org.lmdbjava:lmdbjava-native-linux-x86_64</usedDependency>
             <usedDependency>org.lmdbjava:lmdbjava-native-windows-x86_64</usedDependency>
@@ -149,6 +156,7 @@
             <configuration>
               <artifactSet>
                 <includes>
+                  <include>org.lmdbjava:lmdbjava-native-linux-ppc64le</include>
                   <include>org.lmdbjava:lmdbjava-native-linux-aarch64</include>
                   <include>org.lmdbjava:lmdbjava-native-linux-x86_64</include>
                   <include>org.lmdbjava:lmdbjava-native-windows-x86_64</include>
