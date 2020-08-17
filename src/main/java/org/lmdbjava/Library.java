@@ -107,7 +107,7 @@ final class Library {
     final boolean aarch64 = "aarch64".equals(arch);
     final boolean ppc64le = "ppc64le".equals(arch);
 
-    final boolean arch64 = x64 || aarch64 || ppc64le;
+    // final boolean arch64 = x64 || aarch64 || ppc64le;
 
     final String os = getProperty("os.name");
     final boolean linux = os.toLowerCase(ENGLISH).startsWith("linux");
