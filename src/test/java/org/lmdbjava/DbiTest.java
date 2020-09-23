@@ -44,6 +44,7 @@ import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import static org.lmdbjava.DbiFlags.MDB_DUPSORT;
 import static org.lmdbjava.DbiFlags.MDB_REVERSEKEY;
+import static org.lmdbjava.Env.Builder.PAGE_SIZE;
 import static org.lmdbjava.Env.create;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.GetOp.MDB_SET_KEY;
@@ -457,7 +458,7 @@ public final class DbiTest {
     assertThat(stat.entries, is(3L));
     assertThat(stat.leafPages, is(1L));
     assertThat(stat.overflowPages, is(0L));
-    assertThat(stat.pageSize, is(4_096));
+    assertThat(stat.pageSize, is(PAGE_SIZE));
   }
 
   @Test(expected = MapFullException.class)

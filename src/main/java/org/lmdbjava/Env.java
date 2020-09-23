@@ -195,7 +195,8 @@ public final class Env<T> implements AutoCloseable {
    * @param mapSize the new size, in bytes
    */
   public void setMapSize(final long mapSize) {
-    checkRc(LIB.mdb_env_set_mapsize(ptr, mapSize));
+    // A number divisible by the number of pages is expected.
+    checkRc(LIB.mdb_env_set_mapsize(ptr, Builder.alignToWholePages(mapSize)));
   }
 
   /**
@@ -417,6 +418,25 @@ public final class Env<T> implements AutoCloseable {
     validateDirectoryEmpty(path);
   }
 
+  public static int getPageSize() {
+    int pageSize = 0;
+    for (final String s: new String[]{
+            System.getenv().get("PAGE_SIZE"),
+            System.getProperty("PAGE_SIZE")}) {
+      if (s != null && s.length() > 0) {
+        pageSize = Integer.parseInt(s);
+        break;
+      }
+    }
+    // This move is closely dependent on this logic:
+    // @see https://github.com/LMDB/lmdb/blob/LMDB_0.9.24/libraries/liblmdb/mdb.c#L498:L514
+    if (pageSize >= 32_768) {
+      return 32_768;
+    }
+    // Silently defaulting to 4096
+    return 4_096;
+  }
+
   /**
    * Object has already been closed and the operation is therefore prohibited.
    */
@@ -454,8 +474,10 @@ public final class Env<T> implements AutoCloseable {
    */
   public static final class Builder<T> {
 
+    static final int PAGE_SIZE = getPageSize();
     static final int MAX_READERS_DEFAULT = 126;
-    private long mapSize = 1_024 * 1_024;
+    // On a system with pages 4096 bytes big, this translates to default max map size of 4 MB
+    private long mapSize = PAGE_SIZE * 1_024;
     private int maxDbs = 1;
     private int maxReaders = MAX_READERS_DEFAULT;
     private boolean opened;
@@ -486,6 +508,8 @@ public final class Env<T> implements AutoCloseable {
       checkRc(LIB.mdb_env_create(envPtr));
       final Pointer ptr = envPtr.getValue();
       try {
+        // This call actually takes a number divisible by the page size,
+        // not an arbitrary number of bytes.
         checkRc(LIB.mdb_env_set_mapsize(ptr, mapSize));
         checkRc(LIB.mdb_env_set_maxdbs(ptr, maxDbs));
         checkRc(LIB.mdb_env_set_maxreaders(ptr, maxReaders));
@@ -525,8 +549,24 @@ public final class Env<T> implements AutoCloseable {
       if (mapSize < 0) {
         throw new IllegalArgumentException("Negative value; overflow?");
       }
-      this.mapSize = mapSize;
+      // A number divisible by the number of pages is expected.
+      this.mapSize = alignToWholePages(mapSize);
       return this;
+    }
+
+    /**
+     * Aligns the allocated amount to whole pages.
+     * Note this is related to:
+     *    https://github.com/LMDB/lmdb/blob/LMDB_0.9.24/libraries/liblmdb/mdb.c#L498:L514
+     *    https://github.com/LMDB/lmdb/blob/LMDB_0.9.24/libraries/liblmdb/lmdb.h#L813:L845
+     * @param sizeb size in bytes
+     * @return size in bytes
+     */
+    public static long alignToWholePages(final long sizeb) {
+      if ((sizeb % Builder.PAGE_SIZE) != 0) {
+        return (sizeb / Builder.PAGE_SIZE + 1) * Builder.PAGE_SIZE;
+      }
+      return sizeb;
     }
 
     /**

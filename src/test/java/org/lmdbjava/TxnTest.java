@@ -84,7 +84,10 @@ public final class TxnTest {
   public void before() throws IOException {
     path = tmp.newFile();
     env = create()
-        .setMapSize(KIBIBYTES.toBytes(100))
+        // 100 was enough on systems with OS and DB pages of 4096 b.
+        // For systems with OS pages 65536 b big, i.e. 32768 b DB pages,
+        // 353 KB is the minimum for this test.
+        .setMapSize(KIBIBYTES.toBytes(353))
         .setMaxReaders(1)
         .setMaxDbs(2)
         .open(path, POSIX_MODE, MDB_NOSUBDIR);

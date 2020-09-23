@@ -30,6 +30,8 @@ import static org.hamcrest.Matchers.greaterThan;
 import static org.lmdbjava.CopyFlags.MDB_CP_COMPACT;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import static org.lmdbjava.Env.Builder.MAX_READERS_DEFAULT;
+import static org.lmdbjava.Env.Builder.PAGE_SIZE;
+import static org.lmdbjava.Env.Builder.alignToWholePages;
 import static org.lmdbjava.Env.create;
 import static org.lmdbjava.Env.open;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
@@ -68,7 +70,8 @@ public final class EnvTest {
         .setMapSize(MEBIBYTES.toBytes(1))
         .open(path, MDB_NOSUBDIR)) {
       final EnvInfo info = env.info();
-      assertThat(info.mapSize, is(MEBIBYTES.toBytes(1)));
+      // Allocation happens page by page, not in arbitrary chunks.
+      assertThat(info.mapSize, is(alignToWholePages(MEBIBYTES.toBytes(1))));
     }
   }
 
@@ -277,7 +280,7 @@ public final class EnvTest {
       assertThat(info.lastPageNumber, is(1L));
       assertThat(info.lastTransactionId, is(0L));
       assertThat(info.mapAddress, is(0L));
-      assertThat(info.mapSize, is(123_456L));
+      assertThat(info.mapSize, is(alignToWholePages(123_456L)));
       assertThat(info.maxReaders, is(4));
       assertThat(info.numReaders, is(0));
       assertThat(info.toString(), containsString("maxReaders="));
@@ -335,7 +338,10 @@ public final class EnvTest {
     final Random rnd = new Random();
     try (Env<ByteBuffer> env = create()
         .setMaxReaders(1)
-        .setMapSize(50_000)
+        // 50_000 was enough on system with OS and DB pages of 4096 b.
+        // On systems with OS pages 65536 b, i.e. DB pages of 32768 b, it is 196609 b.
+        // It translates to: Asked for: 196609 bytes, got 229376, which is 7 DB pages.
+        .setMapSize(PAGE_SIZE > 4096 ? 196_609 : 50_000)
         .setMaxDbs(1)
         .open(path)) {
       final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
@@ -390,7 +396,7 @@ public final class EnvTest {
       assertThat(stat.entries, is(0L));
       assertThat(stat.leafPages, is(0L));
       assertThat(stat.overflowPages, is(0L));
-      assertThat(stat.pageSize, is(4_096));
+      assertThat(stat.pageSize, is(PAGE_SIZE));
       assertThat(stat.toString(), containsString("pageSize="));
     }
   }

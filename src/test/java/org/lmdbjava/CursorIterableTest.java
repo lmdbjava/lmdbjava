@@ -125,7 +125,14 @@ public final class CursorIterableTest {
   public void before() throws IOException {
     final File path = tmp.newFile();
     env = create()
-        .setMapSize(KIBIBYTES.toBytes(100))
+        // 100 KB triggers Environment mapsize reached (-30792) on Txn.commit(Txn.java:110)
+        // on ppc64le and aarch64 systems with 65536 b big OS pages, i.e. 32768 b LMDB DB pages.
+        // 289 KB is just enough to hold the data without triggering the error.
+        // On a system with 4096 b OS pages, it translates to:
+        //   Asked for : 295936 bytes, got 299008, which is 73 DB pages.
+        // On a system with 65536 n OS pages, it translates to:
+        //   Asked for : 295936 bytes, got 327680, which is 10 DB pages.
+        .setMapSize(KIBIBYTES.toBytes(289))
         .setMaxReaders(1)
         .setMaxDbs(1)
         .open(path, POSIX_MODE, MDB_NOSUBDIR);

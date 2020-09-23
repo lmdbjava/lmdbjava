@@ -29,6 +29,7 @@ import static java.util.Objects.nonNull;
 import static java.util.Objects.requireNonNull;
 import static jnr.ffi.LibraryLoader.create;
 import static jnr.ffi.Runtime.getRuntime;
+import static org.lmdbjava.Env.Builder.PAGE_SIZE;
 
 import java.io.File;
 import java.io.IOException;
@@ -153,7 +154,7 @@ final class Library {
            OutputStream out = Files.newOutputStream(file.toPath())) {
         requireNonNull(in, "Classpath resource not found");
         int bytes;
-        final byte[] buffer = new byte[4_096];
+        final byte[] buffer = new byte[PAGE_SIZE];
         while (-1 != (bytes = in.read(buffer))) {
           out.write(buffer, 0, bytes);
         }
