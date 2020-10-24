@@ -22,13 +22,12 @@ package org.lmdbjava;
 
 import static io.netty.buffer.PooledByteBufAllocator.DEFAULT;
 import static java.lang.Class.forName;
-import static java.lang.ThreadLocal.withInitial;
 import static org.lmdbjava.UnsafeAccess.UNSAFE;
 
 import java.lang.reflect.Field;
-import java.util.ArrayDeque;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.PooledByteBufAllocator;
 import jnr.ffi.Pointer;
 
 /**
@@ -47,35 +46,32 @@ public final class ByteBufProxy extends BufferProxy<ByteBuf> {
    */
   public static final BufferProxy<ByteBuf> PROXY_NETTY = new ByteBufProxy();
 
-  private static final long ADDRESS_OFFSET;
-
-  /**
-   * A thread-safe pool for a given length. If the buffer found is bigger then
-   * the buffer in the pool creates a new buffer. If no buffer is found creates
-   * a new buffer.
-   */
-  private static final ThreadLocal<ArrayDeque<ByteBuf>> BUFFERS = withInitial(()
-      -> new ArrayDeque<>(16));
-
   private static final int BUFFER_RETRIES = 10;
   private static final String FIELD_NAME_ADDRESS = "memoryAddress";
   private static final String FIELD_NAME_LENGTH = "length";
-  private static final long LENGTH_OFFSET;
   private static final String NAME = "io.netty.buffer.PooledUnsafeDirectByteBuf";
+  private final long lengthOffset;
+  private final long addressOffset;
+  
+  private final PooledByteBufAllocator nettyAllocator;
 
-  static {
+  private ByteBufProxy() {
+    this(DEFAULT);
+  }
+
+  public ByteBufProxy(final PooledByteBufAllocator allocator) {
+    this.nettyAllocator = allocator;
+
     try {
-      createBuffer();
+      final ByteBuf initBuf = this.allocate();
+      initBuf.release();
       final Field address = findField(NAME, FIELD_NAME_ADDRESS);
       final Field length = findField(NAME, FIELD_NAME_LENGTH);
-      ADDRESS_OFFSET = UNSAFE.objectFieldOffset(address);
-      LENGTH_OFFSET = UNSAFE.objectFieldOffset(length);
+      addressOffset = UNSAFE.objectFieldOffset(address);
+      lengthOffset = UNSAFE.objectFieldOffset(length);
     } catch (final SecurityException e) {
       throw new LmdbException("Field access error", e);
     }
-  }
-
-  private ByteBufProxy() {
   }
 
   static Field findField(final String c, final String name) {
@@ -97,26 +93,17 @@ public final class ByteBufProxy extends BufferProxy<ByteBuf> {
     throw new LmdbException(name + " not found");
   }
 
-  private static ByteBuf createBuffer() {
+  @Override
+  protected ByteBuf allocate() {
     for (int i = 0; i < BUFFER_RETRIES; i++) {
-      final ByteBuf bb = DEFAULT.directBuffer(0);
+      final ByteBuf bb = nettyAllocator.directBuffer();
       if (NAME.equals(bb.getClass().getName())) {
         return bb;
+      } else {
+        bb.release();
       }
     }
     throw new IllegalStateException("Netty buffer must be " + NAME);
-  }
-
-  @Override
-  protected ByteBuf allocate() {
-    final ArrayDeque<ByteBuf> queue = BUFFERS.get();
-    final ByteBuf buffer = queue.poll();
-
-    if (buffer != null && buffer.capacity() >= 0) {
-      return buffer;
-    } else {
-      return createBuffer();
-    }
   }
 
   @Override
@@ -126,10 +113,7 @@ public final class ByteBufProxy extends BufferProxy<ByteBuf> {
 
   @Override
   protected void deallocate(final ByteBuf buff) {
-    final ArrayDeque<ByteBuf> queue = BUFFERS.get();
-    if (!queue.offer(buff)) {
-      buff.release();
-    }
+    buff.release();
   }
 
   @Override
@@ -161,8 +145,8 @@ public final class ByteBufProxy extends BufferProxy<ByteBuf> {
                         final long ptrAddr) {
     final long addr = UNSAFE.getLong(ptrAddr + STRUCT_FIELD_OFFSET_DATA);
     final long size = UNSAFE.getLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE);
-    UNSAFE.putLong(buffer, ADDRESS_OFFSET, addr);
-    UNSAFE.putInt(buffer, LENGTH_OFFSET, (int) size);
+    UNSAFE.putLong(buffer, addressOffset, addr);
+    UNSAFE.putInt(buffer, lengthOffset, (int) size);
     buffer.writerIndex((int) size).readerIndex(0);
     return buffer;
   }
