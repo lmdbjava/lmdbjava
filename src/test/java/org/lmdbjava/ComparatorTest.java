@@ -33,6 +33,7 @@ import static org.lmdbjava.ComparatorTest.ComparatorResult.get;
 import static org.lmdbjava.DirectBufferProxy.PROXY_DB;
 
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.Comparator;
 
 import com.google.common.primitives.SignedBytes;
@@ -156,9 +157,38 @@ public final class ComparatorTest {
 
     @Override
     public int compare(final byte[] o1, final byte[] o2) {
-      final ByteBuffer o1b = ByteBuffer.wrap(o1);
-      final ByteBuffer o2b = ByteBuffer.wrap(o2);
-      return PROXY_OPTIMAL.compare(o1b, o2b);
+      // Convert arrays to buffers that are larger than the array, with
+      // limit set at the array length. One buffer bigger than the other.
+      ByteBuffer o1b = arrayToBuffer(o1, o1.length * 3);
+      ByteBuffer o2b = arrayToBuffer(o2, o2.length * 2);
+      final int result = PROXY_OPTIMAL.compare(o1b, o2b);
+
+      // Now swap which buffer is bigger
+      o1b = arrayToBuffer(o1, o1.length * 2);
+      o2b = arrayToBuffer(o2, o2.length * 3);
+      final int result2 = PROXY_OPTIMAL.compare(o1b, o2b);
+
+      assertThat(result2, is(result));
+
+      // Now try with buffers sized to the array.
+      o1b = ByteBuffer.wrap(o1);
+      o2b = ByteBuffer.wrap(o2);
+      final int result3 = PROXY_OPTIMAL.compare(o1b, o2b);
+
+      assertThat(result3, is(result));
+
+      return result;
+    }
+
+    private ByteBuffer arrayToBuffer(final byte[] arr, final int bufferCapacity) {
+      if (bufferCapacity < arr.length) {
+        throw new IllegalArgumentException("bufferCapacity < arr.length");
+      }
+      final byte[] newArr = Arrays.copyOf(arr, bufferCapacity);
+      final ByteBuffer byteBuffer = ByteBuffer.wrap(newArr);
+      byteBuffer.limit(arr.length);
+      byteBuffer.position(0);
+      return byteBuffer;
     }
   }
 
