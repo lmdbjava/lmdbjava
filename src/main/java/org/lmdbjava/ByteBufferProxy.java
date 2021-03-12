@@ -133,7 +133,7 @@ public final class ByteBufferProxy {
       final int minWords = minLength / Long.BYTES;
 
       final boolean reverse1 = o1.order() == LITTLE_ENDIAN;
-      final boolean reverse2 = o1.order() == LITTLE_ENDIAN;
+      final boolean reverse2 = o2.order() == LITTLE_ENDIAN;
       for (int i = 0; i < minWords * Long.BYTES; i += Long.BYTES) {
         final long lw = reverse1 ? reverseBytes(o1.getLong(i)) : o1.getLong(i);
         final long rw = reverse2 ? reverseBytes(o2.getLong(i)) : o2.getLong(i);
