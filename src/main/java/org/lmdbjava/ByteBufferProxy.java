@@ -152,7 +152,7 @@ public final class ByteBufferProxy {
         }
       }
 
-      return o1.capacity() - o2.capacity();
+      return o1.remaining() - o2.remaining();
     }
 
     static Field findField(final Class<?> c, final String name) {
