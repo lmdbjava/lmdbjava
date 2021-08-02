@@ -37,6 +37,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.zip.CRC32;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Verifies correct operation of LmdbJava in a given environment.
  *
@@ -112,6 +114,7 @@ public final class Verifier implements Callable<Long> {
    *
    * @param env target that complies with the above requirements (required)
    */
+  @SuppressFBWarnings("EI_EXPOSE_REP2")
   public Verifier(final Env<ByteBuffer> env) {
     requireNonNull(env);
     this.env = env;
@@ -237,6 +240,7 @@ public final class Verifier implements Callable<Long> {
     proceed.set(false);
   }
 
+  @SuppressFBWarnings("DMI_RANDOM_USED_ONLY_ONCE")
   private void transactionControl() {
     if (id % BATCH_SIZE == 0) {
       if (txn != null) {

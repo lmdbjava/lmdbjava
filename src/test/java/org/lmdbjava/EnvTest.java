@@ -42,6 +42,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Random;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -286,6 +287,7 @@ public final class EnvTest {
   }
 
   @Test(expected = MapFullException.class)
+  @SuppressFBWarnings("DMI_RANDOM_USED_ONLY_ONCE")
   public void mapFull() throws IOException {
     final File path = tmp.newFolder();
     final byte[] k = new byte[500];
@@ -327,6 +329,7 @@ public final class EnvTest {
   }
 
   @Test
+  @SuppressFBWarnings("DMI_RANDOM_USED_ONLY_ONCE")
   public void setMapSize() throws IOException {
     final File path = tmp.newFolder();
     final byte[] k = new byte[500];

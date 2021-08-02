@@ -61,7 +61,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Random;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -487,9 +486,8 @@ public final class DbiTest {
     // Travis CI has 1.5 cores for legacy builds
     nCopies(2, null).parallelStream()
         .forEach(ignored -> {
-          final Random random = new Random();
           for (int i = 0; i < 15_000; i++) {
-            db.put(bb(random.nextInt()), bb(random.nextInt()));
+            db.put(bb(i), bb(i));
           }
         });
   }
