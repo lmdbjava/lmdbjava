@@ -147,7 +147,7 @@ public final class ByteBufProxy extends BufferProxy<ByteBuf> {
     final long size = UNSAFE.getLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE);
     UNSAFE.putLong(buffer, addressOffset, addr);
     UNSAFE.putInt(buffer, lengthOffset, (int) size);
-    buffer.writerIndex((int) size).readerIndex(0);
+    buffer.clear().writerIndex((int) size);
     return buffer;
   }
 }
