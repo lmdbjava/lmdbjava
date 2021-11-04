@@ -40,7 +40,11 @@ import static org.lmdbjava.TestUtils.bb;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Iterator;
 import java.util.Random;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.junit.Rule;
@@ -150,6 +154,73 @@ public final class EnvTest {
         .open(path, MDB_NOSUBDIR);
     env.close();
     env.sync(false);
+  }
+
+  @Test
+  public void cannotReadOnceClosed() throws IOException, InterruptedException, ExecutionException {
+    final File path = tmp.newFile();
+    final Env<ByteBuffer> env = create()
+            .setMaxReaders(5)
+            .open(path, MDB_NOSUBDIR);
+
+    final Dbi<ByteBuffer> dbi = env.openDbi(DB_1, MDB_CREATE);
+
+    dbi.put(bb(1), bb(10));
+    dbi.put(bb(2), bb(20));
+
+    try (Txn<ByteBuffer> roTxn = env.txnRead()) {
+      assertThat(dbi.get(roTxn, bb(1)).getInt(), is(10));
+      assertThat(dbi.get(roTxn, bb(2)).getInt(), is(20));
+    }
+
+    System.out.println("Done puts");
+
+    final CountDownLatch firstGetFinishedLatch = new CountDownLatch(1);
+    final CountDownLatch envClosedLatch = new CountDownLatch(1);
+
+    final CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
+
+      System.out.println("Running async task");
+      try (Txn<ByteBuffer> roTxn = env.txnRead()) {
+        try (CursorIterable<ByteBuffer> iterable = dbi.iterate(roTxn, KeyRange.all())) {
+          final Iterator<CursorIterable.KeyVal<ByteBuffer>> iterator = iterable.iterator();
+
+          try {
+            System.out.println("Getting first entry");
+            CursorIterable.KeyVal<ByteBuffer> keyVal = iterator.next();
+            assertThat(keyVal.val().getInt(), is(10));
+
+            firstGetFinishedLatch.countDown();
+
+            try {
+              System.out.println("Waiting for env to close");
+              envClosedLatch.await();
+            } catch (InterruptedException e) {
+              Thread.currentThread().interrupt();
+              throw new RuntimeException(e);
+            }
+
+            assertThat(env.isClosed(), is(true));
+
+            System.out.println("Getting second entry, but env is now closed");
+            keyVal = iterator.next();
+            assertThat(keyVal.val().getInt(), is(20));
+          } catch (RuntimeException e) {
+            e.printStackTrace();
+          }
+        }
+      }
+    });
+
+    System.out.println("Waiting for cursor to get first entry");
+    firstGetFinishedLatch.await();
+
+    System.out.println("Closing env");
+    env.close();
+    envClosedLatch.countDown();
+
+    System.out.println("Waiting for completion");
+    future.get();
   }
 
   @Test

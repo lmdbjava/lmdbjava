@@ -63,6 +63,7 @@ import java.util.List;
 import java.util.NoSuchElementException;
 
 import com.google.common.primitives.UnsignedBytes;
+import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -300,6 +301,59 @@ public final class CursorIterableTest {
       txn.commit();
     }
     verify(all(), 4, 8);
+  }
+
+  @Test(expected = Env.AlreadyClosedException.class)
+  public void nextWithClosedEnvTest() {
+    try (Txn<ByteBuffer> txn = env.txnRead()) {
+      try (CursorIterable<ByteBuffer> ci = db.iterate(txn, KeyRange.all())) {
+        final Iterator<KeyVal<ByteBuffer>> c = ci.iterator();
+
+        env.close();
+        c.next();
+      }
+    }
+  }
+
+  @Test(expected = Env.AlreadyClosedException.class)
+  public void removeWithClosedEnvTest() {
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
+      try (CursorIterable<ByteBuffer> ci = db.iterate(txn, KeyRange.all())) {
+        final Iterator<KeyVal<ByteBuffer>> c = ci.iterator();
+
+        final KeyVal<ByteBuffer> keyVal = c.next();
+        assertThat(keyVal, Matchers.notNullValue());
+
+        env.close();
+        c.remove();
+      }
+    }
+  }
+
+  @Test(expected = Env.AlreadyClosedException.class)
+  public void hasNextWithClosedEnvTest() {
+    try (Txn<ByteBuffer> txn = env.txnRead()) {
+      try (CursorIterable<ByteBuffer> ci = db.iterate(txn, KeyRange.all())) {
+        final Iterator<KeyVal<ByteBuffer>> c = ci.iterator();
+
+        env.close();
+        c.hasNext();
+      }
+    }
+  }
+
+  @Test(expected = Env.AlreadyClosedException.class)
+  public void forEachRemainingWithClosedEnvTest() {
+    try (Txn<ByteBuffer> txn = env.txnRead()) {
+      try (CursorIterable<ByteBuffer> ci = db.iterate(txn, KeyRange.all())) {
+        final Iterator<KeyVal<ByteBuffer>> c = ci.iterator();
+
+        env.close();
+        c.forEachRemaining(keyVal -> {
+
+        });
+      }
+    }
   }
 
   private void verify(final KeyRange<ByteBuffer> range, final int... expected) {

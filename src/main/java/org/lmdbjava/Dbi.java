@@ -104,6 +104,9 @@ public final class Dbi<T> {
    */
   public void close() {
     clean();
+    if (SHOULD_CHECK) {
+      env.checkNotClosed();
+    }
     LIB.mdb_dbi_close(env.pointer(), ptr);
   }
 
@@ -199,6 +202,7 @@ public final class Dbi<T> {
   public void drop(final Txn<T> txn, final boolean delete) {
     if (SHOULD_CHECK) {
       requireNonNull(txn);
+      env.checkNotClosed();
       txn.checkReady();
       txn.checkWritesAllowed();
     }
@@ -228,6 +232,7 @@ public final class Dbi<T> {
     if (SHOULD_CHECK) {
       requireNonNull(txn);
       requireNonNull(key);
+      env.checkNotClosed();
       txn.checkReady();
     }
     txn.kv().keyIn(key);
@@ -295,6 +300,7 @@ public final class Dbi<T> {
     if (SHOULD_CHECK) {
       requireNonNull(txn);
       requireNonNull(range);
+      env.checkNotClosed();
       txn.checkReady();
     }
     final Comparator<T> useComp;
@@ -313,6 +319,9 @@ public final class Dbi<T> {
   * @return the list of flags this Dbi was created with
    */
   public List<DbiFlags> listFlags(final Txn<T> txn) {
+    if (SHOULD_CHECK) {
+      env.checkNotClosed();
+    }
     final IntByReference resultPtr = new IntByReference();
     checkRc(LIB.mdb_dbi_flags(txn.pointer(), ptr, resultPtr));
 
@@ -348,11 +357,12 @@ public final class Dbi<T> {
   public Cursor<T> openCursor(final Txn<T> txn) {
     if (SHOULD_CHECK) {
       requireNonNull(txn);
+      env.checkNotClosed();
       txn.checkReady();
     }
     final PointerByReference cursorPtr = new PointerByReference();
     checkRc(LIB.mdb_cursor_open(txn.pointer(), ptr, cursorPtr));
-    return new Cursor<>(cursorPtr.getValue(), txn);
+    return new Cursor<>(cursorPtr.getValue(), txn, env);
   }
 
   /**
@@ -434,6 +444,7 @@ public final class Dbi<T> {
     if (SHOULD_CHECK) {
       requireNonNull(txn);
       requireNonNull(key);
+      env.checkNotClosed();
       txn.checkReady();
       txn.checkWritesAllowed();
     }
@@ -455,6 +466,7 @@ public final class Dbi<T> {
   public Stat stat(final Txn<T> txn) {
     if (SHOULD_CHECK) {
       requireNonNull(txn);
+      env.checkNotClosed();
       txn.checkReady();
     }
     final MDB_stat stat = new MDB_stat(RUNTIME);

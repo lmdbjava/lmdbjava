@@ -230,12 +230,57 @@ public final class TxnTest {
     env.txnRead();
   }
 
+  @Test(expected = AlreadyClosedException.class)
+  public void txRenewDeniedIfEnvClosed() {
+    final Txn<ByteBuffer> txnRead = env.txnRead();
+    txnRead.close();
+    env.close();
+    txnRead.renew();
+  }
+
+  @Test(expected = AlreadyClosedException.class)
+  public void txCloseDeniedIfEnvClosed() {
+    final Txn<ByteBuffer> txnRead = env.txnRead();
+    env.close();
+    txnRead.close();
+  }
+
+  @Test(expected = AlreadyClosedException.class)
+  public void txCommitDeniedIfEnvClosed() {
+    final Txn<ByteBuffer> txnRead = env.txnRead();
+    env.close();
+    txnRead.commit();
+  }
+
+  @Test(expected = AlreadyClosedException.class)
+  public void txAbortDeniedIfEnvClosed() {
+    final Txn<ByteBuffer> txnRead = env.txnRead();
+    env.close();
+    txnRead.abort();
+  }
+
+  @Test(expected = AlreadyClosedException.class)
+  public void txResetDeniedIfEnvClosed() {
+    final Txn<ByteBuffer> txnRead = env.txnRead();
+    env.close();
+    txnRead.reset();
+  }
+
   @Test
   public void txParent() {
     try (Txn<ByteBuffer> txRoot = env.txnWrite();
          Txn<ByteBuffer> txChild = env.txn(txRoot)) {
       assertThat(txRoot.getParent(), is(nullValue()));
       assertThat(txChild.getParent(), is(txRoot));
+    }
+  }
+
+  @Test(expected = AlreadyClosedException.class)
+  public void txParentDeniedIfEnvClosed() {
+    try (Txn<ByteBuffer> txRoot = env.txnWrite();
+         Txn<ByteBuffer> txChild = env.txn(txRoot)) {
+        env.close();
+        txChild.getParent();
     }
   }
 

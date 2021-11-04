@@ -22,6 +22,7 @@ package org.lmdbjava;
 
 import static jnr.ffi.Memory.allocateDirect;
 import static jnr.ffi.NativeType.ADDRESS;
+import static org.lmdbjava.Env.SHOULD_CHECK;
 import static org.lmdbjava.Library.LIB;
 import static org.lmdbjava.Library.RUNTIME;
 import static org.lmdbjava.MaskedFlag.isSet;
@@ -49,6 +50,7 @@ public final class Txn<T> implements AutoCloseable {
   private final BufferProxy<T> proxy;
   private final Pointer ptr;
   private final boolean readOnly;
+  private final Env<T> env;
   private State state;
 
   Txn(final Env<T> env, final Txn<T> parent, final BufferProxy<T> proxy,
@@ -60,6 +62,7 @@ public final class Txn<T> implements AutoCloseable {
     if (env.isReadOnly() && !this.readOnly) {
       throw new EnvIsReadOnly();
     }
+    this.env = env;
     this.parent = parent;
     if (parent != null && parent.isReadOnly() != this.readOnly) {
       throw new IncompatibleParent();
@@ -76,6 +79,9 @@ public final class Txn<T> implements AutoCloseable {
    * Aborts this transaction.
    */
   public void abort() {
+    if (SHOULD_CHECK) {
+      env.checkNotClosed();
+    }
     checkReady();
     state = DONE;
     LIB.mdb_txn_abort(ptr);
@@ -91,6 +97,9 @@ public final class Txn<T> implements AutoCloseable {
    */
   @Override
   public void close() {
+    if (SHOULD_CHECK) {
+      env.checkNotClosed();
+    }
     if (state == RELEASED) {
       return;
     }
@@ -105,6 +114,9 @@ public final class Txn<T> implements AutoCloseable {
    * Commits this transaction.
    */
   public void commit() {
+    if (SHOULD_CHECK) {
+      env.checkNotClosed();
+    }
     checkReady();
     state = DONE;
     checkRc(LIB.mdb_txn_commit(ptr));
@@ -116,6 +128,9 @@ public final class Txn<T> implements AutoCloseable {
    * @return A transaction ID, valid if input is an active transaction
    */
   public long getId() {
+    if (SHOULD_CHECK) {
+      env.checkNotClosed();
+    }
     return LIB.mdb_txn_id(ptr);
   }
 
@@ -153,6 +168,9 @@ public final class Txn<T> implements AutoCloseable {
    * Renews a read-only transaction previously released by {@link #reset()}.
    */
   public void renew() {
+    if (SHOULD_CHECK) {
+      env.checkNotClosed();
+    }
     if (state != RESET) {
       throw new NotResetException();
     }
@@ -166,6 +184,9 @@ public final class Txn<T> implements AutoCloseable {
    * can be reused upon calling {@link #renew()}.
    */
   public void reset() {
+    if (SHOULD_CHECK) {
+      env.checkNotClosed();
+    }
     checkReadOnly();
     if (state != READY && state != DONE) {
       throw new ResetException();
