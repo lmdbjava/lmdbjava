@@ -402,6 +402,7 @@ public final class Dbi<T> {
       requireNonNull(txn);
       requireNonNull(key);
       requireNonNull(val);
+      env.checkNotClosed();
       txn.checkReady();
       txn.checkWritesAllowed();
     }
