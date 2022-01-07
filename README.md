@@ -7,7 +7,7 @@
 
 # LMDB for Java
 
-[LMDB](http://symas.com/mdb/) offers:
+[LMDB](http://symas.com/lmdb/) offers:
 
 * Transactions (full ACID semantics)
 * Ordered keys (enabling very fast cursor-based iteration)
