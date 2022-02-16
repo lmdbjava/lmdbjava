@@ -189,6 +189,32 @@ public final class Env<T> implements AutoCloseable {
     return result;
   }
 
+	/**
+	 * Obtain the DBI names.
+	 *
+	 * <p>
+	 * This method is only compatible with {@link Env}s that use named databases. If
+	 * an unnamed {@link Dbi} is being used to store data, this method will attempt
+	 * to return all such keys from the unnamed database.
+	 *
+	 * @param txn   transaction handle (not null; not committed)
+	 * @return a list of DBI names (never null)
+	 */
+	public List<byte[]> getDbiNames(Txn<T> txn) {
+		final List<byte[]> result = new ArrayList<>();
+		final Dbi<T> names = openDbi((byte[]) null);
+		try (Cursor<T> cursor = names.openCursor(txn)) {
+			if (!cursor.first()) {
+				return Collections.emptyList();
+			}
+			do {
+				final byte[] name = proxy.getBytes(cursor.key());
+				result.add(name);
+			} while (cursor.next());
+		}
+		return result;
+	}
+
   /**
    * Set the size of the data memory map.
    *
@@ -266,6 +292,19 @@ public final class Env<T> implements AutoCloseable {
     return openDbi(nameBytes, flags);
   }
 
+	/**
+	 * Convenience method that opens a {@link Dbi} with a UTF-8 database name.
+	 *
+	 * @param txn   transaction handle (not null; not committed)
+	 * @param name  name of the database (or null if no name is required)
+	 * @param flags to open the database with
+	 * @return a database that is ready to use
+	 */
+	public Dbi<T> openDbi(Txn<T> txn, final String name, final DbiFlags... flags) {
+		final byte[] nameBytes = name == null ? null : name.getBytes(UTF_8);
+		return openDbi(txn, nameBytes, flags);
+	}
+
   /**
    * Convenience method that opens a {@link Dbi} with a UTF-8 database name
    * and custom comparator.
@@ -281,6 +320,21 @@ public final class Env<T> implements AutoCloseable {
     return openDbi(nameBytes, comparator, flags);
   }
 
+	/**
+	 * Convenience method that opens a {@link Dbi} with a UTF-8 database name and
+	 * custom comparator.
+	 *
+	 * @param txn   transaction handle (not null; not committed)
+	 * @param name       name of the database (or null if no name is required)
+	 * @param comparator custom comparator callback (or null to use LMDB default)
+	 * @param flags      to open the database with
+	 * @return a database that is ready to use
+	 */
+	public Dbi<T> openDbi(Txn<T> txn, final String name, final Comparator<T> comparator, final DbiFlags... flags) {
+		final byte[] nameBytes = name == null ? null : name.getBytes(UTF_8);
+		return openDbi(txn, nameBytes, comparator, flags);
+	}
+
   /**
    * Open the {@link Dbi}.
    *
@@ -295,6 +349,19 @@ public final class Env<T> implements AutoCloseable {
       return dbi;
     }
   }
+
+	/**
+	 * Open the {@link Dbi}.
+	 *
+	 * @param txn   transaction handle (not null; not committed)
+	 * @param name  name of the database (or null if no name is required)
+	 * @param flags to open the database with
+	 * @return a database that is ready to use
+	 */
+	public Dbi<T> openDbi(Txn<T> txn, final byte[] name, final DbiFlags... flags) {
+		final Dbi<T> dbi = new Dbi<>(this, txn, name, null, flags);
+		return dbi;
+	}
 
   /**
    * Open the {@link Dbi}.
@@ -322,6 +389,31 @@ public final class Env<T> implements AutoCloseable {
       return dbi;
     }
   }
+
+	/**
+	 * Open the {@link Dbi}.
+	 *
+	 * <p>
+	 * If a custom comparator is specified, this comparator is called from LMDB any
+	 * time it needs to compare two keys. The comparator must be used any time any
+	 * time this database is opened, otherwise database corruption may occur. The
+	 * custom comparator will also be used whenever a {@link CursorIterable} is
+	 * created from the returned {@link Dbi}. If a custom comparator is not
+	 * specified, LMDB's native default lexicographical order is used. The default
+	 * comparator is typically more efficient (as there is no need for the native
+	 * library to call back into Java for the comparator result).
+	 *
+	 * @param txn        transaction handle (not null; not committed)
+	 * @param name       name of the database (or null if no name is required)
+	 * @param comparator custom comparator callback (or null to use LMDB default)
+	 * @param flags      to open the database with
+	 * @return a database that is ready to use
+	 */
+	public Dbi<T> openDbi(Txn<T> txn, final byte[] name, final Comparator<T> comparator, final DbiFlags... flags) {
+		final Dbi<T> dbi = new Dbi<>(this, txn, name, comparator, flags);
+		txn.commit(); // even RO Txns require a commit to retain Dbi in Env
+		return dbi;
+	}
 
   /**
    * Return statistics about this environment.
