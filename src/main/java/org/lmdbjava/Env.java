@@ -1,4 +1,3 @@
-/*-
  * #%L
  * LmdbJava
  * %%
@@ -53,578 +52,653 @@ import org.lmdbjava.Library.MDB_stat;
 @SuppressWarnings("PMD.GodClass")
 public final class Env<T> implements AutoCloseable {
 
-  /**
-   * Java system property name that can be set to disable optional checks.
-   */
-  public static final String DISABLE_CHECKS_PROP = "lmdbjava.disable.checks";
+	/**
+	 * Java system property name that can be set to disable optional checks.
+	 */
+	public static final String DISABLE_CHECKS_PROP = "lmdbjava.disable.checks";
 
-  /**
-   * Indicates whether optional checks should be applied in LmdbJava. Optional
-   * checks are only disabled in critical paths (see package-level JavaDocs).
-   * Non-critical paths have optional checks performed at all times, regardless
-   * of this property.
-   */
-  public static final boolean SHOULD_CHECK = !getBoolean(DISABLE_CHECKS_PROP);
+	/**
+	 * Indicates whether optional checks should be applied in LmdbJava. Optional
+	 * checks are only disabled in critical paths (see package-level JavaDocs).
+	 * Non-critical paths have optional checks performed at all times, regardless of
+	 * this property.
+	 */
+	public static final boolean SHOULD_CHECK = !getBoolean(DISABLE_CHECKS_PROP);
 
-  private boolean closed;
-  private final int maxKeySize;
-  private final boolean noSubDir;
-  private final BufferProxy<T> proxy;
-  private final Pointer ptr;
-  private final boolean readOnly;
+	private boolean closed;
+	private final int maxKeySize;
+	private final boolean noSubDir;
+	private final BufferProxy<T> proxy;
+	private final Pointer ptr;
+	private final boolean readOnly;
 
-  private Env(final BufferProxy<T> proxy, final Pointer ptr,
-              final boolean readOnly, final boolean noSubDir) {
-    this.proxy = proxy;
-    this.readOnly = readOnly;
-    this.noSubDir = noSubDir;
-    this.ptr = ptr;
-    // cache max key size to avoid further JNI calls
-    this.maxKeySize = LIB.mdb_env_get_maxkeysize(ptr);
-  }
+	private Env(final BufferProxy<T> proxy, final Pointer ptr, final boolean readOnly, final boolean noSubDir) {
+		this.proxy = proxy;
+		this.readOnly = readOnly;
+		this.noSubDir = noSubDir;
+		this.ptr = ptr;
+		// cache max key size to avoid further JNI calls
+		this.maxKeySize = LIB.mdb_env_get_maxkeysize(ptr);
+	}
 
-  /**
-   * Create an {@link Env} using the {@link ByteBufferProxy#PROXY_OPTIMAL}.
-   *
-   * @return the environment (never null)
-   */
-  public static Builder<ByteBuffer> create() {
-    return new Builder<>(PROXY_OPTIMAL);
-  }
+	/**
+	 * Create an {@link Env} using the {@link ByteBufferProxy#PROXY_OPTIMAL}.
+	 *
+	 * @return the environment (never null)
+	 */
+	public static Builder<ByteBuffer> create() {
+		return new Builder<>(PROXY_OPTIMAL);
+	}
 
-  /**
-   * Create an {@link Env} using the passed {@link BufferProxy}.
-   *
-   * @param <T>   buffer type
-   * @param proxy the proxy to use (required)
-   * @return the environment (never null)
-   */
-  public static <T> Builder<T> create(final BufferProxy<T> proxy) {
-    return new Builder<>(proxy);
-  }
+	/**
+	 * Create an {@link Env} using the passed {@link BufferProxy}.
+	 *
+	 * @param <T>   buffer type
+	 * @param proxy the proxy to use (required)
+	 * @return the environment (never null)
+	 */
+	public static <T> Builder<T> create(final BufferProxy<T> proxy) {
+		return new Builder<>(proxy);
+	}
 
-  /**
-   * Opens an environment with a single default database in 0664 mode using the
-   * {@link ByteBufferProxy#PROXY_OPTIMAL}.
-   *
-   * @param path  file system destination
-   * @param size  size in megabytes
-   * @param flags the flags for this new environment
-   * @return env the environment (never null)
-   */
-  public static Env<ByteBuffer> open(final File path, final int size,
-                                     final EnvFlags... flags) {
-    return new Builder<>(PROXY_OPTIMAL)
-        .setMapSize(size * 1_024L * 1_024L)
-        .open(path, flags);
-  }
+	/**
+	 * Opens an environment with a single default database in 0664 mode using the
+	 * {@link ByteBufferProxy#PROXY_OPTIMAL}.
+	 *
+	 * @param path  file system destination
+	 * @param size  size in megabytes
+	 * @param flags the flags for this new environment
+	 * @return env the environment (never null)
+	 */
+	public static Env<ByteBuffer> open(final File path, final int size, final EnvFlags... flags) {
+		return new Builder<>(PROXY_OPTIMAL).setMapSize(size * 1_024L * 1_024L).open(path, flags);
+	}
 
-  /**
-   * Close the handle.
-   *
-   * <p>
-   * Will silently return if already closed or never opened.
-   */
-  @Override
-  public void close() {
-    if (closed) {
-      return;
-    }
-    closed = true;
-    LIB.mdb_env_close(ptr);
-  }
+	/**
+	 * Close the handle.
+	 *
+	 * <p>
+	 * Will silently return if already closed or never opened.
+	 */
+	@Override
+	public void close() {
+		if (closed) {
+			return;
+		}
+		closed = true;
+		LIB.mdb_env_close(ptr);
+	}
 
-  /**
-   * Copies an LMDB environment to the specified destination path.
-   *
-   * <p>
-   * This function may be used to make a backup of an existing environment. No
-   * lockfile is created, since it gets recreated at need.
-   *
-   * <p>
-   * If this environment was created using {@link EnvFlags#MDB_NOSUBDIR}, the
-   * destination path must be a directory that exists but contains no files. If
-   * {@link EnvFlags#MDB_NOSUBDIR} was used, the destination path must not
-   * exist, but it must be possible to create a file at the provided path.
-   *
-   * <p>
-   * Note: This call can trigger significant file size growth if run in parallel
-   * with write transactions, because it employs a read-only transaction. See
-   * long-lived transactions under "Caveats" in the LMDB native documentation.
-   *
-   * @param path  writable destination path as described above
-   * @param flags special options for this copy
-   */
-  public void copy(final File path, final CopyFlags... flags) {
-    requireNonNull(path);
-    validatePath(path);
-    final int flagsMask = mask(flags);
-    checkRc(LIB.mdb_env_copy2(ptr, path.getAbsolutePath(), flagsMask));
-  }
+	/**
+	 * Copies an LMDB environment to the specified destination path.
+	 *
+	 * <p>
+	 * This function may be used to make a backup of an existing environment. No
+	 * lockfile is created, since it gets recreated at need.
+	 *
+	 * <p>
+	 * If this environment was created using {@link EnvFlags#MDB_NOSUBDIR}, the
+	 * destination path must be a directory that exists but contains no files. If
+	 * {@link EnvFlags#MDB_NOSUBDIR} was used, the destination path must not exist,
+	 * but it must be possible to create a file at the provided path.
+	 *
+	 * <p>
+	 * Note: This call can trigger significant file size growth if run in parallel
+	 * with write transactions, because it employs a read-only transaction. See
+	 * long-lived transactions under "Caveats" in the LMDB native documentation.
+	 *
+	 * @param path  writable destination path as described above
+	 * @param flags special options for this copy
+	 */
+	public void copy(final File path, final CopyFlags... flags) {
+		requireNonNull(path);
+		validatePath(path);
+		final int flagsMask = mask(flags);
+		checkRc(LIB.mdb_env_copy2(ptr, path.getAbsolutePath(), flagsMask));
+	}
 
-  /**
-   * Obtain the DBI names.
-   *
-   * <p>
-   * This method is only compatible with {@link Env}s that use named databases.
-   * If an unnamed {@link Dbi} is being used to store data, this method will
-   * attempt to return all such keys from the unnamed database.
-   *
-   * @return a list of DBI names (never null)
-   */
-  public List<byte[]> getDbiNames() {
-    final List<byte[]> result = new ArrayList<>();
-    final Dbi<T> names = openDbi((byte[]) null);
-    try (Txn<T> txn = txnRead();
-         Cursor<T> cursor = names.openCursor(txn)) {
-      if (!cursor.first()) {
-        return Collections.emptyList();
-      }
-      do {
-        final byte[] name = proxy.getBytes(cursor.key());
-        result.add(name);
-      } while (cursor.next());
-    }
+	/**
+	 * Obtain the DBI names.
+	 *
+	 * <p>
+	 * This method is only compatible with {@link Env}s that use named databases. If
+	 * an unnamed {@link Dbi} is being used to store data, this method will attempt
+	 * to return all such keys from the unnamed database.
+	 *
+	 * @return a list of DBI names (never null)
+	 */
+	public List<byte[]> getDbiNames() {
+		final List<byte[]> result = new ArrayList<>();
+		final Dbi<T> names = openDbi((byte[]) null);
+		try (Txn<T> txn = txnRead(); Cursor<T> cursor = names.openCursor(txn)) {
+			if (!cursor.first()) {
+				return Collections.emptyList();
+			}
+			do {
+				final byte[] name = proxy.getBytes(cursor.key());
+				result.add(name);
+			} while (cursor.next());
+		}
 
-    return result;
-  }
+		return result;
+	}
 
-  /**
-   * Set the size of the data memory map.
-   *
-   * @param mapSize the new size, in bytes
-   */
-  public void setMapSize(final long mapSize) {
-    checkRc(LIB.mdb_env_set_mapsize(ptr, mapSize));
-  }
+	/**
+	 * Obtain the DBI names.
+	 *
+	 * <p>
+	 * This method is only compatible with {@link Env}s that use named databases. If
+	 * an unnamed {@link Dbi} is being used to store data, this method will attempt
+	 * to return all such keys from the unnamed database.
+	 *
+	 * @param txn   transaction handle (not null; not committed)
+	 * @return a list of DBI names (never null)
+	 */
+	public List<byte[]> getDbiNames(Txn<T> txn) {
+		final List<byte[]> result = new ArrayList<>();
+		final Dbi<T> names = openDbi((byte[]) null);
+		try (Cursor<T> cursor = names.openCursor(txn)) {
+			if (!cursor.first()) {
+				return Collections.emptyList();
+			}
+			do {
+				final byte[] name = proxy.getBytes(cursor.key());
+				result.add(name);
+			} while (cursor.next());
+		}
+		return result;
+	}
 
-  /**
-   * Get the maximum size of keys and MDB_DUPSORT data we can write.
-   *
-   * @return the maximum size of keys.
-   */
-  public int getMaxKeySize() {
-    return maxKeySize;
-  }
+	/**
+	 * Set the size of the data memory map.
+	 *
+	 * @param mapSize the new size, in bytes
+	 */
+	public void setMapSize(final long mapSize) {
+		checkRc(LIB.mdb_env_set_mapsize(ptr, mapSize));
+	}
 
-  /**
-   * Return information about this environment.
-   *
-   * @return an immutable information object.
-   */
-  public EnvInfo info() {
-    if (closed) {
-      throw new AlreadyClosedException();
-    }
-    final MDB_envinfo info = new MDB_envinfo(RUNTIME);
-    checkRc(LIB.mdb_env_info(ptr, info));
+	/**
+	 * Get the maximum size of keys and MDB_DUPSORT data we can write.
+	 *
+	 * @return the maximum size of keys.
+	 */
+	public int getMaxKeySize() {
+		return maxKeySize;
+	}
 
-    final long mapAddress;
-    if (info.f0_me_mapaddr.get() == null) {
-      mapAddress = 0;
-    } else {
-      mapAddress = info.f0_me_mapaddr.get().address();
-    }
+	/**
+	 * Return information about this environment.
+	 *
+	 * @return an immutable information object.
+	 */
+	public EnvInfo info() {
+		if (closed) {
+			throw new AlreadyClosedException();
+		}
+		final MDB_envinfo info = new MDB_envinfo(RUNTIME);
+		checkRc(LIB.mdb_env_info(ptr, info));
 
-    return new EnvInfo(
-        mapAddress,
-        info.f1_me_mapsize.longValue(),
-        info.f2_me_last_pgno.longValue(),
-        info.f3_me_last_txnid.longValue(),
-        info.f4_me_maxreaders.intValue(),
-        info.f5_me_numreaders.intValue());
-  }
+		final long mapAddress;
+		if (info.f0_me_mapaddr.get() == null) {
+			mapAddress = 0;
+		} else {
+			mapAddress = info.f0_me_mapaddr.get().address();
+		}
 
-  /**
-   * Indicates whether this environment has been closed.
-   *
-   * @return true if closed
-   */
-  public boolean isClosed() {
-    return closed;
-  }
+		return new EnvInfo(mapAddress, info.f1_me_mapsize.longValue(), info.f2_me_last_pgno.longValue(),
+				info.f3_me_last_txnid.longValue(), info.f4_me_maxreaders.intValue(), info.f5_me_numreaders.intValue());
+	}
 
-  /**
-   * Indicates if this environment was opened with
-   * {@link EnvFlags#MDB_RDONLY_ENV}.
-   *
-   * @return true if read-only
-   */
-  public boolean isReadOnly() {
-    return readOnly;
-  }
+	/**
+	 * Indicates whether this environment has been closed.
+	 *
+	 * @return true if closed
+	 */
+	public boolean isClosed() {
+		return closed;
+	}
 
-  /**
-   * Convenience method that opens a {@link Dbi} with a UTF-8 database name.
-   *
-   * @param name  name of the database (or null if no name is required)
-   * @param flags to open the database with
-   * @return a database that is ready to use
-   */
-  public Dbi<T> openDbi(final String name, final DbiFlags... flags) {
-    final byte[] nameBytes = name == null ? null : name.getBytes(UTF_8);
-    return openDbi(nameBytes, flags);
-  }
+	/**
+	 * Indicates if this environment was opened with
+	 * {@link EnvFlags#MDB_RDONLY_ENV}.
+	 *
+	 * @return true if read-only
+	 */
+	public boolean isReadOnly() {
+		return readOnly;
+	}
 
-  /**
-   * Convenience method that opens a {@link Dbi} with a UTF-8 database name
-   * and custom comparator.
-   *
-   * @param name       name of the database (or null if no name is required)
-   * @param comparator custom comparator callback (or null to use LMDB default)
-   * @param flags      to open the database with
-   * @return a database that is ready to use
-   */
-  public Dbi<T> openDbi(final String name, final Comparator<T> comparator,
-                        final DbiFlags... flags) {
-    final byte[] nameBytes = name == null ? null : name.getBytes(UTF_8);
-    return openDbi(nameBytes, comparator, flags);
-  }
+	/**
+	 * Convenience method that opens a {@link Dbi} with a UTF-8 database name.
+	 *
+	 * @param name  name of the database (or null if no name is required)
+	 * @param flags to open the database with
+	 * @return a database that is ready to use
+	 */
+	public Dbi<T> openDbi(final String name, final DbiFlags... flags) {
+		final byte[] nameBytes = name == null ? null : name.getBytes(UTF_8);
+		return openDbi(nameBytes, flags);
+	}
 
-  /**
-   * Open the {@link Dbi}.
-   *
-   * @param name  name of the database (or null if no name is required)
-   * @param flags to open the database with
-   * @return a database that is ready to use
-   */
-  public Dbi<T> openDbi(final byte[] name, final DbiFlags... flags) {
-    try (Txn<T> txn = readOnly ? txnRead() : txnWrite()) {
-      final Dbi<T> dbi = new Dbi<>(this, txn, name, null, flags);
-      txn.commit(); // even RO Txns require a commit to retain Dbi in Env
-      return dbi;
-    }
-  }
+	/**
+	 * Convenience method that opens a {@link Dbi} with a UTF-8 database name.
+	 *
+	 * @param txn   transaction handle (not null; not committed)
+	 * @param name  name of the database (or null if no name is required)
+	 * @param flags to open the database with
+	 * @return a database that is ready to use
+	 */
+	public Dbi<T> openDbi(Txn<T> txn, final String name, final DbiFlags... flags) {
+		final byte[] nameBytes = name == null ? null : name.getBytes(UTF_8);
+		return openDbi(txn, nameBytes, flags);
+	}
 
-  /**
-   * Open the {@link Dbi}.
-   *
-   * <p>
-   * If a custom comparator is specified, this comparator is called from LMDB
-   * any time it needs to compare two keys. The comparator must be used any time
-   * any time this database is opened, otherwise database corruption may occur.
-   * The custom comparator will also be used whenever a {@link CursorIterable}
-   * is created from the returned {@link Dbi}. If a custom comparator is not
-   * specified, LMDB's native default lexicographical order is used. The default
-   * comparator is typically more efficient (as there is no need for the native
-   * library to call back into Java for the comparator result).
-   *
-   * @param name       name of the database (or null if no name is required)
-   * @param comparator custom comparator callback (or null to use LMDB default)
-   * @param flags      to open the database with
-   * @return a database that is ready to use
-   */
-  public Dbi<T> openDbi(final byte[] name, final Comparator<T> comparator,
-                        final DbiFlags... flags) {
-    try (Txn<T> txn = readOnly ? txnRead() : txnWrite()) {
-      final Dbi<T> dbi = new Dbi<>(this, txn, name, comparator, flags);
-      txn.commit(); // even RO Txns require a commit to retain Dbi in Env
-      return dbi;
-    }
-  }
+	/**
+	 * Convenience method that opens a {@link Dbi} with a UTF-8 database name and
+	 * custom comparator.
+	 *
+	 * @param name       name of the database (or null if no name is required)
+	 * @param comparator custom comparator callback (or null to use LMDB default)
+	 * @param flags      to open the database with
+	 * @return a database that is ready to use
+	 */
+	public Dbi<T> openDbi(final String name, final Comparator<T> comparator, final DbiFlags... flags) {
+		final byte[] nameBytes = name == null ? null : name.getBytes(UTF_8);
+		return openDbi(nameBytes, comparator, flags);
+	}
 
-  /**
-   * Return statistics about this environment.
-   *
-   * @return an immutable statistics object.
-   */
-  public Stat stat() {
-    if (closed) {
-      throw new AlreadyClosedException();
-    }
-    final MDB_stat stat = new MDB_stat(RUNTIME);
-    checkRc(LIB.mdb_env_stat(ptr, stat));
-    return new Stat(
-        stat.f0_ms_psize.intValue(),
-        stat.f1_ms_depth.intValue(),
-        stat.f2_ms_branch_pages.longValue(),
-        stat.f3_ms_leaf_pages.longValue(),
-        stat.f4_ms_overflow_pages.longValue(),
-        stat.f5_ms_entries.longValue());
-  }
+	/**
+	 * Convenience method that opens a {@link Dbi} with a UTF-8 database name and
+	 * custom comparator.
+	 *
+	 * @param txn   transaction handle (not null; not committed)
+	 * @param name       name of the database (or null if no name is required)
+	 * @param comparator custom comparator callback (or null to use LMDB default)
+	 * @param flags      to open the database with
+	 * @return a database that is ready to use
+	 */
+	public Dbi<T> openDbi(Txn<T> txn, final String name, final Comparator<T> comparator, final DbiFlags... flags) {
+		final byte[] nameBytes = name == null ? null : name.getBytes(UTF_8);
+		return openDbi(txn, nameBytes, comparator, flags);
+	}
 
-  /**
-   * Flushes the data buffers to disk.
-   *
-   * @param force force a synchronous flush (otherwise if the environment has
-   *              the MDB_NOSYNC flag set the flushes will be omitted, and with
-   *              MDB_MAPASYNC they will be asynchronous)
-   */
-  public void sync(final boolean force) {
-    if (closed) {
-      throw new AlreadyClosedException();
-    }
-    final int f = force ? 1 : 0;
-    checkRc(LIB.mdb_env_sync(ptr, f));
-  }
+	/**
+	 * Open the {@link Dbi}.
+	 *
+	 * @param name  name of the database (or null if no name is required)
+	 * @param flags to open the database with
+	 * @return a database that is ready to use
+	 */
+	public Dbi<T> openDbi(final byte[] name, final DbiFlags... flags) {
+		try (Txn<T> txn = readOnly ? txnRead() : txnWrite()) {
+			final Dbi<T> dbi = new Dbi<>(this, txn, name, null, flags);
+			txn.commit(); // even RO Txns require a commit to retain Dbi in Env
+			return dbi;
+		}
+	}
 
-  /**
-   * Obtain a transaction with the requested parent and flags.
-   *
-   * @param parent parent transaction (may be null if no parent)
-   * @param flags  applicable flags (eg for a reusable, read-only transaction)
-   * @return a transaction (never null)
-   */
-  public Txn<T> txn(final Txn<T> parent, final TxnFlags... flags) {
-    if (closed) {
-      throw new AlreadyClosedException();
-    }
-    return new Txn<>(this, parent, proxy, flags);
-  }
+	/**
+	 * Open the {@link Dbi}.
+	 *
+	 * @param txn   transaction handle (not null; not committed)
+	 * @param name  name of the database (or null if no name is required)
+	 * @param flags to open the database with
+	 * @return a database that is ready to use
+	 */
+	public Dbi<T> openDbi(Txn<T> txn, final byte[] name, final DbiFlags... flags) {
+		final Dbi<T> dbi = new Dbi<>(this, txn, name, null, flags);
+		return dbi;
+	}
 
-  /**
-   * Obtain a read-only transaction.
-   *
-   * @return a read-only transaction
-   */
-  public Txn<T> txnRead() {
-    return txn(null, MDB_RDONLY_TXN);
-  }
+	/**
+	 * Open the {@link Dbi}.
+	 *
+	 * <p>
+	 * If a custom comparator is specified, this comparator is called from LMDB any
+	 * time it needs to compare two keys. The comparator must be used any time any
+	 * time this database is opened, otherwise database corruption may occur. The
+	 * custom comparator will also be used whenever a {@link CursorIterable} is
+	 * created from the returned {@link Dbi}. If a custom comparator is not
+	 * specified, LMDB's native default lexicographical order is used. The default
+	 * comparator is typically more efficient (as there is no need for the native
+	 * library to call back into Java for the comparator result).
+	 *
+	 * @param name       name of the database (or null if no name is required)
+	 * @param comparator custom comparator callback (or null to use LMDB default)
+	 * @param flags      to open the database with
+	 * @return a database that is ready to use
+	 */
+	public Dbi<T> openDbi(final byte[] name, final Comparator<T> comparator, final DbiFlags... flags) {
+		try (Txn<T> txn = readOnly ? txnRead() : txnWrite()) {
+			final Dbi<T> dbi = new Dbi<>(this, txn, name, comparator, flags);
+			txn.commit(); // even RO Txns require a commit to retain Dbi in Env
+			return dbi;
+		}
+	}
 
-  /**
-   * Obtain a read-write transaction.
-   *
-   * @return a read-write transaction
-   */
-  public Txn<T> txnWrite() {
-    return txn(null);
-  }
+	/**
+	 * Open the {@link Dbi}.
+	 *
+	 * <p>
+	 * If a custom comparator is specified, this comparator is called from LMDB any
+	 * time it needs to compare two keys. The comparator must be used any time any
+	 * time this database is opened, otherwise database corruption may occur. The
+	 * custom comparator will also be used whenever a {@link CursorIterable} is
+	 * created from the returned {@link Dbi}. If a custom comparator is not
+	 * specified, LMDB's native default lexicographical order is used. The default
+	 * comparator is typically more efficient (as there is no need for the native
+	 * library to call back into Java for the comparator result).
+	 *
+	 * @param txn        transaction handle (not null; not committed)
+	 * @param name       name of the database (or null if no name is required)
+	 * @param comparator custom comparator callback (or null to use LMDB default)
+	 * @param flags      to open the database with
+	 * @return a database that is ready to use
+	 */
+	public Dbi<T> openDbi(Txn<T> txn, final byte[] name, final Comparator<T> comparator, final DbiFlags... flags) {
+		final Dbi<T> dbi = new Dbi<>(this, txn, name, comparator, flags);
+		txn.commit(); // even RO Txns require a commit to retain Dbi in Env
+		return dbi;
+	}
 
-  Pointer pointer() {
-    return ptr;
-  }
+	/**
+	 * Return statistics about this environment.
+	 *
+	 * @return an immutable statistics object.
+	 */
+	public Stat stat() {
+		if (closed) {
+			throw new AlreadyClosedException();
+		}
+		final MDB_stat stat = new MDB_stat(RUNTIME);
+		checkRc(LIB.mdb_env_stat(ptr, stat));
+		return new Stat(stat.f0_ms_psize.intValue(), stat.f1_ms_depth.intValue(), stat.f2_ms_branch_pages.longValue(),
+				stat.f3_ms_leaf_pages.longValue(), stat.f4_ms_overflow_pages.longValue(),
+				stat.f5_ms_entries.longValue());
+	}
 
-  private void validateDirectoryEmpty(final File path) {
-    if (!path.exists()) {
-      throw new InvalidCopyDestination("Path does not exist");
-    }
-    if (!path.isDirectory()) {
-      throw new InvalidCopyDestination("Path must be a directory");
-    }
-    final String[] files = path.list();
-    if (files != null && files.length > 0) {
-      throw new InvalidCopyDestination("Path must contain no files");
-    }
-  }
+	/**
+	 * Flushes the data buffers to disk.
+	 *
+	 * @param force force a synchronous flush (otherwise if the environment has the
+	 *              MDB_NOSYNC flag set the flushes will be omitted, and with
+	 *              MDB_MAPASYNC they will be asynchronous)
+	 */
+	public void sync(final boolean force) {
+		if (closed) {
+			throw new AlreadyClosedException();
+		}
+		final int f = force ? 1 : 0;
+		checkRc(LIB.mdb_env_sync(ptr, f));
+	}
 
-  private void validatePath(final File path) {
-    if (noSubDir) {
-      if (path.exists()) {
-        throw new InvalidCopyDestination("Path must not exist for MDB_NOSUBDIR");
-      }
-      return;
-    }
-    validateDirectoryEmpty(path);
-  }
+	/**
+	 * Obtain a transaction with the requested parent and flags.
+	 *
+	 * @param parent parent transaction (may be null if no parent)
+	 * @param flags  applicable flags (eg for a reusable, read-only transaction)
+	 * @return a transaction (never null)
+	 */
+	public Txn<T> txn(final Txn<T> parent, final TxnFlags... flags) {
+		if (closed) {
+			throw new AlreadyClosedException();
+		}
+		return new Txn<>(this, parent, proxy, flags);
+	}
 
-  /**
-   * Object has already been closed and the operation is therefore prohibited.
-   */
-  public static final class AlreadyClosedException extends LmdbException {
+	/**
+	 * Obtain a read-only transaction.
+	 *
+	 * @return a read-only transaction
+	 */
+	public Txn<T> txnRead() {
+		return txn(null, MDB_RDONLY_TXN);
+	}
 
-    private static final long serialVersionUID = 1L;
+	/**
+	 * Obtain a read-write transaction.
+	 *
+	 * @return a read-write transaction
+	 */
+	public Txn<T> txnWrite() {
+		return txn(null);
+	}
 
-    /**
-     * Creates a new instance.
-     */
-    public AlreadyClosedException() {
-      super("Environment has already been closed");
-    }
-  }
+	Pointer pointer() {
+		return ptr;
+	}
 
-  /**
-   * Object has already been opened and the operation is therefore prohibited.
-   */
-  public static final class AlreadyOpenException extends LmdbException {
+	private void validateDirectoryEmpty(final File path) {
+		if (!path.exists()) {
+			throw new InvalidCopyDestination("Path does not exist");
+		}
+		if (!path.isDirectory()) {
+			throw new InvalidCopyDestination("Path must be a directory");
+		}
+		final String[] files = path.list();
+		if (files != null && files.length > 0) {
+			throw new InvalidCopyDestination("Path must contain no files");
+		}
+	}
 
-    private static final long serialVersionUID = 1L;
+	private void validatePath(final File path) {
+		if (noSubDir) {
+			if (path.exists()) {
+				throw new InvalidCopyDestination("Path must not exist for MDB_NOSUBDIR");
+			}
+			return;
+		}
+		validateDirectoryEmpty(path);
+	}
 
-    /**
-     * Creates a new instance.
-     */
-    public AlreadyOpenException() {
-      super("Environment has already been opened");
-    }
-  }
+	/**
+	 * Object has already been closed and the operation is therefore prohibited.
+	 */
+	public static final class AlreadyClosedException extends LmdbException {
 
-  /**
-   * Builder for configuring and opening Env.
-   *
-   * @param <T> buffer type
-   */
-  public static final class Builder<T> {
+		private static final long serialVersionUID = 1L;
 
-    static final int MAX_READERS_DEFAULT = 126;
-    private long mapSize = 1_024 * 1_024;
-    private int maxDbs = 1;
-    private int maxReaders = MAX_READERS_DEFAULT;
-    private boolean opened;
-    private final BufferProxy<T> proxy;
+		/**
+		 * Creates a new instance.
+		 */
+		public AlreadyClosedException() {
+			super("Environment has already been closed");
+		}
+	}
 
-    Builder(final BufferProxy<T> proxy) {
-      requireNonNull(proxy);
-      this.proxy = proxy;
-    }
+	/**
+	 * Object has already been opened and the operation is therefore prohibited.
+	 */
+	public static final class AlreadyOpenException extends LmdbException {
 
-    /**
-     * Opens the environment.
-     *
-     * @param path  file system destination
-     * @param mode  Unix permissions to set on created files and semaphores
-     * @param flags the flags for this new environment
-     * @return an environment ready for use
-     */
-    @SuppressWarnings("PMD.AccessorClassGeneration")
-    public Env<T> open(final File path, final int mode,
-                       final EnvFlags... flags) {
-      requireNonNull(path);
-      if (opened) {
-        throw new AlreadyOpenException();
-      }
-      opened = true;
-      final PointerByReference envPtr = new PointerByReference();
-      checkRc(LIB.mdb_env_create(envPtr));
-      final Pointer ptr = envPtr.getValue();
-      try {
-        checkRc(LIB.mdb_env_set_mapsize(ptr, mapSize));
-        checkRc(LIB.mdb_env_set_maxdbs(ptr, maxDbs));
-        checkRc(LIB.mdb_env_set_maxreaders(ptr, maxReaders));
-        final int flagsMask = mask(flags);
-        final boolean readOnly = isSet(flagsMask, MDB_RDONLY_ENV);
-        final boolean noSubDir = isSet(flagsMask, MDB_NOSUBDIR);
-        checkRc(LIB.mdb_env_open(ptr, path.getAbsolutePath(), flagsMask, mode));
-        return new Env<>(proxy, ptr, readOnly, noSubDir);
-      } catch (final LmdbNativeException e) {
-        LIB.mdb_env_close(ptr);
-        throw e;
-      }
-    }
+		private static final long serialVersionUID = 1L;
 
-    /**
-     * Opens the environment with 0664 mode.
-     *
-     * @param path  file system destination
-     * @param flags the flags for this new environment
-     * @return an environment ready for use
-     */
-    @SuppressWarnings("PMD.AvoidUsingOctalValues")
-    public Env<T> open(final File path, final EnvFlags... flags) {
-      return open(path, 0664, flags);
-    }
+		/**
+		 * Creates a new instance.
+		 */
+		public AlreadyOpenException() {
+			super("Environment has already been opened");
+		}
+	}
 
-    /**
-     * Sets the map size.
-     *
-     * @param mapSize new limit in bytes
-     * @return the builder
-     */
-    public Builder<T> setMapSize(final long mapSize) {
-      if (opened) {
-        throw new AlreadyOpenException();
-      }
-      if (mapSize < 0) {
-        throw new IllegalArgumentException("Negative value; overflow?");
-      }
-      this.mapSize = mapSize;
-      return this;
-    }
+	/**
+	 * Builder for configuring and opening Env.
+	 *
+	 * @param <T> buffer type
+	 */
+	public static final class Builder<T> {
 
-    /**
-     * Sets the maximum number of databases (ie {@link Dbi}s permitted.
-     *
-     * @param dbs new limit
-     * @return the builder
-     */
-    public Builder<T> setMaxDbs(final int dbs) {
-      if (opened) {
-        throw new AlreadyOpenException();
-      }
-      this.maxDbs = dbs;
-      return this;
-    }
+		static final int MAX_READERS_DEFAULT = 126;
+		private long mapSize = 1_024 * 1_024;
+		private int maxDbs = 1;
+		private int maxReaders = MAX_READERS_DEFAULT;
+		private boolean opened;
+		private final BufferProxy<T> proxy;
 
-    /**
-     * Sets the maximum number of databases permitted.
-     *
-     * @param readers new limit
-     * @return the builder
-     */
-    public Builder<T> setMaxReaders(final int readers) {
-      if (opened) {
-        throw new AlreadyOpenException();
-      }
-      this.maxReaders = readers;
-      return this;
-    }
-  }
+		Builder(final BufferProxy<T> proxy) {
+			requireNonNull(proxy);
+			this.proxy = proxy;
+		}
 
-  /**
-   * File is not a valid LMDB file.
-   */
-  public static final class FileInvalidException extends LmdbNativeException {
+		/**
+		 * Opens the environment.
+		 *
+		 * @param path  file system destination
+		 * @param mode  Unix permissions to set on created files and semaphores
+		 * @param flags the flags for this new environment
+		 * @return an environment ready for use
+		 */
+		@SuppressWarnings("PMD.AccessorClassGeneration")
+		public Env<T> open(final File path, final int mode, final EnvFlags... flags) {
+			requireNonNull(path);
+			if (opened) {
+				throw new AlreadyOpenException();
+			}
+			opened = true;
+			final PointerByReference envPtr = new PointerByReference();
+			checkRc(LIB.mdb_env_create(envPtr));
+			final Pointer ptr = envPtr.getValue();
+			try {
+				checkRc(LIB.mdb_env_set_mapsize(ptr, mapSize));
+				checkRc(LIB.mdb_env_set_maxdbs(ptr, maxDbs));
+				checkRc(LIB.mdb_env_set_maxreaders(ptr, maxReaders));
+				final int flagsMask = mask(flags);
+				final boolean readOnly = isSet(flagsMask, MDB_RDONLY_ENV);
+				final boolean noSubDir = isSet(flagsMask, MDB_NOSUBDIR);
+				checkRc(LIB.mdb_env_open(ptr, path.getAbsolutePath(), flagsMask, mode));
+				return new Env<>(proxy, ptr, readOnly, noSubDir);
+			} catch (final LmdbNativeException e) {
+				LIB.mdb_env_close(ptr);
+				throw e;
+			}
+		}
 
-    static final int MDB_INVALID = -30_793;
-    private static final long serialVersionUID = 1L;
+		/**
+		 * Opens the environment with 0664 mode.
+		 *
+		 * @param path  file system destination
+		 * @param flags the flags for this new environment
+		 * @return an environment ready for use
+		 */
+		@SuppressWarnings("PMD.AvoidUsingOctalValues")
+		public Env<T> open(final File path, final EnvFlags... flags) {
+			return open(path, 0664, flags);
+		}
 
-    FileInvalidException() {
-      super(MDB_INVALID, "File is not a valid LMDB file");
-    }
-  }
+		/**
+		 * Sets the map size.
+		 *
+		 * @param mapSize new limit in bytes
+		 * @return the builder
+		 */
+		public Builder<T> setMapSize(final long mapSize) {
+			if (opened) {
+				throw new AlreadyOpenException();
+			}
+			if (mapSize < 0) {
+				throw new IllegalArgumentException("Negative value; overflow?");
+			}
+			this.mapSize = mapSize;
+			return this;
+		}
 
-  /**
-   * The specified copy destination is invalid.
-   */
-  public static final class InvalidCopyDestination extends LmdbException {
+		/**
+		 * Sets the maximum number of databases (ie {@link Dbi}s permitted.
+		 *
+		 * @param dbs new limit
+		 * @return the builder
+		 */
+		public Builder<T> setMaxDbs(final int dbs) {
+			if (opened) {
+				throw new AlreadyOpenException();
+			}
+			this.maxDbs = dbs;
+			return this;
+		}
 
-    private static final long serialVersionUID = 1L;
+		/**
+		 * Sets the maximum number of databases permitted.
+		 *
+		 * @param readers new limit
+		 * @return the builder
+		 */
+		public Builder<T> setMaxReaders(final int readers) {
+			if (opened) {
+				throw new AlreadyOpenException();
+			}
+			this.maxReaders = readers;
+			return this;
+		}
+	}
 
-    /**
-     * Creates a new instance.
-     *
-     * @param message the reason
-     */
-    public InvalidCopyDestination(final String message) {
-      super(message);
-    }
-  }
+	/**
+	 * File is not a valid LMDB file.
+	 */
+	public static final class FileInvalidException extends LmdbNativeException {
 
-  /**
-   * Environment mapsize reached.
-   */
-  public static final class MapFullException extends LmdbNativeException {
+		static final int MDB_INVALID = -30_793;
+		private static final long serialVersionUID = 1L;
 
-    static final int MDB_MAP_FULL = -30_792;
-    private static final long serialVersionUID = 1L;
+		FileInvalidException() {
+			super(MDB_INVALID, "File is not a valid LMDB file");
+		}
+	}
 
-    MapFullException() {
-      super(MDB_MAP_FULL, "Environment mapsize reached");
-    }
-  }
+	/**
+	 * The specified copy destination is invalid.
+	 */
+	public static final class InvalidCopyDestination extends LmdbException {
 
-  /**
-   * Environment maxreaders reached.
-   */
-  public static final class ReadersFullException extends LmdbNativeException {
+		private static final long serialVersionUID = 1L;
 
-    static final int MDB_READERS_FULL = -30_790;
-    private static final long serialVersionUID = 1L;
+		/**
+		 * Creates a new instance.
+		 *
+		 * @param message the reason
+		 */
+		public InvalidCopyDestination(final String message) {
+			super(message);
+		}
+	}
 
-    ReadersFullException() {
-      super(MDB_READERS_FULL, "Environment maxreaders reached");
-    }
-  }
+	/**
+	 * Environment mapsize reached.
+	 */
+	public static final class MapFullException extends LmdbNativeException {
 
-  /**
-   * Environment version mismatch.
-   */
-  public static final class VersionMismatchException extends LmdbNativeException {
+		static final int MDB_MAP_FULL = -30_792;
+		private static final long serialVersionUID = 1L;
 
-    static final int MDB_VERSION_MISMATCH = -30_794;
-    private static final long serialVersionUID = 1L;
+		MapFullException() {
+			super(MDB_MAP_FULL, "Environment mapsize reached");
+		}
+	}
 
-    VersionMismatchException() {
-      super(MDB_VERSION_MISMATCH, "Environment version mismatch");
-    }
-  }
+	/**
+	 * Environment maxreaders reached.
+	 */
+	public static final class ReadersFullException extends LmdbNativeException {
+
+		static final int MDB_READERS_FULL = -30_790;
+		private static final long serialVersionUID = 1L;
+
+		ReadersFullException() {
+			super(MDB_READERS_FULL, "Environment maxreaders reached");
+		}
+	}
+
+	/**
+	 * Environment version mismatch.
+	 */
+	public static final class VersionMismatchException extends LmdbNativeException {
+
+		static final int MDB_VERSION_MISMATCH = -30_794;
+		private static final long serialVersionUID = 1L;
+
+		VersionMismatchException() {
+			super(MDB_VERSION_MISMATCH, "Environment version mismatch");
+		}
+	}
 
 }
