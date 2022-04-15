@@ -52,8 +52,14 @@
     </dependency>
     <dependency>
       <groupId>io.netty</groupId>
-      <artifactId>netty-all</artifactId>
-      <version>4.1.66.Final</version>
+      <artifactId>netty-buffer</artifactId>
+      <version>4.1.76.Final</version>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>io.netty</groupId>
+      <artifactId>netty-buffer</artifactId>
+      <version>4.1.76.Final</version>
       <optional>true</optional>
     </dependency>
     <dependency>
