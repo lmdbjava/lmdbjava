@@ -13,29 +13,20 @@ jobs:
 
     steps:
     - name: Check out Git repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Set up Java and Maven
-      uses: actions/setup-java@v1
+      uses: actions/setup-java@v3
       with:
+        distribution: zulu
         java-version: 11
-
-    - name: Add OSSRH to the snapshot repositories list
-      uses: s4u/maven-settings-action@v2.1.0
-      with:
-        sonatypeSnapshots: true
-
-    - name: Cache Maven packages
-      uses: actions/cache@v1
-      with:
-        path: ~/.m2
-        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        cache: maven
 
     - name: Build with Maven
       run: mvn -B verify
 
     - name: Upload code coverage to Codecov
-      uses: codecov/codecov-action@v1
+      uses: codecov/codecov-action@v3
 
   compatibility-checks:
     name: Java ${{ matrix.java }} on ${{ matrix.os }} Compatibility
@@ -48,29 +39,20 @@ jobs:
 
     steps:
       - name: Check out Git repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Set up Java and Maven
-        uses: actions/setup-java@v1
+        uses: actions/setup-java@v3
         with:
+          distribution: zulu
           java-version: ${{ matrix.java }}
-
-      - name: Add OSSRH to the snapshot repositories list
-        uses: s4u/maven-settings-action@v2.1.0
-        with:
-          sonatypeSnapshots: true
-
-      - name: Cache Maven packages
-        uses: actions/cache@v1
-        with:
-          path: ~/.m2
-          key: ${{ runner.os }}-${{ matrix.java }}-m2-${{ hashFiles('**/pom.xml') }}
+          cache: maven
 
       - name: Test with Maven
         run: mvn -B test
 
       - name: Upload Surefire reports on test failure
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v3
         if: failure()
         with:
           name: surefire-test-log
@@ -84,30 +66,31 @@ jobs:
 
     steps:
     - name: Check out Git repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Set up Java and Maven
-      uses: actions/setup-java@v1
+      uses: actions/setup-java@v3
       with:
+        distribution: zulu
         # Java version 8 required due to https://github.com/lmdbjava/lmdbjava/issues/116
         java-version: 8
-
-    - name: Add OSSRH to the snapshot repositories list
-      uses: s4u/maven-settings-action@v2.1.0
-      with:
-        sonatypeSnapshots: true
-
-    - name: Cache Maven packages
-      uses: actions/cache@v1
-      with:
-        path: ~/.m2
-        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        cache: maven
+        server-id: ossrh
+        server-username: MAVEN_USERNAME
+        server-password: MAVEN_CENTRAL_TOKEN
+        gpg-private-key: ${{ secrets.gpg_private_key }}
+        gpg-passphrase: MAVEN_GPG_PASSPHRASE
 
     - name: Publish Maven package
-      uses: samuelmeuli/action-maven-publish@v1
+      run: mvn -Possrh-deploy deploy
+      env:
+        MAVEN_GPG_PASSPHRASE: ${{ secrets.gpg_passphrase }}
+        MAVEN_USERNAME: ${{ secrets.nexus_username }}
+        MAVEN_CENTRAL_TOKEN: ${{ secrets.nexus_password }}
+
+    - name: Debug settings.xml
+      uses: actions/upload-artifact@v3
+      if: failure()
       with:
-        gpg_private_key: ${{ secrets.gpg_private_key }}
-        gpg_passphrase: ${{ secrets.gpg_passphrase }}
-        nexus_username: ${{ secrets.nexus_username }}
-        nexus_password: ${{ secrets.nexus_password }}
-        maven_profiles: ossrh-deploy
+        name: settings.xml
+        path: $HOME/.m2/settings.xml
