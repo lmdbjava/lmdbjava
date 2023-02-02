@@ -72,11 +72,11 @@ public final class Cursor<T> implements AutoCloseable {
     if (closed) {
       return;
     }
+    kv.close();
     if (SHOULD_CHECK && !txn.isReadOnly()) {
       txn.checkReady();
     }
     LIB.mdb_cursor_close(ptrCursor);
-    kv.close();
     closed = true;
   }
 
