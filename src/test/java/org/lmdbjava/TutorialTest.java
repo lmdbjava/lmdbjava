@@ -65,6 +65,10 @@ import org.lmdbjava.CursorIterable.KeyVal;
  * required system libraries. If you are using another 64-bit platform, you'll
  * need to install the LMDB system library yourself. 32-bit platforms are not
  * supported.
+ *
+ * <p>
+ * Start the JVM with arguments <code>--add-opens java.base/java.nio=ALL-UNNAMED
+ * --add-opens java.base/sun.nio.ch=ALL-UNNAMED</code> to suppress JVM warnings.
  */
 public final class TutorialTest {
 
