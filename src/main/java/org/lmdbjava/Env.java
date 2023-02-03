@@ -170,6 +170,9 @@ public final class Env<T> implements AutoCloseable {
    * If an unnamed {@link Dbi} is being used to store data, this method will
    * attempt to return all such keys from the unnamed database.
    *
+   * <p>
+   * This method must not be called from concurrent threads.
+   *
    * @return a list of DBI names (never null)
    */
   public List<byte[]> getDbiNames() {
@@ -283,6 +286,9 @@ public final class Env<T> implements AutoCloseable {
 
   /**
    * Open the {@link Dbi}.
+   *
+   * <p>
+   * This method must not be called from concurrent threads.
    *
    * @param name  name of the database (or null if no name is required)
    * @param flags to open the database with
