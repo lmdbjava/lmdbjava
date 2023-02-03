@@ -19,7 +19,7 @@ jobs:
       uses: actions/setup-java@v3
       with:
         distribution: zulu
-        java-version: 11
+        java-version: 17
         cache: maven
 
     - name: Build with Maven
@@ -35,7 +35,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        java: [8, 11, 16]
+        java: [8, 11, 17, 19]
 
     steps:
       - name: Check out Git repository
