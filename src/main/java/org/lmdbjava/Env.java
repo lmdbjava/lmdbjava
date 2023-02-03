@@ -285,10 +285,7 @@ public final class Env<T> implements AutoCloseable {
   }
 
   /**
-   * Open the {@link Dbi}.
-   *
-   * <p>
-   * This method must not be called from concurrent threads.
+   * Convenience method that opens a {@link Dbi} with a UTF-8 database name.
    *
    * @param name  name of the database (or null if no name is required)
    * @param flags to open the database with
@@ -314,6 +311,10 @@ public final class Env<T> implements AutoCloseable {
    * specified, LMDB's native default lexicographical order is used. The default
    * comparator is typically more efficient (as there is no need for the native
    * library to call back into Java for the comparator result).
+   *
+   * <p>
+   * This method (and its overloaded convenience variants) must not be called
+   * from concurrent threads.
    *
    * @param name       name of the database (or null if no name is required)
    * @param comparator custom comparator callback (or null to use LMDB default)
