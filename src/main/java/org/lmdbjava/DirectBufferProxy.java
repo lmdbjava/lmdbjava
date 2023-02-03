@@ -27,11 +27,11 @@ import static java.util.Objects.requireNonNull;
 import static org.lmdbjava.UnsafeAccess.UNSAFE;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayDeque;
 
 import jnr.ffi.Pointer;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.OneToOneConcurrentArrayQueue;
 import org.agrona.concurrent.UnsafeBuffer;
 
 /**
@@ -55,8 +55,8 @@ public final class DirectBufferProxy extends BufferProxy<DirectBuffer> {
    * of a negative length) then that buffer is used. If no valid buffer is
    * found, a new buffer is created.
    */
-  private static final ThreadLocal<OneToOneConcurrentArrayQueue<DirectBuffer>> BUFFERS
-      = withInitial(() -> new OneToOneConcurrentArrayQueue<>(16));
+  private static final ThreadLocal<ArrayDeque<DirectBuffer>> BUFFERS
+      = withInitial(() -> new ArrayDeque<>(16));
 
   private DirectBufferProxy() {
   }
@@ -100,7 +100,7 @@ public final class DirectBufferProxy extends BufferProxy<DirectBuffer> {
 
   @Override
   protected DirectBuffer allocate() {
-    final OneToOneConcurrentArrayQueue<DirectBuffer> q = BUFFERS.get();
+    final ArrayDeque<DirectBuffer> q = BUFFERS.get();
     final DirectBuffer buffer = q.poll();
 
     if (buffer != null && buffer.capacity() >= 0) {
@@ -118,7 +118,7 @@ public final class DirectBufferProxy extends BufferProxy<DirectBuffer> {
 
   @Override
   protected void deallocate(final DirectBuffer buff) {
-    final OneToOneConcurrentArrayQueue<DirectBuffer> q = BUFFERS.get();
+    final ArrayDeque<DirectBuffer> q = BUFFERS.get();
     q.offer(buff);
   }
 
