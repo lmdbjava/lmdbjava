@@ -265,13 +265,11 @@ public final class Env<T> implements AutoCloseable {
    * @return a database that is ready to use
    */
   public Dbi<T> openDbi(final String name, final DbiFlags... flags) {
-    final byte[] nameBytes = name == null ? null : name.getBytes(UTF_8);
-    return openDbi(nameBytes, flags);
+    return openDbi(name, null, flags);
   }
 
   /**
-   * Convenience method that opens a {@link Dbi} with a UTF-8 database name
-   * and custom comparator.
+   * Convenience method that opens a {@link Dbi} with a UTF-8 database name.
    *
    * @param name       name of the database (or null if no name is required)
    * @param comparator custom comparator callback (or null to use LMDB default)
@@ -285,22 +283,44 @@ public final class Env<T> implements AutoCloseable {
   }
 
   /**
-   * Convenience method that opens a {@link Dbi} with a UTF-8 database name.
+   * Convenience method that opens a {@link Dbi}.
    *
    * @param name  name of the database (or null if no name is required)
    * @param flags to open the database with
    * @return a database that is ready to use
    */
   public Dbi<T> openDbi(final byte[] name, final DbiFlags... flags) {
+    return openDbi(name, null, flags);
+  }
+
+  /**
+   * Convenience method that opens a {@link Dbi} inside a private transaction.
+   *
+   * <p>
+   * This method will automatically commit the private transaction before
+   * returning. This ensures the <code>Dbi</code> is available in the
+   * <code>Env</code>.
+   *
+   * @param name       name of the database (or null if no name is required)
+   * @param comparator custom comparator callback (or null to use LMDB default)
+   * @param flags      to open the database with
+   * @return a database that is ready to use
+   */
+  public Dbi<T> openDbi(final byte[] name, final Comparator<T> comparator,
+                        final DbiFlags... flags) {
     try (Txn<T> txn = readOnly ? txnRead() : txnWrite()) {
-      final Dbi<T> dbi = new Dbi<>(this, txn, name, null, flags);
+      final Dbi<T> dbi = openDbi(txn, name, comparator, flags);
       txn.commit(); // even RO Txns require a commit to retain Dbi in Env
       return dbi;
     }
   }
 
   /**
-   * Open the {@link Dbi}.
+   * Open the {@link Dbi} using the passed {@link Txn}.
+   *
+   * <p>
+   * The caller must commit the transaction after this method returns in order
+   * to retain the <code>Dbi</code> in the <code>Env</code>.
    *
    * <p>
    * If a custom comparator is specified, this comparator is called from LMDB
@@ -316,18 +336,20 @@ public final class Env<T> implements AutoCloseable {
    * This method (and its overloaded convenience variants) must not be called
    * from concurrent threads.
    *
+   * @param txn        transaction to use (required; not closed)
    * @param name       name of the database (or null if no name is required)
    * @param comparator custom comparator callback (or null to use LMDB default)
    * @param flags      to open the database with
    * @return a database that is ready to use
    */
-  public Dbi<T> openDbi(final byte[] name, final Comparator<T> comparator,
+  public Dbi<T> openDbi(final Txn<T> txn, final byte[] name,
+                        final Comparator<T> comparator,
                         final DbiFlags... flags) {
-    try (Txn<T> txn = readOnly ? txnRead() : txnWrite()) {
-      final Dbi<T> dbi = new Dbi<>(this, txn, name, comparator, flags);
-      txn.commit(); // even RO Txns require a commit to retain Dbi in Env
-      return dbi;
+    if (SHOULD_CHECK) {
+      requireNonNull(txn);
+      txn.checkReady();
     }
+    return new Dbi<>(this, txn, name, comparator, flags);
   }
 
   /**
