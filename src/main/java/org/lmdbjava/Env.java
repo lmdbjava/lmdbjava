@@ -423,6 +423,12 @@ public final class Env<T> implements AutoCloseable {
     return ptr;
   }
 
+  void checkNotClosed() {
+    if (closed) {
+      throw new AlreadyClosedException();
+    }
+  }
+
   private void validateDirectoryEmpty(final File path) {
     if (!path.exists()) {
       throw new InvalidCopyDestination("Path does not exist");

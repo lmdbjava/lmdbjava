@@ -51,13 +51,15 @@ public final class Cursor<T> implements AutoCloseable {
   private final KeyVal<T> kv;
   private final Pointer ptrCursor;
   private Txn<T> txn;
+  private final Env<T> env;
 
-  Cursor(final Pointer ptr, final Txn<T> txn) {
+  Cursor(final Pointer ptr, final Txn<T> txn, final Env<T> env) {
     requireNonNull(ptr);
     requireNonNull(txn);
     this.ptrCursor = ptr;
     this.txn = txn;
     this.kv = txn.newKeyVal();
+    this.env = env;
   }
 
   /**
@@ -73,8 +75,11 @@ public final class Cursor<T> implements AutoCloseable {
       return;
     }
     kv.close();
-    if (SHOULD_CHECK && !txn.isReadOnly()) {
-      txn.checkReady();
+    if (SHOULD_CHECK) {
+      env.checkNotClosed();
+      if (!txn.isReadOnly()) {
+        txn.checkReady();
+      }
     }
     LIB.mdb_cursor_close(ptrCursor);
     closed = true;
@@ -91,6 +96,7 @@ public final class Cursor<T> implements AutoCloseable {
    */
   public long count() {
     if (SHOULD_CHECK) {
+      env.checkNotClosed();
       checkNotClosed();
       txn.checkReady();
     }
@@ -109,6 +115,7 @@ public final class Cursor<T> implements AutoCloseable {
    */
   public void delete(final PutFlags... f) {
     if (SHOULD_CHECK) {
+      env.checkNotClosed();
       checkNotClosed();
       txn.checkReady();
       txn.checkWritesAllowed();
@@ -138,6 +145,7 @@ public final class Cursor<T> implements AutoCloseable {
     if (SHOULD_CHECK) {
       requireNonNull(key);
       requireNonNull(op);
+      env.checkNotClosed();
       checkNotClosed();
       txn.checkReady();
     }
@@ -168,6 +176,7 @@ public final class Cursor<T> implements AutoCloseable {
     if (SHOULD_CHECK) {
       requireNonNull(key);
       requireNonNull(op);
+      env.checkNotClosed();
       checkNotClosed();
       txn.checkReady();
     }
@@ -238,6 +247,7 @@ public final class Cursor<T> implements AutoCloseable {
     if (SHOULD_CHECK) {
       requireNonNull(key);
       requireNonNull(val);
+      env.checkNotClosed();
       checkNotClosed();
       txn.checkReady();
       txn.checkWritesAllowed();
@@ -281,6 +291,7 @@ public final class Cursor<T> implements AutoCloseable {
       requireNonNull(txn);
       requireNonNull(key);
       requireNonNull(val);
+      env.checkNotClosed();
       txn.checkReady();
       txn.checkWritesAllowed();
     }
@@ -311,6 +322,7 @@ public final class Cursor<T> implements AutoCloseable {
   public void renew(final Txn<T> newTxn) {
     if (SHOULD_CHECK) {
       requireNonNull(newTxn);
+      env.checkNotClosed();
       checkNotClosed();
       this.txn.checkReadOnly(); // existing
       newTxn.checkReadOnly();
@@ -339,6 +351,7 @@ public final class Cursor<T> implements AutoCloseable {
   public T reserve(final T key, final int size, final PutFlags... op) {
     if (SHOULD_CHECK) {
       requireNonNull(key);
+      env.checkNotClosed();
       checkNotClosed();
       txn.checkReady();
       txn.checkWritesAllowed();
@@ -361,6 +374,7 @@ public final class Cursor<T> implements AutoCloseable {
   public boolean seek(final SeekOp op) {
     if (SHOULD_CHECK) {
       requireNonNull(op);
+      env.checkNotClosed();
       checkNotClosed();
       txn.checkReady();
     }

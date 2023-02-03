@@ -67,6 +67,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiConsumer;
 
 import org.agrona.concurrent.UnsafeBuffer;
 import org.hamcrest.Matchers;
@@ -77,6 +78,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.lmdbjava.CursorIterable.KeyVal;
 import org.lmdbjava.Dbi.DbFullException;
+import org.lmdbjava.Env.AlreadyClosedException;
 import org.lmdbjava.Env.MapFullException;
 import org.lmdbjava.LmdbNativeException.ConstantDerivedException;
 
@@ -490,6 +492,107 @@ public final class DbiTest {
             db.put(bb(i), bb(i));
           }
         });
+  }
+
+  @Test(expected = AlreadyClosedException.class)
+  public void closedEnvRejectsOpenCall() {
+    env.close();
+    env.openDbi(DB_1, MDB_CREATE);
+  }
+
+  @Test(expected = AlreadyClosedException.class)
+  public void closedEnvRejectsCloseCall() {
+    doEnvClosedTest(
+        null,
+        (db, txn) -> db.close());
+  }
+
+  @Test(expected = AlreadyClosedException.class)
+  public void closedEnvRejectsGetCall() {
+    doEnvClosedTest(
+        (db, txn) -> {
+        final ByteBuffer valBuf = db.get(txn, bb(1));
+        assertThat(valBuf.getInt(), is(10));
+      },
+        (db, txn) -> db.get(txn, bb(2)));
+  }
+
+  @Test(expected = AlreadyClosedException.class)
+  public void closedEnvRejectsPutCall() {
+    doEnvClosedTest(
+        null,
+        (db, txn) -> db.put(bb(5), bb(50)));
+  }
+
+  @Test(expected = AlreadyClosedException.class)
+  public void closedEnvRejectsPutWithTxnCall() {
+    doEnvClosedTest(
+        null,
+        (db, txn) -> {
+        db.put(txn, bb(5), bb(50));
+      });
+  }
+
+  @Test(expected = AlreadyClosedException.class)
+  public void closedEnvRejectsIterateCall() {
+    doEnvClosedTest(null, Dbi::iterate);
+  }
+
+  @Test(expected = AlreadyClosedException.class)
+  public void closedEnvRejectsDropCall() {
+    doEnvClosedTest(
+        null,
+        Dbi::drop);
+  }
+
+  @Test(expected = AlreadyClosedException.class)
+  public void closedEnvRejectsDropAndDeleteCall() {
+    doEnvClosedTest(
+        null,
+        (db, txn) -> db.drop(txn, true));
+  }
+
+  @Test(expected = AlreadyClosedException.class)
+  public void closedEnvRejectsOpenCursorCall() {
+    doEnvClosedTest(
+        null,
+        Dbi::openCursor);
+  }
+
+  @Test(expected = AlreadyClosedException.class)
+  public void closedEnvRejectsReserveCall() {
+    doEnvClosedTest(
+        null,
+        (db, txn) -> db.reserve(txn, bb(1), 32, MDB_NOOVERWRITE));
+  }
+
+  @Test(expected = AlreadyClosedException.class)
+  public void closedEnvRejectsStatCall() {
+    doEnvClosedTest(null, Dbi::stat);
+  }
+
+  private void doEnvClosedTest(
+      final BiConsumer<Dbi<ByteBuffer>, Txn<ByteBuffer>> workBeforeEnvClosed,
+      final BiConsumer<Dbi<ByteBuffer>, Txn<ByteBuffer>> workAfterEnvClose) {
+    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
+
+    db.put(bb(1), bb(10));
+    db.put(bb(2), bb(20));
+    db.put(bb(2), bb(30));
+    db.put(bb(4), bb(40));
+
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
+
+      if (workBeforeEnvClosed != null) {
+        workBeforeEnvClosed.accept(db, txn);
+      }
+
+      env.close();
+
+      if (workAfterEnvClose != null) {
+        workAfterEnvClose.accept(db, txn);
+      }
+    }
   }
 
 }

@@ -40,6 +40,8 @@ import static org.lmdbjava.PutFlags.MDB_NODUPDATA;
 import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
 import static org.lmdbjava.SeekOp.MDB_FIRST;
 import static org.lmdbjava.SeekOp.MDB_GET_BOTH;
+import static org.lmdbjava.SeekOp.MDB_LAST;
+import static org.lmdbjava.SeekOp.MDB_NEXT;
 import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.POSIX_MODE;
 import static org.lmdbjava.TestUtils.bb;
@@ -47,6 +49,7 @@ import static org.lmdbjava.TestUtils.bb;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.function.Consumer;
 
 import org.junit.After;
 import org.junit.Before;
@@ -94,6 +97,59 @@ public final class CursorTest {
       c.close();
       c.seek(MDB_FIRST);
     }
+  }
+
+  @Test(expected = Env.AlreadyClosedException.class)
+  public void closedEnvRejectsSeekFirstCall() {
+    doEnvClosedTest(null, c -> c.seek(MDB_FIRST));
+  }
+
+  @Test(expected = Env.AlreadyClosedException.class)
+  public void closedEnvRejectsSeekLastCall() {
+    doEnvClosedTest(null, c -> c.seek(MDB_LAST));
+  }
+
+  @Test(expected = Env.AlreadyClosedException.class)
+  public void closedEnvRejectsSeekNextCall() {
+    doEnvClosedTest(null, c -> c.seek(MDB_NEXT));
+  }
+
+  @Test(expected = Env.AlreadyClosedException.class)
+  public void closedEnvRejectsCloseCall() {
+    doEnvClosedTest(null, Cursor::close);
+  }
+
+  @Test(expected = Env.AlreadyClosedException.class)
+  public void closedEnvRejectsFirstCall() {
+    doEnvClosedTest(null, Cursor::first);
+  }
+
+  @Test(expected = Env.AlreadyClosedException.class)
+  public void closedEnvRejectsLastCall() {
+    doEnvClosedTest(null, Cursor::last);
+  }
+
+  @Test(expected = Env.AlreadyClosedException.class)
+  public void closedEnvRejectsPrevCall() {
+    doEnvClosedTest(
+            c -> {
+              c.first();
+              assertThat(c.key().getInt(), is(1));
+              assertThat(c.val().getInt(), is(10));
+              c.next();
+            },
+            Cursor::prev);
+  }
+
+  @Test(expected = Env.AlreadyClosedException.class)
+  public void closedEnvRejectsDeleteCall() {
+    doEnvClosedTest(
+            c -> {
+              c.first();
+              assertThat(c.key().getInt(), is(1));
+              assertThat(c.val().getInt(), is(10));
+            },
+            Cursor::delete);
   }
 
   @Test
@@ -335,6 +391,31 @@ public final class CursorTest {
 
         assertThat(key2.getInt(0), is(3));
         assertThat(val2.getInt(0), is(4));
+      }
+    }
+  }
+
+  private void doEnvClosedTest(final Consumer<Cursor<ByteBuffer>> workBeforeEnvClosed,
+                               final Consumer<Cursor<ByteBuffer>> workAfterEnvClose) {
+    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
+
+    db.put(bb(1), bb(10));
+    db.put(bb(2), bb(20));
+    db.put(bb(2), bb(30));
+    db.put(bb(4), bb(40));
+
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
+      try (Cursor<ByteBuffer> c = db.openCursor(txn)) {
+
+        if (workBeforeEnvClosed != null) {
+          workBeforeEnvClosed.accept(c);
+        }
+
+        env.close();
+
+        if (workAfterEnvClose != null) {
+          workAfterEnvClose.accept(c);
+        }
       }
     }
   }
