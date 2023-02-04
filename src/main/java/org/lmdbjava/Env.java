@@ -258,48 +258,65 @@ public final class Env<T> implements AutoCloseable {
   }
 
   /**
-   * Convenience method that opens a {@link Dbi} with a UTF-8 database name.
+   * Convenience method that opens a {@link Dbi} with a UTF-8 database name and
+   * default {@link Comparator} that is not invoked from native code.
    *
    * @param name  name of the database (or null if no name is required)
    * @param flags to open the database with
    * @return a database that is ready to use
    */
   public Dbi<T> openDbi(final String name, final DbiFlags... flags) {
-    return openDbi(name, null, flags);
+    final byte[] nameBytes = name == null ? null : name.getBytes(UTF_8);
+    return openDbi(nameBytes, null, false, flags);
   }
 
   /**
-   * Convenience method that opens a {@link Dbi} with a UTF-8 database name.
+   * Convenience method that opens a {@link Dbi} with a UTF-8 database name and
+   * associated {@link Comparator} that is not invoked from native code.
    *
    * @param name       name of the database (or null if no name is required)
-   * @param comparator custom comparator callback (or null to use LMDB default)
+   * @param comparator custom comparator callback (or null to use default)
    * @param flags      to open the database with
    * @return a database that is ready to use
    */
   public Dbi<T> openDbi(final String name, final Comparator<T> comparator,
                         final DbiFlags... flags) {
     final byte[] nameBytes = name == null ? null : name.getBytes(UTF_8);
-    return openDbi(nameBytes, comparator, flags);
+    return openDbi(nameBytes, comparator, false, flags);
   }
 
   /**
-   * Convenience method that opens a {@link Dbi}.
+   * Convenience method that opens a {@link Dbi} with a UTF-8 database name and
+   * associated {@link Comparator} that may be invoked from native code if
+   * specified.
+   *
+   * @param name       name of the database (or null if no name is required)
+   * @param comparator custom comparator callback (or null to use default)
+   * @param nativeCb   whether native code calls back to the Java comparator
+   * @param flags      to open the database with
+   * @return a database that is ready to use
+   */
+  public Dbi<T> openDbi(final String name, final Comparator<T> comparator,
+                        final boolean nativeCb, final DbiFlags... flags) {
+    final byte[] nameBytes = name == null ? null : name.getBytes(UTF_8);
+    return openDbi(nameBytes, comparator, nativeCb, flags);
+  }
+
+  /**
+   * Convenience method that opens a {@link Dbi} with a default
+   * {@link Comparator} that is not invoked from native code.
    *
    * @param name  name of the database (or null if no name is required)
    * @param flags to open the database with
    * @return a database that is ready to use
    */
   public Dbi<T> openDbi(final byte[] name, final DbiFlags... flags) {
-    return openDbi(name, null, flags);
+    return openDbi(name, null, false, flags);
   }
 
   /**
-   * Convenience method that opens a {@link Dbi} inside a private transaction.
-   *
-   * <p>
-   * This method will automatically commit the private transaction before
-   * returning. This ensures the <code>Dbi</code> is available in the
-   * <code>Env</code>.
+   * Convenience method that opens a {@link Dbi} with an associated
+   * {@link Comparator} that is not invoked from native code.
    *
    * @param name       name of the database (or null if no name is required)
    * @param comparator custom comparator callback (or null to use LMDB default)
@@ -308,8 +325,28 @@ public final class Env<T> implements AutoCloseable {
    */
   public Dbi<T> openDbi(final byte[] name, final Comparator<T> comparator,
                         final DbiFlags... flags) {
+    return openDbi(name, comparator, false, flags);
+  }
+
+  /**
+   * Convenience method that opens a {@link Dbi} with an associated
+   * {@link Comparator} that may be invoked from native code if specified.
+   *
+   * <p>
+   * This method will automatically commit the private transaction before
+   * returning. This ensures the <code>Dbi</code> is available in the
+   * <code>Env</code>.
+   *
+   * @param name       name of the database (or null if no name is required)
+   * @param comparator custom comparator callback (or null to use LMDB default)
+   * @param nativeCb   whether native code calls back to the Java comparator
+   * @param flags      to open the database with
+   * @return a database that is ready to use
+   */
+  public Dbi<T> openDbi(final byte[] name, final Comparator<T> comparator,
+                        final boolean nativeCb, final DbiFlags... flags) {
     try (Txn<T> txn = readOnly ? txnRead() : txnWrite()) {
-      final Dbi<T> dbi = openDbi(txn, name, comparator, flags);
+      final Dbi<T> dbi = openDbi(txn, name, comparator, nativeCb, flags);
       txn.commit(); // even RO Txns require a commit to retain Dbi in Env
       return dbi;
     }
@@ -323,14 +360,18 @@ public final class Env<T> implements AutoCloseable {
    * to retain the <code>Dbi</code> in the <code>Env</code>.
    *
    * <p>
-   * If a custom comparator is specified, this comparator is called from LMDB
-   * any time it needs to compare two keys. The comparator must be used any time
-   * any time this database is opened, otherwise database corruption may occur.
-   * The custom comparator will also be used whenever a {@link CursorIterable}
-   * is created from the returned {@link Dbi}. If a custom comparator is not
-   * specified, LMDB's native default lexicographical order is used. The default
-   * comparator is typically more efficient (as there is no need for the native
-   * library to call back into Java for the comparator result).
+   * A {@link Comparator} may be provided when calling this method. Such
+   * comparator is primarily used by {@link CursorIterable} instances. A
+   * secondary (but uncommon) use of the comparator is to act as a callback from
+   * the native library if <code>nativeCb</code> is <code>true</code>. This is
+   * usually avoided due to the overhead of native code calling back into Java.
+   * It is instead highly recommended to set the correct {@link DbiFlag}s to
+   * allow the native library to correctly order the intended keys.
+   *
+   * <p>
+   * A default comparator will be provided if <code>null</code> is passed as the
+   * comparator. If a custom comparator is provided, it must strictly match the
+   * lexicographical order of keys in the native LMDB database.
    *
    * <p>
    * This method (and its overloaded convenience variants) must not be called
@@ -339,17 +380,24 @@ public final class Env<T> implements AutoCloseable {
    * @param txn        transaction to use (required; not closed)
    * @param name       name of the database (or null if no name is required)
    * @param comparator custom comparator callback (or null to use LMDB default)
+   * @param nativeCb   whether native code should call back to the comparator
    * @param flags      to open the database with
    * @return a database that is ready to use
    */
   public Dbi<T> openDbi(final Txn<T> txn, final byte[] name,
-                        final Comparator<T> comparator,
+                        final Comparator<T> comparator, final boolean nativeCb,
                         final DbiFlags... flags) {
     if (SHOULD_CHECK) {
       requireNonNull(txn);
       txn.checkReady();
     }
-    return new Dbi<>(this, txn, name, comparator, flags);
+    final Comparator<T> useComparator;
+    if (comparator == null) {
+      useComparator = proxy.getComparator(flags);
+    } else {
+      useComparator = comparator;
+    }
+    return new Dbi<>(this, txn, name, useComparator, nativeCb, proxy, flags);
   }
 
   /**

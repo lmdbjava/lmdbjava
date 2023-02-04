@@ -131,10 +131,14 @@ public final class CursorIterableTest {
         .setMaxDbs(1)
         .open(path, POSIX_MODE, MDB_NOSUBDIR);
     db = env.openDbi(DB_1, MDB_CREATE);
+    populateDatabase(db);
+  }
+
+  private void populateDatabase(final Dbi<ByteBuffer> dbi) {
     list = new LinkedList<>();
     list.addAll(asList(2, 3, 4, 5, 6, 7, 8, 9));
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
-      final Cursor<ByteBuffer> c = db.openCursor(txn);
+      final Cursor<ByteBuffer> c = dbi.openCursor(txn);
       c.put(bb(2), bb(3), MDB_NOOVERWRITE);
       c.put(bb(4), bb(5));
       c.put(bb(6), bb(7));
@@ -267,8 +271,10 @@ public final class CursorIterableTest {
       bb2.reset();
       return guava.compare(array1, array2);
     };
-    verify(openClosedBackward(bb(7), bb(2)), comparator, 6, 4, 2);
-    verify(openClosedBackward(bb(8), bb(4)), comparator, 6, 4);
+    final Dbi<ByteBuffer> guavaDbi = env.openDbi(DB_1, comparator, MDB_CREATE);
+    populateDatabase(guavaDbi);
+    verify(openClosedBackward(bb(7), bb(2)), guavaDbi, 6, 4, 2);
+    verify(openClosedBackward(bb(8), bb(4)), guavaDbi, 6, 4);
   }
 
   @Test
@@ -356,17 +362,17 @@ public final class CursorIterableTest {
     }
   }
 
-  private void verify(final KeyRange<ByteBuffer> range, final int... expected) {
-    verify(range, null, expected);
+  private void verify(final KeyRange<ByteBuffer> range,
+                      final int... expected) {
+    verify(range, db, expected);
   }
 
   private void verify(final KeyRange<ByteBuffer> range,
-                      final Comparator<ByteBuffer> comparator,
-                      final int... expected) {
+                      final Dbi<ByteBuffer> dbi, final int... expected) {
     final List<Integer> results = new ArrayList<>();
 
     try (Txn<ByteBuffer> txn = env.txnRead();
-         CursorIterable<ByteBuffer> c = db.iterate(txn, range, comparator)) {
+         CursorIterable<ByteBuffer> c = dbi.iterate(txn, range)) {
       for (final KeyVal<ByteBuffer> kv : c) {
         final int key = kv.key().getInt();
         final int val = kv.val().getInt();

@@ -25,6 +25,7 @@ import static java.nio.charset.StandardCharsets.US_ASCII;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 import static org.lmdbjava.ByteArrayProxy.PROXY_BA;
+import static org.lmdbjava.ByteBufProxy.PROXY_NETTY;
 import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
 import static org.lmdbjava.ComparatorTest.ComparatorResult.EQUAL_TO;
 import static org.lmdbjava.ComparatorTest.ComparatorResult.GREATER_THAN;
@@ -146,7 +147,8 @@ public final class ComparatorTest {
 
     @Override
     public int compare(final byte[] o1, final byte[] o2) {
-      return PROXY_BA.compare(o1, o2);
+      final Comparator<byte[]> c = PROXY_BA.getComparator();
+      return c.compare(o1, o2);
     }
   }
 
@@ -157,23 +159,25 @@ public final class ComparatorTest {
 
     @Override
     public int compare(final byte[] o1, final byte[] o2) {
+      final Comparator<ByteBuffer> c = PROXY_OPTIMAL.getComparator();
+
       // Convert arrays to buffers that are larger than the array, with
       // limit set at the array length. One buffer bigger than the other.
       ByteBuffer o1b = arrayToBuffer(o1, o1.length * 3);
       ByteBuffer o2b = arrayToBuffer(o2, o2.length * 2);
-      final int result = PROXY_OPTIMAL.compare(o1b, o2b);
+      final int result = c.compare(o1b, o2b);
 
       // Now swap which buffer is bigger
       o1b = arrayToBuffer(o1, o1.length * 2);
       o2b = arrayToBuffer(o2, o2.length * 3);
-      final int result2 = PROXY_OPTIMAL.compare(o1b, o2b);
+      final int result2 = c.compare(o1b, o2b);
 
       assertThat(result2, is(result));
 
       // Now try with buffers sized to the array.
       o1b = ByteBuffer.wrap(o1);
       o2b = ByteBuffer.wrap(o2);
-      final int result3 = PROXY_OPTIMAL.compare(o1b, o2b);
+      final int result3 = c.compare(o1b, o2b);
 
       assertThat(result3, is(result));
 
@@ -201,7 +205,8 @@ public final class ComparatorTest {
     public int compare(final byte[] o1, final byte[] o2) {
       final DirectBuffer o1b = new UnsafeBuffer(o1);
       final DirectBuffer o2b = new UnsafeBuffer(o2);
-      return PROXY_DB.compare(o1b, o2b);
+      final Comparator<DirectBuffer> c = PROXY_DB.getComparator();
+      return c.compare(o1b, o2b);
     }
   }
 
@@ -240,7 +245,8 @@ public final class ComparatorTest {
       final ByteBuf o2b = DEFAULT.directBuffer(o2.length);
       o1b.writeBytes(o1);
       o2b.writeBytes(o2);
-      return ByteBufProxy.PROXY_NETTY.compare(o1b, o2b);
+      final Comparator<ByteBuf> c = PROXY_NETTY.getComparator();
+      return c.compare(o1b, o2b);
     }
   }
 

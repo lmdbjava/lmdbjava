@@ -22,6 +22,8 @@ package org.lmdbjava;
 
 import static java.lang.Long.BYTES;
 
+import java.util.Comparator;
+
 import jnr.ffi.Pointer;
 
 /**
@@ -61,17 +63,16 @@ public abstract class BufferProxy<T> {
   protected abstract T allocate();
 
   /**
-   * Compare the two buffers.
+   * Get a suitable default {@link Comparator} given the provided flags.
    *
    * <p>
-   * Implemented as a protected method to discourage use of the buffer proxy
-   * in collections etc (given by design it wraps a temporary value only).
+   * The provided comparator must strictly match the lexicographical order of
+   * keys in the native LMDB database.
    *
-   * @param o1 left operand
-   * @param o2 right operand
-   * @return as per {@link Comparable}
+   * @param flags for the database
+   * @return a comparator that can be used (never null)
    */
-  protected abstract int compare(T o1, T o2);
+  protected abstract Comparator<T> getComparator(DbiFlags... flags);
 
   /**
    * Deallocate a buffer that was previously provided by {@link #allocate()}.

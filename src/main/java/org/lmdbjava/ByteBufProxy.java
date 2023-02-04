@@ -25,6 +25,7 @@ import static java.lang.Class.forName;
 import static org.lmdbjava.UnsafeAccess.UNSAFE;
 
 import java.lang.reflect.Field;
+import java.util.Comparator;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
@@ -106,9 +107,13 @@ public final class ByteBufProxy extends BufferProxy<ByteBuf> {
     throw new IllegalStateException("Netty buffer must be " + NAME);
   }
 
-  @Override
   protected int compare(final ByteBuf o1, final ByteBuf o2) {
     return o1.compareTo(o2);
+  }
+
+  @Override
+  protected Comparator<ByteBuf> getComparator(final DbiFlags... flags) {
+    return this::compare;
   }
 
   @Override

@@ -24,6 +24,7 @@ import static java.util.Objects.requireNonNull;
 import static org.lmdbjava.Library.RUNTIME;
 
 import java.util.Arrays;
+import java.util.Comparator;
 
 import jnr.ffi.Pointer;
 import jnr.ffi.provider.MemoryManager;
@@ -78,7 +79,6 @@ public final class ByteArrayProxy extends BufferProxy<byte[]> {
     return new byte[0];
   }
 
-  @Override
   protected int compare(final byte[] o1, final byte[] o2) {
     return compareArrays(o1, o2);
   }
@@ -91,6 +91,11 @@ public final class ByteArrayProxy extends BufferProxy<byte[]> {
   @Override
   protected byte[] getBytes(final byte[] buffer) {
     return Arrays.copyOf(buffer, buffer.length);
+  }
+
+  @Override
+  protected Comparator<byte[]> getComparator(final DbiFlags... flags) {
+    return this::compare;
   }
 
   @Override

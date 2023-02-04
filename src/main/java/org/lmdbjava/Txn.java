@@ -34,8 +34,6 @@ import static org.lmdbjava.Txn.State.RELEASED;
 import static org.lmdbjava.Txn.State.RESET;
 import static org.lmdbjava.TxnFlags.MDB_RDONLY_TXN;
 
-import java.util.Comparator;
-
 import jnr.ffi.Pointer;
 
 /**
@@ -223,19 +221,6 @@ public final class Txn<T> implements AutoCloseable {
     if (readOnly) {
       throw new ReadWriteRequiredException();
     }
-  }
-
-  Comparator<T> comparator() {
-    return proxy::compare;
-  }
-
-  /**
-   * Obtain the buffer proxy.
-   *
-   * @return proxy (never null)
-   */
-  BufferProxy<T> getProxy() {
-    return proxy;
   }
 
   /**

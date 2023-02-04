@@ -26,13 +26,17 @@ import static java.nio.ByteBuffer.allocateDirect;
 import static java.nio.ByteOrder.BIG_ENDIAN;
 import static java.nio.ByteOrder.LITTLE_ENDIAN;
 import static java.util.Objects.requireNonNull;
+import static org.lmdbjava.DbiFlags.MDB_INTEGERKEY;
 import static org.lmdbjava.Env.SHOULD_CHECK;
+import static org.lmdbjava.MaskedFlag.isSet;
+import static org.lmdbjava.MaskedFlag.mask;
 import static org.lmdbjava.UnsafeAccess.UNSAFE;
 
 import java.lang.reflect.Field;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.util.ArrayDeque;
+import java.util.Comparator;
 
 import jnr.ffi.Pointer;
 
@@ -189,7 +193,21 @@ public final class ByteBufferProxy {
     }
 
     @Override
-    protected final int compare(final ByteBuffer o1, final ByteBuffer o2) {
+    protected Comparator<ByteBuffer> getComparator(final DbiFlags... flags) {
+      final int flagInt = mask(flags);
+      if (isSet(flagInt, MDB_INTEGERKEY)) {
+        return this::compareCustom;
+      }
+      return this::compareDefault;
+    }
+
+    protected final int compareDefault(final ByteBuffer o1,
+                                       final ByteBuffer o2) {
+      return o1.compareTo(o2);
+    }
+
+    protected final int compareCustom(final ByteBuffer o1,
+                                      final ByteBuffer o2) {
       return compareBuff(o1, o2);
     }
 

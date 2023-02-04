@@ -43,6 +43,7 @@ import static org.lmdbjava.ByteArrayProxy.PROXY_BA;
 import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import static org.lmdbjava.DbiFlags.MDB_DUPSORT;
+import static org.lmdbjava.DbiFlags.MDB_INTEGERKEY;
 import static org.lmdbjava.DbiFlags.MDB_REVERSEKEY;
 import static org.lmdbjava.Env.create;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
@@ -117,13 +118,13 @@ public final class DbiTest {
   @Test
   public void customComparator() {
     final Comparator<ByteBuffer> reverseOrder = (o1, o2) -> {
-      final int lexicalOrder = ByteBufferProxy.PROXY_OPTIMAL.compare(o1, o2);
-      if (lexicalOrder == 0) {
+      final int lexical = PROXY_OPTIMAL.getComparator().compare(o1, o2);
+      if (lexical == 0) {
         return 0;
       }
-      return lexicalOrder * -1;
+      return lexical * -1;
     };
-    final Dbi<ByteBuffer> db = env.openDbi(DB_1, reverseOrder, MDB_CREATE);
+    final Dbi<ByteBuffer> db = env.openDbi(DB_1, reverseOrder, true, MDB_CREATE);
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
       assertThat(db.put(txn, bb(2), bb(3)), is(true));
       assertThat(db.put(txn, bb(4), bb(6)), is(true));
@@ -150,8 +151,9 @@ public final class DbiTest {
 
   @Test
   public void dbiWithComparatorThreadSafety() {
-    final Dbi<ByteBuffer> db = env.openDbi(DB_1, PROXY_OPTIMAL::compare,
-                                           MDB_CREATE);
+    final DbiFlags[] flags = new DbiFlags[] {MDB_CREATE, MDB_INTEGERKEY};
+    final Comparator<ByteBuffer> c = PROXY_OPTIMAL.getComparator(flags);
+    final Dbi<ByteBuffer> db = env.openDbi(DB_1, c, true, flags);
 
     final List<Integer> keys = range(0, 1_000).boxed().collect(toList());
 

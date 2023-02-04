@@ -28,6 +28,7 @@ import static org.lmdbjava.UnsafeAccess.UNSAFE;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayDeque;
+import java.util.Comparator;
 
 import jnr.ffi.Pointer;
 import org.agrona.DirectBuffer;
@@ -111,7 +112,6 @@ public final class DirectBufferProxy extends BufferProxy<DirectBuffer> {
     }
   }
 
-  @Override
   protected int compare(final DirectBuffer o1, final DirectBuffer o2) {
     return compareBuff(o1, o2);
   }
@@ -127,6 +127,11 @@ public final class DirectBufferProxy extends BufferProxy<DirectBuffer> {
     final byte[] dest = new byte[buffer.capacity()];
     buffer.getBytes(0, dest, 0, buffer.capacity());
     return dest;
+  }
+
+  @Override
+  protected Comparator<DirectBuffer> getComparator(final DbiFlags... flags) {
+    return this::compare;
   }
 
   @Override
