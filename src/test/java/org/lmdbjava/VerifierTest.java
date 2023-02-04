@@ -52,7 +52,8 @@ public final class VerifierTest {
         .setMapSize(MEBIBYTES.toBytes(10))
         .open(path, MDB_NOSUBDIR)) {
       final Verifier v = new Verifier(env);
-      assertThat(v.runFor(2, TimeUnit.SECONDS), greaterThan(1L));
+      final int seconds = Integer.getInteger("verificationSeconds", 2);
+      assertThat(v.runFor(seconds, TimeUnit.SECONDS), greaterThan(1L));
     }
   }
 
