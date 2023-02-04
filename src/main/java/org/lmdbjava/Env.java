@@ -365,7 +365,7 @@ public final class Env<T> implements AutoCloseable {
    * secondary (but uncommon) use of the comparator is to act as a callback from
    * the native library if <code>nativeCb</code> is <code>true</code>. This is
    * usually avoided due to the overhead of native code calling back into Java.
-   * It is instead highly recommended to set the correct {@link DbiFlag}s to
+   * It is instead highly recommended to set the correct {@link DbiFlags} to
    * allow the native library to correctly order the intended keys.
    *
    * <p>
