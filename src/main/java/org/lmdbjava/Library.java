@@ -291,7 +291,9 @@ final class Library {
                 @In Pointer data,
                 int flags);
 
-    int mdb_reader_check(@In Pointer env,@Out IntByReference dead);
+    int mdb_reader_check(
+    		@In Pointer env, 
+    		@Out IntByReference dead);
 
     int mdb_set_compare(@In Pointer txn, @In Pointer dbi, ComparatorCallback cb);
 
