@@ -41,6 +41,7 @@ import java.util.Comparator;
 import java.util.List;
 
 import jnr.ffi.Pointer;
+import jnr.ffi.byref.IntByReference;
 import jnr.ffi.byref.PointerByReference;
 import org.lmdbjava.Library.MDB_envinfo;
 import org.lmdbjava.Library.MDB_stat;
@@ -530,6 +531,14 @@ public final class Env<T> implements AutoCloseable {
     }
   }
 
+  
+  /* Check for stale entries in the reader lock table. */
+  public int readerCheck() {
+  	final IntByReference resultPtr = new IntByReference();
+  	checkRc(LIB.mdb_reader_check(ptr, resultPtr));
+  	return resultPtr.intValue();
+  }
+  
   /**
    * Builder for configuring and opening Env.
    *
@@ -594,6 +603,7 @@ public final class Env<T> implements AutoCloseable {
     public Env<T> open(final File path, final EnvFlags... flags) {
       return open(path, 0664, flags);
     }
+
 
     /**
      * Sets the map size.
