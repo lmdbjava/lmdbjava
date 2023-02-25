@@ -501,6 +501,15 @@ public final class Env<T> implements AutoCloseable {
     validateDirectoryEmpty(path);
   }
 
+  
+  /* Check for stale entries in the reader lock table. */
+  public int readerCheck() {
+  	final IntByReference resultPtr = new IntByReference();
+  	checkRc(LIB.mdb_reader_check(ptr, resultPtr));
+  	return resultPtr.intValue();
+  }
+  
+  
   /**
    * Object has already been closed and the operation is therefore prohibited.
    */
@@ -531,14 +540,7 @@ public final class Env<T> implements AutoCloseable {
     }
   }
 
-  
-  /* Check for stale entries in the reader lock table. */
-  public int readerCheck() {
-  	final IntByReference resultPtr = new IntByReference();
-  	checkRc(LIB.mdb_reader_check(ptr, resultPtr));
-  	return resultPtr.intValue();
-  }
-  
+ 
   /**
    * Builder for configuring and opening Env.
    *
