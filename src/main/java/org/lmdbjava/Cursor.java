@@ -162,6 +162,7 @@ public final class Cursor<T> implements AutoCloseable {
     checkRc(rc);
     kv.keyOut();
     kv.valOut();
+    ReferenceUtil.reachabilityFence0(key);
     return true;
   }
 
@@ -192,6 +193,7 @@ public final class Cursor<T> implements AutoCloseable {
     checkRc(rc);
     kv.keyOut();
     kv.valOut();
+    ReferenceUtil.reachabilityFence0(key);
     return true;
   }
 
@@ -266,6 +268,8 @@ public final class Cursor<T> implements AutoCloseable {
       return false;
     }
     checkRc(rc);
+    ReferenceUtil.reachabilityFence0(key);
+    ReferenceUtil.reachabilityFence0(val);
     return true;
   }
 
@@ -304,6 +308,8 @@ public final class Cursor<T> implements AutoCloseable {
     final int rc = LIB.mdb_cursor_put(ptrCursor, txn.kv().pointerKey(),
                                       dataPtr, mask);
     checkRc(rc);
+    ReferenceUtil.reachabilityFence0(key);
+    ReferenceUtil.reachabilityFence0(val);
   }
 
   /**
@@ -362,6 +368,7 @@ public final class Cursor<T> implements AutoCloseable {
     checkRc(LIB.mdb_cursor_put(ptrCursor, kv.pointerKey(), kv.pointerVal(),
                                flags));
     kv.valOut();
+    ReferenceUtil.reachabilityFence0(key);
     return val();
   }
 
