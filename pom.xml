@@ -105,8 +105,10 @@
         <configuration>
           <usedDependencies>
             <usedDependency>org.lmdbjava:lmdbjava-native-linux-x86_64</usedDependency>
+            <usedDependency>org.lmdbjava:lmdbjava-native-linux-aarch64</usedDependency>
             <usedDependency>org.lmdbjava:lmdbjava-native-windows-x86_64</usedDependency>
             <usedDependency>org.lmdbjava:lmdbjava-native-osx-x86_64</usedDependency>
+            <usedDependency>org.lmdbjava:lmdbjava-native-osx-arm64</usedDependency>
           </usedDependencies>
           <ignoredDependencies>
             <ignoredDependency>com.github.jnr:jffi</ignoredDependency>
@@ -146,8 +148,10 @@
               <artifactSet>
                 <includes>
                   <include>org.lmdbjava:lmdbjava-native-linux-x86_64</include>
+                  <include>org.lmdbjava:lmdbjava-native-linux-aarch64</include>
                   <include>org.lmdbjava:lmdbjava-native-windows-x86_64</include>
                   <include>org.lmdbjava:lmdbjava-native-osx-x86_64</include>
+                  <include>org.lmdbjava:lmdbjava-native-osx-arm64</include>
                 </includes>
               </artifactSet>
             </configuration>
