@@ -116,7 +116,7 @@ final class Library {
     } else if (SHOULD_EXTRACT && x64 && linux) {
       libToLoad = extract("org/lmdbjava/lmdbjava-native-linux-x86_64.so");
     } else if (SHOULD_EXTRACT && arm64 && linux) {
-      libToLoad = extract("org/lmdbjava/lmdbjava-native-linux-aarch64.so");
+      libToLoad = extract("org/lmdbjava/lmdbjava-native-linux-arm64.so");
     } else if (SHOULD_EXTRACT && x64 && osx) {
       libToLoad = extract("org/lmdbjava/lmdbjava-native-osx-x86_64.dylib");
     } else if (SHOULD_EXTRACT && arm64 && osx) {
