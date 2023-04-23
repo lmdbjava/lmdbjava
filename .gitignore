@@ -16,3 +16,4 @@ dependency-reduced-pom.xml
 gpg-sign.json
 mvn-sync.json
 secrets.tar
+lmdb

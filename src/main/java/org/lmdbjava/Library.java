@@ -21,11 +21,8 @@
 package org.lmdbjava;
 
 import static java.io.File.createTempFile;
-import static java.lang.Boolean.getBoolean;
 import static java.lang.System.getProperty;
 import static java.lang.Thread.currentThread;
-import static java.util.Locale.ENGLISH;
-import static java.util.Objects.nonNull;
 import static java.util.Objects.requireNonNull;
 import static jnr.ffi.LibraryLoader.create;
 import static jnr.ffi.Runtime.getRuntime;
@@ -56,34 +53,14 @@ import jnr.ffi.types.size_t;
 final class Library {
 
   /**
-   * Java system property name that can be set to disable automatic extraction
-   * of the LMDB system library from the LmdbJava JAR. This may be desirable if
-   * an operating system-provided LMDB system library is preferred (eg operating
-   * system package management, vendor support, special compiler flags, security
-   * auditing, profile guided optimization builds, faster startup time by
-   * avoiding the library copy etc).
-   */
-  public static final String DISABLE_EXTRACT_PROP = "lmdbjava.disable.extract";
-  /**
    * Java system property name that can be set to the path of an existing
    * directory into which the LMDB system library will be extracted from the
    * LmdbJava JAR. If unspecified the LMDB system library is extracted to the
    * <code>java.io.tmpdir</code>. Ignored if the LMDB system library is not
    * being extracted from the LmdbJava JAR (as would be the case if other
-   * system properties defined in <code>Library</code> have been set).
+   * system properties defined in <code>TargetName</code> have been set).
    */
   public static final String LMDB_EXTRACT_DIR_PROP = "lmdbjava.extract.dir";
-  /**
-   * Java system property name that can be set to provide a custom path to a
-   * external LMDB system library. If set, the system property
-   * DISABLE_EXTRACT_PROP will be overridden.
-   */
-  public static final String LMDB_NATIVE_LIB_PROP = "lmdbjava.native.lib";
-  /**
-   * Indicates whether automatic extraction of the LMDB system library is
-   * permitted.
-   */
-  public static final boolean SHOULD_EXTRACT = !getBoolean(DISABLE_EXTRACT_PROP);
   /**
    * Indicates the directory where the LMDB system library will be extracted.
    */
@@ -91,35 +68,14 @@ final class Library {
                                                 getProperty("java.io.tmpdir"));
   static final Lmdb LIB;
   static final jnr.ffi.Runtime RUNTIME;
-  /**
-   * Indicates whether external LMDB system library is provided.
-   */
-  static final boolean SHOULD_USE_LIB = nonNull(
-      getProperty(LMDB_NATIVE_LIB_PROP));
-  private static final String LIB_NAME = "lmdb";
 
   static {
     final String libToLoad;
 
-    final String arch = getProperty("os.arch");
-    final boolean arch64 = "x64".equals(arch) || "amd64".equals(arch)
-                               || "x86_64".equals(arch);
-
-    final String os = getProperty("os.name");
-    final boolean linux = os.toLowerCase(ENGLISH).startsWith("linux");
-    final boolean osx = os.startsWith("Mac OS X");
-    final boolean windows = os.startsWith("Windows");
-
-    if (SHOULD_USE_LIB) {
-      libToLoad = getProperty(LMDB_NATIVE_LIB_PROP);
-    } else if (SHOULD_EXTRACT && arch64 && linux) {
-      libToLoad = extract("org/lmdbjava/lmdbjava-native-linux-x86_64.so");
-    } else if (SHOULD_EXTRACT && arch64 && osx) {
-      libToLoad = extract("org/lmdbjava/lmdbjava-native-osx-x86_64.dylib");
-    } else if (SHOULD_EXTRACT && arch64 && windows) {
-      libToLoad = extract("org/lmdbjava/lmdbjava-native-windows-x86_64.dll");
+    if (TargetName.IS_EXTERNAL) {
+      libToLoad = TargetName.RESOLVED_FILENAME;
     } else {
-      libToLoad = LIB_NAME;
+      libToLoad = extract(TargetName.RESOLVED_FILENAME);
     }
 
     LIB = create(Lmdb.class).load(libToLoad);

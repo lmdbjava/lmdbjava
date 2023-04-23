@@ -27,7 +27,7 @@
 * Modern, idiomatic Java API (including iterators, key ranges, enums, exceptions etc)
 * Nothing to install (the JAR embeds the latest LMDB libraries for Linux, OS X and Windows)
 * Buffer agnostic (Java `ByteBuffer`, Agrona `DirectBuffer`, Netty `ByteBuf`, your own buffer)
-* 100% stock-standard, officially-released, widely-tested LMDB C code ([no extra](https://github.com/lmdbjava/native) C/JNI code)
+* 100% stock-standard, officially-released, widely-tested LMDB C code (no extra C/JNI code)
 * Low latency design (allocation-free; buffer pools; optional checks can be easily disabled in production etc)
 * Mature code (commenced in 2016) and used for heavy production workloads (eg > 500 TB of HFT data)
 * Actively maintained and with a "Zero Bug Policy" before every release (see [issues](https://github.com/lmdbjava/lmdbjava/issues))
@@ -54,6 +54,24 @@ Full details are in the [latest benchmark report](https://github.com/lmdbjava/be
 We're happy to help you use LmdbJava. Simply
 [open a GitHub issue](https://github.com/lmdbjava/lmdbjava/issues) if you have
 any questions.
+
+### Building
+
+This project uses [Zig](https://ziglang.org/) to cross-compile the LMDB native
+library for all supported architectures. To locally build LmdbJava you must
+firstly install a recent version of Zig and then execute the project's
+[cross-compile.sh](https://github.com/lmdbjava/lmdbjava/tree/master/cross-compile.sh)
+script. This only needs to be repeated when the `cross-compile.sh` script is
+updated (eg following a new official release of the upstream LMDB library).
+
+If you do not wish to install Zig and/or use an operating system which cannot
+easily execute the `cross-compile.sh` script, you can download the compiled
+LMDB native library for your platform from a location of your choice and set the
+`lmdbjava.native.lib` system property to the resulting file system system
+location. Possible sources of a compiled LMDB native library include operating
+system package managers, running `cross-compile.sh` on a supported system, or
+copying it from the `org/lmdbjava` directory of any recent, officially released
+LmdbJava JAR.
 
 ### Contributing
 

@@ -22,14 +22,29 @@ jobs:
         java-version: 17
         cache: maven
 
+    - name: Install Zig
+      uses: goto-bus-stop/setup-zig@v2
+
+    - name: Cross compile using Zig
+      run: ./cross-compile.sh
+
     - name: Build with Maven
       run: mvn -B verify
+
+    - name: Store built native libraries for later jobs
+      uses: actions/upload-artifact@v3
+      with:
+        name: native-libraries
+        path: |
+          src/main/resources/org/lmdbjava/*.so
+          src/main/resources/org/lmdbjava/*.dll
 
     - name: Upload code coverage to Codecov
       uses: codecov/codecov-action@v3
 
   compatibility-checks:
     name: Java ${{ matrix.java }} on ${{ matrix.os }} Compatibility
+    needs: [build]
     runs-on: ${{ matrix.os }}
 
     strategy:
@@ -47,6 +62,12 @@ jobs:
           distribution: zulu
           java-version: ${{ matrix.java }}
           cache: maven
+
+      - name: Fetch built native libraries
+        uses: actions/download-artifact@v3
+        with:
+          name: native-libraries
+          path: src/main/resources/org/lmdbjava
 
       - name: Execute verifier
         run: mvn -B test -Dtest=VerifierTest -DverificationSeconds=10
@@ -80,6 +101,12 @@ jobs:
         server-password: MAVEN_CENTRAL_TOKEN
         gpg-private-key: ${{ secrets.gpg_private_key }}
         gpg-passphrase: MAVEN_GPG_PASSPHRASE
+
+    - name: Install Zig
+      uses: goto-bus-stop/setup-zig@v2
+
+    - name: Cross compile using Zig
+      run: ./cross-compile.sh
 
     - name: Publish Maven package
       run: mvn -B -Possrh-deploy deploy -DskipTests

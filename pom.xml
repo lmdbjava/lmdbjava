@@ -70,24 +70,6 @@
       <groupId>org.hamcrest</groupId>
       <artifactId>hamcrest</artifactId>
     </dependency>
-    <dependency>
-      <groupId>org.lmdbjava</groupId>
-      <artifactId>lmdbjava-native-linux-x86_64</artifactId>
-      <version>0.9.29-1</version>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
-      <groupId>org.lmdbjava</groupId>
-      <artifactId>lmdbjava-native-osx-x86_64</artifactId>
-      <version>0.9.29-1</version>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
-      <groupId>org.lmdbjava</groupId>
-      <artifactId>lmdbjava-native-windows-x86_64</artifactId>
-      <version>0.9.29-1</version>
-      <optional>true</optional>
-    </dependency>
   </dependencies>
   <build>
     <plugins>
@@ -103,11 +85,6 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-dependency-plugin</artifactId>
         <configuration>
-          <usedDependencies>
-            <usedDependency>org.lmdbjava:lmdbjava-native-linux-x86_64</usedDependency>
-            <usedDependency>org.lmdbjava:lmdbjava-native-windows-x86_64</usedDependency>
-            <usedDependency>org.lmdbjava:lmdbjava-native-osx-x86_64</usedDependency>
-          </usedDependencies>
           <ignoredDependencies>
             <ignoredDependency>com.github.jnr:jffi</ignoredDependency>
           </ignoredDependencies>
@@ -131,28 +108,6 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-pmd-plugin</artifactId>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-shade-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>lmdbjava-shade</id>
-            <goals>
-              <goal>shade</goal>
-            </goals>
-            <phase>package</phase>
-            <configuration>
-              <artifactSet>
-                <includes>
-                  <include>org.lmdbjava:lmdbjava-native-linux-x86_64</include>
-                  <include>org.lmdbjava:lmdbjava-native-windows-x86_64</include>
-                  <include>org.lmdbjava:lmdbjava-native-osx-x86_64</include>
-                </includes>
-              </artifactSet>
-            </configuration>
-          </execution>
-        </executions>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
