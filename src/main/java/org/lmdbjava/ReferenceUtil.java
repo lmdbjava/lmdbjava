@@ -22,34 +22,46 @@ package org.lmdbjava;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+/**
+ * Supports creating strong references in manner compatible with Java 8.
+ */
 public final class ReferenceUtil {
-    /**
-     * Ensures that the object referenced by the given reference remains
-     * <a href="package-summary.html#reachability"><em>strongly reachable</em></a>,
-     * regardless of any prior actions of the program that might otherwise cause
-     * the object to become unreachable; thus, the referenced object is not
-     * reclaimable by garbage collection at least until after the invocation of
-     * this method.
-     *
-     * <p> Recent versions of the JDK have a nasty habit of prematurely deciding objects are unreachable.
-     * see: https://stackoverflow.com/questions/26642153/finalize-called-on-strongly-reachable-object-in-java-8
-     * The Java 9 method Reference.reachabilityFence offers a solution to this problem.
-     *
-     * <p> This method is always implemented as a synchronization on {@code ref}, not as
-     * {@code Reference.reachabilityFence} for consistency across platforms and to allow building on JDK 6-8.
-     * <b>It is the caller's responsibility to ensure that this synchronization will not cause deadlock.</b>
-     *
-     * @param ref the reference. If {@code null}, this method has no effect.
-     * @see https://github.com/netty/netty/pull/8410
-     */
-    @SuppressFBWarnings({"ESync_EMPTY_SYNC", "UC_USELESS_VOID_METHOD"})
-    public static void reachabilityFence0(Object ref) {
-        if (ref != null) {
-            synchronized (ref) {
-                // Empty synchronized is ok: https://stackoverflow.com/a/31933260/1151521
-            }
-        }
-    }
 
-    private ReferenceUtil() {}
+  private ReferenceUtil() {
+  }
+
+  /**
+   * Ensures that the object referenced by the given reference remains
+   * <em>strongly reachable</em>, regardless of any prior actions of the program
+   * that might otherwise cause the object to become unreachable. Thus, the
+   * referenced object is not reclaimable by garbage collection at least until
+   * after the invocation of this method.
+   *
+   * <p>
+   * Recent versions of the JDK have a nasty habit of prematurely deciding
+   * objects are unreachable (eg
+   * <a href="https://tinyurl.com/so26642153">StackOverflow question
+   * 26642153</a>.
+   *
+   * <p>
+   * <code>java.lang.ref.Reference.reachabilityFence</code> offers a solution to
+   * this problem, but it was only introduced in Java 9. LmdbJava presently
+   * supports Java 8 and therefore this method provides an alternative.
+   *
+   * <p>
+   * This method is always implemented as a synchronization on {@code ref}.
+   * <b>It is the caller's responsibility to ensure that this synchronization
+   * will not cause deadlock.</b>
+   *
+   * @param ref the reference (null is acceptable but has no effect)
+   * @see <a href="https://github.com/netty/netty/pull/8410">Netty PR 8410</a>
+   */
+  @SuppressFBWarnings({"ESync_EMPTY_SYNC", "UC_USELESS_VOID_METHOD"})
+  public static void reachabilityFence0(final Object ref) {
+    if (ref != null) {
+      synchronized (ref) {
+        // Empty synchronized is ok: https://stackoverflow.com/a/31933260/1151521
+      }
+    }
+  }
 }
