@@ -50,14 +50,14 @@ public final class TargetName {
 
   /**
    * Java system property name that can be set to override the embedded library
-   * that will be used. This is likely to required if automatic resolution fails
-   * but the user still prefers to use an LmdbJava-bundled library.
+   * that will be used. This is likely to be required if automatic resolution
+   * fails but the user still prefers to use an LmdbJava-bundled library. This
+   * path must include the classpath prefix (usually <code>org/lmdbjava</code>).
    */
   public static final String LMDB_EMBEDDED_LIB_PROP = "lmdbjava.embedded.lib";
   /**
    * Java system property name that can be set to provide a custom path to an
-   * external LMDB system library. This path must include the classpath prefix
-   * (usually <code>org/lmdbjava</code>).
+   * external LMDB system library.
    */
   public static final String LMDB_NATIVE_LIB_PROP = "lmdbjava.native.lib";
   /**
