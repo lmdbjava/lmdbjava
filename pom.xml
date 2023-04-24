@@ -70,6 +70,12 @@
       <groupId>org.hamcrest</groupId>
       <artifactId>hamcrest</artifactId>
     </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-inline</artifactId>
+      <version>4.11.0</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
   <build>
     <plugins>
@@ -87,6 +93,8 @@
         <configuration>
           <ignoredDependencies>
             <ignoredDependency>com.github.jnr:jffi</ignoredDependency>
+            <ignoredDependency>org.mockito:mockito-core</ignoredDependency>
+            <ignoredDependency>org.mockito:mockito-inline</ignoredDependency>
           </ignoredDependencies>
         </configuration>
       </plugin>
