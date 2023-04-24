@@ -95,7 +95,8 @@ public final class TargetName {
       return embed;
     }
 
-    return "org/lmdbjava/" + resolveArch(arch) + "-" + resolveOs(os) + "-"
+    final String pkg = TargetName.class.getPackage().getName().replace('.', '/');
+    return pkg + "/" + resolveArch(arch) + "-" + resolveOs(os) + "-"
                + resolveToolchain(os) + "." + resolveExtension(os);
   }
 
