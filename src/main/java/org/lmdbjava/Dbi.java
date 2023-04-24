@@ -171,6 +171,8 @@ public final class Dbi<T> {
       return false;
     }
     checkRc(rc);
+    ReferenceUtil.reachabilityFence0(key);
+    ReferenceUtil.reachabilityFence0(val);
     return true;
   }
 
@@ -239,6 +241,7 @@ public final class Dbi<T> {
       return null;
     }
     checkRc(rc);
+    ReferenceUtil.reachabilityFence0(key);
     return txn.kv().valOut(); // marked as out in LMDB C docs
   }
 
@@ -386,6 +389,8 @@ public final class Dbi<T> {
       return false;
     }
     checkRc(rc);
+    ReferenceUtil.reachabilityFence0(key);
+    ReferenceUtil.reachabilityFence0(val);
     return true;
   }
 
@@ -421,6 +426,7 @@ public final class Dbi<T> {
     checkRc(LIB.mdb_put(txn.pointer(), ptr, txn.kv().pointerKey(), txn.kv()
                         .pointerVal(), flags));
     txn.kv().valOut(); // marked as in,out in LMDB C docs
+    ReferenceUtil.reachabilityFence0(key);
     return txn.val();
   }
 
