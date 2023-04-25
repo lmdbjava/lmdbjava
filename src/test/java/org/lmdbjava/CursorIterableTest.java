@@ -126,7 +126,7 @@ public final class CursorIterableTest {
   public void before() throws IOException {
     final File path = tmp.newFile();
     env = create()
-        .setMapSize(KIBIBYTES.toBytes(100))
+        .setMapSize(KIBIBYTES.toBytes(256))
         .setMaxReaders(1)
         .setMaxDbs(1)
         .open(path, POSIX_MODE, MDB_NOSUBDIR);

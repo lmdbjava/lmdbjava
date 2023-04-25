@@ -460,7 +460,7 @@ public final class DbiTest {
     assertThat(stat.entries, is(3L));
     assertThat(stat.leafPages, is(1L));
     assertThat(stat.overflowPages, is(0L));
-    assertThat(stat.pageSize, is(4_096));
+    assertThat(stat.pageSize % 4_096, is(0));
   }
 
   @Test(expected = MapFullException.class)

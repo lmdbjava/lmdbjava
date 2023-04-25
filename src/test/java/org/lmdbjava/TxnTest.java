@@ -84,7 +84,7 @@ public final class TxnTest {
   public void before() throws IOException {
     path = tmp.newFile();
     env = create()
-        .setMapSize(KIBIBYTES.toBytes(100))
+        .setMapSize(KIBIBYTES.toBytes(256))
         .setMaxReaders(1)
         .setMaxDbs(2)
         .open(path, POSIX_MODE, MDB_NOSUBDIR);

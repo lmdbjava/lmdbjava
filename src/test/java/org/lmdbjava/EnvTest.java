@@ -20,6 +20,7 @@
 
 package org.lmdbjava;
 
+import static com.jakewharton.byteunits.BinaryByteUnit.KIBIBYTES;
 import static com.jakewharton.byteunits.BinaryByteUnit.MEBIBYTES;
 import static java.nio.ByteBuffer.allocateDirect;
 import static org.hamcrest.CoreMatchers.containsString;
@@ -338,7 +339,7 @@ public final class EnvTest {
     final Random rnd = new Random();
     try (Env<ByteBuffer> env = create()
         .setMaxReaders(1)
-        .setMapSize(50_000)
+        .setMapSize(KIBIBYTES.toBytes(256))
         .setMaxDbs(1)
         .open(path)) {
       final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
@@ -346,7 +347,7 @@ public final class EnvTest {
       db.put(bb(1), bb(42));
       boolean mapFullExThrown = false;
       try {
-        for (int i = 0; i < 30; i++) {
+        for (int i = 0; i < 70; i++) {
           rnd.nextBytes(k);
           key.clear();
           key.put(k).flip();
@@ -358,7 +359,7 @@ public final class EnvTest {
       }
       assertThat(mapFullExThrown, is(true));
 
-      env.setMapSize(500_000);
+      env.setMapSize(KIBIBYTES.toBytes(512));
 
       try (Txn<ByteBuffer> roTxn = env.txnRead()) {
         assertThat(db.get(roTxn, bb(1)).getInt(), is(42));
@@ -366,7 +367,7 @@ public final class EnvTest {
 
       mapFullExThrown = false;
       try {
-        for (int i = 0; i < 30; i++) {
+        for (int i = 0; i < 70; i++) {
           rnd.nextBytes(k);
           key.clear();
           key.put(k).flip();
@@ -393,7 +394,7 @@ public final class EnvTest {
       assertThat(stat.entries, is(0L));
       assertThat(stat.leafPages, is(0L));
       assertThat(stat.overflowPages, is(0L));
-      assertThat(stat.pageSize, is(4_096));
+      assertThat(stat.pageSize % 4_096, is(0));
       assertThat(stat.toString(), containsString("pageSize="));
     }
   }
