@@ -347,7 +347,7 @@ public final class EnvTest {
       db.put(bb(1), bb(42));
       boolean mapFullExThrown = false;
       try {
-        for (int i = 0; i < 30; i++) {
+        for (int i = 0; i < 70; i++) {
           rnd.nextBytes(k);
           key.clear();
           key.put(k).flip();
@@ -359,7 +359,7 @@ public final class EnvTest {
       }
       assertThat(mapFullExThrown, is(true));
 
-      env.setMapSize(500_000);
+      env.setMapSize(KIBIBYTES.toBytes(512));
 
       try (Txn<ByteBuffer> roTxn = env.txnRead()) {
         assertThat(db.get(roTxn, bb(1)).getInt(), is(42));
@@ -367,7 +367,7 @@ public final class EnvTest {
 
       mapFullExThrown = false;
       try {
-        for (int i = 0; i < 30; i++) {
+        for (int i = 0; i < 70; i++) {
           rnd.nextBytes(k);
           key.clear();
           key.put(k).flip();
