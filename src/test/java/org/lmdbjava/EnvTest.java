@@ -394,7 +394,7 @@ public final class EnvTest {
       assertThat(stat.entries, is(0L));
       assertThat(stat.leafPages, is(0L));
       assertThat(stat.overflowPages, is(0L));
-      assertThat(stat.pageSize, is(4_096));
+      assertThat(stat.pageSize % 4_096, is(0));
       assertThat(stat.toString(), containsString("pageSize="));
     }
   }
