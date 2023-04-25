@@ -20,6 +20,7 @@
 
 package org.lmdbjava;
 
+import static com.jakewharton.byteunits.BinaryByteUnit.KIBIBYTES;
 import static com.jakewharton.byteunits.BinaryByteUnit.MEBIBYTES;
 import static java.nio.ByteBuffer.allocateDirect;
 import static org.hamcrest.CoreMatchers.containsString;
@@ -338,7 +339,7 @@ public final class EnvTest {
     final Random rnd = new Random();
     try (Env<ByteBuffer> env = create()
         .setMaxReaders(1)
-        .setMapSize(50_000)
+        .setMapSize(KIBIBYTES.toBytes(256))
         .setMaxDbs(1)
         .open(path)) {
       final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
