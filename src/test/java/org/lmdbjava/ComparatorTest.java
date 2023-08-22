@@ -143,7 +143,7 @@ public final class ComparatorTest {
   /**
    * Tests {@link ByteArrayProxy}.
    */
-  private static class ByteArrayRunner implements ComparatorRunner {
+  private static final class ByteArrayRunner implements ComparatorRunner {
 
     @Override
     public int compare(final byte[] o1, final byte[] o2) {
@@ -155,7 +155,7 @@ public final class ComparatorTest {
   /**
    * Tests {@link ByteBufferProxy}.
    */
-  private static class ByteBufferRunner implements ComparatorRunner {
+  private static final class ByteBufferRunner implements ComparatorRunner {
 
     @Override
     public int compare(final byte[] o1, final byte[] o2) {
@@ -199,7 +199,7 @@ public final class ComparatorTest {
   /**
    * Tests {@link DirectBufferProxy}.
    */
-  private static class DirectBufferRunner implements ComparatorRunner {
+  private static final class DirectBufferRunner implements ComparatorRunner {
 
     @Override
     public int compare(final byte[] o1, final byte[] o2) {
@@ -213,7 +213,7 @@ public final class ComparatorTest {
   /**
    * Tests using Guava's {@link SignedBytes} comparator.
    */
-  private static class GuavaSignedBytes implements ComparatorRunner {
+  private static final class GuavaSignedBytes implements ComparatorRunner {
 
     @Override
     public int compare(final byte[] o1, final byte[] o2) {
@@ -225,7 +225,7 @@ public final class ComparatorTest {
   /**
    * Tests using Guava's {@link UnsignedBytes} comparator.
    */
-  private static class GuavaUnsignedBytes implements ComparatorRunner {
+  private static final class GuavaUnsignedBytes implements ComparatorRunner {
 
     @Override
     public int compare(final byte[] o1, final byte[] o2) {
@@ -237,7 +237,7 @@ public final class ComparatorTest {
   /**
    * Tests {@link ByteBufProxy}.
    */
-  private static class NettyRunner implements ComparatorRunner {
+  private static final class NettyRunner implements ComparatorRunner {
 
     @Override
     public int compare(final byte[] o1, final byte[] o2) {
@@ -254,7 +254,7 @@ public final class ComparatorTest {
    * Tests {@link String} by providing a reference implementation of what a
    * comparator involving ASCII-encoded bytes should return.
    */
-  private static class StringRunner implements ComparatorRunner {
+  private static final class StringRunner implements ComparatorRunner {
 
     @Override
     public int compare(final byte[] o1, final byte[] o2) {

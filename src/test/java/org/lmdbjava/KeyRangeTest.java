@@ -233,7 +233,7 @@ public final class KeyRangeTest {
    * We use <code>Integer</code> rather than the primitive to represent a
    * <code>null</code> buffer.
    */
-  private static class FakeCursor {
+  private static final class FakeCursor {
 
     private static final int[] KEYS = new int[]{2, 4, 6, 8};
     private int position;
