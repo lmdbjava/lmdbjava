@@ -27,6 +27,7 @@ import static java.nio.ByteOrder.BIG_ENDIAN;
 import static java.nio.ByteOrder.LITTLE_ENDIAN;
 import static java.util.Objects.requireNonNull;
 import static org.lmdbjava.DbiFlags.MDB_INTEGERKEY;
+import static org.lmdbjava.DbiFlags.MDB_UNSIGNEDKEY;
 import static org.lmdbjava.Env.SHOULD_CHECK;
 import static org.lmdbjava.MaskedFlag.isSet;
 import static org.lmdbjava.MaskedFlag.mask;
@@ -111,6 +112,14 @@ public final class ByteBufferProxy {
     protected static final String FIELD_NAME_ADDRESS = "address";
     protected static final String FIELD_NAME_CAPACITY = "capacity";
 
+    private static final Comparator<ByteBuffer> signedComparator = (o1, o2) -> {
+      requireNonNull(o1);
+      requireNonNull(o2);
+
+      return o1.compareTo(o2);
+    };
+    private static final Comparator<ByteBuffer> unsignedComparator = AbstractByteBufferProxy::compareBuff;
+
     /**
      * A thread-safe pool for a given length. If the buffer found is valid (ie
      * not of a negative length) then that buffer is used. If no valid buffer is
@@ -193,22 +202,13 @@ public final class ByteBufferProxy {
     }
 
     @Override
-    protected Comparator<ByteBuffer> getComparator(final DbiFlags... flags) {
-      final int flagInt = mask(flags);
-      if (isSet(flagInt, MDB_INTEGERKEY)) {
-        return this::compareCustom;
-      }
-      return this::compareDefault;
+    protected Comparator<ByteBuffer> getSignedComparator() {
+      return signedComparator;
     }
 
-    protected final int compareDefault(final ByteBuffer o1,
-                                       final ByteBuffer o2) {
-      return o1.compareTo(o2);
-    }
-
-    protected final int compareCustom(final ByteBuffer o1,
-                                      final ByteBuffer o2) {
-      return compareBuff(o1, o2);
+    @Override
+    protected Comparator<ByteBuffer> getUnsignedComparator() {
+      return unsignedComparator;
     }
 
     @Override

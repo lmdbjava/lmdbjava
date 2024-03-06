@@ -21,6 +21,10 @@
 package org.lmdbjava;
 
 import static java.lang.Long.BYTES;
+import static org.lmdbjava.DbiFlags.MDB_INTEGERKEY;
+import static org.lmdbjava.DbiFlags.MDB_UNSIGNEDKEY;
+import static org.lmdbjava.MaskedFlag.isSet;
+import static org.lmdbjava.MaskedFlag.mask;
 
 import java.util.Comparator;
 
@@ -72,8 +76,24 @@ public abstract class BufferProxy<T> {
    * @param flags for the database
    * @return a comparator that can be used (never null)
    */
-  protected abstract Comparator<T> getComparator(DbiFlags... flags);
+  protected Comparator<T> getComparator(DbiFlags... flags) {
+    final int intFlag = mask(flags);
 
+    return isSet(intFlag, MDB_INTEGERKEY) || isSet(intFlag, MDB_UNSIGNEDKEY) ? getUnsignedComparator() : getSignedComparator();
+  }
+
+  /**
+   * Get a suitable default {@link Comparator} to compare numeric key values as unsigned.
+   *
+   * @return a comparator that can be used (never null)
+   */
+  protected abstract Comparator<T> getUnsignedComparator();
+  /**
+   * Get a suitable default {@link Comparator} to compare numeric key values as signed.
+   *
+   * @return a comparator that can be used (never null)
+   */
+  protected abstract Comparator<T> getSignedComparator();
   /**
    * Deallocate a buffer that was previously provided by {@link #allocate()}.
    *

@@ -20,6 +20,8 @@
 
 package org.lmdbjava;
 
+import jnr.ffi.Pointer;
+
 import static jnr.ffi.Memory.allocateDirect;
 import static jnr.ffi.NativeType.ADDRESS;
 import static org.lmdbjava.Env.SHOULD_CHECK;
@@ -33,8 +35,6 @@ import static org.lmdbjava.Txn.State.READY;
 import static org.lmdbjava.Txn.State.RELEASED;
 import static org.lmdbjava.Txn.State.RESET;
 import static org.lmdbjava.TxnFlags.MDB_RDONLY_TXN;
-
-import jnr.ffi.Pointer;
 
 /**
  * LMDB transaction.
@@ -55,7 +55,7 @@ public final class Txn<T> implements AutoCloseable {
       final TxnFlags... flags) {
     this.proxy = proxy;
     this.keyVal = proxy.keyVal();
-    final int flagsMask = mask(flags);
+    final int flagsMask = mask(true, flags);
     this.readOnly = isSet(flagsMask, MDB_RDONLY_TXN);
     if (env.isReadOnly() && !this.readOnly) {
       throw new EnvIsReadOnly();

@@ -20,20 +20,20 @@
 
 package org.lmdbjava;
 
-import static java.lang.ThreadLocal.withInitial;
-import static java.nio.ByteBuffer.allocateDirect;
-import static java.nio.ByteOrder.BIG_ENDIAN;
-import static java.util.Objects.requireNonNull;
-import static org.lmdbjava.UnsafeAccess.UNSAFE;
+import jnr.ffi.Pointer;
+import org.agrona.DirectBuffer;
+import org.agrona.MutableDirectBuffer;
+import org.agrona.concurrent.UnsafeBuffer;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayDeque;
 import java.util.Comparator;
 
-import jnr.ffi.Pointer;
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import static java.lang.ThreadLocal.withInitial;
+import static java.nio.ByteBuffer.allocateDirect;
+import static java.nio.ByteOrder.BIG_ENDIAN;
+import static java.util.Objects.requireNonNull;
+import static org.lmdbjava.UnsafeAccess.UNSAFE;
 
 /**
  * A buffer proxy backed by Agrona's {@link DirectBuffer}.
@@ -42,6 +42,13 @@ import org.agrona.concurrent.UnsafeBuffer;
  * This class requires {@link UnsafeAccess} and Agrona must be in the classpath.
  */
 public final class DirectBufferProxy extends BufferProxy<DirectBuffer> {
+  private static final Comparator<DirectBuffer> signedComparator = (o1, o2) -> {
+    requireNonNull(o1);
+    requireNonNull(o2);
+
+    return o1.compareTo(o2);
+  };
+  private static final Comparator<DirectBuffer> unsignedComparator = DirectBufferProxy::compareBuff;
 
   /**
    * The {@link MutableDirectBuffer} proxy. Guaranteed to never be null,
@@ -112,8 +119,14 @@ public final class DirectBufferProxy extends BufferProxy<DirectBuffer> {
     }
   }
 
-  protected int compare(final DirectBuffer o1, final DirectBuffer o2) {
-    return compareBuff(o1, o2);
+  @Override
+  protected Comparator<DirectBuffer> getSignedComparator() {
+    return signedComparator;
+  }
+
+  @Override
+  protected Comparator<DirectBuffer> getUnsignedComparator() {
+    return unsignedComparator;
   }
 
   @Override
@@ -127,11 +140,6 @@ public final class DirectBufferProxy extends BufferProxy<DirectBuffer> {
     final byte[] dest = new byte[buffer.capacity()];
     buffer.getBytes(0, dest, 0, buffer.capacity());
     return dest;
-  }
-
-  @Override
-  protected Comparator<DirectBuffer> getComparator(final DbiFlags... flags) {
-    return this::compare;
   }
 
   @Override

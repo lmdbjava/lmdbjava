@@ -20,16 +20,17 @@
 
 package org.lmdbjava;
 
-import static io.netty.buffer.PooledByteBufAllocator.DEFAULT;
-import static java.lang.Class.forName;
-import static org.lmdbjava.UnsafeAccess.UNSAFE;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.PooledByteBufAllocator;
+import jnr.ffi.Pointer;
 
 import java.lang.reflect.Field;
 import java.util.Comparator;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.PooledByteBufAllocator;
-import jnr.ffi.Pointer;
+import static io.netty.buffer.PooledByteBufAllocator.DEFAULT;
+import static java.lang.Class.forName;
+import static java.util.Objects.requireNonNull;
+import static org.lmdbjava.UnsafeAccess.UNSAFE;
 
 /**
  * A buffer proxy backed by Netty's {@link ByteBuf}.
@@ -51,6 +52,12 @@ public final class ByteBufProxy extends BufferProxy<ByteBuf> {
   private static final String FIELD_NAME_ADDRESS = "memoryAddress";
   private static final String FIELD_NAME_LENGTH = "length";
   private static final String NAME = "io.netty.buffer.PooledUnsafeDirectByteBuf";
+  private static final Comparator<ByteBuf> comparator = (o1, o2) -> {
+    requireNonNull(o1);
+    requireNonNull(o2);
+
+    return o1.compareTo(o2);
+  };
   private final long lengthOffset;
   private final long addressOffset;
   
@@ -107,13 +114,14 @@ public final class ByteBufProxy extends BufferProxy<ByteBuf> {
     throw new IllegalStateException("Netty buffer must be " + NAME);
   }
 
-  protected int compare(final ByteBuf o1, final ByteBuf o2) {
-    return o1.compareTo(o2);
+  @Override
+  protected Comparator<ByteBuf> getSignedComparator() {
+    return comparator;
   }
 
   @Override
-  protected Comparator<ByteBuf> getComparator(final DbiFlags... flags) {
-    return this::compare;
+  protected Comparator<ByteBuf> getUnsignedComparator() {
+    return comparator;
   }
 
   @Override

@@ -20,6 +20,17 @@
 
 package org.lmdbjava;
 
+import jnr.ffi.Pointer;
+import jnr.ffi.byref.IntByReference;
+import jnr.ffi.byref.PointerByReference;
+import org.lmdbjava.Library.ComparatorCallback;
+import org.lmdbjava.Library.MDB_stat;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
+
 import static java.util.Objects.requireNonNull;
 import static jnr.ffi.Memory.allocateDirect;
 import static jnr.ffi.NativeType.ADDRESS;
@@ -35,17 +46,6 @@ import static org.lmdbjava.PutFlags.MDB_NODUPDATA;
 import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
 import static org.lmdbjava.PutFlags.MDB_RESERVE;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.List;
-
-import jnr.ffi.Pointer;
-import jnr.ffi.byref.IntByReference;
-import jnr.ffi.byref.PointerByReference;
-import org.lmdbjava.Library.ComparatorCallback;
-import org.lmdbjava.Library.MDB_stat;
 
 /**
  * LMDB Database.
@@ -64,10 +64,18 @@ public final class Dbi<T> {
   Dbi(final Env<T> env, final Txn<T> txn, final byte[] name,
       final Comparator<T> comparator, final boolean nativeCb,
       final BufferProxy<T> proxy, final DbiFlags... flags) {
+    if (SHOULD_CHECK) {
+      requireNonNull(txn);
+      txn.checkReady();
+    }
     this.env = env;
     this.name = name == null ? null : Arrays.copyOf(name, name.length);
-    this.comparator = comparator;
-    final int flagsMask = mask(flags);
+    if(comparator == null) {
+      this.comparator = proxy.getComparator(flags);
+    } else {
+      this.comparator = comparator;
+    }
+    final int flagsMask = mask(true, flags);
     final Pointer dbiPtr = allocateDirect(RUNTIME, ADDRESS);
     checkRc(LIB.mdb_dbi_open(txn.pointer(), name, flagsMask, dbiPtr));
     ptr = dbiPtr.getPointer(0);
@@ -377,7 +385,7 @@ public final class Dbi<T> {
     }
     txn.kv().keyIn(key);
     txn.kv().valIn(val);
-    final int mask = mask(flags);
+    final int mask = mask(true, flags);
     final int rc = LIB.mdb_put(txn.pointer(), ptr, txn.kv().pointerKey(), txn
                                .kv().pointerVal(), mask);
     if (rc == MDB_KEYEXIST) {
@@ -422,7 +430,7 @@ public final class Dbi<T> {
     }
     txn.kv().keyIn(key);
     txn.kv().valIn(size);
-    final int flags = mask(op) | MDB_RESERVE.getMask();
+    final int flags = mask(true, op) | MDB_RESERVE.getMask();
     checkRc(LIB.mdb_put(txn.pointer(), ptr, txn.kv().pointerKey(), txn.kv()
                         .pointerVal(), flags));
     txn.kv().valOut(); // marked as in,out in LMDB C docs
