@@ -95,6 +95,7 @@ jobs:
         distribution: zulu
         # Java version 8 required due to https://github.com/lmdbjava/lmdbjava/issues/116
         java-version: 8
+        server-id: github
 
     - name: Install Zig
       uses: goto-bus-stop/setup-zig@v2
@@ -103,7 +104,7 @@ jobs:
       run: ./cross-compile.sh
 
     - name: Publish Maven package
-      run: mvn -B deploy -DskipTests
+      run: mvn -B -Pminimal-deploy deploy -DskipTests
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
