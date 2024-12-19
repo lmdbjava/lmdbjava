@@ -79,38 +79,37 @@ jobs:
           name: surefire-test-log
           path: target/surefire-reports
 
-#  deploy:
-#    name: Deploy to Github Packages
-#    needs: [build, compatibility-checks]
-#    if: github.event_name == 'push'
-#    runs-on: ubuntu-latest
-#
-#    steps:
-#    - name: Check out Git repository
-#      uses: actions/checkout@v3
-#
-#    - name: Set up Java and Maven
-#      uses: actions/setup-java@v3
-#      with:
-#        distribution: zulu
-#        # Java version 8 required due to https://github.com/lmdbjava/lmdbjava/issues/116
-#        java-version: 8
-#        server-id: github
-#
-#    - name: Install Zig
-#      uses: goto-bus-stop/setup-zig@v2
-#
-#    - name: Cross compile using Zig
-#      run: ./cross-compile.sh
-#
-#    - name: Publish Maven package
-#      run: mvn -B -Possrh-deploy deploy -DskipTests
-#      env:
-#        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#
-#    - name: Debug settings.xml
-#      uses: actions/upload-artifact@v3
-#      if: failure()
-#      with:
-#        name: settings.xml
-#        path: $HOME/.m2/settings.xml
+  deploy:
+    name: Deploy to Github Packages
+    needs: [build, compatibility-checks]
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check out Git repository
+      uses: actions/checkout@v3
+
+    - name: Set up Java and Maven
+      uses: actions/setup-java@v3
+      with:
+        distribution: zulu
+        # Java version 8 required due to https://github.com/lmdbjava/lmdbjava/issues/116
+        java-version: 8
+
+    - name: Install Zig
+      uses: goto-bus-stop/setup-zig@v2
+
+    - name: Cross compile using Zig
+      run: ./cross-compile.sh
+
+    - name: Publish Maven package
+      run: mvn -B deploy -DskipTests
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Debug settings.xml
+      uses: actions/upload-artifact@v3
+      if: failure()
+      with:
+        name: settings.xml
+        path: $HOME/.m2/settings.xml
