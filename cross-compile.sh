@@ -15,7 +15,7 @@ for target in aarch64-linux-gnu \
               x86_64-windows-gnu
 do
   echo "##### Building $target ####"
-  make -e clean liblmdb.so CC="zig cc -target $target" AR="zig ar"
+  make -e clean liblmdb.so CC="zig cc -target $target" AR="zig ar" CPPFLAGS="-DMDB_FDATASYNC=fsync"
   if [[ "$target" == *-windows-* ]]; then
     extension="dll"
   else
