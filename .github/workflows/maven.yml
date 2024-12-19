@@ -104,7 +104,7 @@ jobs:
       run: ./cross-compile.sh
 
     - name: Publish Maven package
-      run: mvn -B -Pminimal-deploy deploy -DskipTests
+      run: mvn -B -Possrh-deploy deploy -DskipTests
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
