@@ -80,7 +80,7 @@ jobs:
           path: target/surefire-reports
 
   deploy:
-    name: Deploy to OSSRH
+    name: Deploy to Github Packages
     needs: [build, compatibility-checks]
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
@@ -95,12 +95,6 @@ jobs:
         distribution: zulu
         # Java version 8 required due to https://github.com/lmdbjava/lmdbjava/issues/116
         java-version: 8
-        cache: maven
-        server-id: ossrh
-        server-username: MAVEN_USERNAME
-        server-password: MAVEN_CENTRAL_TOKEN
-        gpg-private-key: ${{ secrets.gpg_private_key }}
-        gpg-passphrase: MAVEN_GPG_PASSPHRASE
 
     - name: Install Zig
       uses: goto-bus-stop/setup-zig@v2
@@ -109,11 +103,9 @@ jobs:
       run: ./cross-compile.sh
 
     - name: Publish Maven package
-      run: mvn -B -Possrh-deploy deploy -DskipTests
+      run: mvn -B deploy -DskipTests
       env:
-        MAVEN_GPG_PASSPHRASE: ${{ secrets.gpg_passphrase }}
-        MAVEN_USERNAME: ${{ secrets.nexus_username }}
-        MAVEN_CENTRAL_TOKEN: ${{ secrets.nexus_password }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Debug settings.xml
       uses: actions/upload-artifact@v3
