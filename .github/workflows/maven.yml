@@ -32,7 +32,7 @@ jobs:
       run: mvn -B verify -DgcRecordWrites=1000
 
     - name: Store built native libraries for later jobs
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: native-libraries
         path: |
@@ -64,7 +64,7 @@ jobs:
           cache: maven
 
       - name: Fetch built native libraries
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: native-libraries
           path: src/main/resources/org/lmdbjava

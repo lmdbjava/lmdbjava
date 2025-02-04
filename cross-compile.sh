@@ -3,7 +3,7 @@
 set -o errexit
 
 rm -rf lmdb
-git clone --depth 1 --branch LMDB_0.9.29 https://github.com/LMDB/lmdb.git
+git clone --depth 1 --branch LMDB_0.9.31 https://github.com/LMDB/lmdb.git
 pushd lmdb/libraries/liblmdb
 trap popd SIGINT
 
