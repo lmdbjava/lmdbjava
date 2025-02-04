@@ -73,7 +73,7 @@ jobs:
         run: mvn -B test -Dtest=VerifierTest -DverificationSeconds=10
 
       - name: Upload Surefire reports on test failure
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: surefire-test-log
@@ -116,7 +116,7 @@ jobs:
         MAVEN_CENTRAL_TOKEN: ${{ secrets.nexus_password }}
 
     - name: Debug settings.xml
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: failure()
       with:
         name: settings.xml
