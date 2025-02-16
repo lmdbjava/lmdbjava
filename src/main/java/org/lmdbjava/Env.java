@@ -20,6 +20,19 @@
 
 package org.lmdbjava;
 
+import jnr.ffi.Pointer;
+import jnr.ffi.byref.IntByReference;
+import jnr.ffi.byref.PointerByReference;
+import org.lmdbjava.Library.MDB_envinfo;
+import org.lmdbjava.Library.MDB_stat;
+
+import java.io.File;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+
 import static java.lang.Boolean.getBoolean;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
@@ -32,19 +45,6 @@ import static org.lmdbjava.MaskedFlag.isSet;
 import static org.lmdbjava.MaskedFlag.mask;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
 import static org.lmdbjava.TxnFlags.MDB_RDONLY_TXN;
-
-import java.io.File;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-
-import jnr.ffi.Pointer;
-import jnr.ffi.byref.IntByReference;
-import jnr.ffi.byref.PointerByReference;
-import org.lmdbjava.Library.MDB_envinfo;
-import org.lmdbjava.Library.MDB_stat;
 
 /**
  * LMDB environment.
@@ -159,7 +159,7 @@ public final class Env<T> implements AutoCloseable {
   public void copy(final File path, final CopyFlags... flags) {
     requireNonNull(path);
     validatePath(path);
-    final int flagsMask = mask(flags);
+    final int flagsMask = mask(true, flags);
     checkRc(LIB.mdb_env_copy2(ptr, path.getAbsolutePath(), flagsMask));
   }
 
@@ -388,17 +388,7 @@ public final class Env<T> implements AutoCloseable {
   public Dbi<T> openDbi(final Txn<T> txn, final byte[] name,
                         final Comparator<T> comparator, final boolean nativeCb,
                         final DbiFlags... flags) {
-    if (SHOULD_CHECK) {
-      requireNonNull(txn);
-      txn.checkReady();
-    }
-    final Comparator<T> useComparator;
-    if (comparator == null) {
-      useComparator = proxy.getComparator(flags);
-    } else {
-      useComparator = comparator;
-    }
-    return new Dbi<>(this, txn, name, useComparator, nativeCb, proxy, flags);
+    return new Dbi<>(this, txn, name, comparator, nativeCb, proxy, flags);
   }
 
   /**
@@ -583,7 +573,7 @@ public final class Env<T> implements AutoCloseable {
         checkRc(LIB.mdb_env_set_mapsize(ptr, mapSize));
         checkRc(LIB.mdb_env_set_maxdbs(ptr, maxDbs));
         checkRc(LIB.mdb_env_set_maxreaders(ptr, maxReaders));
-        final int flagsMask = mask(flags);
+        final int flagsMask = mask(true, flags);
         final boolean readOnly = isSet(flagsMask, MDB_RDONLY_ENV);
         final boolean noSubDir = isSet(flagsMask, MDB_NOSUBDIR);
         checkRc(LIB.mdb_env_open(ptr, path.getAbsolutePath(), flagsMask, mode));

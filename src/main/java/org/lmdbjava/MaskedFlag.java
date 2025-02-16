@@ -20,6 +20,11 @@
 
 package org.lmdbjava;
 
+import java.util.Arrays;
+import java.util.Objects;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
+
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -35,24 +40,57 @@ public interface MaskedFlag {
   int getMask();
 
   /**
+   * Indicates if the flag must be propagated to the underlying C code of LMDB or not.
+   *
+   * @return the boolean value indicating the propagation
+   */
+  default boolean isPropagatedToLmdb() {
+    return true;
+  }
+
+  /**
    * Fetch the integer mask for all presented flags.
    *
    * @param flags to mask (null or empty returns zero)
    * @return the integer mask for use in C
    */
-  static int mask(final MaskedFlag... flags) {
-    if (flags == null || flags.length == 0) {
-      return 0;
-    }
+  @SafeVarargs
+  static <M extends MaskedFlag> int mask(final M... flags) {
+    return mask(false, flags);
+  }
 
-    int result = 0;
-    for (final MaskedFlag flag : flags) {
-      if (flag == null) {
-        continue;
-      }
-      result |= flag.getMask();
-    }
-    return result;
+  /**
+   * Fetch the integer mask for all presented flags.
+   *
+   * @param flags to mask (null or empty returns zero)
+   * @return the integer mask for use in C
+   */
+  static <M extends MaskedFlag> int mask(final Stream<M> flags) {
+    return mask(false, flags);
+  }
+
+  /**
+   * Fetch the integer mask for the presented flags.
+   *
+   * @param onlyPropagatedToLmdb if to include only the flags which are also propagate to the C code or all of them
+   * @param flags to mask (null or empty returns zero)
+   * @return the integer mask for use in C
+   */
+  @SafeVarargs
+  static <M extends MaskedFlag> int mask(final boolean onlyPropagatedToLmdb, final M... flags) {
+    return flags == null ? 0 : mask(onlyPropagatedToLmdb, Arrays.stream(flags));
+  }
+
+  /**
+   * Fetch the integer mask for all presented flags.
+   *
+   * @param onlyPropagatedToLmdb if to include only the flags which are also propagate to the C code or all of them
+   * @return the integer mask for use in C
+   */
+  static <M extends MaskedFlag> int mask(final boolean onlyPropagatedToLmdb, final Stream<M> flags) {
+    final Predicate<M> filter = onlyPropagatedToLmdb ? MaskedFlag::isPropagatedToLmdb : f -> true;
+
+    return flags == null ? 0 : flags.filter(Objects::nonNull).filter(filter).map(M::getMask).reduce(0, (f1, f2) -> f1 | f2);
   }
 
   /**
