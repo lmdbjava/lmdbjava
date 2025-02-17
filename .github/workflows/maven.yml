@@ -40,7 +40,9 @@ jobs:
           src/main/resources/org/lmdbjava/*.dll
 
     - name: Upload code coverage to Codecov
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v5
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_ORG_TOKEN }}
 
   compatibility-checks:
     name: Java ${{ matrix.java }} on ${{ matrix.os }} Compatibility

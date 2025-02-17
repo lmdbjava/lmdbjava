@@ -1,23 +1,18 @@
-/*-
- * #%L
- * LmdbJava
- * %%
- * Copyright (C) 2016 - 2023 The LmdbJava Open Source Project
- * %%
+/*
+ * Copyright © 2016-2025 The LmdbJava Open Source Project
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
- *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * #L%
  */
-
 package org.lmdbjava;
 
 import static com.jakewharton.byteunits.BinaryByteUnit.MEBIBYTES;
@@ -69,7 +64,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
-
 import org.agrona.concurrent.UnsafeBuffer;
 import org.hamcrest.Matchers;
 import org.junit.After;
@@ -83,13 +77,10 @@ import org.lmdbjava.Env.AlreadyClosedException;
 import org.lmdbjava.Env.MapFullException;
 import org.lmdbjava.LmdbNativeException.ConstantDerivedException;
 
-/**
- * Test {@link Dbi}.
- */
+/** Test {@link Dbi}. */
 public final class DbiTest {
 
-  @Rule
-  public final TemporaryFolder tmp = new TemporaryFolder();
+  @Rule public final TemporaryFolder tmp = new TemporaryFolder();
   private Env<ByteBuffer> env;
 
   @After
@@ -100,11 +91,12 @@ public final class DbiTest {
   @Before
   public void before() throws IOException {
     final File path = tmp.newFile();
-    env = create()
-        .setMapSize(MEBIBYTES.toBytes(64))
-        .setMaxReaders(2)
-        .setMaxDbs(2)
-        .open(path, MDB_NOSUBDIR);
+    env =
+        create()
+            .setMapSize(MEBIBYTES.toBytes(64))
+            .setMaxReaders(2)
+            .setMaxDbs(2)
+            .open(path, MDB_NOSUBDIR);
   }
 
   @Test(expected = ConstantDerivedException.class)
@@ -117,13 +109,14 @@ public final class DbiTest {
 
   @Test
   public void customComparator() {
-    final Comparator<ByteBuffer> reverseOrder = (o1, o2) -> {
-      final int lexical = PROXY_OPTIMAL.getComparator().compare(o1, o2);
-      if (lexical == 0) {
-        return 0;
-      }
-      return lexical * -1;
-    };
+    final Comparator<ByteBuffer> reverseOrder =
+        (o1, o2) -> {
+          final int lexical = PROXY_OPTIMAL.getComparator().compare(o1, o2);
+          if (lexical == 0) {
+            return 0;
+          }
+          return lexical * -1;
+        };
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, reverseOrder, true, MDB_CREATE);
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
       assertThat(db.put(txn, bb(2), bb(3)), is(true));
@@ -133,7 +126,7 @@ public final class DbiTest {
       txn.commit();
     }
     try (Txn<ByteBuffer> txn = env.txnRead();
-         CursorIterable<ByteBuffer> ci = db.iterate(txn, atMost(bb(4)))) {
+        CursorIterable<ByteBuffer> ci = db.iterate(txn, atMost(bb(4)))) {
       final Iterator<KeyVal<ByteBuffer>> iter = ci.iterator();
       assertThat(iter.next().key().getInt(), is(8));
       assertThat(iter.next().key().getInt(), is(6));
@@ -142,7 +135,6 @@ public final class DbiTest {
   }
 
   @Test(expected = DbFullException.class)
-  @SuppressWarnings("ResultOfObjectAllocationIgnored")
   public void dbOpenMaxDatabases() {
     env.openDbi("db1 is OK", MDB_CREATE);
     env.openDbi("db2 is OK", MDB_CREATE);
@@ -159,13 +151,15 @@ public final class DbiTest {
 
     final ExecutorService pool = Executors.newCachedThreadPool();
     final AtomicBoolean proceed = new AtomicBoolean(true);
-    final Future<?> reader = pool.submit(() -> {
-      while (proceed.get()) {
-        try (Txn<ByteBuffer> txn = env.txnRead()) {
-          db.get(txn, bb(50));
-        }
-      }
-    });
+    final Future<?> reader =
+        pool.submit(
+            () -> {
+              while (proceed.get()) {
+                try (Txn<ByteBuffer> txn = env.txnRead()) {
+                  db.get(txn, bb(50));
+                }
+              }
+            });
 
     for (final Integer key : keys) {
       try (Txn<ByteBuffer> txn = env.txnWrite()) {
@@ -175,7 +169,7 @@ public final class DbiTest {
     }
 
     try (Txn<ByteBuffer> txn = env.txnRead();
-         CursorIterable<ByteBuffer> ci = db.iterate(txn)) {
+        CursorIterable<ByteBuffer> ci = db.iterate(txn)) {
       final Iterator<KeyVal<ByteBuffer>> iter = ci.iterator();
       final List<Integer> result = new ArrayList<>();
       while (iter.hasNext()) {
@@ -255,8 +249,8 @@ public final class DbiTest {
 
   @Test
   public void getNamesWhenDbisPresent() {
-    final byte[] dbHello = new byte[]{'h', 'e', 'l', 'l', 'o'};
-    final byte[] dbWorld = new byte[]{'w', 'o', 'r', 'l', 'd'};
+    final byte[] dbHello = new byte[] {'h', 'e', 'l', 'l', 'o'};
+    final byte[] dbWorld = new byte[] {'w', 'o', 'r', 'l', 'd'};
     env.openDbi(dbHello, MDB_CREATE);
     env.openDbi(dbWorld, MDB_CREATE);
     final List<byte[]> dbiNames = env.getDbiNames();
@@ -273,8 +267,7 @@ public final class DbiTest {
 
   @Test
   public void listsFlags() {
-    final Dbi<ByteBuffer> dbi = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT,
-                                            MDB_REVERSEKEY);
+    final Dbi<ByteBuffer> dbi = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT, MDB_REVERSEKEY);
 
     try (Txn<ByteBuffer> txn = env.txnRead()) {
       final List<DbiFlags> flags = dbi.listFlags(txn);
@@ -332,11 +325,12 @@ public final class DbiTest {
   @Test
   public void putCommitGetByteArray() throws IOException {
     final File path = tmp.newFile();
-    try (Env<byte[]> envBa = create(PROXY_BA)
-        .setMapSize(MEBIBYTES.toBytes(64))
-        .setMaxReaders(1)
-        .setMaxDbs(2)
-        .open(path, MDB_NOSUBDIR)) {
+    try (Env<byte[]> envBa =
+        create(PROXY_BA)
+            .setMapSize(MEBIBYTES.toBytes(64))
+            .setMaxReaders(1)
+            .setMaxDbs(2)
+            .open(path, MDB_NOSUBDIR)) {
       final Dbi<byte[]> db = envBa.openDbi(DB_1, MDB_CREATE);
       try (Txn<byte[]> txn = envBa.txnWrite()) {
         db.put(txn, ba(5), ba(5));
@@ -464,7 +458,6 @@ public final class DbiTest {
   }
 
   @Test(expected = MapFullException.class)
-  @SuppressWarnings("PMD.PreserveStackTrace")
   public void testMapFullException() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
@@ -489,11 +482,12 @@ public final class DbiTest {
 
     // Travis CI has 1.5 cores for legacy builds
     nCopies(2, null).parallelStream()
-        .forEach(ignored -> {
-          for (int i = 0; i < 15_000; i++) {
-            db.put(bb(i), bb(i));
-          }
-        });
+        .forEach(
+            ignored -> {
+              for (int i = 0; i < 15_000; i++) {
+                db.put(bb(i), bb(i));
+              }
+            });
   }
 
   @Test(expected = AlreadyClosedException.class)
@@ -504,26 +498,22 @@ public final class DbiTest {
 
   @Test(expected = AlreadyClosedException.class)
   public void closedEnvRejectsCloseCall() {
-    doEnvClosedTest(
-        null,
-        (db, txn) -> db.close());
+    doEnvClosedTest(null, (db, txn) -> db.close());
   }
 
   @Test(expected = AlreadyClosedException.class)
   public void closedEnvRejectsGetCall() {
     doEnvClosedTest(
         (db, txn) -> {
-        final ByteBuffer valBuf = db.get(txn, bb(1));
-        assertThat(valBuf.getInt(), is(10));
-      },
+          final ByteBuffer valBuf = db.get(txn, bb(1));
+          assertThat(valBuf.getInt(), is(10));
+        },
         (db, txn) -> db.get(txn, bb(2)));
   }
 
   @Test(expected = AlreadyClosedException.class)
   public void closedEnvRejectsPutCall() {
-    doEnvClosedTest(
-        null,
-        (db, txn) -> db.put(bb(5), bb(50)));
+    doEnvClosedTest(null, (db, txn) -> db.put(bb(5), bb(50)));
   }
 
   @Test(expected = AlreadyClosedException.class)
@@ -531,8 +521,8 @@ public final class DbiTest {
     doEnvClosedTest(
         null,
         (db, txn) -> {
-        db.put(txn, bb(5), bb(50));
-      });
+          db.put(txn, bb(5), bb(50));
+        });
   }
 
   @Test(expected = AlreadyClosedException.class)
@@ -542,30 +532,22 @@ public final class DbiTest {
 
   @Test(expected = AlreadyClosedException.class)
   public void closedEnvRejectsDropCall() {
-    doEnvClosedTest(
-        null,
-        Dbi::drop);
+    doEnvClosedTest(null, Dbi::drop);
   }
 
   @Test(expected = AlreadyClosedException.class)
   public void closedEnvRejectsDropAndDeleteCall() {
-    doEnvClosedTest(
-        null,
-        (db, txn) -> db.drop(txn, true));
+    doEnvClosedTest(null, (db, txn) -> db.drop(txn, true));
   }
 
   @Test(expected = AlreadyClosedException.class)
   public void closedEnvRejectsOpenCursorCall() {
-    doEnvClosedTest(
-        null,
-        Dbi::openCursor);
+    doEnvClosedTest(null, Dbi::openCursor);
   }
 
   @Test(expected = AlreadyClosedException.class)
   public void closedEnvRejectsReserveCall() {
-    doEnvClosedTest(
-        null,
-        (db, txn) -> db.reserve(txn, bb(1), 32, MDB_NOOVERWRITE));
+    doEnvClosedTest(null, (db, txn) -> db.reserve(txn, bb(1), 32, MDB_NOOVERWRITE));
   }
 
   @Test(expected = AlreadyClosedException.class)
@@ -596,5 +578,4 @@ public final class DbiTest {
       }
     }
   }
-
 }

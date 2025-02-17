@@ -1,23 +1,18 @@
-/*-
- * #%L
- * LmdbJava
- * %%
- * Copyright (C) 2016 - 2023 The LmdbJava Open Source Project
- * %%
+/*
+ * Copyright © 2016-2025 The LmdbJava Open Source Project
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
- *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * #L%
  */
-
 package org.lmdbjava;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -45,7 +40,6 @@ import static org.lmdbjava.KeyRangeType.IteratorOp.TERMINATE;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.lmdbjava.KeyRangeType.CursorOp;
@@ -54,10 +48,8 @@ import org.lmdbjava.KeyRangeType.IteratorOp;
 /**
  * Test {@link KeyRange}.
  *
- * <p>
- * This test case focuses on the contractual correctness detailed in
- * {@link KeyRangeType}. It does this using integers as per the JavaDoc
- * examples.
+ * <p>This test case focuses on the contractual correctness detailed in {@link KeyRangeType}. It
+ * does this using integers as per the JavaDoc examples.
  */
 public final class KeyRangeTest {
 
@@ -203,8 +195,7 @@ public final class KeyRangeTest {
 
     IteratorOp op;
     do {
-      op = range.getType().iteratorOp(range.getStart(), range.getStop(), buff,
-                                      Integer::compare);
+      op = range.getType().iteratorOp(range.getStart(), range.getStop(), buff, Integer::compare);
       switch (op) {
         case CALL_NEXT_OP:
           buff = cursor.apply(range.getType().nextOp(), range.getStart());
@@ -229,13 +220,12 @@ public final class KeyRangeTest {
   /**
    * Cursor that behaves like an LMDB cursor would.
    *
-   * <p>
-   * We use <code>Integer</code> rather than the primitive to represent a
-   * <code>null</code> buffer.
+   * <p>We use <code>Integer</code> rather than the primitive to represent a <code>null</code>
+   * buffer.
    */
   private static final class FakeCursor {
 
-    private static final int[] KEYS = new int[]{2, 4, 6, 8};
+    private static final int[] KEYS = new int[] {2, 4, 6, 8};
     private int position;
 
     Integer apply(final CursorOp op, final Integer startKey) {
@@ -302,7 +292,5 @@ public final class KeyRangeTest {
     void reset() {
       position = 0;
     }
-
   }
-
 }

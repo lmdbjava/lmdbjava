@@ -1,23 +1,18 @@
-/*-
- * #%L
- * LmdbJava
- * %%
- * Copyright (C) 2016 - 2023 The LmdbJava Open Source Project
- * %%
+/*
+ * Copyright © 2016-2025 The LmdbJava Open Source Project
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
- *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * #L%
  */
-
 package org.lmdbjava;
 
 import static jnr.constants.ConstantSet.getConstantSet;
@@ -31,16 +26,12 @@ import org.lmdbjava.Txn.TxFullException;
 /**
  * Maps a LMDB C result code to the equivalent Java exception.
  *
- * <p>
- * The immutable nature of all LMDB exceptions means the mapper internally
- * maintains a table of them.
+ * <p>The immutable nature of all LMDB exceptions means the mapper internally maintains a table of
+ * them.
  */
-@SuppressWarnings("PMD.CyclomaticComplexity")
 final class ResultCodeMapper {
 
-  /**
-   * Successful result.
-   */
+  /** Successful result. */
   static final int MDB_SUCCESS = 0;
 
   private static final ConstantSet CONSTANTS;
@@ -50,8 +41,7 @@ final class ResultCodeMapper {
     CONSTANTS = getConstantSet(POSIX_ERR_NO);
   }
 
-  private ResultCodeMapper() {
-  }
+  private ResultCodeMapper() {}
 
   /**
    * Checks the result code and raises an exception is not {@link #MDB_SUCCESS}.
@@ -113,5 +103,4 @@ final class ResultCodeMapper {
     final String msg = constant.name() + " " + constant.toString();
     throw new LmdbNativeException.ConstantDerivedException(rc, msg);
   }
-
 }

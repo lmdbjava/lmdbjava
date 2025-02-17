@@ -1,23 +1,18 @@
-/*-
- * #%L
- * LmdbJava
- * %%
- * Copyright (C) 2016 - 2023 The LmdbJava Open Source Project
- * %%
+/*
+ * Copyright © 2016-2025 The LmdbJava Open Source Project
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
- *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * #L%
  */
-
 package org.lmdbjava;
 
 import static com.jakewharton.byteunits.BinaryByteUnit.KIBIBYTES;
@@ -49,7 +44,6 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -65,13 +59,10 @@ import org.lmdbjava.Txn.ReadOnlyRequiredException;
 import org.lmdbjava.Txn.ReadWriteRequiredException;
 import org.lmdbjava.Txn.ResetException;
 
-/**
- * Test {@link Txn}.
- */
+/** Test {@link Txn}. */
 public final class TxnTest {
 
-  @Rule
-  public final TemporaryFolder tmp = new TemporaryFolder();
+  @Rule public final TemporaryFolder tmp = new TemporaryFolder();
   private Env<ByteBuffer> env;
   private File path;
 
@@ -83,11 +74,12 @@ public final class TxnTest {
   @Before
   public void before() throws IOException {
     path = tmp.newFile();
-    env = create()
-        .setMapSize(KIBIBYTES.toBytes(256))
-        .setMaxReaders(1)
-        .setMaxDbs(2)
-        .open(path, POSIX_MODE, MDB_NOSUBDIR);
+    env =
+        create()
+            .setMapSize(KIBIBYTES.toBytes(256))
+            .setMaxReaders(1)
+            .setMaxDbs(2)
+            .open(path, POSIX_MODE, MDB_NOSUBDIR);
   }
 
   @Test(expected = BadValueSizeException.class)
@@ -129,16 +121,14 @@ public final class TxnTest {
       }
 
       assertEquals(3, keysFound.size());
-
     }
   }
 
   @Test
   public void readOnlyTxnAllowedInReadOnlyEnv() {
     env.openDbi(DB_1, MDB_CREATE);
-    try (Env<ByteBuffer> roEnv = create()
-        .setMaxReaders(1)
-        .open(path, MDB_NOSUBDIR, MDB_RDONLY_ENV)) {
+    try (Env<ByteBuffer> roEnv =
+        create().setMaxReaders(1).open(path, MDB_NOSUBDIR, MDB_RDONLY_ENV)) {
       assertThat(roEnv.txnRead(), is(notNullValue()));
     }
   }
@@ -147,9 +137,8 @@ public final class TxnTest {
   public void readWriteTxnDeniedInReadOnlyEnv() {
     env.openDbi(DB_1, MDB_CREATE);
     env.close();
-    try (Env<ByteBuffer> roEnv = create()
-        .setMaxReaders(1)
-        .open(path, MDB_NOSUBDIR, MDB_RDONLY_ENV)) {
+    try (Env<ByteBuffer> roEnv =
+        create().setMaxReaders(1).open(path, MDB_NOSUBDIR, MDB_RDONLY_ENV)) {
       roEnv.txnWrite(); // error
     }
   }
@@ -224,7 +213,6 @@ public final class TxnTest {
   }
 
   @Test(expected = AlreadyClosedException.class)
-  @SuppressWarnings("ResultOfObjectAllocationIgnored")
   public void txConstructionDeniedIfEnvClosed() {
     env.close();
     env.txnRead();
@@ -269,7 +257,7 @@ public final class TxnTest {
   @Test
   public void txParent() {
     try (Txn<ByteBuffer> txRoot = env.txnWrite();
-         Txn<ByteBuffer> txChild = env.txn(txRoot)) {
+        Txn<ByteBuffer> txChild = env.txn(txRoot)) {
       assertThat(txRoot.getParent(), is(nullValue()));
       assertThat(txChild.getParent(), is(txRoot));
     }
@@ -278,7 +266,7 @@ public final class TxnTest {
   @Test(expected = AlreadyClosedException.class)
   public void txParentDeniedIfEnvClosed() {
     try (Txn<ByteBuffer> txRoot = env.txnWrite();
-         Txn<ByteBuffer> txChild = env.txn(txRoot)) {
+        Txn<ByteBuffer> txChild = env.txn(txRoot)) {
       env.close();
       assertThat(txChild.getParent(), is(txRoot));
     }
@@ -363,5 +351,4 @@ public final class TxnTest {
     assertThat(key.remaining(), is(0)); // because key.flip() skipped
     dbi.put(key, bb(2));
   }
-
 }

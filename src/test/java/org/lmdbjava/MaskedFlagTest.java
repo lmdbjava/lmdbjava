@@ -1,23 +1,18 @@
-/*-
- * #%L
- * LmdbJava
- * %%
- * Copyright (C) 2016 - 2023 The LmdbJava Open Source Project
- * %%
+/*
+ * Copyright © 2016-2025 The LmdbJava Open Source Project
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
- *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * #L%
  */
-
 package org.lmdbjava;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -31,9 +26,7 @@ import static org.lmdbjava.MaskedFlag.mask;
 
 import org.junit.Test;
 
-/**
- * Test {@link MaskedFlag}.
- */
+/** Test {@link MaskedFlag}. */
 public final class MaskedFlagTest {
 
   @Test
@@ -61,10 +54,10 @@ public final class MaskedFlagTest {
     final EnvFlags[] nullFlags = null;
     assertThat(mask(nullFlags), is(0));
 
-    final EnvFlags[] emptyFlags = new EnvFlags[]{};
+    final EnvFlags[] emptyFlags = new EnvFlags[] {};
     assertThat(mask(emptyFlags), is(0));
 
-    final EnvFlags[] nullElementZero = new EnvFlags[]{null};
+    final EnvFlags[] nullElementZero = new EnvFlags[] {null};
     assertThat(nullElementZero, is(arrayWithSize(1)));
     assertThat(mask(nullElementZero), is(0));
 

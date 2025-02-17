@@ -1,23 +1,18 @@
-/*-
- * #%L
- * LmdbJava
- * %%
- * Copyright (C) 2016 - 2023 The LmdbJava Open Source Project
- * %%
+/*
+ * Copyright © 2016-2025 The LmdbJava Open Source Project
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
- *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * #L%
  */
-
 package org.lmdbjava;
 
 import static java.io.File.createTempFile;
@@ -32,8 +27,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jnr.ffi.Pointer;
 import jnr.ffi.Struct;
 import jnr.ffi.annotations.Delegate;
@@ -47,25 +40,23 @@ import jnr.ffi.types.size_t;
 /**
  * JNR-FFI interface to LMDB.
  *
- * <p>
- * For performance reasons pointers are used rather than structs.
+ * <p>For performance reasons pointers are used rather than structs.
  */
 final class Library {
 
   /**
-   * Java system property name that can be set to the path of an existing
-   * directory into which the LMDB system library will be extracted from the
-   * LmdbJava JAR. If unspecified the LMDB system library is extracted to the
-   * <code>java.io.tmpdir</code>. Ignored if the LMDB system library is not
-   * being extracted from the LmdbJava JAR (as would be the case if other
-   * system properties defined in <code>TargetName</code> have been set).
+   * Java system property name that can be set to the path of an existing directory into which the
+   * LMDB system library will be extracted from the LmdbJava JAR. If unspecified the LMDB system
+   * library is extracted to the <code>java.io.tmpdir</code>. Ignored if the LMDB system library is
+   * not being extracted from the LmdbJava JAR (as would be the case if other system properties
+   * defined in <code>TargetName</code> have been set).
    */
   public static final String LMDB_EXTRACT_DIR_PROP = "lmdbjava.extract.dir";
-  /**
-   * Indicates the directory where the LMDB system library will be extracted.
-   */
-  static final String EXTRACT_DIR = getProperty(LMDB_EXTRACT_DIR_PROP,
-                                                getProperty("java.io.tmpdir"));
+
+  /** Indicates the directory where the LMDB system library will be extracted. */
+  static final String EXTRACT_DIR =
+      getProperty(LMDB_EXTRACT_DIR_PROP, getProperty("java.io.tmpdir"));
+
   static final Lmdb LIB;
   static final jnr.ffi.Runtime RUNTIME;
 
@@ -82,10 +73,8 @@ final class Library {
     RUNTIME = getRuntime(LIB);
   }
 
-  private Library() {
-  }
+  private Library() {}
 
-  @SuppressFBWarnings("OBL_UNSATISFIED_OBLIGATION") // Spotbugs issue #432
   private static String extract(final String name) {
     final String suffix = name.substring(name.lastIndexOf('.'));
     final File file;
@@ -98,7 +87,7 @@ final class Library {
       file.deleteOnExit();
       final ClassLoader cl = currentThread().getContextClassLoader();
       try (InputStream in = cl.getResourceAsStream(name);
-           OutputStream out = Files.newOutputStream(file.toPath())) {
+          OutputStream out = Files.newOutputStream(file.toPath())) {
         requireNonNull(in, "Classpath resource not found");
         int bytes;
         final byte[] buffer = new byte[4_096];
@@ -112,11 +101,7 @@ final class Library {
     }
   }
 
-  /**
-   * Structure to wrap a native <code>MDB_envinfo</code>. Not for external use.
-   */
-  @SuppressWarnings({"checkstyle:TypeName", "checkstyle:VisibilityModifier",
-                     "checkstyle:MemberName"})
+  /** Structure to wrap a native <code>MDB_envinfo</code>. Not for external use. */
   public static final class MDB_envinfo extends Struct {
 
     public final Pointer f0_me_mapaddr;
@@ -137,11 +122,7 @@ final class Library {
     }
   }
 
-  /**
-   * Structure to wrap a native <code>MDB_stat</code>. Not for external use.
-   */
-  @SuppressWarnings({"checkstyle:TypeName", "checkstyle:VisibilityModifier",
-                     "checkstyle:MemberName"})
+  /** Structure to wrap a native <code>MDB_stat</code>. Not for external use. */
   public static final class MDB_stat extends Struct {
 
     public final u_int32_t f0_ms_psize;
@@ -162,20 +143,14 @@ final class Library {
     }
   }
 
-  /**
-   * Custom comparator callback used by <code>mdb_set_compare</code>.
-   */
+  /** Custom comparator callback used by <code>mdb_set_compare</code>. */
   public interface ComparatorCallback {
 
     @Delegate
     int compare(@In Pointer keyA, @In Pointer keyB);
-
   }
 
-  /**
-   * JNR API for MDB-defined C functions. Not for external use.
-   */
-  @SuppressWarnings("checkstyle:MethodName")
+  /** JNR API for MDB-defined C functions. Not for external use. */
   public interface Lmdb {
 
     void mdb_cursor_close(@In Pointer cursor);
@@ -184,27 +159,21 @@ final class Library {
 
     int mdb_cursor_del(@In Pointer cursor, int flags);
 
-    int mdb_cursor_get(@In Pointer cursor, Pointer k, @Out Pointer v,
-                       int cursorOp);
+    int mdb_cursor_get(@In Pointer cursor, Pointer k, @Out Pointer v, int cursorOp);
 
-    int mdb_cursor_open(@In Pointer txn, @In Pointer dbi,
-                        PointerByReference cursorPtr);
+    int mdb_cursor_open(@In Pointer txn, @In Pointer dbi, PointerByReference cursorPtr);
 
-    int mdb_cursor_put(@In Pointer cursor, @In Pointer key, @In Pointer data,
-                       int flags);
+    int mdb_cursor_put(@In Pointer cursor, @In Pointer key, @In Pointer data, int flags);
 
     int mdb_cursor_renew(@In Pointer txn, @In Pointer cursor);
 
     void mdb_dbi_close(@In Pointer env, @In Pointer dbi);
 
-    int mdb_dbi_flags(@In Pointer txn, @In Pointer dbi,
-                      @Out IntByReference flags);
+    int mdb_dbi_flags(@In Pointer txn, @In Pointer dbi, @Out IntByReference flags);
 
-    int mdb_dbi_open(@In Pointer txn, @In byte[] name, int flags,
-                     @In Pointer dbiPtr);
+    int mdb_dbi_open(@In Pointer txn, @In byte[] name, int flags, @In Pointer dbiPtr);
 
-    int mdb_del(@In Pointer txn, @In Pointer dbi, @In Pointer key,
-                @In Pointer data);
+    int mdb_del(@In Pointer txn, @In Pointer dbi, @In Pointer key, @In Pointer data);
 
     int mdb_drop(@In Pointer txn, @In Pointer dbi, int del);
 
@@ -240,12 +209,9 @@ final class Library {
 
     int mdb_env_sync(@In Pointer env, int f);
 
-    int mdb_get(@In Pointer txn, @In Pointer dbi, @In Pointer key,
-                @Out Pointer data);
+    int mdb_get(@In Pointer txn, @In Pointer dbi, @In Pointer key, @Out Pointer data);
 
-    int mdb_put(@In Pointer txn, @In Pointer dbi, @In Pointer key,
-                @In Pointer data,
-                int flags);
+    int mdb_put(@In Pointer txn, @In Pointer dbi, @In Pointer key, @In Pointer data, int flags);
 
     int mdb_reader_check(@In Pointer env, @Out IntByReference dead);
 
@@ -257,8 +223,7 @@ final class Library {
 
     void mdb_txn_abort(@In Pointer txn);
 
-    int mdb_txn_begin(@In Pointer env, @In Pointer parentTx, int flags,
-                      Pointer txPtr);
+    int mdb_txn_begin(@In Pointer env, @In Pointer parentTx, int flags, Pointer txPtr);
 
     int mdb_txn_commit(@In Pointer txn);
 
@@ -270,8 +235,6 @@ final class Library {
 
     void mdb_txn_reset(@In Pointer txn);
 
-    Pointer mdb_version(IntByReference major, IntByReference minor,
-                        IntByReference patch);
-
+    Pointer mdb_version(IntByReference major, IntByReference minor, IntByReference patch);
   }
 }

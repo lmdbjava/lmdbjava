@@ -73,6 +73,11 @@ system package managers, running `cross-compile.sh` on a supported system, or
 copying it from the `org/lmdbjava` directory of any recent, officially released
 LmdbJava JAR.
 
+### Releasing
+
+GitHub Actions will perform an official release whenever a developer executes
+`mvn release:clean release:prepare`.
+
 ### Contributing
 
 Contributions are welcome! Please see the [Contributing Guidelines](CONTRIBUTING.md).
