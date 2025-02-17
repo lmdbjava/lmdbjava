@@ -7,11 +7,13 @@ This will run:
 
 * Tests
 * Initial Test Coverage
-* Checkstyle
-* PMD
-* FindBugs
-* XML Formatting
+* Source Code Formatting
 * License Header Management
 
 `mvn clean verify` is also run by CI, but it's quicker and easier to run
 before submitting.
+
+### Releasing
+
+GitHub Actions will perform an official release whenever a developer executes
+`mvn release:clean release:prepare`.
