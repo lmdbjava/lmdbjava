@@ -20,7 +20,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.lmdbjava</groupId>
   <artifactId>lmdbjava</artifactId>
-  <version>0.9.1-SNAPSHOT</version>
+  <version>0.9.1</version>
   <packaging>jar</packaging>
   <name>LmdbJava</name>
   <description>Low latency Java API for the ultra-fast, embedded Symas Lightning Database (LMDB)</description>
@@ -184,19 +184,19 @@
             </goals>
             <configuration>
               <rules>
-                <dependencyConvergence/>
+                <dependencyConvergence />
                 <requireMavenVersion>
                   <version>[${maven.enforcer.mvn},)</version>
                 </requireMavenVersion>
                 <requireJavaVersion>
                   <version>[${maven.enforcer.java},)</version>
                 </requireJavaVersion>
-                <requireNoRepositories/>
-                <requirePluginVersions/>
+                <requireNoRepositories />
+                <requirePluginVersions />
                 <requireReleaseDeps>
                   <onlyWhenRelease>true</onlyWhenRelease>
                 </requireReleaseDeps>
-                <requireUpperBoundDeps/>
+                <requireUpperBoundDeps />
               </rules>
             </configuration>
           </execution>
@@ -351,7 +351,7 @@
       <name>Kristoffer Sjogren</name>
       <email>stoffe -at- gmail.com</email>
       <url>http://stoffe.deephacks.org/</url>
-      <organization/>
+      <organization />
       <timezone>+1</timezone>
     </developer>
     <developer>
@@ -367,7 +367,7 @@
     <connection>scm:git:git@github.com:lmdbjava/lmdbjava.git</connection>
     <developerConnection>scm:git:git@github.com:lmdbjava/lmdbjava.git</developerConnection>
     <url>git@github.com:lmdbjava/lmdbjava.git</url>
-    <tag>HEAD</tag>
+    <tag>lmdbjava-0.9.1</tag>
   </scm>
   <issueManagement>
     <system>GitHub Issues</system>
