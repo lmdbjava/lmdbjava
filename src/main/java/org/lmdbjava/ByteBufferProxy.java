@@ -1,23 +1,18 @@
-/*-
- * #%L
- * LmdbJava
- * %%
- * Copyright (C) 2016 - 2023 The LmdbJava Open Source Project
- * %%
+/*
+ * Copyright © 2016-2025 The LmdbJava Open Source Project
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
- *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * #L%
  */
-
 package org.lmdbjava;
 
 import static java.lang.Long.reverseBytes;
@@ -26,10 +21,7 @@ import static java.nio.ByteBuffer.allocateDirect;
 import static java.nio.ByteOrder.BIG_ENDIAN;
 import static java.nio.ByteOrder.LITTLE_ENDIAN;
 import static java.util.Objects.requireNonNull;
-import static org.lmdbjava.DbiFlags.MDB_INTEGERKEY;
 import static org.lmdbjava.Env.SHOULD_CHECK;
-import static org.lmdbjava.MaskedFlag.isSet;
-import static org.lmdbjava.MaskedFlag.mask;
 import static org.lmdbjava.UnsafeAccess.UNSAFE;
 
 import java.lang.reflect.Field;
@@ -37,38 +29,32 @@ import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.util.ArrayDeque;
 import java.util.Comparator;
-
 import jnr.ffi.Pointer;
 
 /**
  * {@link ByteBuffer}-based proxy.
  *
- * <p>
- * There are two concrete {@link ByteBuffer} proxy implementations available:
+ * <p>There are two concrete {@link ByteBuffer} proxy implementations available:
+ *
  * <ul>
- * <li>A "fast" implementation: {@link UnsafeProxy}</li>
- * <li>A "safe" implementation: {@link ReflectiveProxy}</li>
+ *   <li>A "fast" implementation: {@link UnsafeProxy}
+ *   <li>A "safe" implementation: {@link ReflectiveProxy}
  * </ul>
  *
- * <p>
- * Users nominate which implementation they prefer by referencing the
- * {@link #PROXY_OPTIMAL} or {@link #PROXY_SAFE} field when invoking
- * {@link Env#create(org.lmdbjava.BufferProxy)}.
+ * <p>Users nominate which implementation they prefer by referencing the {@link #PROXY_OPTIMAL} or
+ * {@link #PROXY_SAFE} field when invoking {@link Env#create(org.lmdbjava.BufferProxy)}.
  */
 public final class ByteBufferProxy {
 
   /**
-   * The fastest {@link ByteBuffer} proxy that is available on this platform.
-   * This will always be the same instance as {@link #PROXY_SAFE} if the
-   * {@link UnsafeAccess#DISABLE_UNSAFE_PROP} has been set to <code>true</code>
-   * and/or {@link UnsafeAccess} is unavailable. Guaranteed to never be null.
+   * The fastest {@link ByteBuffer} proxy that is available on this platform. This will always be
+   * the same instance as {@link #PROXY_SAFE} if the {@link UnsafeAccess#DISABLE_UNSAFE_PROP} has
+   * been set to <code>true</code> and/or {@link UnsafeAccess} is unavailable. Guaranteed to never
+   * be null.
    */
   public static final BufferProxy<ByteBuffer> PROXY_OPTIMAL;
 
-  /**
-   * The safe, reflective {@link ByteBuffer} proxy for this system. Guaranteed
-   * to never be null.
-   */
+  /** The safe, reflective {@link ByteBuffer} proxy for this system. Guaranteed to never be null. */
   public static final BufferProxy<ByteBuffer> PROXY_SAFE;
 
   static {
@@ -76,8 +62,7 @@ public final class ByteBufferProxy {
     PROXY_OPTIMAL = getProxyOptimal();
   }
 
-  private ByteBufferProxy() {
-  }
+  private ByteBufferProxy() {}
 
   private static BufferProxy<ByteBuffer> getProxyOptimal() {
     try {
@@ -87,37 +72,42 @@ public final class ByteBufferProxy {
     }
   }
 
-  /**
-   * The buffer must be a direct buffer (not heap allocated).
-   */
+  /** The buffer must be a direct buffer (not heap allocated). */
   public static final class BufferMustBeDirectException extends LmdbException {
 
     private static final long serialVersionUID = 1L;
 
-    /**
-     * Creates a new instance.
-     */
+    /** Creates a new instance. */
     public BufferMustBeDirectException() {
       super("The buffer must be a direct buffer (not heap allocated");
     }
   }
 
   /**
-   * Provides {@link ByteBuffer} pooling and address resolution for concrete
-   * {@link BufferProxy} implementations.
+   * Provides {@link ByteBuffer} pooling and address resolution for concrete {@link BufferProxy}
+   * implementations.
    */
   abstract static class AbstractByteBufferProxy extends BufferProxy<ByteBuffer> {
 
     protected static final String FIELD_NAME_ADDRESS = "address";
     protected static final String FIELD_NAME_CAPACITY = "capacity";
 
+    private static final Comparator<ByteBuffer> signedComparator =
+        (o1, o2) -> {
+          requireNonNull(o1);
+          requireNonNull(o2);
+
+          return o1.compareTo(o2);
+        };
+    private static final Comparator<ByteBuffer> unsignedComparator =
+        AbstractByteBufferProxy::compareBuff;
+
     /**
-     * A thread-safe pool for a given length. If the buffer found is valid (ie
-     * not of a negative length) then that buffer is used. If no valid buffer is
-     * found, a new buffer is created.
+     * A thread-safe pool for a given length. If the buffer found is valid (ie not of a negative
+     * length) then that buffer is used. If no valid buffer is found, a new buffer is created.
      */
-    private static final ThreadLocal<ArrayDeque<ByteBuffer>> BUFFERS
-        = withInitial(() -> new ArrayDeque<>(16));
+    private static final ThreadLocal<ArrayDeque<ByteBuffer>> BUFFERS =
+        withInitial(() -> new ArrayDeque<>(16));
 
     /**
      * Lexicographically compare two buffers.
@@ -126,7 +116,6 @@ public final class ByteBufferProxy {
      * @param o2 right operand (required)
      * @return as specified by {@link Comparable} interface
      */
-    @SuppressWarnings("PMD.CyclomaticComplexity")
     public static int compareBuff(final ByteBuffer o1, final ByteBuffer o2) {
       requireNonNull(o1);
       requireNonNull(o2);
@@ -193,22 +182,13 @@ public final class ByteBufferProxy {
     }
 
     @Override
-    protected Comparator<ByteBuffer> getComparator(final DbiFlags... flags) {
-      final int flagInt = mask(flags);
-      if (isSet(flagInt, MDB_INTEGERKEY)) {
-        return this::compareCustom;
-      }
-      return this::compareDefault;
+    protected Comparator<ByteBuffer> getSignedComparator() {
+      return signedComparator;
     }
 
-    protected final int compareDefault(final ByteBuffer o1,
-                                       final ByteBuffer o2) {
-      return o1.compareTo(o2);
-    }
-
-    protected final int compareCustom(final ByteBuffer o1,
-                                      final ByteBuffer o2) {
-      return compareBuff(o1, o2);
+    @Override
+    protected Comparator<ByteBuffer> getUnsignedComparator() {
+      return unsignedComparator;
     }
 
     @Override
@@ -224,12 +204,11 @@ public final class ByteBufferProxy {
       buffer.get(dest, 0, buffer.limit());
       return dest;
     }
-
   }
 
   /**
-   * A proxy that uses Java reflection to modify byte buffer fields, and
-   * official JNR-FFF methods to manipulate native pointers.
+   * A proxy that uses Java reflection to modify byte buffer fields, and official JNR-FFF methods to
+   * manipulate native pointers.
    */
   private static final class ReflectiveProxy extends AbstractByteBufferProxy {
 
@@ -242,22 +221,20 @@ public final class ByteBufferProxy {
     }
 
     @Override
-    protected void in(final ByteBuffer buffer, final Pointer ptr,
-                      final long ptrAddr) {
+    protected void in(final ByteBuffer buffer, final Pointer ptr, final long ptrAddr) {
       ptr.putAddress(STRUCT_FIELD_OFFSET_DATA, address(buffer));
       ptr.putLong(STRUCT_FIELD_OFFSET_SIZE, buffer.remaining());
     }
 
     @Override
-    protected void in(final ByteBuffer buffer, final int size, final Pointer ptr,
-                      final long ptrAddr) {
+    protected void in(
+        final ByteBuffer buffer, final int size, final Pointer ptr, final long ptrAddr) {
       ptr.putLong(STRUCT_FIELD_OFFSET_SIZE, size);
       ptr.putAddress(STRUCT_FIELD_OFFSET_DATA, address(buffer));
     }
 
     @Override
-    protected ByteBuffer out(final ByteBuffer buffer, final Pointer ptr,
-                             final long ptrAddr) {
+    protected ByteBuffer out(final ByteBuffer buffer, final Pointer ptr, final long ptrAddr) {
       final long addr = ptr.getAddress(STRUCT_FIELD_OFFSET_DATA);
       final long size = ptr.getLong(STRUCT_FIELD_OFFSET_SIZE);
       try {
@@ -269,12 +246,11 @@ public final class ByteBufferProxy {
       buffer.clear();
       return buffer;
     }
-
   }
 
   /**
-   * A proxy that uses Java's "unsafe" class to directly manipulate byte buffer
-   * fields and JNR-FFF allocated memory pointers.
+   * A proxy that uses Java's "unsafe" class to directly manipulate byte buffer fields and JNR-FFF
+   * allocated memory pointers.
    */
   private static final class UnsafeProxy extends AbstractByteBufferProxy {
 
@@ -293,22 +269,20 @@ public final class ByteBufferProxy {
     }
 
     @Override
-    protected void in(final ByteBuffer buffer, final Pointer ptr,
-                      final long ptrAddr) {
+    protected void in(final ByteBuffer buffer, final Pointer ptr, final long ptrAddr) {
       UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE, buffer.remaining());
       UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_DATA, address(buffer));
     }
 
     @Override
-    protected void in(final ByteBuffer buffer, final int size, final Pointer ptr,
-                      final long ptrAddr) {
+    protected void in(
+        final ByteBuffer buffer, final int size, final Pointer ptr, final long ptrAddr) {
       UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE, size);
       UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_DATA, address(buffer));
     }
 
     @Override
-    protected ByteBuffer out(final ByteBuffer buffer, final Pointer ptr,
-                             final long ptrAddr) {
+    protected ByteBuffer out(final ByteBuffer buffer, final Pointer ptr, final long ptrAddr) {
       final long addr = UNSAFE.getLong(ptrAddr + STRUCT_FIELD_OFFSET_DATA);
       final long size = UNSAFE.getLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE);
       UNSAFE.putLong(buffer, ADDRESS_OFFSET, addr);
@@ -317,5 +291,4 @@ public final class ByteBufferProxy {
       return buffer;
     }
   }
-
 }

@@ -1,23 +1,18 @@
-/*-
- * #%L
- * LmdbJava
- * %%
- * Copyright (C) 2016 - 2023 The LmdbJava Open Source Project
- * %%
+/*
+ * Copyright © 2016-2025 The LmdbJava Open Source Project
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
- *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * #L%
  */
-
 package org.lmdbjava;
 
 import static java.lang.Integer.BYTES;
@@ -45,7 +40,6 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
-
 import jnr.ffi.Pointer;
 import jnr.ffi.provider.MemoryManager;
 import org.junit.Rule;
@@ -54,22 +48,17 @@ import org.junit.rules.TemporaryFolder;
 import org.lmdbjava.ByteBufferProxy.BufferMustBeDirectException;
 import org.lmdbjava.Env.ReadersFullException;
 
-/**
- * Test {@link ByteBufferProxy}.
- */
+/** Test {@link ByteBufferProxy}. */
 public final class ByteBufferProxyTest {
 
   static final MemoryManager MEM_MGR = RUNTIME.getMemoryManager();
 
-  @Rule
-  public final TemporaryFolder tmp = new TemporaryFolder();
+  @Rule public final TemporaryFolder tmp = new TemporaryFolder();
 
   @Test(expected = BufferMustBeDirectException.class)
   public void buffersMustBeDirect() throws IOException {
     final File path = tmp.newFolder();
-    try (Env<ByteBuffer> env = create()
-        .setMaxReaders(1)
-        .open(path)) {
+    try (Env<ByteBuffer> env = create().setMaxReaders(1).open(path)) {
       final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
       final ByteBuffer key = allocate(100);
       key.putInt(1).flip();
@@ -159,5 +148,4 @@ public final class ByteBufferProxyTest {
     assertThat(bb.getInt(), is(3));
     assertThat(bb.remaining(), is(0));
   }
-
 }

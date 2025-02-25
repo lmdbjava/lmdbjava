@@ -1,49 +1,42 @@
-/*-
- * #%L
- * LmdbJava
- * %%
- * Copyright (C) 2016 - 2023 The LmdbJava Open Source Project
- * %%
+/*
+ * Copyright © 2016-2025 The LmdbJava Open Source Project
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
- *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * #L%
  */
-
 package org.lmdbjava;
 
 import static io.netty.buffer.PooledByteBufAllocator.DEFAULT;
 import static java.lang.Class.forName;
+import static java.util.Objects.requireNonNull;
 import static org.lmdbjava.UnsafeAccess.UNSAFE;
-
-import java.lang.reflect.Field;
-import java.util.Comparator;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
+import java.lang.reflect.Field;
+import java.util.Comparator;
 import jnr.ffi.Pointer;
 
 /**
  * A buffer proxy backed by Netty's {@link ByteBuf}.
  *
- * <p>
- * This class requires {@link UnsafeAccess} and netty-buffer must be in the
- * classpath.
+ * <p>This class requires {@link UnsafeAccess} and netty-buffer must be in the classpath.
  */
 public final class ByteBufProxy extends BufferProxy<ByteBuf> {
 
   /**
-   * A proxy for using Netty {@link ByteBuf}. Guaranteed to never be null,
-   * although a class initialization exception will occur if an attempt is made
-   * to access this field when Netty is unavailable.
+   * A proxy for using Netty {@link ByteBuf}. Guaranteed to never be null, although a class
+   * initialization exception will occur if an attempt is made to access this field when Netty is
+   * unavailable.
    */
   public static final BufferProxy<ByteBuf> PROXY_NETTY = new ByteBufProxy();
 
@@ -51,16 +44,29 @@ public final class ByteBufProxy extends BufferProxy<ByteBuf> {
   private static final String FIELD_NAME_ADDRESS = "memoryAddress";
   private static final String FIELD_NAME_LENGTH = "length";
   private static final String NAME = "io.netty.buffer.PooledUnsafeDirectByteBuf";
+  private static final Comparator<ByteBuf> comparator =
+      (o1, o2) -> {
+        requireNonNull(o1);
+        requireNonNull(o2);
+
+        return o1.compareTo(o2);
+      };
   private final long lengthOffset;
   private final long addressOffset;
-  
+
   private final PooledByteBufAllocator nettyAllocator;
 
   private ByteBufProxy() {
     this(DEFAULT);
   }
 
+  /**
+   * Constructs a buffer proxy for use with Netty.
+   *
+   * @param allocator the Netty allocator to obtain the {@link ByteBuf} from
+   */
   public ByteBufProxy(final PooledByteBufAllocator allocator) {
+    super();
     this.nettyAllocator = allocator;
 
     try {
@@ -107,13 +113,14 @@ public final class ByteBufProxy extends BufferProxy<ByteBuf> {
     throw new IllegalStateException("Netty buffer must be " + NAME);
   }
 
-  protected int compare(final ByteBuf o1, final ByteBuf o2) {
-    return o1.compareTo(o2);
+  @Override
+  protected Comparator<ByteBuf> getSignedComparator() {
+    return comparator;
   }
 
   @Override
-  protected Comparator<ByteBuf> getComparator(final DbiFlags... flags) {
-    return this::compare;
+  protected Comparator<ByteBuf> getUnsignedComparator() {
+    return comparator;
   }
 
   @Override
@@ -130,24 +137,20 @@ public final class ByteBufProxy extends BufferProxy<ByteBuf> {
 
   @Override
   protected void in(final ByteBuf buffer, final Pointer ptr, final long ptrAddr) {
-    UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE,
-                   buffer.writerIndex() - buffer.readerIndex());
-    UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_DATA,
-                   buffer.memoryAddress() + buffer.readerIndex());
+    UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE, buffer.writerIndex() - buffer.readerIndex());
+    UNSAFE.putLong(
+        ptrAddr + STRUCT_FIELD_OFFSET_DATA, buffer.memoryAddress() + buffer.readerIndex());
   }
 
   @Override
-  protected void in(final ByteBuf buffer, final int size, final Pointer ptr,
-                    final long ptrAddr) {
-    UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE,
-                   size);
-    UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_DATA,
-                   buffer.memoryAddress() + buffer.readerIndex());
+  protected void in(final ByteBuf buffer, final int size, final Pointer ptr, final long ptrAddr) {
+    UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE, size);
+    UNSAFE.putLong(
+        ptrAddr + STRUCT_FIELD_OFFSET_DATA, buffer.memoryAddress() + buffer.readerIndex());
   }
 
   @Override
-  protected ByteBuf out(final ByteBuf buffer, final Pointer ptr,
-                        final long ptrAddr) {
+  protected ByteBuf out(final ByteBuf buffer, final Pointer ptr, final long ptrAddr) {
     final long addr = UNSAFE.getLong(ptrAddr + STRUCT_FIELD_OFFSET_DATA);
     final long size = UNSAFE.getLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE);
     UNSAFE.putLong(buffer, addressOffset, addr);

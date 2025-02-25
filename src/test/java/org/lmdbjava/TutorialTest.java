@@ -1,23 +1,18 @@
-/*-
- * #%L
- * LmdbJava
- * %%
- * Copyright (C) 2016 - 2023 The LmdbJava Open Source Project
- * %%
+/*
+ * Copyright © 2016-2025 The LmdbJava Open Source Project
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
- *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * #L%
  */
-
 package org.lmdbjava;
 
 import static java.nio.ByteBuffer.allocateDirect;
@@ -44,7 +39,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.ExecutorService;
-
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -56,25 +50,20 @@ import org.lmdbjava.CursorIterable.KeyVal;
 /**
  * Welcome to LmdbJava!
  *
- * <p>
- * This short tutorial will walk you through using LmdbJava step-by-step.
+ * <p>This short tutorial will walk you through using LmdbJava step-by-step.
  *
- * <p>
- * If you are using a 64-bit Windows, Linux or OS X machine, you can simply run
- * this tutorial by adding the LmdbJava JAR to your classpath. It includes the
- * required system libraries. If you are using another 64-bit platform, you'll
- * need to install the LMDB system library yourself. 32-bit platforms are not
- * supported.
+ * <p>If you are using a 64-bit Windows, Linux or OS X machine, you can simply run this tutorial by
+ * adding the LmdbJava JAR to your classpath. It includes the required system libraries. If you are
+ * using another 64-bit platform, you'll need to install the LMDB system library yourself. 32-bit
+ * platforms are not supported.
  *
- * <p>
- * Start the JVM with arguments <code>--add-opens java.base/java.nio=ALL-UNNAMED
+ * <p>Start the JVM with arguments <code>--add-opens java.base/java.nio=ALL-UNNAMED
  * --add-opens java.base/sun.nio.ch=ALL-UNNAMED</code> to suppress JVM warnings.
  */
 public final class TutorialTest {
 
   private static final String DB_NAME = "my DB";
-  @Rule
-  public final TemporaryFolder tmp = new TemporaryFolder();
+  @Rule public final TemporaryFolder tmp = new TemporaryFolder();
 
   /**
    * In this first tutorial we will use LmdbJava with some basic defaults.
@@ -82,7 +71,6 @@ public final class TutorialTest {
    * @throws IOException if a path was unavailable for memory mapping
    */
   @Test
-  @SuppressWarnings("ConvertToTryWithResources")
   public void tutorial1() throws IOException {
     // We need a storage directory first.
     // The path cannot be on a remote file system.
@@ -90,15 +78,16 @@ public final class TutorialTest {
 
     // We always need an Env. An Env owns a physical on-disk storage file. One
     // Env can store many different databases (ie sorted maps).
-    final Env<ByteBuffer> env = create()
-        // LMDB also needs to know how large our DB might be. Over-estimating is OK.
-        .setMapSize(10_485_760)
-        // LMDB also needs to know how many DBs (Dbi) we want to store in this Env.
-        .setMaxDbs(1)
-        // Now let's open the Env. The same path can be concurrently opened and
-        // used in different processes, but do not open the same path twice in
-        // the same process at the same time.
-        .open(path);
+    final Env<ByteBuffer> env =
+        create()
+            // LMDB also needs to know how large our DB might be. Over-estimating is OK.
+            .setMapSize(10_485_760)
+            // LMDB also needs to know how many DBs (Dbi) we want to store in this Env.
+            .setMaxDbs(1)
+            // Now let's open the Env. The same path can be concurrently opened and
+            // used in different processes, but do not open the same path twice in
+            // the same process at the same time.
+            .open(path);
 
     // We need a Dbi for each DB. A Dbi roughly equates to a sorted map. The
     // MDB_CREATE flag causes the DB to be created if it doesn't already exist.
@@ -149,11 +138,10 @@ public final class TutorialTest {
   /**
    * In this second tutorial we'll learn more about LMDB's ACID Txns.
    *
-   * @throws IOException          if a path was unavailable for memory mapping
+   * @throws IOException if a path was unavailable for memory mapping
    * @throws InterruptedException if executor shutdown interrupted
    */
   @Test
-  @SuppressWarnings("ConvertToTryWithResources")
   public void tutorial2() throws IOException, InterruptedException {
     final Env<ByteBuffer> env = createSimpleEnv(tmp.newFolder());
     final Dbi<ByteBuffer> db = env.openDbi(DB_NAME, MDB_CREATE);
@@ -188,14 +176,15 @@ public final class TutorialTest {
     //
     // Let's write out a "key2" via a new write Txn in a different thread.
     final ExecutorService es = newCachedThreadPool();
-    es.execute(() -> {
-      try (Txn<ByteBuffer> txn = env.txnWrite()) {
-        key.clear();
-        key.put("key2".getBytes(UTF_8)).flip();
-        db.put(txn, key, val);
-        txn.commit();
-      }
-    });
+    es.execute(
+        () -> {
+          try (Txn<ByteBuffer> txn = env.txnWrite()) {
+            key.clear();
+            key.put("key2".getBytes(UTF_8)).flip();
+            db.put(txn, key, val);
+            txn.commit();
+          }
+        });
     es.shutdown();
     es.awaitTermination(10, SECONDS);
 
@@ -220,14 +209,13 @@ public final class TutorialTest {
   }
 
   /**
-   * In this third tutorial we'll have a look at the Cursor. Up until now we've
-   * just used Dbi, which is good enough for simple cases but unsuitable if you
-   * don't know the key to fetch, or want to iterate over all the data etc.
+   * In this third tutorial we'll have a look at the Cursor. Up until now we've just used Dbi, which
+   * is good enough for simple cases but unsuitable if you don't know the key to fetch, or want to
+   * iterate over all the data etc.
    *
    * @throws IOException if a path was unavailable for memory mapping
    */
   @Test
-  @SuppressWarnings("ConvertToTryWithResources")
   public void tutorial3() throws IOException {
     final Env<ByteBuffer> env = createSimpleEnv(tmp.newFolder());
     final Dbi<ByteBuffer> db = env.openDbi(DB_NAME, MDB_CREATE);
@@ -296,13 +284,12 @@ public final class TutorialTest {
   }
 
   /**
-   * In this fourth tutorial we'll take a quick look at the iterators. These are
-   * a more Java idiomatic form of using the Cursors we looked at in tutorial 3.
+   * In this fourth tutorial we'll take a quick look at the iterators. These are a more Java
+   * idiomatic form of using the Cursors we looked at in tutorial 3.
    *
    * @throws IOException if a path was unavailable for memory mapping
    */
   @Test
-  @SuppressWarnings("ConvertToTryWithResources")
   public void tutorial4() throws IOException {
     final Env<ByteBuffer> env = createSimpleEnv(tmp.newFolder());
     final Dbi<ByteBuffer> db = env.openDbi(DB_NAME, MDB_CREATE);
@@ -332,8 +319,7 @@ public final class TutorialTest {
       }
 
       // Iterate backward in terms of key ordering starting with the last key.
-      try (CursorIterable<ByteBuffer> ci = db.iterate(txn,
-                                                      KeyRange.allBackward())) {
+      try (CursorIterable<ByteBuffer> ci = db.iterate(txn, KeyRange.allBackward())) {
         for (final KeyVal<ByteBuffer> kv : ci) {
           assertThat(kv.key(), notNullValue());
           assertThat(kv.val(), notNullValue());
@@ -362,7 +348,6 @@ public final class TutorialTest {
    * @throws IOException if a path was unavailable for memory mapping
    */
   @Test
-  @SuppressWarnings("ConvertToTryWithResources")
   public void tutorial5() throws IOException {
     final Env<ByteBuffer> env = createSimpleEnv(tmp.newFolder());
 
@@ -410,20 +395,19 @@ public final class TutorialTest {
   }
 
   /**
-   * Next up we'll show you how to easily check your platform (operating system
-   * and Java version) is working properly with LmdbJava and the embedded LMDB
-   * native library.
+   * Next up we'll show you how to easily check your platform (operating system and Java version) is
+   * working properly with LmdbJava and the embedded LMDB native library.
    *
    * @throws IOException if a path was unavailable for memory mapping
    */
   @Test
-  @SuppressWarnings("ConvertToTryWithResources")
   public void tutorial6() throws IOException {
     // Note we need to specify the Verifier's DBI_COUNT for the Env.
-    final Env<ByteBuffer> env = create(PROXY_OPTIMAL)
-        .setMapSize(10_485_760)
-        .setMaxDbs(Verifier.DBI_COUNT)
-        .open(tmp.newFolder());
+    final Env<ByteBuffer> env =
+        create(PROXY_OPTIMAL)
+            .setMapSize(10_485_760)
+            .setMaxDbs(Verifier.DBI_COUNT)
+            .open(tmp.newFolder());
 
     // Create a Verifier (it's a Callable<Long> for those needing full control).
     final Verifier v = new Verifier(env);
@@ -441,15 +425,12 @@ public final class TutorialTest {
    * @throws IOException if a path was unavailable for memory mapping
    */
   @Test
-  @SuppressWarnings("ConvertToTryWithResources")
   public void tutorial7() throws IOException {
     // The critical difference is we pass the PROXY_DB field to Env.create().
     // There's also a PROXY_SAFE if you want to stop ByteBuffer's Unsafe use.
     // Aside from that and a different type argument, it's the same as usual...
-    final Env<DirectBuffer> env = create(PROXY_DB)
-        .setMapSize(10_485_760)
-        .setMaxDbs(1)
-        .open(tmp.newFolder());
+    final Env<DirectBuffer> env =
+        create(PROXY_DB).setMapSize(10_485_760).setMaxDbs(1).open(tmp.newFolder());
 
     final Dbi<DirectBuffer> db = env.openDbi(DB_NAME, MDB_CREATE);
 
@@ -468,12 +449,10 @@ public final class TutorialTest {
         c.put(key, val);
 
         c.seek(MDB_FIRST);
-        assertThat(c.key().getStringWithoutLengthUtf8(0, env.getMaxKeySize()),
-                   startsWith("ggg"));
+        assertThat(c.key().getStringWithoutLengthUtf8(0, env.getMaxKeySize()), startsWith("ggg"));
 
         c.seek(MDB_LAST);
-        assertThat(c.key().getStringWithoutLengthUtf8(0, env.getMaxKeySize()),
-                   startsWith("yyy"));
+        assertThat(c.key().getStringWithoutLengthUtf8(0, env.getMaxKeySize()), startsWith("yyy"));
 
         // DirectBuffer has no position concept. Often you don't want to store
         // the unnecessary bytes of a varying-size buffer. Let's have a look...
@@ -487,8 +466,7 @@ public final class TutorialTest {
         c.put(key, val);
         c.seek(MDB_FIRST);
         assertThat(c.key().capacity(), is(keyLen));
-        assertThat(c.key().getStringWithoutLengthUtf8(0, c.key().capacity()),
-                   is("12characters"));
+        assertThat(c.key().getStringWithoutLengthUtf8(0, c.key().capacity()), is("12characters"));
 
         // To store bigger values again, just wrap the original buffer.
         key.wrap(keyBb);
@@ -505,11 +483,6 @@ public final class TutorialTest {
   // or reverse ordered keys, using Env.DISABLE_CHECKS_PROP etc), but you now
   // know enough to tackle the JavaDocs with confidence. Have fun!
   private Env<ByteBuffer> createSimpleEnv(final File path) {
-    return create()
-        .setMapSize(10_485_760)
-        .setMaxDbs(1)
-        .setMaxReaders(1)
-        .open(path);
+    return create().setMapSize(10_485_760).setMaxDbs(1).setMaxReaders(1).open(path);
   }
-
 }

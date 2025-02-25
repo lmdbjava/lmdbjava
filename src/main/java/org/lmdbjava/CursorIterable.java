@@ -1,23 +1,18 @@
-/*-
- * #%L
- * LmdbJava
- * %%
- * Copyright (C) 2016 - 2023 The LmdbJava Open Source Project
- * %%
+/*
+ * Copyright © 2016-2025 The LmdbJava Open Source Project
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
- *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * #L%
  */
-
 package org.lmdbjava;
 
 import static org.lmdbjava.CursorIterable.State.RELEASED;
@@ -30,21 +25,18 @@ import static org.lmdbjava.GetOp.MDB_SET_RANGE;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
-
 import org.lmdbjava.KeyRangeType.CursorOp;
 import org.lmdbjava.KeyRangeType.IteratorOp;
 
 /**
- * {@link Iterable} that creates a single {@link Iterator} that will iterate
- * over a {@link Cursor} as specified by a {@link KeyRange}.
+ * {@link Iterable} that creates a single {@link Iterator} that will iterate over a {@link Cursor}
+ * as specified by a {@link KeyRange}.
  *
- * <p>
- * An instance will create and close its own cursor.
+ * <p>An instance will create and close its own cursor.
  *
  * @param <T> buffer type
  */
-public final class CursorIterable<T> implements
-    Iterable<CursorIterable.KeyVal<T>>, AutoCloseable {
+public final class CursorIterable<T> implements Iterable<CursorIterable.KeyVal<T>>, AutoCloseable {
 
   private final Comparator<T> comparator;
   private final Cursor<T> cursor;
@@ -53,8 +45,8 @@ public final class CursorIterable<T> implements
   private final KeyRange<T> range;
   private State state = REQUIRES_INITIAL_OP;
 
-  CursorIterable(final Txn<T> txn, final Dbi<T> dbi, final KeyRange<T> range,
-                 final Comparator<T> comparator) {
+  CursorIterable(
+      final Txn<T> txn, final Dbi<T> dbi, final KeyRange<T> range, final Comparator<T> comparator) {
     this.cursor = dbi.openCursor(txn);
     this.range = range;
     this.comparator = comparator;
@@ -69,17 +61,14 @@ public final class CursorIterable<T> implements
   /**
    * Obtain an iterator.
    *
-   * <p>
-   * As iteration of the returned iterator will cause movement of the underlying
-   * LMDB cursor, an {@link IllegalStateException} is thrown if an attempt is
-   * made to obtain the iterator more than once. For advanced cursor control
-   * (such as being able to iterate over the same data multiple times etc)
-   * please instead refer to {@link Dbi#openCursor(org.lmdbjava.Txn)}.
+   * <p>As iteration of the returned iterator will cause movement of the underlying LMDB cursor, an
+   * {@link IllegalStateException} is thrown if an attempt is made to obtain the iterator more than
+   * once. For advanced cursor control (such as being able to iterate over the same data multiple
+   * times etc) please instead refer to {@link Dbi#openCursor(org.lmdbjava.Txn)}.
    *
    * @return an iterator
    */
   @Override
-  @SuppressWarnings("checkstyle:AnonInnerLength")
   public Iterator<KeyVal<T>> iterator() {
     if (iteratorReturned) {
       throw new IllegalStateException("Iterator can only be returned once");
@@ -111,7 +100,6 @@ public final class CursorIterable<T> implements
     };
   }
 
-  @SuppressWarnings({"PMD.CyclomaticComplexity", "PMD.NullAssignment"})
   private void executeCursorOp(final CursorOp op) {
     final boolean found;
     switch (op) {
@@ -141,9 +129,8 @@ public final class CursorIterable<T> implements
   }
 
   private void executeIteratorOp() {
-    final IteratorOp op = range.getType().iteratorOp(range.getStart(),
-                                                     range.getStop(),
-                                                     entry.key(), comparator);
+    final IteratorOp op =
+        range.getType().iteratorOp(range.getStart(), range.getStop(), entry.key(), comparator);
     switch (op) {
       case CALL_NEXT_OP:
         executeCursorOp(range.getType().nextOp());
@@ -183,10 +170,9 @@ public final class CursorIterable<T> implements
   /**
    * Holder for a key and value pair.
    *
-   * <p>
-   * The same holder instance will always be returned for a given iterator.
-   * The returned keys and values may change or point to different memory
-   * locations following changes in the iterator, cursor or transaction.
+   * <p>The same holder instance will always be returned for a given iterator. The returned keys and
+   * values may change or point to different memory locations following changes in the iterator,
+   * cursor or transaction.
    *
    * @param <T> buffer type
    */
@@ -194,6 +180,9 @@ public final class CursorIterable<T> implements
 
     private T k;
     private T v;
+
+    /** Explicitly-defined default constructor to avoid warnings. */
+    public KeyVal() {}
 
     /**
      * The key.
@@ -220,15 +209,14 @@ public final class CursorIterable<T> implements
     void setV(final T val) {
       this.v = val;
     }
-
   }
 
-  /**
-   * Represents the internal {@link CursorIterable} state.
-   */
+  /** Represents the internal {@link CursorIterable} state. */
   enum State {
-    REQUIRES_INITIAL_OP, REQUIRES_NEXT_OP, REQUIRES_ITERATOR_OP, RELEASED,
+    REQUIRES_INITIAL_OP,
+    REQUIRES_NEXT_OP,
+    REQUIRES_ITERATOR_OP,
+    RELEASED,
     TERMINATED
   }
-
 }

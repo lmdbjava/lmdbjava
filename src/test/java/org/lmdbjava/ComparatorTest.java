@@ -1,23 +1,18 @@
-/*-
- * #%L
- * LmdbJava
- * %%
- * Copyright (C) 2016 - 2023 The LmdbJava Open Source Project
- * %%
+/*
+ * Copyright © 2016-2025 The LmdbJava Open Source Project
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
- *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * #L%
  */
-
 package org.lmdbjava;
 
 import static io.netty.buffer.PooledByteBufAllocator.DEFAULT;
@@ -33,13 +28,12 @@ import static org.lmdbjava.ComparatorTest.ComparatorResult.LESS_THAN;
 import static org.lmdbjava.ComparatorTest.ComparatorResult.get;
 import static org.lmdbjava.DirectBufferProxy.PROXY_DB;
 
-import java.nio.ByteBuffer;
-import java.util.Arrays;
-import java.util.Comparator;
-
 import com.google.common.primitives.SignedBytes;
 import com.google.common.primitives.UnsignedBytes;
 import io.netty.buffer.ByteBuf;
+import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.Comparator;
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
@@ -48,9 +42,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
-/**
- * Tests comparator functions are consistent across buffers.
- */
+/** Tests comparator functions are consistent across buffers. */
 @RunWith(Parameterized.class)
 public final class ComparatorTest {
 
@@ -66,11 +58,9 @@ public final class ComparatorTest {
   private static final byte[] LLLLLLLX = buffer(0, 0, 0, 0, 0, 0, 0);
   private static final byte[] LX = buffer(0);
   private static final byte[] XX = buffer();
-  /**
-   * Injected by {@link #data()} with appropriate runner.
-   */
-  @Parameter
-  public ComparatorRunner comparator;
+
+  /** Injected by {@link #data()} with appropriate runner. */
+  @Parameter public ComparatorRunner comparator;
 
   @Parameters(name = "{index}: comparable: {0}")
   public static Object[] data() {
@@ -81,7 +71,7 @@ public final class ComparatorTest {
     final ComparatorRunner netty = new NettyRunner();
     final ComparatorRunner gub = new GuavaUnsignedBytes();
     final ComparatorRunner gsb = new GuavaSignedBytes();
-    return new Object[]{string, db, ba, bb, netty, gub, gsb};
+    return new Object[] {string, db, ba, bb, netty, gub, gsb};
   }
 
   private static byte[] buffer(final int... bytes) {
@@ -140,9 +130,7 @@ public final class ComparatorTest {
     assertThat(get(comparator.compare(LLLLLLLX, LLLLLLLX)), is(EQUAL_TO));
   }
 
-  /**
-   * Tests {@link ByteArrayProxy}.
-   */
+  /** Tests {@link ByteArrayProxy}. */
   private static final class ByteArrayRunner implements ComparatorRunner {
 
     @Override
@@ -152,9 +140,7 @@ public final class ComparatorTest {
     }
   }
 
-  /**
-   * Tests {@link ByteBufferProxy}.
-   */
+  /** Tests {@link ByteBufferProxy}. */
   private static final class ByteBufferRunner implements ComparatorRunner {
 
     @Override
@@ -196,9 +182,7 @@ public final class ComparatorTest {
     }
   }
 
-  /**
-   * Tests {@link DirectBufferProxy}.
-   */
+  /** Tests {@link DirectBufferProxy}. */
   private static final class DirectBufferRunner implements ComparatorRunner {
 
     @Override
@@ -210,9 +194,7 @@ public final class ComparatorTest {
     }
   }
 
-  /**
-   * Tests using Guava's {@link SignedBytes} comparator.
-   */
+  /** Tests using Guava's {@link SignedBytes} comparator. */
   private static final class GuavaSignedBytes implements ComparatorRunner {
 
     @Override
@@ -222,9 +204,7 @@ public final class ComparatorTest {
     }
   }
 
-  /**
-   * Tests using Guava's {@link UnsignedBytes} comparator.
-   */
+  /** Tests using Guava's {@link UnsignedBytes} comparator. */
   private static final class GuavaUnsignedBytes implements ComparatorRunner {
 
     @Override
@@ -234,9 +214,7 @@ public final class ComparatorTest {
     }
   }
 
-  /**
-   * Tests {@link ByteBufProxy}.
-   */
+  /** Tests {@link ByteBufProxy}. */
   private static final class NettyRunner implements ComparatorRunner {
 
     @Override
@@ -251,8 +229,8 @@ public final class ComparatorTest {
   }
 
   /**
-   * Tests {@link String} by providing a reference implementation of what a
-   * comparator involving ASCII-encoded bytes should return.
+   * Tests {@link String} by providing a reference implementation of what a comparator involving
+   * ASCII-encoded bytes should return.
    */
   private static final class StringRunner implements ComparatorRunner {
 
@@ -264,9 +242,7 @@ public final class ComparatorTest {
     }
   }
 
-  /**
-   * Converts an integer result code into its contractual meaning.
-   */
+  /** Converts an integer result code into its contractual meaning. */
   enum ComparatorResult {
     LESS_THAN,
     EQUAL_TO,
@@ -280,14 +256,12 @@ public final class ComparatorTest {
     }
   }
 
-  /**
-   * Interface that can test a {@link BufferProxy} <code>compare</code> method.
-   */
+  /** Interface that can test a {@link BufferProxy} <code>compare</code> method. */
   private interface ComparatorRunner {
 
     /**
-     * Convert the passed byte arrays into the proxy's relevant buffer type and
-     * then invoke the comparator.
+     * Convert the passed byte arrays into the proxy's relevant buffer type and then invoke the
+     * comparator.
      *
      * @param o1 lhs buffer content
      * @param o2 rhs buffer content
@@ -295,5 +269,4 @@ public final class ComparatorTest {
      */
     int compare(byte[] o1, byte[] o2);
   }
-
 }

@@ -32,7 +32,7 @@ jobs:
       run: mvn -B verify -DgcRecordWrites=1000
 
     - name: Store built native libraries for later jobs
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: native-libraries
         path: |
@@ -40,7 +40,9 @@ jobs:
           src/main/resources/org/lmdbjava/*.dll
 
     - name: Upload code coverage to Codecov
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v5
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_ORG_TOKEN }}
 
   compatibility-checks:
     name: Java ${{ matrix.java }} on ${{ matrix.os }} Compatibility
@@ -64,7 +66,7 @@ jobs:
           cache: maven
 
       - name: Fetch built native libraries
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: native-libraries
           path: src/main/resources/org/lmdbjava
@@ -73,7 +75,7 @@ jobs:
         run: mvn -B test -Dtest=VerifierTest -DverificationSeconds=10
 
       - name: Upload Surefire reports on test failure
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: surefire-test-log
@@ -108,7 +110,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Debug settings.xml
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: failure()
       with:
         name: settings.xml

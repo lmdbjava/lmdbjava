@@ -1,23 +1,18 @@
-/*-
- * #%L
- * LmdbJava
- * %%
- * Copyright (C) 2016 - 2023 The LmdbJava Open Source Project
- * %%
+/*
+ * Copyright © 2016-2025 The LmdbJava Open Source Project
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
- *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * #L%
  */
-
 package org.lmdbjava;
 
 import static java.util.Objects.requireNonNull;
@@ -40,7 +35,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
-
 import jnr.ffi.Pointer;
 import jnr.ffi.byref.IntByReference;
 import jnr.ffi.byref.PointerByReference;
@@ -61,27 +55,41 @@ public final class Dbi<T> {
   private final byte[] name;
   private final Pointer ptr;
 
-  Dbi(final Env<T> env, final Txn<T> txn, final byte[] name,
-      final Comparator<T> comparator, final boolean nativeCb,
-      final BufferProxy<T> proxy, final DbiFlags... flags) {
+  Dbi(
+      final Env<T> env,
+      final Txn<T> txn,
+      final byte[] name,
+      final Comparator<T> comparator,
+      final boolean nativeCb,
+      final BufferProxy<T> proxy,
+      final DbiFlags... flags) {
+    if (SHOULD_CHECK) {
+      requireNonNull(txn);
+      txn.checkReady();
+    }
     this.env = env;
     this.name = name == null ? null : Arrays.copyOf(name, name.length);
-    this.comparator = comparator;
-    final int flagsMask = mask(flags);
+    if (comparator == null) {
+      this.comparator = proxy.getComparator(flags);
+    } else {
+      this.comparator = comparator;
+    }
+    final int flagsMask = mask(true, flags);
     final Pointer dbiPtr = allocateDirect(RUNTIME, ADDRESS);
     checkRc(LIB.mdb_dbi_open(txn.pointer(), name, flagsMask, dbiPtr));
     ptr = dbiPtr.getPointer(0);
     if (nativeCb) {
-      this.ccb = (keyA, keyB) -> {
-        final T compKeyA = proxy.allocate();
-        final T compKeyB = proxy.allocate();
-        proxy.out(compKeyA, keyA, keyA.address());
-        proxy.out(compKeyB, keyB, keyB.address());
-        final int result = this.comparator.compare(compKeyA, compKeyB);
-        proxy.deallocate(compKeyA);
-        proxy.deallocate(compKeyB);
-        return result;
-      };
+      this.ccb =
+          (keyA, keyB) -> {
+            final T compKeyA = proxy.allocate();
+            final T compKeyB = proxy.allocate();
+            proxy.out(compKeyA, keyA, keyA.address());
+            proxy.out(compKeyB, keyB, keyB.address());
+            final int result = this.comparator.compare(compKeyA, compKeyB);
+            proxy.deallocate(compKeyA);
+            proxy.deallocate(compKeyB);
+            return result;
+          };
       LIB.mdb_set_compare(txn.pointer(), ptr, ccb);
     } else {
       ccb = null;
@@ -91,13 +99,11 @@ public final class Dbi<T> {
   /**
    * Close the database handle (normally unnecessary; use with caution).
    *
-   * <p>
-   * It is very rare that closing a database handle is useful. There are also
-   * many warnings/restrictions if closing a database handle (refer to the LMDB
-   * C documentation). As such this is non-routine usage and this class does not
-   * track the open/closed state of the {@link Dbi}. Advanced users are expected
-   * to have specific reasons for using this method and will manage their own
-   * state accordingly.
+   * <p>It is very rare that closing a database handle is useful. There are also many
+   * warnings/restrictions if closing a database handle (refer to the LMDB C documentation). As such
+   * this is non-routine usage and this class does not track the open/closed state of the {@link
+   * Dbi}. Advanced users are expected to have specific reasons for using this method and will
+   * manage their own state accordingly.
    */
   public void close() {
     clean();
@@ -112,7 +118,6 @@ public final class Dbi<T> {
    *
    * @param key key to delete from the database (not null)
    * @return true if the key/data pair was found, false otherwise
-   *
    * @see #delete(org.lmdbjava.Txn, java.lang.Object, java.lang.Object)
    */
   public boolean delete(final T key) {
@@ -129,7 +134,6 @@ public final class Dbi<T> {
    * @param txn transaction handle (not null; not committed; must be R-W)
    * @param key key to delete from the database (not null)
    * @return true if the key/data pair was found, false otherwise
-   *
    * @see #delete(org.lmdbjava.Txn, java.lang.Object, java.lang.Object)
    */
   public boolean delete(final Txn<T> txn, final T key) {
@@ -139,12 +143,10 @@ public final class Dbi<T> {
   /**
    * Removes key/data pairs from the database.
    *
-   * <p>
-   * If the database does not support sorted duplicate data items
-   * ({@link DbiFlags#MDB_DUPSORT}) the value parameter is ignored. If the
-   * database supports sorted duplicates and the value parameter is null, all of
-   * the duplicate data items for the key will be deleted. Otherwise, if the
-   * data parameter is non-null only the matching data item will be deleted.
+   * <p>If the database does not support sorted duplicate data items ({@link DbiFlags#MDB_DUPSORT})
+   * the value parameter is ignored. If the database supports sorted duplicates and the value
+   * parameter is null, all of the duplicate data items for the key will be deleted. Otherwise, if
+   * the data parameter is non-null only the matching data item will be deleted.
    *
    * @param txn transaction handle (not null; not committed; must be R-W)
    * @param key key to delete from the database (not null)
@@ -179,10 +181,8 @@ public final class Dbi<T> {
   /**
    * Drops the data in this database, leaving the database open for further use.
    *
-   * <p>
-   * This method slightly differs from the LMDB C API in that it does not
-   * provide support for also closing the DB handle. If closing the DB handle is
-   * required, please see {@link #close()}.
+   * <p>This method slightly differs from the LMDB C API in that it does not provide support for
+   * also closing the DB handle. If closing the DB handle is required, please see {@link #close()}.
    *
    * @param txn transaction handle (not null; not committed; must be R-W)
    */
@@ -191,11 +191,11 @@ public final class Dbi<T> {
   }
 
   /**
-   * Drops the database. If delete is set to true, the database will be deleted
-   * and handle will be closed. See {@link #close()} for implication of handle
-   * close. Otherwise, only the data in this database will be dropped.
+   * Drops the database. If delete is set to true, the database will be deleted and handle will be
+   * closed. See {@link #close()} for implication of handle close. Otherwise, only the data in this
+   * database will be dropped.
    *
-   * @param txn    transaction handle (not null; not committed; must be R-W)
+   * @param txn transaction handle (not null; not committed; must be R-W)
    * @param delete whether database should be deleted.
    */
   public void drop(final Txn<T> txn, final boolean delete) {
@@ -215,12 +215,10 @@ public final class Dbi<T> {
   /**
    * Get items from a database, moving the {@link Txn#val()} to the value.
    *
-   * <p>
-   * This function retrieves key/data pairs from the database. The address and
-   * length of the data associated with the specified \b key are returned in the
-   * structure to which \b data refers. If the database supports duplicate keys
-   * ({@link org.lmdbjava.DbiFlags#MDB_DUPSORT}) then the first data item for
-   * the key will be returned. Retrieval of other items requires the use of
+   * <p>This function retrieves key/data pairs from the database. The address and length of the data
+   * associated with the specified \b key are returned in the structure to which \b data refers. If
+   * the database supports duplicate keys ({@link org.lmdbjava.DbiFlags#MDB_DUPSORT}) then the first
+   * data item for the key will be returned. Retrieval of other items requires the use of
    * #mdb_cursor_get().
    *
    * @param txn transaction handle (not null; not committed)
@@ -235,8 +233,7 @@ public final class Dbi<T> {
       txn.checkReady();
     }
     txn.kv().keyIn(key);
-    final int rc = LIB.mdb_get(txn.pointer(), ptr, txn.kv().pointerKey(), txn
-                               .kv().pointerVal());
+    final int rc = LIB.mdb_get(txn.pointer(), ptr, txn.kv().pointerKey(), txn.kv().pointerVal());
     if (rc == MDB_NOTFOUND) {
       return null;
     }
@@ -267,7 +264,7 @@ public final class Dbi<T> {
   /**
    * Iterate the database in accordance with the provided {@link KeyRange}.
    *
-   * @param txn   transaction handle (not null; not committed)
+   * @param txn transaction handle (not null; not committed)
    * @param range range of acceptable keys (not null)
    * @return iterator (never null)
    */
@@ -281,11 +278,11 @@ public final class Dbi<T> {
     return new CursorIterable<>(txn, this, range, comparator);
   }
 
-  /*
-  * Return DbiFlags for this Dbi.
-  *
-  * @param txn transaction handle (not null; not committed)
-  * @return the list of flags this Dbi was created with
+  /**
+   * Return DbiFlags for this Dbi.
+   *
+   * @param txn transaction handle (not null; not committed)
+   * @return the list of flags this Dbi was created with
    */
   public List<DbiFlags> listFlags(final Txn<T> txn) {
     if (SHOULD_CHECK) {
@@ -310,15 +307,13 @@ public final class Dbi<T> {
   /**
    * Create a cursor handle.
    *
-   * <p>
-   * A cursor is associated with a specific transaction and database. A cursor
-   * cannot be used when its database handle is closed. Nor when its transaction
-   * has ended, except with {@link Cursor#renew(org.lmdbjava.Txn)}. It can be
-   * discarded with {@link Cursor#close()}. A cursor in a write-transaction can
-   * be closed before its transaction ends, and will otherwise be closed when
-   * its transaction ends. A cursor in a read-only transaction must be closed
-   * explicitly, before or after its transaction ends. It can be reused with
-   * {@link Cursor#renew(org.lmdbjava.Txn)} before finally closing it.
+   * <p>A cursor is associated with a specific transaction and database. A cursor cannot be used
+   * when its database handle is closed. Nor when its transaction has ended, except with {@link
+   * Cursor#renew(org.lmdbjava.Txn)}. It can be discarded with {@link Cursor#close()}. A cursor in a
+   * write-transaction can be closed before its transaction ends, and will otherwise be closed when
+   * its transaction ends. A cursor in a read-only transaction must be closed explicitly, before or
+   * after its transaction ends. It can be reused with {@link Cursor#renew(org.lmdbjava.Txn)} before
+   * finally closing it.
    *
    * @param txn transaction handle (not null; not committed)
    * @return cursor handle
@@ -339,8 +334,7 @@ public final class Dbi<T> {
    *
    * @param key key to store in the database (not null)
    * @param val value to store in the database (not null)
-   * @see #put(org.lmdbjava.Txn, java.lang.Object, java.lang.Object,
-   * org.lmdbjava.PutFlags...)
+   * @see #put(org.lmdbjava.Txn, java.lang.Object, java.lang.Object, org.lmdbjava.PutFlags...)
    */
   public void put(final T key, final T val) {
     try (Txn<T> txn = env.txnWrite()) {
@@ -352,21 +346,18 @@ public final class Dbi<T> {
   /**
    * Store a key/value pair in the database.
    *
-   * <p>
-   * This function stores key/data pairs in the database. The default behavior
-   * is to enter the new key/data pair, replacing any previously existing key if
-   * duplicates are disallowed, or adding a duplicate data item if duplicates
-   * are allowed ({@link DbiFlags#MDB_DUPSORT}).
+   * <p>This function stores key/data pairs in the database. The default behavior is to enter the
+   * new key/data pair, replacing any previously existing key if duplicates are disallowed, or
+   * adding a duplicate data item if duplicates are allowed ({@link DbiFlags#MDB_DUPSORT}).
    *
-   * @param txn   transaction handle (not null; not committed; must be R-W)
-   * @param key   key to store in the database (not null)
-   * @param val   value to store in the database (not null)
+   * @param txn transaction handle (not null; not committed; must be R-W)
+   * @param key key to store in the database (not null)
+   * @param val value to store in the database (not null)
    * @param flags Special options for this operation
-   * @return true if the value was put, false if MDB_NOOVERWRITE or
-   *         MDB_NODUPDATA were set and the key/value existed already.
+   * @return true if the value was put, false if MDB_NOOVERWRITE or MDB_NODUPDATA were set and the
+   *     key/value existed already.
    */
-  public boolean put(final Txn<T> txn, final T key, final T val,
-                     final PutFlags... flags) {
+  public boolean put(final Txn<T> txn, final T key, final T val, final PutFlags... flags) {
     if (SHOULD_CHECK) {
       requireNonNull(txn);
       requireNonNull(key);
@@ -377,9 +368,9 @@ public final class Dbi<T> {
     }
     txn.kv().keyIn(key);
     txn.kv().valIn(val);
-    final int mask = mask(flags);
-    final int rc = LIB.mdb_put(txn.pointer(), ptr, txn.kv().pointerKey(), txn
-                               .kv().pointerVal(), mask);
+    final int mask = mask(true, flags);
+    final int rc =
+        LIB.mdb_put(txn.pointer(), ptr, txn.kv().pointerKey(), txn.kv().pointerVal(), mask);
     if (rc == MDB_KEYEXIST) {
       if (isSet(mask, MDB_NOOVERWRITE)) {
         txn.kv().valOut(); // marked as in,out in LMDB C docs
@@ -395,24 +386,21 @@ public final class Dbi<T> {
   }
 
   /**
-   * Reserve space for data of the given size, but don't copy the given val.
-   * Instead, return a pointer to the reserved space, which the caller can fill
-   * in later - before the next update operation or the transaction ends. This
-   * saves an extra memcpy if the data is being generated later. LMDB does
-   * nothing else with this memory, the caller is expected to modify all of the
+   * Reserve space for data of the given size, but don't copy the given val. Instead, return a
+   * pointer to the reserved space, which the caller can fill in later - before the next update
+   * operation or the transaction ends. This saves an extra memcpy if the data is being generated
+   * later. LMDB does nothing else with this memory, the caller is expected to modify all of the
    * space requested.
    *
-   * <p>
-   * This flag must not be specified if the database was opened with MDB_DUPSORT
+   * <p>This flag must not be specified if the database was opened with MDB_DUPSORT
    *
-   * @param txn  transaction handle (not null; not committed; must be R-W)
-   * @param key  key to store in the database (not null)
+   * @param txn transaction handle (not null; not committed; must be R-W)
+   * @param key key to store in the database (not null)
    * @param size size of the value to be stored in the database
-   * @param op   options for this operation
+   * @param op options for this operation
    * @return a buffer that can be used to modify the value
    */
-  public T reserve(final Txn<T> txn, final T key, final int size,
-                   final PutFlags... op) {
+  public T reserve(final Txn<T> txn, final T key, final int size, final PutFlags... op) {
     if (SHOULD_CHECK) {
       requireNonNull(txn);
       requireNonNull(key);
@@ -422,9 +410,8 @@ public final class Dbi<T> {
     }
     txn.kv().keyIn(key);
     txn.kv().valIn(size);
-    final int flags = mask(op) | MDB_RESERVE.getMask();
-    checkRc(LIB.mdb_put(txn.pointer(), ptr, txn.kv().pointerKey(), txn.kv()
-                        .pointerVal(), flags));
+    final int flags = mask(true, op) | MDB_RESERVE.getMask();
+    checkRc(LIB.mdb_put(txn.pointer(), ptr, txn.kv().pointerKey(), txn.kv().pointerVal(), flags));
     txn.kv().valOut(); // marked as in,out in LMDB C docs
     ReferenceUtil.reachabilityFence0(key);
     return txn.val();
@@ -460,9 +447,7 @@ public final class Dbi<T> {
     cleaned = true;
   }
 
-  /**
-   * The specified DBI was changed unexpectedly.
-   */
+  /** The specified DBI was changed unexpectedly. */
   public static final class BadDbiException extends LmdbNativeException {
 
     static final int MDB_BAD_DBI = -30_780;
@@ -473,23 +458,18 @@ public final class Dbi<T> {
     }
   }
 
-  /**
-   * Unsupported size of key/DB name/data, or wrong DUPFIXED size.
-   */
+  /** Unsupported size of key/DB name/data, or wrong DUPFIXED size. */
   public static final class BadValueSizeException extends LmdbNativeException {
 
     static final int MDB_BAD_VALSIZE = -30_781;
     private static final long serialVersionUID = 1L;
 
     BadValueSizeException() {
-      super(MDB_BAD_VALSIZE,
-            "Unsupported size of key/DB name/data, or wrong DUPFIXED size");
+      super(MDB_BAD_VALSIZE, "Unsupported size of key/DB name/data, or wrong DUPFIXED size");
     }
   }
 
-  /**
-   * Environment maxdbs reached.
-   */
+  /** Environment maxdbs reached. */
   public static final class DbFullException extends LmdbNativeException {
 
     static final int MDB_DBS_FULL = -30_791;
@@ -503,14 +483,13 @@ public final class Dbi<T> {
   /**
    * Operation and DB incompatible, or DB type changed.
    *
-   * <p>
-   * This can mean:
+   * <p>This can mean:
+   *
    * <ul>
-   * <li>The operation expects an MDB_DUPSORT / MDB_DUPFIXED database.</li>
-   * <li>Opening a named DB when the unnamed DB has MDB_DUPSORT /
-   * MDB_INTEGERKEY.</li>
-   * <li>Accessing a data record as a database, or vice versa.</li>
-   * <li>The database was dropped and recreated with different flags.</li>
+   *   <li>The operation expects an MDB_DUPSORT / MDB_DUPFIXED database.
+   *   <li>Opening a named DB when the unnamed DB has MDB_DUPSORT / MDB_INTEGERKEY.
+   *   <li>Accessing a data record as a database, or vice versa.
+   *   <li>The database was dropped and recreated with different flags.
    * </ul>
    */
   public static final class IncompatibleException extends LmdbNativeException {
@@ -519,14 +498,11 @@ public final class Dbi<T> {
     private static final long serialVersionUID = 1L;
 
     IncompatibleException() {
-      super(MDB_INCOMPATIBLE,
-            "Operation and DB incompatible, or DB type changed");
+      super(MDB_INCOMPATIBLE, "Operation and DB incompatible, or DB type changed");
     }
   }
 
-  /**
-   * Key/data pair already exists.
-   */
+  /** Key/data pair already exists. */
   public static final class KeyExistsException extends LmdbNativeException {
 
     static final int MDB_KEYEXIST = -30_799;
@@ -537,9 +513,7 @@ public final class Dbi<T> {
     }
   }
 
-  /**
-   * Key/data pair not found (EOF).
-   */
+  /** Key/data pair not found (EOF). */
   public static final class KeyNotFoundException extends LmdbNativeException {
 
     static final int MDB_NOTFOUND = -30_798;
@@ -550,9 +524,7 @@ public final class Dbi<T> {
     }
   }
 
-  /**
-   * Database contents grew beyond environment mapsize.
-   */
+  /** Database contents grew beyond environment mapsize. */
   public static final class MapResizedException extends LmdbNativeException {
 
     static final int MDB_MAP_RESIZED = -30_785;

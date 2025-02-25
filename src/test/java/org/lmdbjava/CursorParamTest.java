@@ -1,23 +1,18 @@
-/*-
- * #%L
- * LmdbJava
- * %%
- * Copyright (C) 2016 - 2023 The LmdbJava Open Source Project
- * %%
+/*
+ * Copyright © 2016-2025 The LmdbJava Open Source Project
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
- *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * #L%
  */
-
 package org.lmdbjava;
 
 import static com.jakewharton.byteunits.BinaryByteUnit.KIBIBYTES;
@@ -48,11 +43,10 @@ import static org.lmdbjava.TestUtils.bb;
 import static org.lmdbjava.TestUtils.mdb;
 import static org.lmdbjava.TestUtils.nb;
 
+import io.netty.buffer.ByteBuf;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-
-import io.netty.buffer.ByteBuf;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.junit.Rule;
@@ -63,20 +57,14 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
-/**
- * Test {@link Cursor} with different buffer implementations.
- */
+/** Test {@link Cursor} with different buffer implementations. */
 @RunWith(Parameterized.class)
 public final class CursorParamTest {
 
-  /**
-   * Injected by {@link #data()} with appropriate runner.
-   */
-  @Parameter
-  public BufferRunner<?> runner;
+  /** Injected by {@link #data()} with appropriate runner. */
+  @Parameter public BufferRunner<?> runner;
 
-  @Rule
-  public final TemporaryFolder tmp = new TemporaryFolder();
+  @Rule public final TemporaryFolder tmp = new TemporaryFolder();
 
   @Parameters(name = "{index}: buffer adapter: {0}")
   public static Object[] data() {
@@ -85,7 +73,7 @@ public final class CursorParamTest {
     final BufferRunner<byte[]> ba = new ByteArrayRunner(PROXY_BA);
     final BufferRunner<DirectBuffer> db = new DirectBufferRunner();
     final BufferRunner<ByteBuf> netty = new NettyBufferRunner();
-    return new Object[]{bb1, bb2, ba, db, netty};
+    return new Object[] {bb1, bb2, ba, db, netty};
   }
 
   @Test
@@ -98,8 +86,7 @@ public final class CursorParamTest {
    *
    * @param <T> buffer type
    */
-  private abstract static class AbstractBufferRunner<T> implements
-      BufferRunner<T> {
+  private abstract static class AbstractBufferRunner<T> implements BufferRunner<T> {
 
     final BufferProxy<T> proxy;
 
@@ -114,7 +101,7 @@ public final class CursorParamTest {
         final Dbi<T> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
         assertThat(env.getDbiNames().get(0), is(DB_1.getBytes(UTF_8)));
         try (Txn<T> txn = env.txnWrite();
-             Cursor<T> c = db.openCursor(txn)) {
+            Cursor<T> c = db.openCursor(txn)) {
           // populate data
           c.put(set(1), set(2), MDB_NOOVERWRITE);
           c.put(set(3), set(4));
@@ -192,12 +179,9 @@ public final class CursorParamTest {
         throw new LmdbException("IO failure", e);
       }
     }
-
   }
 
-  /**
-   * {@link BufferRunner} for Java byte buffers.
-   */
+  /** {@link BufferRunner} for Java byte buffers. */
   private static class ByteArrayRunner extends AbstractBufferRunner<byte[]> {
 
     ByteArrayRunner(final BufferProxy<byte[]> proxy) {
@@ -207,9 +191,9 @@ public final class CursorParamTest {
     @Override
     public int get(final byte[] buff) {
       return (buff[0] & 0xFF) << 24
-                 | (buff[1] & 0xFF) << 16
-                 | (buff[2] & 0xFF) << 8
-                 | (buff[3] & 0xFF);
+          | (buff[1] & 0xFF) << 16
+          | (buff[2] & 0xFF) << 8
+          | (buff[3] & 0xFF);
     }
 
     @Override
@@ -231,9 +215,7 @@ public final class CursorParamTest {
     }
   }
 
-  /**
-   * {@link BufferRunner} for Java byte buffers.
-   */
+  /** {@link BufferRunner} for Java byte buffers. */
   private static class ByteBufferRunner extends AbstractBufferRunner<ByteBuffer> {
 
     ByteBufferRunner(final BufferProxy<ByteBuffer> proxy) {
@@ -254,12 +236,9 @@ public final class CursorParamTest {
     public void set(final ByteBuffer buff, final int val) {
       buff.putInt(val);
     }
-
   }
 
-  /**
-   * {@link BufferRunner} for Agrona direct buffer.
-   */
+  /** {@link BufferRunner} for Agrona direct buffer. */
   private static class DirectBufferRunner extends AbstractBufferRunner<DirectBuffer> {
 
     DirectBufferRunner() {
@@ -280,12 +259,9 @@ public final class CursorParamTest {
     public void set(final DirectBuffer buff, final int val) {
       ((MutableDirectBuffer) buff).putInt(0, val);
     }
-
   }
 
-  /**
-   * {@link BufferRunner} for Netty byte buf.
-   */
+  /** {@link BufferRunner} for Netty byte buf. */
   private static class NettyBufferRunner extends AbstractBufferRunner<ByteBuf> {
 
     NettyBufferRunner() {
@@ -306,7 +282,6 @@ public final class CursorParamTest {
     public void set(final ByteBuf buff, final int val) {
       buff.setInt(0, val);
     }
-
   }
 
   /**
@@ -324,5 +299,4 @@ public final class CursorParamTest {
 
     int get(T buff);
   }
-
 }

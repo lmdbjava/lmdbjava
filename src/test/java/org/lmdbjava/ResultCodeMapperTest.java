@@ -1,23 +1,18 @@
-/*-
- * #%L
- * LmdbJava
- * %%
- * Copyright (C) 2016 - 2023 The LmdbJava Open Source Project
- * %%
+/*
+ * Copyright © 2016-2025 The LmdbJava Open Source Project
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
- *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * #L%
  */
-
 package org.lmdbjava;
 
 import static java.lang.Integer.MAX_VALUE;
@@ -33,7 +28,6 @@ import static org.lmdbjava.TestUtils.invokePrivateConstructor;
 
 import java.util.HashSet;
 import java.util.Set;
-
 import org.junit.Test;
 import org.lmdbjava.Cursor.FullException;
 import org.lmdbjava.Dbi.BadDbiException;
@@ -57,9 +51,7 @@ import org.lmdbjava.Txn.BadException;
 import org.lmdbjava.Txn.BadReaderLockException;
 import org.lmdbjava.Txn.TxFullException;
 
-/**
- * Test {@link ResultCodeMapper} and {@link LmdbException}.
- */
+/** Test {@link ResultCodeMapper} and {@link LmdbException}. */
 public final class ResultCodeMapperTest {
 
   private static final Set<LmdbNativeException> EXCEPTIONS = new HashSet<>();
@@ -161,5 +153,4 @@ public final class ResultCodeMapperTest {
   public void noDuplicateResultCodes() {
     assertThat(RESULT_CODES.size(), is(EXCEPTIONS.size()));
   }
-
 }

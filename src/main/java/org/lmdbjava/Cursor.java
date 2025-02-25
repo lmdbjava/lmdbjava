@@ -1,23 +1,18 @@
-/*-
- * #%L
- * LmdbJava
- * %%
- * Copyright (C) 2016 - 2023 The LmdbJava Open Source Project
- * %%
+/*
+ * Copyright © 2016-2025 The LmdbJava Open Source Project
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
- *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * #L%
  */
-
 package org.lmdbjava;
 
 import static java.util.Objects.requireNonNull;
@@ -65,9 +60,8 @@ public final class Cursor<T> implements AutoCloseable {
   /**
    * Close a cursor handle.
    *
-   * <p>
-   * The cursor handle will be freed and must not be used again after this call.
-   * Its transaction must still be live if it is a write-transaction.
+   * <p>The cursor handle will be freed and must not be used again after this call. Its transaction
+   * must still be live if it is a write-transaction.
    */
   @Override
   public void close() {
@@ -88,9 +82,8 @@ public final class Cursor<T> implements AutoCloseable {
   /**
    * Return count of duplicates for current key.
    *
-   * <p>
-   * This call is only valid on databases that support sorted duplicate data
-   * items {@link DbiFlags#MDB_DUPSORT}.
+   * <p>This call is only valid on databases that support sorted duplicate data items {@link
+   * DbiFlags#MDB_DUPSORT}.
    *
    * @return count of duplicates for current key
    */
@@ -108,8 +101,7 @@ public final class Cursor<T> implements AutoCloseable {
   /**
    * Delete current key/data pair.
    *
-   * <p>
-   * This function deletes the key/data pair to which the cursor refers.
+   * <p>This function deletes the key/data pair to which the cursor refers.
    *
    * @param f flags (either null or {@link PutFlags#MDB_NODUPDATA}
    */
@@ -120,7 +112,7 @@ public final class Cursor<T> implements AutoCloseable {
       txn.checkReady();
       txn.checkWritesAllowed();
     }
-    final int flags = mask(f);
+    final int flags = mask(true, f);
     checkRc(LIB.mdb_cursor_del(ptrCursor, flags));
   }
 
@@ -136,9 +128,9 @@ public final class Cursor<T> implements AutoCloseable {
   /**
    * Reposition the key/value buffers based on the passed key and operation.
    *
-   * @param key  to search for
+   * @param key to search for
    * @param data to search for
-   * @param op   options for this operation
+   * @param op options for this operation
    * @return false if key not found
    */
   public boolean get(final T key, final T data, final SeekOp op) {
@@ -152,8 +144,7 @@ public final class Cursor<T> implements AutoCloseable {
     kv.keyIn(key);
     kv.valIn(data);
 
-    final int rc = LIB.mdb_cursor_get(ptrCursor, kv.pointerKey(), kv
-                                      .pointerVal(), op.getCode());
+    final int rc = LIB.mdb_cursor_get(ptrCursor, kv.pointerKey(), kv.pointerVal(), op.getCode());
 
     if (rc == MDB_NOTFOUND) {
       return false;
@@ -170,7 +161,7 @@ public final class Cursor<T> implements AutoCloseable {
    * Reposition the key/value buffers based on the passed key and operation.
    *
    * @param key to search for
-   * @param op  options for this operation
+   * @param op options for this operation
    * @return false if key not found
    */
   public boolean get(final T key, final GetOp op) {
@@ -183,8 +174,7 @@ public final class Cursor<T> implements AutoCloseable {
     }
     kv.keyIn(key);
 
-    final int rc = LIB.mdb_cursor_get(ptrCursor, kv.pointerKey(), kv
-                                      .pointerVal(), op.getCode());
+    final int rc = LIB.mdb_cursor_get(ptrCursor, kv.pointerKey(), kv.pointerVal(), op.getCode());
 
     if (rc == MDB_NOTFOUND) {
       return false;
@@ -236,14 +226,13 @@ public final class Cursor<T> implements AutoCloseable {
   /**
    * Store by cursor.
    *
-   * <p>
-   * This function stores key/data pairs into the database.
+   * <p>This function stores key/data pairs into the database.
    *
    * @param key key to store
    * @param val data to store
-   * @param op  options for this operation
-   * @return true if the value was put, false if MDB_NOOVERWRITE or
-   *         MDB_NODUPDATA were set and the key/value existed already.
+   * @param op options for this operation
+   * @return true if the value was put, false if MDB_NOOVERWRITE or MDB_NODUPDATA were set and the
+   *     key/value existed already.
    */
   public boolean put(final T key, final T val, final PutFlags... op) {
     if (SHOULD_CHECK) {
@@ -256,9 +245,8 @@ public final class Cursor<T> implements AutoCloseable {
     }
     kv.keyIn(key);
     kv.valIn(val);
-    final int mask = mask(op);
-    final int rc = LIB.mdb_cursor_put(ptrCursor, kv.pointerKey(),
-                                      kv.pointerVal(), mask);
+    final int mask = mask(true, op);
+    final int rc = LIB.mdb_cursor_put(ptrCursor, kv.pointerKey(), kv.pointerVal(), mask);
     if (rc == MDB_KEYEXIST) {
       if (isSet(mask, MDB_NOOVERWRITE)) {
         kv.valOut(); // marked as in,out in LMDB C docs
@@ -274,23 +262,19 @@ public final class Cursor<T> implements AutoCloseable {
   }
 
   /**
-   * Put multiple values into the database in one <code>MDB_MULTIPLE</code>
-   * operation.
+   * Put multiple values into the database in one <code>MDB_MULTIPLE</code> operation.
    *
-   * <p>
-   * The database must have been opened with {@link DbiFlags#MDB_DUPFIXED}. The
-   * buffer must contain fixed-sized values to be inserted. The size of each
-   * element is calculated from the buffer's size divided by the given element
-   * count. For example, to populate 10 X 4 byte integers at once, present a
-   * buffer of 40 bytes and specify the element as 10.
+   * <p>The database must have been opened with {@link DbiFlags#MDB_DUPFIXED}. The buffer must
+   * contain fixed-sized values to be inserted. The size of each element is calculated from the
+   * buffer's size divided by the given element count. For example, to populate 10 X 4 byte integers
+   * at once, present a buffer of 40 bytes and specify the element as 10.
    *
-   * @param key      key to store in the database (not null)
-   * @param val      value to store in the database (not null)
+   * @param key key to store in the database (not null)
+   * @param val value to store in the database (not null)
    * @param elements number of elements contained in the passed value buffer
-   * @param op       options for operation (must set <code>MDB_MULTIPLE</code>)
+   * @param op options for operation (must set <code>MDB_MULTIPLE</code>)
    */
-  public void putMultiple(final T key, final T val, final int elements,
-                          final PutFlags... op) {
+  public void putMultiple(final T key, final T val, final int elements, final PutFlags... op) {
     if (SHOULD_CHECK) {
       requireNonNull(txn);
       requireNonNull(key);
@@ -299,14 +283,13 @@ public final class Cursor<T> implements AutoCloseable {
       txn.checkReady();
       txn.checkWritesAllowed();
     }
-    final int mask = mask(op);
+    final int mask = mask(true, op);
     if (SHOULD_CHECK && !isSet(mask, MDB_MULTIPLE)) {
       throw new IllegalArgumentException("Must set " + MDB_MULTIPLE + " flag");
     }
     txn.kv().keyIn(key);
     final Pointer dataPtr = txn.kv().valInMulti(val, elements);
-    final int rc = LIB.mdb_cursor_put(ptrCursor, txn.kv().pointerKey(),
-                                      dataPtr, mask);
+    final int rc = LIB.mdb_cursor_put(ptrCursor, txn.kv().pointerKey(), dataPtr, mask);
     checkRc(rc);
     ReferenceUtil.reachabilityFence0(key);
     ReferenceUtil.reachabilityFence0(val);
@@ -315,13 +298,10 @@ public final class Cursor<T> implements AutoCloseable {
   /**
    * Renew a cursor handle.
    *
-   * <p>
-   * A cursor is associated with a specific transaction and database. Cursors
-   * that are only used in read-only transactions may be re-used, to avoid
-   * unnecessary malloc/free overhead. The cursor may be associated with a new
-   * read-only transaction, and referencing the same database handle as it was
-   * created with. This may be done whether the previous transaction is live or
-   * dead.
+   * <p>A cursor is associated with a specific transaction and database. Cursors that are only used
+   * in read-only transactions may be re-used, to avoid unnecessary malloc/free overhead. The cursor
+   * may be associated with a new read-only transaction, and referencing the same database handle as
+   * it was created with. This may be done whether the previous transaction is live or dead.
    *
    * @param newTxn transaction handle
    */
@@ -339,19 +319,17 @@ public final class Cursor<T> implements AutoCloseable {
   }
 
   /**
-   * Reserve space for data of the given size, but don't copy the given val.
-   * Instead, return a pointer to the reserved space, which the caller can fill
-   * in later - before the next update operation or the transaction ends. This
-   * saves an extra memcpy if the data is being generated later. LMDB does
-   * nothing else with this memory, the caller is expected to modify all of the
+   * Reserve space for data of the given size, but don't copy the given val. Instead, return a
+   * pointer to the reserved space, which the caller can fill in later - before the next update
+   * operation or the transaction ends. This saves an extra memcpy if the data is being generated
+   * later. LMDB does nothing else with this memory, the caller is expected to modify all of the
    * space requested.
    *
-   * <p>
-   * This flag must not be specified if the database was opened with MDB_DUPSORT
+   * <p>This flag must not be specified if the database was opened with MDB_DUPSORT
    *
-   * @param key  key to store in the database (not null)
+   * @param key key to store in the database (not null)
    * @param size size of the value to be stored in the database (not null)
-   * @param op   options for this operation
+   * @param op options for this operation
    * @return a buffer that can be used to modify the value
    */
   public T reserve(final T key, final int size, final PutFlags... op) {
@@ -364,9 +342,8 @@ public final class Cursor<T> implements AutoCloseable {
     }
     kv.keyIn(key);
     kv.valIn(size);
-    final int flags = mask(op) | MDB_RESERVE.getMask();
-    checkRc(LIB.mdb_cursor_put(ptrCursor, kv.pointerKey(), kv.pointerVal(),
-                               flags));
+    final int flags = mask(true, op) | MDB_RESERVE.getMask();
+    checkRc(LIB.mdb_cursor_put(ptrCursor, kv.pointerKey(), kv.pointerVal(), flags));
     kv.valOut();
     ReferenceUtil.reachabilityFence0(key);
     return val();
@@ -386,8 +363,7 @@ public final class Cursor<T> implements AutoCloseable {
       txn.checkReady();
     }
 
-    final int rc = LIB.mdb_cursor_get(ptrCursor, kv.pointerKey(), kv
-                                      .pointerVal(), op.getCode());
+    final int rc = LIB.mdb_cursor_get(ptrCursor, kv.pointerKey(), kv.pointerVal(), op.getCode());
 
     if (rc == MDB_NOTFOUND) {
       return false;
@@ -414,24 +390,18 @@ public final class Cursor<T> implements AutoCloseable {
     }
   }
 
-  /**
-   * Cursor has already been closed.
-   */
+  /** Cursor has already been closed. */
   public static final class ClosedException extends LmdbException {
 
     private static final long serialVersionUID = 1L;
 
-    /**
-     * Creates a new instance.
-     */
+    /** Creates a new instance. */
     public ClosedException() {
       super("Cursor has already been closed");
     }
   }
 
-  /**
-   * Cursor stack too deep - internal error.
-   */
+  /** Cursor stack too deep - internal error. */
   public static final class FullException extends LmdbNativeException {
 
     static final int MDB_CURSOR_FULL = -30_787;
@@ -441,5 +411,4 @@ public final class Cursor<T> implements AutoCloseable {
       super(MDB_CURSOR_FULL, "Cursor stack too deep - internal error");
     }
   }
-
 }
