@@ -26,8 +26,7 @@ import org.junit.rules.TemporaryFolder;
 
 public class CursorIterablePerfTest {
 
-  @Rule
-  public final TemporaryFolder tmp = new TemporaryFolder();
+  @Rule public final TemporaryFolder tmp = new TemporaryFolder();
 
   //    private static final int ITERATIONS = 5_000_000;
   private static final int ITERATIONS = 100_000;
@@ -52,12 +51,13 @@ public class CursorIterablePerfTest {
             .open(path, POSIX_MODE, MDB_NOSUBDIR);
 
     // Use a java comparator for start/stop keys only
-    dbJavaComparator = env.openDbi("JavaComparator", bufferProxy.getUnsignedComparator(), MDB_CREATE);
+    dbJavaComparator =
+        env.openDbi("JavaComparator", bufferProxy.getUnsignedComparator(), MDB_CREATE);
     // Use LMDB comparator for start/stop keys
     dbLmdbComparator = env.openDbi("LmdbComparator", MDB_CREATE);
     // Use a java comparator for start/stop keys and as a callback comparator
-    dbCallbackComparator = env.openDbi(
-        "CallBackComparator", bufferProxy.getUnsignedComparator(), true, MDB_CREATE);
+    dbCallbackComparator =
+        env.openDbi("CallBackComparator", bufferProxy.getUnsignedComparator(), true, MDB_CREATE);
 
     dbs.add(dbJavaComparator);
     dbs.add(dbLmdbComparator);
@@ -89,7 +89,7 @@ public class CursorIterablePerfTest {
       for (final Dbi<ByteBuffer> db : dbs) {
         // Clean out the db first
         try (Txn<ByteBuffer> txn = env.txnWrite();
-             final Cursor<ByteBuffer> cursor = db.openCursor(txn)) {
+            final Cursor<ByteBuffer> cursor = db.openCursor(txn)) {
           while (cursor.next()) {
             cursor.delete();
           }
@@ -108,9 +108,13 @@ public class CursorIterablePerfTest {
           txn.commit();
         }
         final Duration duration = Duration.between(start, Instant.now());
-        System.out.println("DB: " + dbName
-            + " - Loaded in duration: " + duration
-            + ", millis: " + duration.toMillis());
+        System.out.println(
+            "DB: "
+                + dbName
+                + " - Loaded in duration: "
+                + duration
+                + ", millis: "
+                + duration.toMillis());
       }
     }
   }
@@ -147,16 +151,21 @@ public class CursorIterablePerfTest {
         int cnt = 0;
         // Exercise the stop key comparator on every entry
         try (Txn<ByteBuffer> txn = env.txnRead();
-             CursorIterable<ByteBuffer> c = db.iterate(txn, keyRange)) {
+            CursorIterable<ByteBuffer> c = db.iterate(txn, keyRange)) {
           for (final CursorIterable.KeyVal<ByteBuffer> kv : c) {
             cnt++;
           }
         }
         final Duration duration = Duration.between(start, Instant.now());
-        System.out.println("DB: " + dbName
-            + " - Iterated in duration: " + duration
-            + ", millis: " + duration.toMillis()
-            + ", cnt: " + cnt);
+        System.out.println(
+            "DB: "
+                + dbName
+                + " - Iterated in duration: "
+                + duration
+                + ", millis: "
+                + duration.toMillis()
+                + ", cnt: "
+                + cnt);
       }
     }
   }

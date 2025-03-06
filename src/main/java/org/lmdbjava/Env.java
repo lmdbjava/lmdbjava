@@ -257,16 +257,15 @@ public final class Env<T> implements AutoCloseable {
   /**
    * Convenience method that opens a {@link Dbi} with a UTF-8 database name and associated {@link
    * Comparator} for use by {@link CursorIterable} when comparing start/stop keys.
-   * <p>
-   * It is very important that the passed comparator behaves in the same way as the comparator
+   *
+   * <p>It is very important that the passed comparator behaves in the same way as the comparator
    * LMDB uses for its insertion order (for the type of data that will be stored in the database),
-   * or you fully understand the implications of them behaving differently.
-   * LMDB's comparator is unsigned lexicographical, unless {@link DbiFlags#MDB_INTEGERKEY} is used.
-   * </p>
+   * or you fully understand the implications of them behaving differently. LMDB's comparator is
+   * unsigned lexicographical, unless {@link DbiFlags#MDB_INTEGERKEY} is used.
    *
    * @param name name of the database (or null if no name is required)
-   * @param comparator custom comparator for cursor start/stop key comparisons. If null,
-   *                   LMDB's comparator will be used.
+   * @param comparator custom comparator for cursor start/stop key comparisons. If null, LMDB's
+   *     comparator will be used.
    * @param flags to open the database with
    * @return a database that is ready to use
    */
@@ -278,14 +277,14 @@ public final class Env<T> implements AutoCloseable {
 
   /**
    * Convenience method that opens a {@link Dbi} with a UTF-8 database name and associated {@link
-   * Comparator}. The comparator will be used by {@link CursorIterable} when comparing start/stop keys
-   * as a minimum. If nativeCb is {@code true}, this comparator will also be called by LMDB to determine
-   * insertion/iteration order. Calling back to a java comparator may significantly impact performance.
+   * Comparator}. The comparator will be used by {@link CursorIterable} when comparing start/stop
+   * keys as a minimum. If nativeCb is {@code true}, this comparator will also be called by LMDB to
+   * determine insertion/iteration order. Calling back to a java comparator may significantly impact
+   * performance.
    *
    * @param name name of the database (or null if no name is required)
    * @param comparator custom comparator for cursor start/stop key comparisons and optionally for
-   *                   LMDB to call back to. If null,
-   *                   LMDB's comparator will be used.
+   *     LMDB to call back to. If null, LMDB's comparator will be used.
    * @param nativeCb whether LMDB native code calls back to the Java comparator
    * @param flags to open the database with
    * @return a database that is ready to use

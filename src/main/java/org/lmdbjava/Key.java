@@ -33,7 +33,6 @@ final class Key<T> implements AutoCloseable {
   private boolean closed;
   private T k;
   private final BufferProxy<T> proxy;
-  private final Pointer ptrArray;
   private final Pointer ptrKey;
   private final long ptrKeyAddr;
 
@@ -43,7 +42,6 @@ final class Key<T> implements AutoCloseable {
     this.k = proxy.allocate();
     ptrKey = MEM_MGR.allocateTemporary(MDB_VAL_STRUCT_SIZE, false);
     ptrKeyAddr = ptrKey.address();
-    ptrArray = MEM_MGR.allocateTemporary(MDB_VAL_STRUCT_SIZE * 2, false);
   }
 
   @Override
@@ -68,7 +66,7 @@ final class Key<T> implements AutoCloseable {
     return k;
   }
 
-  Pointer pointerKey() {
+  Pointer pointer() {
     return ptrKey;
   }
 }

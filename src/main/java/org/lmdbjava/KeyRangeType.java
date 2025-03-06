@@ -319,14 +319,12 @@ public enum KeyRangeType {
    *
    * @param <T> buffer type
    * @param <C> comparator for the buffers
-   * @param start start buffer
-   * @param stop stop buffer
    * @param buffer current key returned by LMDB (may be null)
    * @param rangeComparator comparator (required)
    * @return response to this key
    */
   <T, C extends Comparator<T>> IteratorOp iteratorOp(
-      final T start, final T stop, final T buffer, final RangeComparator rangeComparator) {
+      final T buffer, final RangeComparator rangeComparator) {
     requireNonNull(rangeComparator, "Comparator required");
     if (buffer == null) {
       return TERMINATE;

@@ -134,8 +134,7 @@ public final class CursorIterableTest {
     // Use LMDB comparator for start/stop keys
     dbLmdbComparator = env.openDbi(DB_2, MDB_CREATE);
     // Use a java comparator for start/stop keys and as a callback comparaotr
-    dbCallbackComparator = env.openDbi(
-            DB_3, bufferProxy.getUnsignedComparator(), true, MDB_CREATE);
+    dbCallbackComparator = env.openDbi(DB_3, bufferProxy.getUnsignedComparator(), true, MDB_CREATE);
 
     populateList();
 
@@ -422,18 +421,17 @@ public final class CursorIterableTest {
 
     // Compare the same
     assertThat(
-            unsignedComparator.compare(val1, val2),
-            Matchers.is(signedComparator.compare(val1, val2)));
+        unsignedComparator.compare(val1, val2), Matchers.is(signedComparator.compare(val1, val2)));
 
     // Compare differently
     assertThat(
-            unsignedComparator.compare(val110, val150),
-            Matchers.not(signedComparator.compare(val110, val150)));
+        unsignedComparator.compare(val110, val150),
+        Matchers.not(signedComparator.compare(val110, val150)));
 
     // Compare differently
     assertThat(
-            unsignedComparator.compare(val111, val150),
-            Matchers.not(signedComparator.compare(val111, val150)));
+        unsignedComparator.compare(val111, val150),
+        Matchers.not(signedComparator.compare(val111, val150)));
 
     // This will fail if the db is using a signed comparator for the start/stop keys
     for (final Dbi<ByteBuffer> db : dbs) {
@@ -444,11 +442,11 @@ public final class CursorIterableTest {
       KeyRange<ByteBuffer> keyRange = KeyRange.atLeastBackward(startKeyBuf);
 
       try (Txn<ByteBuffer> txn = env.txnRead();
-           CursorIterable<ByteBuffer> c = db.iterate(txn, keyRange)) {
+          CursorIterable<ByteBuffer> c = db.iterate(txn, keyRange)) {
         for (final CursorIterable.KeyVal<ByteBuffer> kv : c) {
           final int key = kv.key().getInt();
           final int val = kv.val().getInt();
-//          System.out.println("key: " + key + " val: " + val);
+          //          System.out.println("key: " + key + " val: " + val);
           assertThat(key, is(110));
           break;
         }

@@ -69,11 +69,9 @@ public abstract class BufferProxy<T> {
   /**
    * Get a suitable default {@link Comparator} to compare numeric key values as signed.
    *
-   * <p>
-   * Note: LMDB's default comparator is unsigned so if this is used only for the {@link CursorIterable}
-   * start/stop key comparisons then its behaviour will differ from the iteration order. Use
-   * with caution.
-   * </p>
+   * <p>Note: LMDB's default comparator is unsigned so if this is used only for the {@link
+   * CursorIterable} start/stop key comparisons then its behaviour will differ from the iteration
+   * order. Use with caution.
    *
    * @return a comparator that can be used (never null)
    */
