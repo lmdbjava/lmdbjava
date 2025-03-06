@@ -42,7 +42,6 @@ import org.lmdbjava.KeyRangeType.IteratorOp;
  */
 public final class CursorIterable<T> implements Iterable<CursorIterable.KeyVal<T>>, AutoCloseable {
 
-  //  private final Comparator<T> comparator;
   private final RangeComparator rangeComparator;
   private final Cursor<T> cursor;
   private final KeyVal<T> entry;
@@ -68,61 +67,6 @@ public final class CursorIterable<T> implements Iterable<CursorIterable.KeyVal<T
       this.rangeComparator = new LmdbRangeComparator<>(txn, dbi, cursor, range, proxy);
     }
   }
-
-  //  static <T> RangeComparator createJavaRangeComparator(
-  //      final KeyRange<T> range,
-  //      final Comparator<T> comparator,
-  //      final Supplier<T> currentKeySupplier) {
-  //    final T start = range.getStart();
-  //    final T stop = range.getStop();
-  //    return new RangeComparator() {
-  //      @Override
-  //      public int compareToStartKey() {
-  //        return comparator.compare(currentKeySupplier.get(), start);
-  //      }
-  //
-  //      @Override
-  //      public int compareToStopKey() {
-  //        return comparator.compare(currentKeySupplier.get(), stop);
-  //      }
-  //    };
-  //  }
-
-  //  /**
-  //   * Calls down to mdb_cmp to make use of the comparator that LMDB uses for insertion order.
-  //   *
-  //   * @param txnPointer The pointer to the transaction.
-  //   * @param dbiPointer The pointer to the Dbi so LMDB can use the comparator of the Dbi
-  //   * @param proxy
-  //   */
-  //  private RangeComparator createLmdbDbiComparator(final Pointer txnPointer,
-  //                                                  final Pointer dbiPointer,
-  //                                                  final Pointer cursorKeyPointer,
-  //                                                  final KeyRange<T> range,
-  //                                                  final BufferProxy<T> proxy) {
-  //    Objects.requireNonNull(txnPointer);
-  //    Objects.requireNonNull(dbiPointer);
-  //    Objects.requireNonNull(range);
-  //    Objects.requireNonNull(cursor);
-  //    // Allocate buffers for use with the start/stop keys if required.
-  //    // Saves us copying bytes on each comparison
-  //    final Key<T> startKey = createKey(range.getStart(), proxy);
-  //    final Key<T> stopKey = createKey(range.getStop(), proxy);
-  //
-  //    return new RangeComparator() {
-  //      @Override
-  //      public int compareToStartKey() {
-  //        return LIB.mdb_cmp(txnPointer, dbiPointer, cursor.keyVal().pointerKey(),
-  // startKey.pointer());
-  //      }
-  //
-  //      @Override
-  //      public int compareToStopKey() {
-  //        return LIB.mdb_cmp(txnPointer, dbiPointer, cursor.keyVal().pointerKey(),
-  // stopKey.pointer());
-  //      }
-  //    };
-  //  }
 
   @Override
   public void close() {
