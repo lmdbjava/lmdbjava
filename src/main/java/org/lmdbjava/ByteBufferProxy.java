@@ -182,12 +182,12 @@ public final class ByteBufferProxy {
     }
 
     @Override
-    protected Comparator<ByteBuffer> getSignedComparator() {
+    public Comparator<ByteBuffer> getSignedComparator() {
       return signedComparator;
     }
 
     @Override
-    protected Comparator<ByteBuffer> getUnsignedComparator() {
+    public Comparator<ByteBuffer> getUnsignedComparator() {
       return unsignedComparator;
     }
 

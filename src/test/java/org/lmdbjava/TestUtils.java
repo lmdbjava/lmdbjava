@@ -30,6 +30,8 @@ import org.agrona.concurrent.UnsafeBuffer;
 final class TestUtils {
 
   public static final String DB_1 = "test-db-1";
+  public static final String DB_2 = "test-db-2";
+  public static final String DB_3 = "test-db-3";
 
   public static final int POSIX_MODE = 0664;
 

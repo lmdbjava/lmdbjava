@@ -16,10 +16,6 @@
 package org.lmdbjava;
 
 import static java.lang.Long.BYTES;
-import static org.lmdbjava.DbiFlags.MDB_INTEGERKEY;
-import static org.lmdbjava.DbiFlags.MDB_UNSIGNEDKEY;
-import static org.lmdbjava.MaskedFlag.isSet;
-import static org.lmdbjava.MaskedFlag.mask;
 
 import java.util.Comparator;
 import jnr.ffi.Pointer;
@@ -71,35 +67,24 @@ public abstract class BufferProxy<T> {
   protected abstract byte[] getBytes(T buffer);
 
   /**
-   * Get a suitable default {@link Comparator} given the provided flags.
-   *
-   * <p>The provided comparator must strictly match the lexicographical order of keys in the native
-   * LMDB database.
-   *
-   * @param flags for the database
-   * @return a comparator that can be used (never null)
-   */
-  protected Comparator<T> getComparator(DbiFlags... flags) {
-    final int intFlag = mask(flags);
-
-    return isSet(intFlag, MDB_INTEGERKEY) || isSet(intFlag, MDB_UNSIGNEDKEY)
-        ? getUnsignedComparator()
-        : getSignedComparator();
-  }
-
-  /**
    * Get a suitable default {@link Comparator} to compare numeric key values as signed.
    *
+   * <p>
+   * Note: LMDB's default comparator is unsigned so if this is used only for the {@link CursorIterable}
+   * start/stop key comparisons then its behaviour will differ from the iteration order. Use
+   * with caution.
+   * </p>
+   *
    * @return a comparator that can be used (never null)
    */
-  protected abstract Comparator<T> getSignedComparator();
+  public abstract Comparator<T> getSignedComparator();
 
   /**
    * Get a suitable default {@link Comparator} to compare numeric key values as unsigned.
    *
    * @return a comparator that can be used (never null)
    */
-  protected abstract Comparator<T> getUnsignedComparator();
+  public abstract Comparator<T> getUnsignedComparator();
 
   /**
    * Called when the <code>MDB_val</code> should be set to reflect the passed buffer. This buffer
@@ -139,5 +124,14 @@ public abstract class BufferProxy<T> {
    */
   final KeyVal<T> keyVal() {
     return new KeyVal<>(this);
+  }
+
+  /**
+   * Create a new {@link Key} to hold pointers for this buffer proxy.
+   *
+   * @return a non-null key holder
+   */
+  final Key<T> key() {
+    return new Key<>(this);
   }
 }

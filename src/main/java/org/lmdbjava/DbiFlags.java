@@ -56,14 +56,6 @@ public enum DbiFlags implements MaskedFlag {
    */
   MDB_INTEGERDUP(0x20),
   /**
-   * Compare the <b>numeric</b> keys in native byte order and as unsigned.
-   *
-   * <p>This option is applied only to {@link java.nio.ByteBuffer}, {@link org.agrona.DirectBuffer}
-   * and byte array keys. {@link io.netty.buffer.ByteBuf} keys are always compared in native byte
-   * order and as unsigned.
-   */
-  MDB_UNSIGNEDKEY(0x30, false),
-  /**
    * With {@link #MDB_DUPSORT}, use reverse string dups.
    *
    * <p>This option specifies that duplicate data items should be compared as strings in reverse
@@ -78,24 +70,13 @@ public enum DbiFlags implements MaskedFlag {
   MDB_CREATE(0x4_0000);
 
   private final int mask;
-  private final boolean propagatedToLmdb;
-
-  DbiFlags(final int mask, final boolean propagatedToLmdb) {
-    this.mask = mask;
-    this.propagatedToLmdb = propagatedToLmdb;
-  }
 
   DbiFlags(final int mask) {
-    this(mask, true);
+    this.mask = mask;
   }
 
   @Override
   public int getMask() {
     return mask;
-  }
-
-  @Override
-  public boolean isPropagatedToLmdb() {
-    return propagatedToLmdb;
   }
 }

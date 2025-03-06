@@ -54,6 +54,7 @@ public final class Dbi<T> {
   private final Env<T> env;
   private final byte[] name;
   private final Pointer ptr;
+  private final BufferProxy<T> proxy;
 
   Dbi(
       final Env<T> env,
@@ -69,16 +70,14 @@ public final class Dbi<T> {
     }
     this.env = env;
     this.name = name == null ? null : Arrays.copyOf(name, name.length);
-    if (comparator == null) {
-      this.comparator = proxy.getComparator(flags);
-    } else {
-      this.comparator = comparator;
-    }
+    this.proxy = proxy;
+    this.comparator = comparator;
     final int flagsMask = mask(true, flags);
     final Pointer dbiPtr = allocateDirect(RUNTIME, ADDRESS);
     checkRc(LIB.mdb_dbi_open(txn.pointer(), name, flagsMask, dbiPtr));
     ptr = dbiPtr.getPointer(0);
     if (nativeCb) {
+      requireNonNull(comparator, "comparator cannot be null if nativeCb is set");
       this.ccb =
           (keyA, keyB) -> {
             final T compKeyA = proxy.allocate();
@@ -94,6 +93,10 @@ public final class Dbi<T> {
     } else {
       ccb = null;
     }
+  }
+
+  Pointer pointer() {
+    return ptr;
   }
 
   /**
@@ -275,7 +278,7 @@ public final class Dbi<T> {
       env.checkNotClosed();
       txn.checkReady();
     }
-    return new CursorIterable<>(txn, this, range, comparator);
+    return new CursorIterable<>(txn, this, range, comparator, proxy);
   }
 
   /**

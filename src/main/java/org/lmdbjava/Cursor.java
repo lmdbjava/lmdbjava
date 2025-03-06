@@ -196,6 +196,10 @@ public final class Cursor<T> implements AutoCloseable {
     return kv.key();
   }
 
+  KeyVal<T> keyVal() {
+    return kv;
+  }
+
   /**
    * Position at last key/data item.
    *

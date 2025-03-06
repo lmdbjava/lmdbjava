@@ -21,10 +21,14 @@ import static org.lmdbjava.CursorIterable.State.REQUIRES_ITERATOR_OP;
 import static org.lmdbjava.CursorIterable.State.REQUIRES_NEXT_OP;
 import static org.lmdbjava.CursorIterable.State.TERMINATED;
 import static org.lmdbjava.GetOp.MDB_SET_RANGE;
+import static org.lmdbjava.Library.LIB;
 
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+import java.util.Objects;
+import java.util.function.Supplier;
+import jnr.ffi.Pointer;
 import org.lmdbjava.KeyRangeType.CursorOp;
 import org.lmdbjava.KeyRangeType.IteratorOp;
 
@@ -38,185 +42,266 @@ import org.lmdbjava.KeyRangeType.IteratorOp;
  */
 public final class CursorIterable<T> implements Iterable<CursorIterable.KeyVal<T>>, AutoCloseable {
 
-  private final Comparator<T> comparator;
-  private final Cursor<T> cursor;
-  private final KeyVal<T> entry;
-  private boolean iteratorReturned;
-  private final KeyRange<T> range;
-  private State state = REQUIRES_INITIAL_OP;
+    //  private final Comparator<T> comparator;
+    private final RangeComparator rangeComparator;
+    private final Cursor<T> cursor;
+    private final Dbi<T> dbi;
+    private final KeyVal<T> entry;
+    private boolean iteratorReturned;
+    private final KeyRange<T> range;
+    private State state = REQUIRES_INITIAL_OP;
+    private final Key<T> startKey;
+    private final Key<T> stopKey;
 
-  CursorIterable(
-      final Txn<T> txn, final Dbi<T> dbi, final KeyRange<T> range, final Comparator<T> comparator) {
-    this.cursor = dbi.openCursor(txn);
-    this.range = range;
-    this.comparator = comparator;
-    this.entry = new KeyVal<>();
-  }
+    CursorIterable(
+            final Txn<T> txn,
+            final Dbi<T> dbi,
+            final KeyRange<T> range,
+            final Comparator<T> comparator,
+            final BufferProxy<T> proxy) {
+        this.cursor = dbi.openCursor(txn);
+        this.dbi = dbi;
+        this.range = range;
+        this.entry = new KeyVal<>();
 
-  @Override
-  public void close() {
-    cursor.close();
-  }
-
-  /**
-   * Obtain an iterator.
-   *
-   * <p>As iteration of the returned iterator will cause movement of the underlying LMDB cursor, an
-   * {@link IllegalStateException} is thrown if an attempt is made to obtain the iterator more than
-   * once. For advanced cursor control (such as being able to iterate over the same data multiple
-   * times etc) please instead refer to {@link Dbi#openCursor(org.lmdbjava.Txn)}.
-   *
-   * @return an iterator
-   */
-  @Override
-  public Iterator<KeyVal<T>> iterator() {
-    if (iteratorReturned) {
-      throw new IllegalStateException("Iterator can only be returned once");
-    }
-    iteratorReturned = true;
-
-    return new Iterator<KeyVal<T>>() {
-      @Override
-      public boolean hasNext() {
-        while (state != RELEASED && state != TERMINATED) {
-          update();
+        if (comparator != null) {
+            // User supplied java-side comparator so use that
+            this.rangeComparator = createJavaRangeComparator(range, comparator, entry::key);
+            this.startKey = null;
+            this.stopKey = null;
+        } else {
+            // No java-side comparator so call down to LMDB to do the comparison
+            this.rangeComparator = createLmdbDbiComparator(txn.pointer(), dbi.pointer());
+            // Allocate buffers for use with the start/stop keys if required.
+            // Saves us copying bytes on each comparison
+            this.startKey = createKey(range.getStart(), proxy);
+            this.stopKey = createKey(range.getStop(), proxy);
         }
-        return state == RELEASED;
-      }
+    }
 
-      @Override
-      public KeyVal<T> next() {
-        if (!hasNext()) {
-          throw new NoSuchElementException();
+    private Key<T> createKey(final T keyBuffer, final BufferProxy<T> proxy) {
+        if (keyBuffer != null) {
+            final Key<T> key = proxy.key();
+            key.keyIn(keyBuffer);
+            return key;
+        } else {
+            return null;
         }
-        state = REQUIRES_NEXT_OP;
-        return entry;
-      }
-
-      @Override
-      public void remove() {
-        cursor.delete();
-      }
-    };
-  }
-
-  private void executeCursorOp(final CursorOp op) {
-    final boolean found;
-    switch (op) {
-      case FIRST:
-        found = cursor.first();
-        break;
-      case LAST:
-        found = cursor.last();
-        break;
-      case NEXT:
-        found = cursor.next();
-        break;
-      case PREV:
-        found = cursor.prev();
-        break;
-      case GET_START_KEY:
-        found = cursor.get(range.getStart(), MDB_SET_RANGE);
-        break;
-      case GET_START_KEY_BACKWARD:
-        found = cursor.get(range.getStart(), MDB_SET_RANGE) || cursor.last();
-        break;
-      default:
-        throw new IllegalStateException("Unknown cursor operation");
     }
-    entry.setK(found ? cursor.key() : null);
-    entry.setV(found ? cursor.val() : null);
-  }
 
-  private void executeIteratorOp() {
-    final IteratorOp op =
-        range.getType().iteratorOp(range.getStart(), range.getStop(), entry.key(), comparator);
-    switch (op) {
-      case CALL_NEXT_OP:
-        executeCursorOp(range.getType().nextOp());
-        state = REQUIRES_ITERATOR_OP;
-        break;
-      case TERMINATE:
-        state = TERMINATED;
-        break;
-      case RELEASE:
-        state = RELEASED;
-        break;
-      default:
-        throw new IllegalStateException("Unknown operation");
-    }
-  }
+    static <T> RangeComparator createJavaRangeComparator(
+            final KeyRange<T> range,
+            final Comparator<T> comparator,
+            final Supplier<T> currentKeySupplier) {
+        final T start = range.getStart();
+        final T stop = range.getStop();
+        return new RangeComparator() {
+            @Override
+            public int compareToStartKey() {
+                return comparator.compare(currentKeySupplier.get(), start);
+            }
 
-  private void update() {
-    switch (state) {
-      case REQUIRES_INITIAL_OP:
-        executeCursorOp(range.getType().initialOp());
-        state = REQUIRES_ITERATOR_OP;
-        break;
-      case REQUIRES_NEXT_OP:
-        executeCursorOp(range.getType().nextOp());
-        state = REQUIRES_ITERATOR_OP;
-        break;
-      case REQUIRES_ITERATOR_OP:
-        executeIteratorOp();
-        break;
-      case TERMINATED:
-        break;
-      default:
-        throw new IllegalStateException("Unknown state");
-    }
-  }
-
-  /**
-   * Holder for a key and value pair.
-   *
-   * <p>The same holder instance will always be returned for a given iterator. The returned keys and
-   * values may change or point to different memory locations following changes in the iterator,
-   * cursor or transaction.
-   *
-   * @param <T> buffer type
-   */
-  public static final class KeyVal<T> {
-
-    private T k;
-    private T v;
-
-    /** Explicitly-defined default constructor to avoid warnings. */
-    public KeyVal() {}
-
-    /**
-     * The key.
-     *
-     * @return key
-     */
-    public T key() {
-      return k;
+            @Override
+            public int compareToStopKey() {
+                return comparator.compare(currentKeySupplier.get(), stop);
+            }
+        };
     }
 
     /**
-     * The value.
+     * Calls down to mdb_cmp to make use of the comparator that LMDB uses for insertion order.
      *
-     * @return value
+     * @param txnPointer The pointer to the transaction.
+     * @param dbiPointer The pointer to the Dbi so LMDB can use the comparator of the Dbi
      */
-    public T val() {
-      return v;
+    private RangeComparator createLmdbDbiComparator(
+            final Pointer txnPointer, final Pointer dbiPointer) {
+        Objects.requireNonNull(txnPointer);
+        Objects.requireNonNull(dbiPointer);
+        Objects.requireNonNull(cursor);
+
+        return new RangeComparator() {
+            @Override
+            public int compareToStartKey() {
+                return LIB.mdb_cmp(txnPointer, dbiPointer, cursor.keyVal().pointerKey(), startKey.pointerKey());
+            }
+
+            @Override
+            public int compareToStopKey() {
+                return LIB.mdb_cmp(txnPointer, dbiPointer, cursor.keyVal().pointerKey(), stopKey.pointerKey());
+            }
+        };
     }
 
-    void setK(final T key) {
-      this.k = key;
+    @Override
+    public void close() {
+        cursor.close();
     }
 
-    void setV(final T val) {
-      this.v = val;
-    }
-  }
+    /**
+     * Obtain an iterator.
+     *
+     * <p>As iteration of the returned iterator will cause movement of the underlying LMDB cursor, an
+     * {@link IllegalStateException} is thrown if an attempt is made to obtain the iterator more than
+     * once. For advanced cursor control (such as being able to iterate over the same data multiple
+     * times etc) please instead refer to {@link Dbi#openCursor(org.lmdbjava.Txn)}.
+     *
+     * @return an iterator
+     */
+    @Override
+    public Iterator<KeyVal<T>> iterator() {
+        if (iteratorReturned) {
+            throw new IllegalStateException("Iterator can only be returned once");
+        }
+        iteratorReturned = true;
 
-  /** Represents the internal {@link CursorIterable} state. */
-  enum State {
-    REQUIRES_INITIAL_OP,
-    REQUIRES_NEXT_OP,
-    REQUIRES_ITERATOR_OP,
-    RELEASED,
-    TERMINATED
-  }
+        return new Iterator<KeyVal<T>>() {
+            @Override
+            public boolean hasNext() {
+                while (state != RELEASED && state != TERMINATED) {
+                    update();
+                }
+                return state == RELEASED;
+            }
+
+            @Override
+            public KeyVal<T> next() {
+                if (!hasNext()) {
+                    throw new NoSuchElementException();
+                }
+                state = REQUIRES_NEXT_OP;
+                return entry;
+            }
+
+            @Override
+            public void remove() {
+                cursor.delete();
+            }
+        };
+    }
+
+    private void executeCursorOp(final CursorOp op) {
+        final boolean found;
+        switch (op) {
+            case FIRST:
+                found = cursor.first();
+                break;
+            case LAST:
+                found = cursor.last();
+                break;
+            case NEXT:
+                found = cursor.next();
+                break;
+            case PREV:
+                found = cursor.prev();
+                break;
+            case GET_START_KEY:
+                found = cursor.get(range.getStart(), MDB_SET_RANGE);
+                break;
+            case GET_START_KEY_BACKWARD:
+                found = cursor.get(range.getStart(), MDB_SET_RANGE) || cursor.last();
+                break;
+            default:
+                throw new IllegalStateException("Unknown cursor operation");
+        }
+        entry.setK(found ? cursor.key() : null);
+        entry.setV(found ? cursor.val() : null);
+    }
+
+    private void executeIteratorOp() {
+        final IteratorOp op =
+                range.getType().iteratorOp(range.getStart(), range.getStop(), entry.key(), rangeComparator);
+        switch (op) {
+            case CALL_NEXT_OP:
+                executeCursorOp(range.getType().nextOp());
+                state = REQUIRES_ITERATOR_OP;
+                break;
+            case TERMINATE:
+                state = TERMINATED;
+                break;
+            case RELEASE:
+                state = RELEASED;
+                break;
+            default:
+                throw new IllegalStateException("Unknown operation");
+        }
+    }
+
+    private void update() {
+        switch (state) {
+            case REQUIRES_INITIAL_OP:
+                executeCursorOp(range.getType().initialOp());
+                state = REQUIRES_ITERATOR_OP;
+                break;
+            case REQUIRES_NEXT_OP:
+                executeCursorOp(range.getType().nextOp());
+                state = REQUIRES_ITERATOR_OP;
+                break;
+            case REQUIRES_ITERATOR_OP:
+                executeIteratorOp();
+                break;
+            case TERMINATED:
+                break;
+            default:
+                throw new IllegalStateException("Unknown state");
+        }
+    }
+
+    /**
+     * Holder for a key and value pair.
+     *
+     * <p>The same holder instance will always be returned for a given iterator. The returned keys and
+     * values may change or point to different memory locations following changes in the iterator,
+     * cursor or transaction.
+     *
+     * @param <T> buffer type
+     */
+    public static final class KeyVal<T> {
+
+        private T k;
+        private T v;
+
+        /**
+         * Explicitly-defined default constructor to avoid warnings.
+         */
+        public KeyVal() {
+        }
+
+        /**
+         * The key.
+         *
+         * @return key
+         */
+        public T key() {
+            return k;
+        }
+
+        /**
+         * The value.
+         *
+         * @return value
+         */
+        public T val() {
+            return v;
+        }
+
+        void setK(final T key) {
+            this.k = key;
+        }
+
+        void setV(final T val) {
+            this.v = val;
+        }
+    }
+
+    /**
+     * Represents the internal {@link CursorIterable} state.
+     */
+    enum State {
+        REQUIRES_INITIAL_OP,
+        REQUIRES_NEXT_OP,
+        REQUIRES_ITERATOR_OP,
+        RELEASED,
+        TERMINATED
+    }
 }

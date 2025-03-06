@@ -43,6 +43,8 @@ import static org.lmdbjava.KeyRange.openClosed;
 import static org.lmdbjava.KeyRange.openClosedBackward;
 import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
 import static org.lmdbjava.TestUtils.DB_1;
+import static org.lmdbjava.TestUtils.DB_2;
+import static org.lmdbjava.TestUtils.DB_3;
 import static org.lmdbjava.TestUtils.POSIX_MODE;
 import static org.lmdbjava.TestUtils.bb;
 
@@ -69,7 +71,10 @@ import org.lmdbjava.CursorIterable.KeyVal;
 public final class CursorIterableTest {
 
   @Rule public final TemporaryFolder tmp = new TemporaryFolder();
-  private Dbi<ByteBuffer> db;
+  private Dbi<ByteBuffer> dbJavaComparator;
+  private Dbi<ByteBuffer> dbLmdbComparator;
+  private Dbi<ByteBuffer> dbCallbackComparator;
+  private List<Dbi<ByteBuffer>> dbs = new ArrayList<>();
   private Env<ByteBuffer> env;
   private Deque<Integer> list;
 
@@ -116,19 +121,39 @@ public final class CursorIterableTest {
   @Before
   public void before() throws IOException {
     final File path = tmp.newFile();
+    final BufferProxy<ByteBuffer> bufferProxy = ByteBufferProxy.PROXY_OPTIMAL;
     env =
-        create()
+        create(bufferProxy)
             .setMapSize(KIBIBYTES.toBytes(256))
             .setMaxReaders(1)
-            .setMaxDbs(1)
+            .setMaxDbs(3)
             .open(path, POSIX_MODE, MDB_NOSUBDIR);
-    db = env.openDbi(DB_1, MDB_CREATE);
-    populateDatabase(db);
+
+    // Use a java comparator for start/stop keys only
+    dbJavaComparator = env.openDbi(DB_1, bufferProxy.getUnsignedComparator(), MDB_CREATE);
+    // Use LMDB comparator for start/stop keys
+    dbLmdbComparator = env.openDbi(DB_2, MDB_CREATE);
+    // Use a java comparator for start/stop keys and as a callback comparaotr
+    dbCallbackComparator = env.openDbi(
+            DB_3, bufferProxy.getUnsignedComparator(), true, MDB_CREATE);
+
+    populateList();
+
+    populateDatabase(dbJavaComparator);
+    populateDatabase(dbLmdbComparator);
+    populateDatabase(dbCallbackComparator);
+
+    dbs.add(dbJavaComparator);
+    dbs.add(dbLmdbComparator);
+    dbs.add(dbCallbackComparator);
+  }
+
+  private void populateList() {
+    list = new LinkedList<>();
+    list.addAll(asList(2, 3, 4, 5, 6, 7, 8, 9));
   }
 
   private void populateDatabase(final Dbi<ByteBuffer> dbi) {
-    list = new LinkedList<>();
-    list.addAll(asList(2, 3, 4, 5, 6, 7, 8, 9));
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
       final Cursor<ByteBuffer> c = dbi.openCursor(txn);
       c.put(bb(2), bb(3), MDB_NOOVERWRITE);
@@ -166,6 +191,14 @@ public final class CursorIterableTest {
     verify(closed(bb(1), bb(7)), 2, 4, 6);
   }
 
+  public void closedTest1() {
+    verify(dbLmdbComparator, closed(bb(3), bb(7)), 4, 6);
+  }
+
+  public void closedTest2() {
+    verify(dbJavaComparator, closed(bb(3), bb(7)), 4, 6);
+  }
+
   @Test
   public void greaterThanBackwardTest() {
     verify(greaterThanBackward(bb(6)), 4, 2);
@@ -181,30 +214,39 @@ public final class CursorIterableTest {
 
   @Test(expected = IllegalStateException.class)
   public void iterableOnlyReturnedOnce() {
-    try (Txn<ByteBuffer> txn = env.txnRead();
-        CursorIterable<ByteBuffer> c = db.iterate(txn)) {
-      c.iterator(); // ok
-      c.iterator(); // fails
+    for (final Dbi<ByteBuffer> db : dbs) {
+      try (Txn<ByteBuffer> txn = env.txnRead();
+          CursorIterable<ByteBuffer> c = db.iterate(txn)) {
+        c.iterator(); // ok
+        c.iterator(); // fails
+      }
     }
   }
 
   @Test
   public void iterate() {
-    try (Txn<ByteBuffer> txn = env.txnRead();
-        CursorIterable<ByteBuffer> c = db.iterate(txn)) {
-      for (final KeyVal<ByteBuffer> kv : c) {
-        assertThat(kv.key().getInt(), is(list.pollFirst()));
-        assertThat(kv.val().getInt(), is(list.pollFirst()));
+    for (final Dbi<ByteBuffer> db : dbs) {
+      populateList();
+      try (Txn<ByteBuffer> txn = env.txnRead();
+          CursorIterable<ByteBuffer> c = db.iterate(txn)) {
+
+        int cnt = 0;
+        for (final KeyVal<ByteBuffer> kv : c) {
+          assertThat(kv.key().getInt(), is(list.pollFirst()));
+          assertThat(kv.val().getInt(), is(list.pollFirst()));
+        }
       }
     }
   }
 
   @Test(expected = IllegalStateException.class)
   public void iteratorOnlyReturnedOnce() {
-    try (Txn<ByteBuffer> txn = env.txnRead();
-        CursorIterable<ByteBuffer> c = db.iterate(txn)) {
-      c.iterator(); // ok
-      c.iterator(); // fails
+    for (final Dbi<ByteBuffer> db : dbs) {
+      try (Txn<ByteBuffer> txn = env.txnRead();
+          CursorIterable<ByteBuffer> c = db.iterate(txn)) {
+        c.iterator(); // ok
+        c.iterator(); // fails
+      }
     }
   }
 
@@ -222,16 +264,19 @@ public final class CursorIterableTest {
 
   @Test(expected = NoSuchElementException.class)
   public void nextThrowsNoSuchElementExceptionIfNoMoreElements() {
-    try (Txn<ByteBuffer> txn = env.txnRead();
-        CursorIterable<ByteBuffer> c = db.iterate(txn)) {
-      final Iterator<KeyVal<ByteBuffer>> i = c.iterator();
-      while (i.hasNext()) {
-        final KeyVal<ByteBuffer> kv = i.next();
-        assertThat(kv.key().getInt(), is(list.pollFirst()));
-        assertThat(kv.val().getInt(), is(list.pollFirst()));
+    for (final Dbi<ByteBuffer> db : dbs) {
+      populateList();
+      try (Txn<ByteBuffer> txn = env.txnRead();
+          CursorIterable<ByteBuffer> c = db.iterate(txn)) {
+        final Iterator<KeyVal<ByteBuffer>> i = c.iterator();
+        while (i.hasNext()) {
+          final KeyVal<ByteBuffer> kv = i.next();
+          assertThat(kv.key().getInt(), is(list.pollFirst()));
+          assertThat(kv.val().getInt(), is(list.pollFirst()));
+        }
+        assertThat(i.hasNext(), is(false));
+        i.next();
       }
-      assertThat(i.hasNext(), is(false));
-      i.next();
     }
   }
 
@@ -284,81 +329,148 @@ public final class CursorIterableTest {
 
   @Test
   public void removeOddElements() {
-    verify(all(), 2, 4, 6, 8);
-    int idx = -1;
-    try (Txn<ByteBuffer> txn = env.txnWrite()) {
-      try (CursorIterable<ByteBuffer> ci = db.iterate(txn)) {
-        final Iterator<KeyVal<ByteBuffer>> c = ci.iterator();
-        while (c.hasNext()) {
-          c.next();
-          idx++;
-          if (idx % 2 == 0) {
-            c.remove();
+    for (final Dbi<ByteBuffer> db : dbs) {
+      verify(db, all(), 2, 4, 6, 8);
+      int idx = -1;
+      try (Txn<ByteBuffer> txn = env.txnWrite()) {
+        try (CursorIterable<ByteBuffer> ci = db.iterate(txn)) {
+          final Iterator<KeyVal<ByteBuffer>> c = ci.iterator();
+          while (c.hasNext()) {
+            c.next();
+            idx++;
+            if (idx % 2 == 0) {
+              c.remove();
+            }
           }
         }
+        txn.commit();
       }
-      txn.commit();
+      verify(db, all(), 4, 8);
     }
-    verify(all(), 4, 8);
   }
 
   @Test(expected = Env.AlreadyClosedException.class)
   public void nextWithClosedEnvTest() {
-    try (Txn<ByteBuffer> txn = env.txnRead()) {
-      try (CursorIterable<ByteBuffer> ci = db.iterate(txn, KeyRange.all())) {
-        final Iterator<KeyVal<ByteBuffer>> c = ci.iterator();
+    for (final Dbi<ByteBuffer> db : dbs) {
+      try (Txn<ByteBuffer> txn = env.txnRead()) {
+        try (CursorIterable<ByteBuffer> ci = db.iterate(txn, KeyRange.all())) {
+          final Iterator<KeyVal<ByteBuffer>> c = ci.iterator();
 
-        env.close();
-        c.next();
+          env.close();
+          c.next();
+        }
       }
     }
   }
 
   @Test(expected = Env.AlreadyClosedException.class)
   public void removeWithClosedEnvTest() {
-    try (Txn<ByteBuffer> txn = env.txnWrite()) {
-      try (CursorIterable<ByteBuffer> ci = db.iterate(txn, KeyRange.all())) {
-        final Iterator<KeyVal<ByteBuffer>> c = ci.iterator();
+    for (final Dbi<ByteBuffer> db : dbs) {
+      try (Txn<ByteBuffer> txn = env.txnWrite()) {
+        try (CursorIterable<ByteBuffer> ci = db.iterate(txn, KeyRange.all())) {
+          final Iterator<KeyVal<ByteBuffer>> c = ci.iterator();
 
-        final KeyVal<ByteBuffer> keyVal = c.next();
-        assertThat(keyVal, Matchers.notNullValue());
+          final KeyVal<ByteBuffer> keyVal = c.next();
+          assertThat(keyVal, Matchers.notNullValue());
 
-        env.close();
-        c.remove();
+          env.close();
+          c.remove();
+        }
       }
     }
   }
 
   @Test(expected = Env.AlreadyClosedException.class)
   public void hasNextWithClosedEnvTest() {
-    try (Txn<ByteBuffer> txn = env.txnRead()) {
-      try (CursorIterable<ByteBuffer> ci = db.iterate(txn, KeyRange.all())) {
-        final Iterator<KeyVal<ByteBuffer>> c = ci.iterator();
+    for (final Dbi<ByteBuffer> db : dbs) {
+      try (Txn<ByteBuffer> txn = env.txnRead()) {
+        try (CursorIterable<ByteBuffer> ci = db.iterate(txn, KeyRange.all())) {
+          final Iterator<KeyVal<ByteBuffer>> c = ci.iterator();
 
-        env.close();
-        c.hasNext();
+          env.close();
+          c.hasNext();
+        }
       }
     }
   }
 
   @Test(expected = Env.AlreadyClosedException.class)
   public void forEachRemainingWithClosedEnvTest() {
-    try (Txn<ByteBuffer> txn = env.txnRead()) {
-      try (CursorIterable<ByteBuffer> ci = db.iterate(txn, KeyRange.all())) {
-        final Iterator<KeyVal<ByteBuffer>> c = ci.iterator();
+    for (final Dbi<ByteBuffer> db : dbs) {
+      try (Txn<ByteBuffer> txn = env.txnRead()) {
+        try (CursorIterable<ByteBuffer> ci = db.iterate(txn, KeyRange.all())) {
+          final Iterator<KeyVal<ByteBuffer>> c = ci.iterator();
 
-        env.close();
-        c.forEachRemaining(keyVal -> {});
+          env.close();
+          c.forEachRemaining(keyVal -> {});
+        }
+      }
+    }
+  }
+
+  @Test
+  public void testSignedVsUnsigned() {
+    final ByteBuffer val1 = bb(1);
+    final ByteBuffer val2 = bb(2);
+    final ByteBuffer val110 = bb(110);
+    final ByteBuffer val111 = bb(111);
+    final ByteBuffer val150 = bb(150);
+
+    final BufferProxy<ByteBuffer> bufferProxy = ByteBufferProxy.PROXY_OPTIMAL;
+    final Comparator<ByteBuffer> unsignedComparator = bufferProxy.getUnsignedComparator();
+    final Comparator<ByteBuffer> signedComparator = bufferProxy.getSignedComparator();
+
+    // Compare the same
+    assertThat(
+            unsignedComparator.compare(val1, val2),
+            Matchers.is(signedComparator.compare(val1, val2)));
+
+    // Compare differently
+    assertThat(
+            unsignedComparator.compare(val110, val150),
+            Matchers.not(signedComparator.compare(val110, val150)));
+
+    // Compare differently
+    assertThat(
+            unsignedComparator.compare(val111, val150),
+            Matchers.not(signedComparator.compare(val111, val150)));
+
+    // This will fail if the db is using a signed comparator for the start/stop keys
+    for (final Dbi<ByteBuffer> db : dbs) {
+      db.put(val110, val110);
+      db.put(val150, val150);
+
+      final ByteBuffer startKeyBuf = val111;
+      KeyRange<ByteBuffer> keyRange = KeyRange.atLeastBackward(startKeyBuf);
+
+      try (Txn<ByteBuffer> txn = env.txnRead();
+           CursorIterable<ByteBuffer> c = db.iterate(txn, keyRange)) {
+        for (final CursorIterable.KeyVal<ByteBuffer> kv : c) {
+          final int key = kv.key().getInt();
+          final int val = kv.val().getInt();
+//          System.out.println("key: " + key + " val: " + val);
+          assertThat(key, is(110));
+          break;
+        }
       }
     }
   }
 
   private void verify(final KeyRange<ByteBuffer> range, final int... expected) {
-    verify(range, db, expected);
+    // Verify using all comparator types
+    for (final Dbi<ByteBuffer> db : dbs) {
+      verify(range, db, expected);
+    }
+  }
+
+  private void verify(
+      final Dbi<ByteBuffer> dbi, final KeyRange<ByteBuffer> range, final int... expected) {
+    verify(range, dbi, expected);
   }
 
   private void verify(
       final KeyRange<ByteBuffer> range, final Dbi<ByteBuffer> dbi, final int... expected) {
+
     final List<Integer> results = new ArrayList<>();
 
     try (Txn<ByteBuffer> txn = env.txnRead();

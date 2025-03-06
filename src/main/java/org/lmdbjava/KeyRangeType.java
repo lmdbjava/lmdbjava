@@ -322,12 +322,12 @@ public enum KeyRangeType {
    * @param start start buffer
    * @param stop stop buffer
    * @param buffer current key returned by LMDB (may be null)
-   * @param c comparator (required)
+   * @param rangeComparator comparator (required)
    * @return response to this key
    */
   <T, C extends Comparator<T>> IteratorOp iteratorOp(
-      final T start, final T stop, final T buffer, final C c) {
-    requireNonNull(c, "Comparator required");
+      final T start, final T stop, final T buffer, final RangeComparator rangeComparator) {
+    requireNonNull(rangeComparator, "Comparator required");
     if (buffer == null) {
       return TERMINATE;
     }
@@ -337,55 +337,55 @@ public enum KeyRangeType {
       case FORWARD_AT_LEAST:
         return RELEASE;
       case FORWARD_AT_MOST:
-        return c.compare(buffer, stop) > 0 ? TERMINATE : RELEASE;
+        return rangeComparator.compareToStopKey() > 0 ? TERMINATE : RELEASE;
       case FORWARD_CLOSED:
-        return c.compare(buffer, stop) > 0 ? TERMINATE : RELEASE;
+        return rangeComparator.compareToStopKey() > 0 ? TERMINATE : RELEASE;
       case FORWARD_CLOSED_OPEN:
-        return c.compare(buffer, stop) >= 0 ? TERMINATE : RELEASE;
+        return rangeComparator.compareToStopKey() >= 0 ? TERMINATE : RELEASE;
       case FORWARD_GREATER_THAN:
-        return c.compare(buffer, start) == 0 ? CALL_NEXT_OP : RELEASE;
+        return rangeComparator.compareToStartKey() == 0 ? CALL_NEXT_OP : RELEASE;
       case FORWARD_LESS_THAN:
-        return c.compare(buffer, stop) >= 0 ? TERMINATE : RELEASE;
+        return rangeComparator.compareToStopKey() >= 0 ? TERMINATE : RELEASE;
       case FORWARD_OPEN:
-        if (c.compare(buffer, start) == 0) {
+        if (rangeComparator.compareToStartKey() == 0) {
           return CALL_NEXT_OP;
         }
-        return c.compare(buffer, stop) >= 0 ? TERMINATE : RELEASE;
+        return rangeComparator.compareToStopKey() >= 0 ? TERMINATE : RELEASE;
       case FORWARD_OPEN_CLOSED:
-        if (c.compare(buffer, start) == 0) {
+        if (rangeComparator.compareToStartKey() == 0) {
           return CALL_NEXT_OP;
         }
-        return c.compare(buffer, stop) > 0 ? TERMINATE : RELEASE;
+        return rangeComparator.compareToStopKey() > 0 ? TERMINATE : RELEASE;
       case BACKWARD_ALL:
         return RELEASE;
       case BACKWARD_AT_LEAST:
-        return c.compare(buffer, start) > 0 ? CALL_NEXT_OP : RELEASE; // rewind
+        return rangeComparator.compareToStartKey() > 0 ? CALL_NEXT_OP : RELEASE; // rewind
       case BACKWARD_AT_MOST:
-        return c.compare(buffer, stop) >= 0 ? RELEASE : TERMINATE;
+        return rangeComparator.compareToStopKey() >= 0 ? RELEASE : TERMINATE;
       case BACKWARD_CLOSED:
-        if (c.compare(buffer, start) > 0) {
+        if (rangeComparator.compareToStartKey() > 0) {
           return CALL_NEXT_OP; // rewind
         }
-        return c.compare(buffer, stop) >= 0 ? RELEASE : TERMINATE;
+        return rangeComparator.compareToStopKey() >= 0 ? RELEASE : TERMINATE;
       case BACKWARD_CLOSED_OPEN:
-        if (c.compare(buffer, start) > 0) {
+        if (rangeComparator.compareToStartKey() > 0) {
           return CALL_NEXT_OP; // rewind
         }
-        return c.compare(buffer, stop) > 0 ? RELEASE : TERMINATE;
+        return rangeComparator.compareToStopKey() > 0 ? RELEASE : TERMINATE;
       case BACKWARD_GREATER_THAN:
-        return c.compare(buffer, start) >= 0 ? CALL_NEXT_OP : RELEASE;
+        return rangeComparator.compareToStartKey() >= 0 ? CALL_NEXT_OP : RELEASE;
       case BACKWARD_LESS_THAN:
-        return c.compare(buffer, stop) > 0 ? RELEASE : TERMINATE;
+        return rangeComparator.compareToStopKey() > 0 ? RELEASE : TERMINATE;
       case BACKWARD_OPEN:
-        if (c.compare(buffer, start) >= 0) {
+        if (rangeComparator.compareToStartKey() >= 0) {
           return CALL_NEXT_OP; // rewind
         }
-        return c.compare(buffer, stop) > 0 ? RELEASE : TERMINATE;
+        return rangeComparator.compareToStopKey() > 0 ? RELEASE : TERMINATE;
       case BACKWARD_OPEN_CLOSED:
-        if (c.compare(buffer, start) >= 0) {
+        if (rangeComparator.compareToStartKey() >= 0) {
           return CALL_NEXT_OP; // rewind
         }
-        return c.compare(buffer, stop) >= 0 ? RELEASE : TERMINATE;
+        return rangeComparator.compareToStopKey() >= 0 ? RELEASE : TERMINATE;
       default:
         throw new IllegalStateException("Invalid type");
     }
