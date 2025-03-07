@@ -73,7 +73,7 @@ public class CursorIterablePerfTest {
   }
 
   private void populateDatabases(final boolean randomOrder) {
-    System.out.println("Clear then populate databases");
+    System.out.println("Clear then populate databases (randomOrder=" + randomOrder + ")");
 
     final List<Integer> data;
     if (randomOrder) {

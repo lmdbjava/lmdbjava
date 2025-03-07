@@ -23,6 +23,7 @@ import io.netty.buffer.ByteBuf;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
@@ -47,6 +48,20 @@ final class TestUtils {
     final ByteBuffer bb = allocateDirect(BYTES);
     bb.putInt(value).flip();
     return bb;
+  }
+
+  static ByteBuffer bbNative(final int value) {
+    final ByteBuffer bb = allocateDirect(Long.BYTES)
+        .order(ByteOrder.nativeOrder());
+    bb.putInt(value).flip();
+    return bb;
+  }
+
+  static int getNativeInt(final ByteBuffer bb) {
+    final int val = bb.order(ByteOrder.nativeOrder())
+        .getInt();
+    bb.rewind();
+    return val;
   }
 
   static void invokePrivateConstructor(final Class<?> clazz) {
