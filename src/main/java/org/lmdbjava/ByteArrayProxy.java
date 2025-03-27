@@ -19,8 +19,10 @@ import static java.lang.Math.min;
 import static java.util.Objects.requireNonNull;
 import static org.lmdbjava.Library.RUNTIME;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.List;
 import jnr.ffi.Pointer;
 import jnr.ffi.provider.MemoryManager;
 
@@ -40,6 +42,8 @@ public final class ByteArrayProxy extends BufferProxy<byte[]> {
   private static final Comparator<byte[]> unsignedComparator = ByteArrayProxy::compareArrays;
 
   private ByteArrayProxy() {}
+
+  public static final List<Pointer> allocatedPtrs = new ArrayList<>();
 
   /**
    * Lexicographically compare two byte arrays.
@@ -119,6 +123,8 @@ public final class ByteArrayProxy extends BufferProxy<byte[]> {
     pointer.put(0, buffer, 0, buffer.length);
     ptr.putLong(STRUCT_FIELD_OFFSET_SIZE, buffer.length);
     ptr.putAddress(STRUCT_FIELD_OFFSET_DATA, pointer.address());
+    allocatedPtrs.add(pointer);
+    ;
   }
 
   @Override
