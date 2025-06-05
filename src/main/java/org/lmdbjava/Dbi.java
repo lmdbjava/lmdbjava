@@ -72,7 +72,7 @@ public final class Dbi<T> {
     this.name = name == null ? null : Arrays.copyOf(name, name.length);
     this.proxy = proxy;
     this.comparator = comparator;
-    final int flagsMask = mask(true, flags);
+    final int flagsMask = mask(flags);
     final Pointer dbiPtr = allocateDirect(RUNTIME, ADDRESS);
     checkRc(LIB.mdb_dbi_open(txn.pointer(), name, flagsMask, dbiPtr));
     ptr = dbiPtr.getPointer(0);
@@ -371,7 +371,7 @@ public final class Dbi<T> {
     }
     txn.kv().keyIn(key);
     txn.kv().valIn(val);
-    final int mask = mask(true, flags);
+    final int mask = mask(flags);
     final int rc =
         LIB.mdb_put(txn.pointer(), ptr, txn.kv().pointerKey(), txn.kv().pointerVal(), mask);
     if (rc == MDB_KEYEXIST) {
@@ -413,7 +413,7 @@ public final class Dbi<T> {
     }
     txn.kv().keyIn(key);
     txn.kv().valIn(size);
-    final int flags = mask(true, op) | MDB_RESERVE.getMask();
+    final int flags = mask(op) | MDB_RESERVE.getMask();
     checkRc(LIB.mdb_put(txn.pointer(), ptr, txn.kv().pointerKey(), txn.kv().pointerVal(), flags));
     txn.kv().valOut(); // marked as in,out in LMDB C docs
     ReferenceUtil.reachabilityFence0(key);

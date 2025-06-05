@@ -31,6 +31,9 @@ public enum DbiFlags implements MaskedFlag {
    * <p>Duplicate keys may be used in the database. Or, from another perspective, keys may have
    * multiple data items, stored in sorted order. By default keys must be unique and may have only a
    * single data item.
+   * <p>
+   *
+   * </p>
    */
   MDB_DUPSORT(0x04),
   /**

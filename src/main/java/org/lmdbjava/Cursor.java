@@ -112,7 +112,7 @@ public final class Cursor<T> implements AutoCloseable {
       txn.checkReady();
       txn.checkWritesAllowed();
     }
-    final int flags = mask(true, f);
+    final int flags = mask(f);
     checkRc(LIB.mdb_cursor_del(ptrCursor, flags));
   }
 
@@ -249,7 +249,7 @@ public final class Cursor<T> implements AutoCloseable {
     }
     kv.keyIn(key);
     kv.valIn(val);
-    final int mask = mask(true, op);
+    final int mask = mask(op);
     final int rc = LIB.mdb_cursor_put(ptrCursor, kv.pointerKey(), kv.pointerVal(), mask);
     if (rc == MDB_KEYEXIST) {
       if (isSet(mask, MDB_NOOVERWRITE)) {
@@ -287,7 +287,7 @@ public final class Cursor<T> implements AutoCloseable {
       txn.checkReady();
       txn.checkWritesAllowed();
     }
-    final int mask = mask(true, op);
+    final int mask = mask(op);
     if (SHOULD_CHECK && !isSet(mask, MDB_MULTIPLE)) {
       throw new IllegalArgumentException("Must set " + MDB_MULTIPLE + " flag");
     }
@@ -346,7 +346,7 @@ public final class Cursor<T> implements AutoCloseable {
     }
     kv.keyIn(key);
     kv.valIn(size);
-    final int flags = mask(true, op) | MDB_RESERVE.getMask();
+    final int flags = mask(op) | MDB_RESERVE.getMask();
     checkRc(LIB.mdb_cursor_put(ptrCursor, kv.pointerKey(), kv.pointerVal(), flags));
     kv.valOut();
     ReferenceUtil.reachabilityFence0(key);

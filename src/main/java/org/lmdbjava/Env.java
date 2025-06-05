@@ -145,7 +145,7 @@ public final class Env<T> implements AutoCloseable {
   public void copy(final File path, final CopyFlags... flags) {
     requireNonNull(path);
     validatePath(path);
-    final int flagsMask = mask(true, flags);
+    final int flagsMask = mask(flags);
     checkRc(LIB.mdb_env_copy2(ptr, path.getAbsolutePath(), flagsMask));
   }
 
@@ -242,13 +242,24 @@ public final class Env<T> implements AutoCloseable {
   }
 
   /**
+   * Open (and optionally creates, if {@link DbiFlags#MDB_CREATE} is set)
+   * a {@link Dbi} using a builder.
+   * @return A new builder instance for creating/opening a {@link Dbi}.
+   */
+  public DbiBuilder<T> buildDbi() {
+    return new DbiBuilder<>(this, proxy, readOnly);
+  }
+
+  /**
    * Convenience method that opens a {@link Dbi} with a UTF-8 database name and default {@link
    * Comparator} that is not invoked from native code.
    *
    * @param name name of the database (or null if no name is required)
    * @param flags to open the database with
    * @return a database that is ready to use
+   * @deprecated Instead use {@link Env#buildDbi()}
    */
+  @Deprecated()
   public Dbi<T> openDbi(final String name, final DbiFlags... flags) {
     final byte[] nameBytes = name == null ? null : name.getBytes(UTF_8);
     return openDbi(nameBytes, null, false, flags);
@@ -268,7 +279,9 @@ public final class Env<T> implements AutoCloseable {
    *     comparator will be used.
    * @param flags to open the database with
    * @return a database that is ready to use
+   * @deprecated Instead use {@link Env#buildDbi()}
    */
+  @Deprecated()
   public Dbi<T> openDbi(
       final String name, final Comparator<T> comparator, final DbiFlags... flags) {
     final byte[] nameBytes = name == null ? null : name.getBytes(UTF_8);
@@ -288,7 +301,9 @@ public final class Env<T> implements AutoCloseable {
    * @param nativeCb whether LMDB native code calls back to the Java comparator
    * @param flags to open the database with
    * @return a database that is ready to use
+   * @deprecated Instead use {@link Env#buildDbi()}
    */
+  @Deprecated()
   public Dbi<T> openDbi(
       final String name,
       final Comparator<T> comparator,
@@ -305,7 +320,9 @@ public final class Env<T> implements AutoCloseable {
    * @param name name of the database (or null if no name is required)
    * @param flags to open the database with
    * @return a database that is ready to use
+   * @deprecated Instead use {@link Env#buildDbi()}
    */
+  @Deprecated()
   public Dbi<T> openDbi(final byte[] name, final DbiFlags... flags) {
     return openDbi(name, null, false, flags);
   }
@@ -318,7 +335,9 @@ public final class Env<T> implements AutoCloseable {
    * @param comparator custom comparator callback (or null to use LMDB default)
    * @param flags to open the database with
    * @return a database that is ready to use
+   * @deprecated Instead use {@link Env#buildDbi()}
    */
+  @Deprecated()
   public Dbi<T> openDbi(
       final byte[] name, final Comparator<T> comparator, final DbiFlags... flags) {
     return openDbi(name, comparator, false, flags);
@@ -336,7 +355,9 @@ public final class Env<T> implements AutoCloseable {
    * @param nativeCb whether native code calls back to the Java comparator
    * @param flags to open the database with
    * @return a database that is ready to use
+   * @deprecated Instead use {@link Env#buildDbi()}
    */
+  @Deprecated()
   public Dbi<T> openDbi(
       final byte[] name,
       final Comparator<T> comparator,
@@ -375,7 +396,9 @@ public final class Env<T> implements AutoCloseable {
    * @param nativeCb whether native code should call back to the comparator
    * @param flags to open the database with
    * @return a database that is ready to use
+   * @deprecated Instead use {@link Env#buildDbi()}
    */
+  @Deprecated()
   public Dbi<T> openDbi(
       final Txn<T> txn,
       final byte[] name,
@@ -557,7 +580,7 @@ public final class Env<T> implements AutoCloseable {
         checkRc(LIB.mdb_env_set_mapsize(ptr, mapSize));
         checkRc(LIB.mdb_env_set_maxdbs(ptr, maxDbs));
         checkRc(LIB.mdb_env_set_maxreaders(ptr, maxReaders));
-        final int flagsMask = mask(true, flags);
+        final int flagsMask = mask(flags);
         final boolean readOnly = isSet(flagsMask, MDB_RDONLY_ENV);
         final boolean noSubDir = isSet(flagsMask, MDB_NOSUBDIR);
         checkRc(LIB.mdb_env_open(ptr, path.getAbsolutePath(), flagsMask, mode));
