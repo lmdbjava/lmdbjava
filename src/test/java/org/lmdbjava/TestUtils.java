@@ -41,6 +41,11 @@ final class TestUtils {
     return b.byteArray();
   }
 
+  static int fromBa(final byte[] ba) {
+    final MutableDirectBuffer b = new UnsafeBuffer(ba);
+    return b.getInt(0);
+  }
+
   static ByteBuffer bb(final int value) {
     final ByteBuffer bb = allocateDirect(BYTES);
     bb.putInt(value).flip();
