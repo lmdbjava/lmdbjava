@@ -62,7 +62,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.*;
-import org.agrona.concurrent.UnsafeBuffer;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
@@ -381,7 +380,7 @@ public final class DbiTest {
       try (Txn<byte[]> txn = envBa.txnWrite()) {
         final byte[] found = db.get(txn, ba(5));
         assertNotNull(found);
-        assertThat(new UnsafeBuffer(txn.val()).getInt(0), is(5));
+        assertThat(fromBa(txn.val()), is(5));
       }
     }
   }
