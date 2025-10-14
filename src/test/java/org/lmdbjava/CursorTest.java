@@ -23,7 +23,6 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import static org.lmdbjava.DbiFlags.MDB_DUPFIXED;
 import static org.lmdbjava.DbiFlags.MDB_DUPSORT;
@@ -71,7 +70,7 @@ public final class CursorTest {
     try {
       final File path = tmp.newFile();
       env =
-          create(PROXY_OPTIMAL)
+          create(ByteBufferProxy.INSTANCE)
               .setMapSize(KIBIBYTES.toBytes(1_024))
               .setMaxReaders(1)
               .setMaxDbs(1)

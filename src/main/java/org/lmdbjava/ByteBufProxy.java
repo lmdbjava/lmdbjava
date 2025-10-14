@@ -15,21 +15,22 @@
  */
 package org.lmdbjava;
 
-import static io.netty.buffer.PooledByteBufAllocator.DEFAULT;
-import static java.lang.Class.forName;
-import static java.util.Objects.requireNonNull;
-import static org.lmdbjava.UnsafeAccess.UNSAFE;
-
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
-import java.lang.reflect.Field;
+import io.netty.buffer.Unpooled;
+import org.lmdbjava.Lmdb.MDB_val;
+
+import java.lang.foreign.MemorySegment;
+import java.nio.ByteBuffer;
 import java.util.Comparator;
-import jnr.ffi.Pointer;
+
+import static io.netty.buffer.PooledByteBufAllocator.DEFAULT;
+import static java.util.Objects.requireNonNull;
 
 /**
  * A buffer proxy backed by Netty's {@link ByteBuf}.
  *
- * <p>This class requires {@link UnsafeAccess} and netty-buffer must be in the classpath.
+ * <p>This class requires netty-buffer in the classpath.
  */
 public final class ByteBufProxy extends BufferProxy<ByteBuf> {
 
@@ -41,18 +42,14 @@ public final class ByteBufProxy extends BufferProxy<ByteBuf> {
   public static final BufferProxy<ByteBuf> PROXY_NETTY = new ByteBufProxy();
 
   private static final int BUFFER_RETRIES = 10;
-  private static final String FIELD_NAME_ADDRESS = "memoryAddress";
-  private static final String FIELD_NAME_LENGTH = "length";
   private static final String NAME = "io.netty.buffer.PooledUnsafeDirectByteBuf";
   private static final Comparator<ByteBuf> comparator =
-      (o1, o2) -> {
-        requireNonNull(o1);
-        requireNonNull(o2);
+          (o1, o2) -> {
+            requireNonNull(o1);
+            requireNonNull(o2);
 
-        return o1.compareTo(o2);
-      };
-  private final long lengthOffset;
-  private final long addressOffset;
+            return o1.compareTo(o2);
+          };
 
   private final PooledByteBufAllocator nettyAllocator;
 
@@ -68,36 +65,6 @@ public final class ByteBufProxy extends BufferProxy<ByteBuf> {
   public ByteBufProxy(final PooledByteBufAllocator allocator) {
     super();
     this.nettyAllocator = allocator;
-
-    try {
-      final ByteBuf initBuf = this.allocate();
-      initBuf.release();
-      final Field address = findField(NAME, FIELD_NAME_ADDRESS);
-      final Field length = findField(NAME, FIELD_NAME_LENGTH);
-      addressOffset = UNSAFE.objectFieldOffset(address);
-      lengthOffset = UNSAFE.objectFieldOffset(length);
-    } catch (final SecurityException e) {
-      throw new LmdbException("Field access error", e);
-    }
-  }
-
-  static Field findField(final String c, final String name) {
-    Class<?> clazz;
-    try {
-      clazz = forName(c);
-    } catch (final ClassNotFoundException e) {
-      throw new LmdbException(c + " class unavailable", e);
-    }
-    do {
-      try {
-        final Field field = clazz.getDeclaredField(name);
-        field.setAccessible(true);
-        return field;
-      } catch (final NoSuchFieldException e) {
-        clazz = clazz.getSuperclass();
-      }
-    } while (clazz != null);
-    throw new LmdbException(name + " not found");
   }
 
   @Override
@@ -136,26 +103,21 @@ public final class ByteBufProxy extends BufferProxy<ByteBuf> {
   }
 
   @Override
-  protected void in(final ByteBuf buffer, final Pointer ptr, final long ptrAddr) {
-    UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE, buffer.writerIndex() - buffer.readerIndex());
-    UNSAFE.putLong(
-        ptrAddr + STRUCT_FIELD_OFFSET_DATA, buffer.memoryAddress() + buffer.readerIndex());
+  protected void in(final ByteBuf buffer, final MDB_val ptr) {
+    ptr.mvSize(buffer.writerIndex() - buffer.readerIndex());
+    ptr.mvData(MemorySegment.ofBuffer(buffer.nioBuffer()));
   }
 
   @Override
-  protected void in(final ByteBuf buffer, final int size, final Pointer ptr, final long ptrAddr) {
-    UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE, size);
-    UNSAFE.putLong(
-        ptrAddr + STRUCT_FIELD_OFFSET_DATA, buffer.memoryAddress() + buffer.readerIndex());
+  protected void in(final ByteBuf buffer, final int size, final MDB_val ptr) {
+    ptr.mvSize(size);
+    ptr.mvData(MemorySegment.ofBuffer(buffer.nioBuffer()));
   }
 
   @Override
-  protected ByteBuf out(final ByteBuf buffer, final Pointer ptr, final long ptrAddr) {
-    final long addr = UNSAFE.getLong(ptrAddr + STRUCT_FIELD_OFFSET_DATA);
-    final long size = UNSAFE.getLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE);
-    UNSAFE.putLong(buffer, addressOffset, addr);
-    UNSAFE.putInt(buffer, lengthOffset, (int) size);
-    buffer.clear().writerIndex((int) size);
-    return buffer;
+  protected ByteBuf out(final MDB_val ptr) {
+    final long size = ptr.mvSize();
+    final ByteBuffer byteBuffer = ptr.mvData().reinterpret(size).asByteBuffer();
+    return Unpooled.wrappedBuffer(byteBuffer);
   }
 }
