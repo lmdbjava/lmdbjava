@@ -46,9 +46,7 @@ import static org.lmdbjava.GetOp.MDB_SET_KEY;
 import static org.lmdbjava.KeyRange.atMost;
 import static org.lmdbjava.PutFlags.MDB_NODUPDATA;
 import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
-import static org.lmdbjava.TestUtils.DB_1;
-import static org.lmdbjava.TestUtils.ba;
-import static org.lmdbjava.TestUtils.bb;
+import static org.lmdbjava.TestUtils.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -63,8 +61,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.BiConsumer;
-import org.agrona.concurrent.UnsafeBuffer;
+import java.util.function.*;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
@@ -82,6 +79,7 @@ public final class DbiTest {
 
   @Rule public final TemporaryFolder tmp = new TemporaryFolder();
   private Env<ByteBuffer> env;
+  private Env<byte[]> envBa;
 
   @After
   public void after() {
@@ -97,6 +95,13 @@ public final class DbiTest {
             .setMaxReaders(2)
             .setMaxDbs(2)
             .open(path, MDB_NOSUBDIR);
+    final File pathBa = tmp.newFile();
+    envBa =
+        create(PROXY_BA)
+            .setMapSize(MEBIBYTES.toBytes(64))
+            .setMaxReaders(2)
+            .setMaxDbs(2)
+            .open(pathBa, MDB_NOSUBDIR);
   }
 
   @Test(expected = ConstantDerivedException.class)
@@ -117,20 +122,41 @@ public final class DbiTest {
           }
           return lexical * -1;
         };
-    final Dbi<ByteBuffer> db = env.openDbi(DB_1, reverseOrder, true, MDB_CREATE);
-    try (Txn<ByteBuffer> txn = env.txnWrite()) {
-      assertThat(db.put(txn, bb(2), bb(3)), is(true));
-      assertThat(db.put(txn, bb(4), bb(6)), is(true));
-      assertThat(db.put(txn, bb(6), bb(7)), is(true));
-      assertThat(db.put(txn, bb(8), bb(7)), is(true));
+    doCustomComparator(env, reverseOrder, TestUtils::bb, ByteBuffer::getInt);
+  }
+
+  @Test
+  public void customComparatorByteArray() {
+    final Comparator<byte[]> reverseOrder =
+        (o1, o2) -> {
+          final int lexical = PROXY_BA.getComparator().compare(o1, o2);
+          if (lexical == 0) {
+            return 0;
+          }
+          return lexical * -1;
+        };
+    doCustomComparator(envBa, reverseOrder, TestUtils::ba, TestUtils::fromBa);
+  }
+
+  private <T> void doCustomComparator(
+      Env<T> env,
+      Comparator<T> comparator,
+      IntFunction<T> serializer,
+      ToIntFunction<T> deserializer) {
+    final Dbi<T> db = env.openDbi(DB_1, comparator, true, MDB_CREATE);
+    try (Txn<T> txn = env.txnWrite()) {
+      assertThat(db.put(txn, serializer.apply(2), serializer.apply(3)), is(true));
+      assertThat(db.put(txn, serializer.apply(4), serializer.apply(6)), is(true));
+      assertThat(db.put(txn, serializer.apply(6), serializer.apply(7)), is(true));
+      assertThat(db.put(txn, serializer.apply(8), serializer.apply(7)), is(true));
       txn.commit();
     }
-    try (Txn<ByteBuffer> txn = env.txnRead();
-        CursorIterable<ByteBuffer> ci = db.iterate(txn, atMost(bb(4)))) {
-      final Iterator<KeyVal<ByteBuffer>> iter = ci.iterator();
-      assertThat(iter.next().key().getInt(), is(8));
-      assertThat(iter.next().key().getInt(), is(6));
-      assertThat(iter.next().key().getInt(), is(4));
+    try (Txn<T> txn = env.txnRead();
+        CursorIterable<T> ci = db.iterate(txn, atMost(serializer.apply(4)))) {
+      final Iterator<KeyVal<T>> iter = ci.iterator();
+      assertThat(deserializer.applyAsInt(iter.next().key()), is(8));
+      assertThat(deserializer.applyAsInt(iter.next().key()), is(6));
+      assertThat(deserializer.applyAsInt(iter.next().key()), is(4));
     }
   }
 
@@ -143,9 +169,24 @@ public final class DbiTest {
 
   @Test
   public void dbiWithComparatorThreadSafety() {
+    doDbiWithComparatorThreadSafety(
+        env, PROXY_OPTIMAL::getComparator, TestUtils::bb, ByteBuffer::getInt);
+  }
+
+  @Test
+  public void dbiWithComparatorThreadSafetyByteArray() {
+    doDbiWithComparatorThreadSafety(
+        envBa, PROXY_BA::getComparator, TestUtils::ba, TestUtils::fromBa);
+  }
+
+  public <T> void doDbiWithComparatorThreadSafety(
+      Env<T> env,
+      Function<DbiFlags[], Comparator<T>> comparator,
+      IntFunction<T> serializer,
+      ToIntFunction<T> deserializer) {
     final DbiFlags[] flags = new DbiFlags[] {MDB_CREATE, MDB_INTEGERKEY};
-    final Comparator<ByteBuffer> c = PROXY_OPTIMAL.getComparator(flags);
-    final Dbi<ByteBuffer> db = env.openDbi(DB_1, c, true, flags);
+    final Comparator<T> c = comparator.apply(flags);
+    final Dbi<T> db = env.openDbi(DB_1, c, true, flags);
 
     final List<Integer> keys = range(0, 1_000).boxed().collect(toList());
 
@@ -155,25 +196,25 @@ public final class DbiTest {
         pool.submit(
             () -> {
               while (proceed.get()) {
-                try (Txn<ByteBuffer> txn = env.txnRead()) {
-                  db.get(txn, bb(50));
+                try (Txn<T> txn = env.txnRead()) {
+                  db.get(txn, serializer.apply(50));
                 }
               }
             });
 
     for (final Integer key : keys) {
-      try (Txn<ByteBuffer> txn = env.txnWrite()) {
-        db.put(txn, bb(key), bb(3));
+      try (Txn<T> txn = env.txnWrite()) {
+        db.put(txn, serializer.apply(key), serializer.apply(3));
         txn.commit();
       }
     }
 
-    try (Txn<ByteBuffer> txn = env.txnRead();
-        CursorIterable<ByteBuffer> ci = db.iterate(txn)) {
-      final Iterator<KeyVal<ByteBuffer>> iter = ci.iterator();
+    try (Txn<T> txn = env.txnRead();
+        CursorIterable<T> ci = db.iterate(txn)) {
+      final Iterator<KeyVal<T>> iter = ci.iterator();
       final List<Integer> result = new ArrayList<>();
       while (iter.hasNext()) {
-        result.add(iter.next().key().getInt());
+        result.add(deserializer.applyAsInt(iter.next().key()));
       }
 
       assertThat(result, Matchers.contains(keys.toArray(new Integer[0])));
@@ -339,7 +380,7 @@ public final class DbiTest {
       try (Txn<byte[]> txn = envBa.txnWrite()) {
         final byte[] found = db.get(txn, ba(5));
         assertNotNull(found);
-        assertThat(new UnsafeBuffer(txn.val()).getInt(0), is(5));
+        assertThat(fromBa(txn.val()), is(5));
       }
     }
   }
