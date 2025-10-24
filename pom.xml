@@ -26,9 +26,9 @@
   <description>Low latency Java API for the ultra-fast, embedded Symas Lightning Database (LMDB)</description>
   <properties>
     <maven.build.timestamp.format>yyyy-MM-dd'T'HH:mm:ss'Z'</maven.build.timestamp.format>
-    <maven.compiler.source>1.8</maven.compiler.source>
-    <maven.compiler.target>1.8</maven.compiler.target>
-    <maven.enforcer.java>1.8</maven.enforcer.java>
+    <maven.compiler.source>1.25</maven.compiler.source>
+    <maven.compiler.target>1.25</maven.compiler.target>
+    <maven.enforcer.java>1.25</maven.enforcer.java>
     <maven.enforcer.mvn>3.5.4</maven.enforcer.mvn>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <trimStackTrace>false</trimStackTrace>
@@ -38,11 +38,6 @@
       <groupId>com.github.jnr</groupId>
       <artifactId>jnr-constants</artifactId>
       <version>0.10.4</version>
-    </dependency>
-    <dependency>
-      <groupId>com.github.jnr</groupId>
-      <artifactId>jnr-ffi</artifactId>
-      <version>2.2.17</version>
     </dependency>
     <dependency>
       <groupId>com.google.guava</groupId>
@@ -89,8 +84,8 @@
     </dependency>
     <dependency>
       <groupId>org.mockito</groupId>
-      <artifactId>mockito-inline</artifactId>
-      <version>4.11.0</version>
+      <artifactId>mockito-core</artifactId>
+      <version>5.20.0</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -218,6 +213,7 @@
             </manifest>
             <manifestEntries>
               <Implementation-Build>${buildNumber}</Implementation-Build>
+              <Enable-Native-Access>true</Enable-Native-Access>
             </manifestEntries>
           </archive>
         </configuration>

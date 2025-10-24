@@ -15,14 +15,16 @@
  */
 package org.lmdbjava;
 
+import org.lmdbjava.Lmdb.MDB_val;
+
 import static java.lang.Long.BYTES;
 import static org.lmdbjava.DbiFlags.MDB_INTEGERKEY;
 import static org.lmdbjava.DbiFlags.MDB_UNSIGNEDKEY;
 import static org.lmdbjava.MaskedFlag.isSet;
 import static org.lmdbjava.MaskedFlag.mask;
 
+import java.lang.foreign.Arena;
 import java.util.Comparator;
-import jnr.ffi.Pointer;
 
 /**
  * The strategy for mapping memory address to a given buffer type.
@@ -107,9 +109,8 @@ public abstract class BufferProxy<T> {
    *
    * @param buffer the buffer to write to <code>MDB_val</code>
    * @param ptr the pointer to the <code>MDB_val</code>
-   * @param ptrAddr the address of the <code>MDB_val</code> pointer
    */
-  protected abstract void in(T buffer, Pointer ptr, long ptrAddr);
+  protected abstract void in(T buffer, MDB_val ptr);
 
   /**
    * Called when the <code>MDB_val</code> should be set to reflect the passed buffer.
@@ -117,27 +118,24 @@ public abstract class BufferProxy<T> {
    * @param buffer the buffer to write to <code>MDB_val</code>
    * @param size the buffer size to write to <code>MDB_val</code>
    * @param ptr the pointer to the <code>MDB_val</code>
-   * @param ptrAddr the address of the <code>MDB_val</code> pointer
    */
-  protected abstract void in(T buffer, int size, Pointer ptr, long ptrAddr);
+  protected abstract void in(T buffer, int size, MDB_val ptr);
 
   /**
    * Called when the <code>MDB_val</code> may have changed and the passed buffer should be modified
    * to reflect the new <code>MDB_val</code>.
    *
-   * @param buffer the buffer to write to <code>MDB_val</code>
    * @param ptr the pointer to the <code>MDB_val</code>
-   * @param ptrAddr the address of the <code>MDB_val</code> pointer
    * @return the buffer for <code>MDB_val</code>
    */
-  protected abstract T out(T buffer, Pointer ptr, long ptrAddr);
+  protected abstract T out(MDB_val ptr);
 
   /**
    * Create a new {@link KeyVal} to hold pointers for this buffer proxy.
    *
    * @return a non-null key value holder
    */
-  final KeyVal<T> keyVal() {
-    return new KeyVal<>(this);
+  final KeyVal<T> keyVal(final Arena arena) {
+    return new KeyVal<>(arena,this);
   }
 }

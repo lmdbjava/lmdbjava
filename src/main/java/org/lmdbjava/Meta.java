@@ -15,9 +15,9 @@
  */
 package org.lmdbjava;
 
-import static org.lmdbjava.Library.LIB;
-
-import jnr.ffi.byref.IntByReference;
+import java.lang.foreign.Arena;
+import java.lang.foreign.MemorySegment;
+import java.lang.foreign.ValueLayout;
 
 /** LMDB metadata functions. */
 public final class Meta {
@@ -36,7 +36,7 @@ public final class Meta {
    * @return the description
    */
   public static String error(final int err) {
-    return LIB.mdb_strerror(err);
+    return Lmdb.mdb_strerror(err);
   }
 
   /**
@@ -44,14 +44,17 @@ public final class Meta {
    *
    * @return the version data
    */
-  public static Version version() {
-    final IntByReference major = new IntByReference();
-    final IntByReference minor = new IntByReference();
-    final IntByReference patch = new IntByReference();
+  public static Version version(final Arena arena) {
+    final MemorySegment major = arena.allocate(ValueLayout.JAVA_INT);
+    final MemorySegment minor = arena.allocate(ValueLayout.JAVA_INT);
+    final MemorySegment patch = arena.allocate(ValueLayout.JAVA_INT);
 
-    LIB.mdb_version(major, minor, patch);
+    Lmdb.mdb_version(major, minor, patch);
 
-    return new Version(major.intValue(), minor.intValue(), patch.intValue());
+    return new Version(
+            major.get(ValueLayout.JAVA_INT, 0),
+            minor.get(ValueLayout.JAVA_INT, 0),
+            patch.get(ValueLayout.JAVA_INT, 0));
   }
 
   /** Immutable return value from {@link #version()}. */

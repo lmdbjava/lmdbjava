@@ -34,8 +34,6 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.collection.IsEmptyCollection.empty;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.lmdbjava.ByteArrayProxy.PROXY_BA;
-import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import static org.lmdbjava.DbiFlags.MDB_DUPSORT;
 import static org.lmdbjava.DbiFlags.MDB_INTEGERKEY;
@@ -52,6 +50,7 @@ import static org.lmdbjava.TestUtils.bb;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.foreign.Arena;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -111,7 +110,7 @@ public final class DbiTest {
   public void customComparator() {
     final Comparator<ByteBuffer> reverseOrder =
         (o1, o2) -> {
-          final int lexical = PROXY_OPTIMAL.getComparator().compare(o1, o2);
+          final int lexical = ByteBufferProxy.INSTANCE.getComparator().compare(o1, o2);
           if (lexical == 0) {
             return 0;
           }
@@ -144,7 +143,7 @@ public final class DbiTest {
   @Test
   public void dbiWithComparatorThreadSafety() {
     final DbiFlags[] flags = new DbiFlags[] {MDB_CREATE, MDB_INTEGERKEY};
-    final Comparator<ByteBuffer> c = PROXY_OPTIMAL.getComparator(flags);
+    final Comparator<ByteBuffer> c = ByteBufferProxy.INSTANCE.getComparator(flags);
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, c, true, flags);
 
     final List<Integer> keys = range(0, 1_000).boxed().collect(toList());
@@ -326,7 +325,7 @@ public final class DbiTest {
   public void putCommitGetByteArray() throws IOException {
     final File path = tmp.newFile();
     try (Env<byte[]> envBa =
-        create(PROXY_BA)
+        create(new ByteArrayProxy(Arena.ofAuto()))
             .setMapSize(MEBIBYTES.toBytes(64))
             .setMaxReaders(1)
             .setMaxDbs(2)

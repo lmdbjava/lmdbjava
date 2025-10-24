@@ -15,14 +15,17 @@
  */
 package org.lmdbjava;
 
-import static java.lang.Math.min;
-import static java.util.Objects.requireNonNull;
-import static org.lmdbjava.Library.RUNTIME;
+import org.lmdbjava.Lmdb.MDB_val;
 
+import java.lang.foreign.Arena;
+import java.lang.foreign.MemorySegment;
+import java.lang.foreign.ValueLayout;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Comparator;
-import jnr.ffi.Pointer;
-import jnr.ffi.provider.MemoryManager;
+
+import static java.lang.Math.min;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Byte array proxy.
@@ -31,15 +34,14 @@ import jnr.ffi.provider.MemoryManager;
  */
 public final class ByteArrayProxy extends BufferProxy<byte[]> {
 
-  /** The byte array proxy. Guaranteed to never be null. */
-  public static final BufferProxy<byte[]> PROXY_BA = new ByteArrayProxy();
-
-  private static final MemoryManager MEM_MGR = RUNTIME.getMemoryManager();
+  private final Arena arena;
 
   private static final Comparator<byte[]> signedComparator = ByteArrayProxy::compareArraysSigned;
   private static final Comparator<byte[]> unsignedComparator = ByteArrayProxy::compareArrays;
 
-  private ByteArrayProxy() {}
+  public ByteArrayProxy(final Arena arena) {
+    this.arena = arena;
+  }
 
   /**
    * Lexicographically compare two byte arrays.
@@ -114,25 +116,22 @@ public final class ByteArrayProxy extends BufferProxy<byte[]> {
   }
 
   @Override
-  protected void in(final byte[] buffer, final Pointer ptr, final long ptrAddr) {
-    final Pointer pointer = MEM_MGR.allocateDirect(buffer.length);
-    pointer.put(0, buffer, 0, buffer.length);
-    ptr.putLong(STRUCT_FIELD_OFFSET_SIZE, buffer.length);
-    ptr.putAddress(STRUCT_FIELD_OFFSET_DATA, pointer.address());
+  protected void in(final byte[] buffer, final MDB_val ptr) {
+    final MemorySegment segment = arena.allocateFrom(ValueLayout.JAVA_BYTE, buffer);
+    ptr.mvSize(buffer.length);
+    ptr.mvData(segment);
   }
 
   @Override
-  protected void in(final byte[] buffer, final int size, final Pointer ptr, final long ptrAddr) {
+  protected void in(final byte[] buffer, final int size, final MDB_val ptr) {
     // cannot reserve for byte arrays
   }
 
   @Override
-  protected byte[] out(final byte[] buffer, final Pointer ptr, final long ptrAddr) {
-    final long addr = ptr.getAddress(STRUCT_FIELD_OFFSET_DATA);
-    final int size = (int) ptr.getLong(STRUCT_FIELD_OFFSET_SIZE);
-    final Pointer pointer = MEM_MGR.newPointer(addr, size);
-    final byte[] bytes = new byte[size];
-    pointer.get(0, bytes, 0, size);
+  protected byte[] out(final MDB_val ptr) {
+    final ByteBuffer byteBuffer = ptr.mvData().reinterpret(ptr.mvSize()).asByteBuffer();
+    final byte[] bytes = new byte[byteBuffer.remaining()];
+    byteBuffer.get(0, bytes, 0, byteBuffer.remaining());
     return bytes;
   }
 }

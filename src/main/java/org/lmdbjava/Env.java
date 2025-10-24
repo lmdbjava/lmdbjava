@@ -15,30 +15,28 @@
  */
 package org.lmdbjava;
 
+import org.lmdbjava.Lmdb.MDB_envinfo;
+import org.lmdbjava.Lmdb.MDB_stat;
+
 import static java.lang.Boolean.getBoolean;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
-import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.EnvFlags.MDB_RDONLY_ENV;
-import static org.lmdbjava.Library.LIB;
-import static org.lmdbjava.Library.RUNTIME;
 import static org.lmdbjava.MaskedFlag.isSet;
 import static org.lmdbjava.MaskedFlag.mask;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
 import static org.lmdbjava.TxnFlags.MDB_RDONLY_TXN;
 
 import java.io.File;
+import java.lang.foreign.Arena;
+import java.lang.foreign.MemorySegment;
+import java.lang.foreign.ValueLayout;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import jnr.ffi.Pointer;
-import jnr.ffi.byref.IntByReference;
-import jnr.ffi.byref.PointerByReference;
-import org.lmdbjava.Library.MDB_envinfo;
-import org.lmdbjava.Library.MDB_stat;
 
 /**
  * LMDB environment.
@@ -60,30 +58,33 @@ public final class Env<T> implements AutoCloseable {
   private boolean closed;
   private final int maxKeySize;
   private final boolean noSubDir;
+  private final Arena arena;
   private final BufferProxy<T> proxy;
-  private final Pointer ptr;
+  private final MemorySegment ptr;
   private final boolean readOnly;
 
   private Env(
+      final Arena arena,
       final BufferProxy<T> proxy,
-      final Pointer ptr,
+      final MemorySegment ptr,
       final boolean readOnly,
       final boolean noSubDir) {
+    this.arena = arena;
     this.proxy = proxy;
     this.readOnly = readOnly;
     this.noSubDir = noSubDir;
     this.ptr = ptr;
     // cache max key size to avoid further JNI calls
-    this.maxKeySize = LIB.mdb_env_get_maxkeysize(ptr);
+    this.maxKeySize = Lmdb.mdb_env_get_maxkeysize(ptr);
   }
 
   /**
-   * Create an {@link Env} using the {@link ByteBufferProxy#PROXY_OPTIMAL}.
+   * Create an {@link Env} using the {@link ByteBufferProxy}.
    *
    * @return the environment (never null)
    */
   public static Builder<ByteBuffer> create() {
-    return new Builder<>(PROXY_OPTIMAL);
+    return new Builder<>(ByteBufferProxy.INSTANCE);
   }
 
   /**
@@ -99,7 +100,7 @@ public final class Env<T> implements AutoCloseable {
 
   /**
    * Opens an environment with a single default database in 0664 mode using the {@link
-   * ByteBufferProxy#PROXY_OPTIMAL}.
+   * ByteBufferProxy}.
    *
    * @param path file system destination
    * @param size size in megabytes
@@ -107,7 +108,7 @@ public final class Env<T> implements AutoCloseable {
    * @return env the environment (never null)
    */
   public static Env<ByteBuffer> open(final File path, final int size, final EnvFlags... flags) {
-    return new Builder<>(PROXY_OPTIMAL).setMapSize(size * 1_024L * 1_024L).open(path, flags);
+    return new Builder<>(ByteBufferProxy.INSTANCE).setMapSize(size * 1_024L * 1_024L).open(path, flags);
   }
 
   /**
@@ -121,7 +122,7 @@ public final class Env<T> implements AutoCloseable {
       return;
     }
     closed = true;
-    LIB.mdb_env_close(ptr);
+    Lmdb.mdb_env_close(ptr);
   }
 
   /**
@@ -146,7 +147,8 @@ public final class Env<T> implements AutoCloseable {
     requireNonNull(path);
     validatePath(path);
     final int flagsMask = mask(true, flags);
-    checkRc(LIB.mdb_env_copy2(ptr, path.getAbsolutePath(), flagsMask));
+    final MemorySegment pathSegment = arena.allocateFrom(path.getAbsolutePath());
+    checkRc(Lmdb.mdb_env_copy2(ptr, pathSegment, flagsMask));
   }
 
   /**
@@ -183,7 +185,7 @@ public final class Env<T> implements AutoCloseable {
    * @param mapSize the new size, in bytes
    */
   public void setMapSize(final long mapSize) {
-    checkRc(LIB.mdb_env_set_mapsize(ptr, mapSize));
+    checkRc(Lmdb.mdb_env_set_mapsize(ptr, mapSize));
   }
 
   /**
@@ -204,23 +206,23 @@ public final class Env<T> implements AutoCloseable {
     if (closed) {
       throw new AlreadyClosedException();
     }
-    final MDB_envinfo info = new MDB_envinfo(RUNTIME);
-    checkRc(LIB.mdb_env_info(ptr, info));
+    final MDB_envinfo info = new MDB_envinfo(arena);
+    checkRc(Lmdb.mdb_env_info(ptr, info));
 
     final long mapAddress;
-    if (info.f0_me_mapaddr.get() == null) {
+    if (info.meMapaddr() == null) {
       mapAddress = 0;
     } else {
-      mapAddress = info.f0_me_mapaddr.get().address();
+      mapAddress = info.meMapaddr().address();
     }
 
     return new EnvInfo(
         mapAddress,
-        info.f1_me_mapsize.longValue(),
-        info.f2_me_last_pgno.longValue(),
-        info.f3_me_last_txnid.longValue(),
-        info.f4_me_maxreaders.intValue(),
-        info.f5_me_numreaders.intValue());
+        info.meMapsize(),
+        info.meLastPgno(),
+        info.meLastTxnid(),
+        info.meMaxreaders(),
+        info.meNumreaders());
   }
 
   /**
@@ -372,7 +374,7 @@ public final class Env<T> implements AutoCloseable {
       final Comparator<T> comparator,
       final boolean nativeCb,
       final DbiFlags... flags) {
-    return new Dbi<>(this, txn, name, comparator, nativeCb, proxy, flags);
+    return new Dbi<>(arena, this, txn, name, comparator, nativeCb, proxy, flags);
   }
 
   /**
@@ -384,15 +386,15 @@ public final class Env<T> implements AutoCloseable {
     if (closed) {
       throw new AlreadyClosedException();
     }
-    final MDB_stat stat = new MDB_stat(RUNTIME);
-    checkRc(LIB.mdb_env_stat(ptr, stat));
+    final MDB_stat stat = new MDB_stat(arena);
+    checkRc(Lmdb.mdb_env_stat(ptr, stat));
     return new Stat(
-        stat.f0_ms_psize.intValue(),
-        stat.f1_ms_depth.intValue(),
-        stat.f2_ms_branch_pages.longValue(),
-        stat.f3_ms_leaf_pages.longValue(),
-        stat.f4_ms_overflow_pages.longValue(),
-        stat.f5_ms_entries.longValue());
+        stat.msPsize(),
+        stat.msDepth(),
+        stat.msBranchPages(),
+        stat.msLeafPages(),
+        stat.msOverflowPages(),
+        stat.msEntries());
   }
 
   /**
@@ -406,7 +408,7 @@ public final class Env<T> implements AutoCloseable {
       throw new AlreadyClosedException();
     }
     final int f = force ? 1 : 0;
-    checkRc(LIB.mdb_env_sync(ptr, f));
+    checkRc(Lmdb.mdb_env_sync(ptr, f));
   }
 
   /**
@@ -420,7 +422,7 @@ public final class Env<T> implements AutoCloseable {
     if (closed) {
       throw new AlreadyClosedException();
     }
-    return new Txn<>(this, parent, proxy, flags);
+    return new Txn<>(arena, this, parent, proxy, flags);
   }
 
   /**
@@ -441,7 +443,7 @@ public final class Env<T> implements AutoCloseable {
     return txn(null);
   }
 
-  Pointer pointer() {
+  MemorySegment pointer() {
     return ptr;
   }
 
@@ -480,9 +482,9 @@ public final class Env<T> implements AutoCloseable {
    * @return 0 on success, non-zero on failure
    */
   public int readerCheck() {
-    final IntByReference resultPtr = new IntByReference();
-    checkRc(LIB.mdb_reader_check(ptr, resultPtr));
-    return resultPtr.intValue();
+    MemorySegment resultPtr = arena.allocate(ValueLayout.JAVA_INT);
+    checkRc(Lmdb.mdb_reader_check(ptr, resultPtr));
+    return resultPtr.get(ValueLayout.JAVA_INT, 0);
   }
 
   /** Object has already been closed and the operation is therefore prohibited. */
@@ -540,21 +542,28 @@ public final class Env<T> implements AutoCloseable {
         throw new AlreadyOpenException();
       }
       opened = true;
-      final PointerByReference envPtr = new PointerByReference();
-      checkRc(LIB.mdb_env_create(envPtr));
-      final Pointer ptr = envPtr.getValue();
+      final Arena arena = Arena.ofShared();
       try {
-        checkRc(LIB.mdb_env_set_mapsize(ptr, mapSize));
-        checkRc(LIB.mdb_env_set_maxdbs(ptr, maxDbs));
-        checkRc(LIB.mdb_env_set_maxreaders(ptr, maxReaders));
-        final int flagsMask = mask(true, flags);
-        final boolean readOnly = isSet(flagsMask, MDB_RDONLY_ENV);
-        final boolean noSubDir = isSet(flagsMask, MDB_NOSUBDIR);
-        checkRc(LIB.mdb_env_open(ptr, path.getAbsolutePath(), flagsMask, mode));
-        return new Env<>(proxy, ptr, readOnly, noSubDir);
-      } catch (final LmdbNativeException e) {
-        LIB.mdb_env_close(ptr);
-        throw e;
+          final MemorySegment envPtr = arena.allocate(ValueLayout.ADDRESS);
+          checkRc(Lmdb.mdb_env_create(envPtr));
+          final MemorySegment ptr = envPtr.get(ValueLayout.ADDRESS, 0);
+          try {
+              checkRc(Lmdb.mdb_env_set_mapsize(ptr, mapSize));
+              checkRc(Lmdb.mdb_env_set_maxdbs(ptr, maxDbs));
+              checkRc(Lmdb.mdb_env_set_maxreaders(ptr, maxReaders));
+              final int flagsMask = mask(true, flags);
+              final boolean readOnly = isSet(flagsMask, MDB_RDONLY_ENV);
+              final boolean noSubDir = isSet(flagsMask, MDB_NOSUBDIR);
+              final MemorySegment pathSegment = arena.allocateFrom(path.getAbsolutePath());
+              checkRc(Lmdb.mdb_env_open(ptr, pathSegment, flagsMask, mode));
+              return new Env<>(arena, proxy, ptr, readOnly, noSubDir);
+          } catch (final LmdbNativeException e) {
+              Lmdb.mdb_env_close(ptr);
+              throw e;
+          }
+      } catch (final RuntimeException e) {
+          arena.close();
+          throw e;
       }
     }
 

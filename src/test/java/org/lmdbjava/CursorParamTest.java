@@ -21,10 +21,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.collection.IsEmptyCollection.empty;
-import static org.lmdbjava.ByteArrayProxy.PROXY_BA;
 import static org.lmdbjava.ByteBufProxy.PROXY_NETTY;
-import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
-import static org.lmdbjava.ByteBufferProxy.PROXY_SAFE;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import static org.lmdbjava.DbiFlags.MDB_DUPSORT;
 import static org.lmdbjava.DirectBufferProxy.PROXY_DB;
@@ -46,6 +43,7 @@ import static org.lmdbjava.TestUtils.nb;
 import io.netty.buffer.ByteBuf;
 import java.io.File;
 import java.io.IOException;
+import java.lang.foreign.Arena;
 import java.nio.ByteBuffer;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
@@ -68,12 +66,11 @@ public final class CursorParamTest {
 
   @Parameters(name = "{index}: buffer adapter: {0}")
   public static Object[] data() {
-    final BufferRunner<ByteBuffer> bb1 = new ByteBufferRunner(PROXY_OPTIMAL);
-    final BufferRunner<ByteBuffer> bb2 = new ByteBufferRunner(PROXY_SAFE);
-    final BufferRunner<byte[]> ba = new ByteArrayRunner(PROXY_BA);
+    final BufferRunner<ByteBuffer> bb1 = new ByteBufferRunner(ByteBufferProxy.INSTANCE);
+    final BufferRunner<byte[]> ba = new ByteArrayRunner(new ByteArrayProxy(Arena.ofAuto()));
     final BufferRunner<DirectBuffer> db = new DirectBufferRunner();
     final BufferRunner<ByteBuf> netty = new NettyBufferRunner();
-    return new Object[] {bb1, bb2, ba, db, netty};
+    return new Object[] {bb1, ba, db, netty};
   }
 
   @Test

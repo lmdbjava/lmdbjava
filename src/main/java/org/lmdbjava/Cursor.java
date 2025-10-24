@@ -19,7 +19,6 @@ import static java.util.Objects.requireNonNull;
 import static org.lmdbjava.Dbi.KeyExistsException.MDB_KEYEXIST;
 import static org.lmdbjava.Dbi.KeyNotFoundException.MDB_NOTFOUND;
 import static org.lmdbjava.Env.SHOULD_CHECK;
-import static org.lmdbjava.Library.LIB;
 import static org.lmdbjava.MaskedFlag.isSet;
 import static org.lmdbjava.MaskedFlag.mask;
 import static org.lmdbjava.PutFlags.MDB_MULTIPLE;
@@ -32,8 +31,9 @@ import static org.lmdbjava.SeekOp.MDB_LAST;
 import static org.lmdbjava.SeekOp.MDB_NEXT;
 import static org.lmdbjava.SeekOp.MDB_PREV;
 
-import jnr.ffi.Pointer;
-import jnr.ffi.byref.NativeLongByReference;
+import java.lang.foreign.Arena;
+import java.lang.foreign.MemorySegment;
+import java.lang.foreign.ValueLayout;
 
 /**
  * A cursor handle.
@@ -42,15 +42,17 @@ import jnr.ffi.byref.NativeLongByReference;
  */
 public final class Cursor<T> implements AutoCloseable {
 
+  private final Arena arena;
   private boolean closed;
   private final KeyVal<T> kv;
-  private final Pointer ptrCursor;
+  private final MemorySegment ptrCursor;
   private Txn<T> txn;
   private final Env<T> env;
 
-  Cursor(final Pointer ptr, final Txn<T> txn, final Env<T> env) {
+  Cursor(final Arena arena, final MemorySegment ptr, final Txn<T> txn, final Env<T> env) {
     requireNonNull(ptr);
     requireNonNull(txn);
+    this.arena = arena;
     this.ptrCursor = ptr;
     this.txn = txn;
     this.kv = txn.newKeyVal();
@@ -75,7 +77,7 @@ public final class Cursor<T> implements AutoCloseable {
         txn.checkReady();
       }
     }
-    LIB.mdb_cursor_close(ptrCursor);
+    Lmdb.mdb_cursor_close(ptrCursor);
     closed = true;
   }
 
@@ -93,9 +95,9 @@ public final class Cursor<T> implements AutoCloseable {
       checkNotClosed();
       txn.checkReady();
     }
-    final NativeLongByReference longByReference = new NativeLongByReference();
-    checkRc(LIB.mdb_cursor_count(ptrCursor, longByReference));
-    return longByReference.longValue();
+    MemorySegment longByReference = arena.allocate(ValueLayout.JAVA_LONG);
+    checkRc(Lmdb.mdb_cursor_count(ptrCursor, longByReference));
+    return longByReference.get(ValueLayout.JAVA_LONG, 0);
   }
 
   /**
@@ -113,7 +115,7 @@ public final class Cursor<T> implements AutoCloseable {
       txn.checkWritesAllowed();
     }
     final int flags = mask(true, f);
-    checkRc(LIB.mdb_cursor_del(ptrCursor, flags));
+    checkRc(Lmdb.mdb_cursor_del(ptrCursor, flags));
   }
 
   /**
@@ -144,7 +146,7 @@ public final class Cursor<T> implements AutoCloseable {
     kv.keyIn(key);
     kv.valIn(data);
 
-    final int rc = LIB.mdb_cursor_get(ptrCursor, kv.pointerKey(), kv.pointerVal(), op.getCode());
+    final int rc = Lmdb.mdb_cursor_get(ptrCursor, kv.pointerKey(), kv.pointerVal(), op.getCode());
 
     if (rc == MDB_NOTFOUND) {
       return false;
@@ -174,7 +176,7 @@ public final class Cursor<T> implements AutoCloseable {
     }
     kv.keyIn(key);
 
-    final int rc = LIB.mdb_cursor_get(ptrCursor, kv.pointerKey(), kv.pointerVal(), op.getCode());
+    final int rc = Lmdb.mdb_cursor_get(ptrCursor, kv.pointerKey(), kv.pointerVal(), op.getCode());
 
     if (rc == MDB_NOTFOUND) {
       return false;
@@ -246,7 +248,7 @@ public final class Cursor<T> implements AutoCloseable {
     kv.keyIn(key);
     kv.valIn(val);
     final int mask = mask(true, op);
-    final int rc = LIB.mdb_cursor_put(ptrCursor, kv.pointerKey(), kv.pointerVal(), mask);
+    final int rc = Lmdb.mdb_cursor_put(ptrCursor, kv.pointerKey(), kv.pointerVal(), mask);
     if (rc == MDB_KEYEXIST) {
       if (isSet(mask, MDB_NOOVERWRITE)) {
         kv.valOut(); // marked as in,out in LMDB C docs
@@ -288,8 +290,8 @@ public final class Cursor<T> implements AutoCloseable {
       throw new IllegalArgumentException("Must set " + MDB_MULTIPLE + " flag");
     }
     txn.kv().keyIn(key);
-    final Pointer dataPtr = txn.kv().valInMulti(val, elements);
-    final int rc = LIB.mdb_cursor_put(ptrCursor, txn.kv().pointerKey(), dataPtr, mask);
+    final Lmdb.MDB_val dataPtr = txn.kv().valInMulti(val, elements);
+    final int rc = Lmdb.mdb_cursor_put(ptrCursor, txn.kv().pointerKey(), dataPtr, mask);
     checkRc(rc);
     ReferenceUtil.reachabilityFence0(key);
     ReferenceUtil.reachabilityFence0(val);
@@ -314,7 +316,7 @@ public final class Cursor<T> implements AutoCloseable {
       newTxn.checkReadOnly();
       newTxn.checkReady();
     }
-    checkRc(LIB.mdb_cursor_renew(newTxn.pointer(), ptrCursor));
+    checkRc(Lmdb.mdb_cursor_renew(newTxn.pointer(), ptrCursor));
     this.txn = newTxn;
   }
 
@@ -343,7 +345,7 @@ public final class Cursor<T> implements AutoCloseable {
     kv.keyIn(key);
     kv.valIn(size);
     final int flags = mask(true, op) | MDB_RESERVE.getMask();
-    checkRc(LIB.mdb_cursor_put(ptrCursor, kv.pointerKey(), kv.pointerVal(), flags));
+    checkRc(Lmdb.mdb_cursor_put(ptrCursor, kv.pointerKey(), kv.pointerVal(), flags));
     kv.valOut();
     ReferenceUtil.reachabilityFence0(key);
     return val();
@@ -363,7 +365,7 @@ public final class Cursor<T> implements AutoCloseable {
       txn.checkReady();
     }
 
-    final int rc = LIB.mdb_cursor_get(ptrCursor, kv.pointerKey(), kv.pointerVal(), op.getCode());
+    final int rc = Lmdb.mdb_cursor_get(ptrCursor, kv.pointerKey(), kv.pointerVal(), op.getCode());
 
     if (rc == MDB_NOTFOUND) {
       return false;

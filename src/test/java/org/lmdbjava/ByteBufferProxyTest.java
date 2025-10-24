@@ -15,45 +15,36 @@
  */
 package org.lmdbjava;
 
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+import org.lmdbjava.ByteBufferProxy.BufferMustBeDirectException;
+import org.lmdbjava.Lmdb.MDB_val;
+
+import java.io.File;
+import java.io.IOException;
+import java.lang.foreign.Arena;
+import java.nio.ByteBuffer;
+
 import static java.lang.Integer.BYTES;
 import static java.nio.ByteBuffer.allocate;
 import static java.nio.ByteBuffer.allocateDirect;
 import static java.nio.ByteOrder.BIG_ENDIAN;
 import static java.nio.ByteOrder.LITTLE_ENDIAN;
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.lmdbjava.BufferProxy.MDB_VAL_STRUCT_SIZE;
-import static org.lmdbjava.ByteBufferProxy.AbstractByteBufferProxy.findField;
-import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
-import static org.lmdbjava.ByteBufferProxy.PROXY_SAFE;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import static org.lmdbjava.Env.create;
-import static org.lmdbjava.Library.RUNTIME;
 import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.invokePrivateConstructor;
-import static org.lmdbjava.UnsafeAccess.ALLOW_UNSAFE;
 
-import java.io.File;
-import java.io.IOException;
-import java.lang.reflect.Field;
-import java.nio.ByteBuffer;
-import jnr.ffi.Pointer;
-import jnr.ffi.provider.MemoryManager;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-import org.lmdbjava.ByteBufferProxy.BufferMustBeDirectException;
-import org.lmdbjava.Env.ReadersFullException;
-
-/** Test {@link ByteBufferProxy}. */
+/**
+ * Test {@link ByteBufferProxy}.
+ */
 public final class ByteBufferProxyTest {
 
-  static final MemoryManager MEM_MGR = RUNTIME.getMemoryManager();
-
-  @Rule public final TemporaryFolder tmp = new TemporaryFolder();
+  @Rule
+  public final TemporaryFolder tmp = new TemporaryFolder();
 
   @Test(expected = BufferMustBeDirectException.class)
   public void buffersMustBeDirect() throws IOException {
@@ -70,14 +61,15 @@ public final class ByteBufferProxyTest {
 
   @Test
   public void byteOrderResets() {
+    final ByteBufferProxy byteBufferProxy = ByteBufferProxy.INSTANCE;
     final int retries = 100;
     for (int i = 0; i < retries; i++) {
-      final ByteBuffer bb = PROXY_OPTIMAL.allocate();
+      final ByteBuffer bb = byteBufferProxy.allocate();
       bb.order(LITTLE_ENDIAN);
-      PROXY_OPTIMAL.deallocate(bb);
+      byteBufferProxy.deallocate(bb);
     }
     for (int i = 0; i < retries; i++) {
-      assertThat(PROXY_OPTIMAL.allocate().order(), is(BIG_ENDIAN));
+      assertThat(byteBufferProxy.allocate().order(), is(BIG_ENDIAN));
     }
   }
 
@@ -86,47 +78,9 @@ public final class ByteBufferProxyTest {
     invokePrivateConstructor(ByteBufferProxy.class);
   }
 
-  @Test(expected = LmdbException.class)
-  public void fieldNeverFound() {
-    findField(Exception.class, "notARealField");
-  }
-
   @Test
-  public void fieldSuperclassScan() {
-    final Field f = findField(ReadersFullException.class, "rc");
-    assertThat(f, is(notNullValue()));
-  }
-
-  @Test
-  public void inOutBuffersProxyOptimal() {
-    checkInOut(PROXY_OPTIMAL);
-  }
-
-  @Test
-  public void inOutBuffersProxySafe() {
-    checkInOut(PROXY_SAFE);
-  }
-
-  @Test
-  public void optimalAlwaysAvailable() {
-    final BufferProxy<ByteBuffer> v = PROXY_OPTIMAL;
-    assertThat(v, is(notNullValue()));
-  }
-
-  @Test
-  public void safeCanBeForced() {
-    final BufferProxy<ByteBuffer> v = PROXY_SAFE;
-    assertThat(v, is(notNullValue()));
-    assertThat(v.getClass().getSimpleName(), startsWith("Reflect"));
-  }
-
-  @Test
-  public void unsafeIsDefault() {
-    assertThat(ALLOW_UNSAFE, is(true));
-    final BufferProxy<ByteBuffer> v = PROXY_OPTIMAL;
-    assertThat(v, is(notNullValue()));
-    assertThat(v, is(not(PROXY_SAFE)));
-    assertThat(v.getClass().getSimpleName(), startsWith("Unsafe"));
+  public void inOutBuffersProxy() {
+    checkInOut(ByteBufferProxy.INSTANCE);
   }
 
   private void checkInOut(final BufferProxy<ByteBuffer> v) {
@@ -138,14 +92,15 @@ public final class ByteBufferProxyTest {
     b.flip();
     b.position(BYTES); // skip 1
 
-    final Pointer p = MEM_MGR.allocateTemporary(MDB_VAL_STRUCT_SIZE, false);
-    v.in(b, p, p.address());
+    try (final Arena arena = Arena.ofConfined()) {
+      final MDB_val p = new MDB_val(arena);
+      v.in(b, p);
 
-    final ByteBuffer bb = allocateDirect(1);
-    v.out(bb, p, p.address());
+      final ByteBuffer bb = v.out(p);
 
-    assertThat(bb.getInt(), is(2));
-    assertThat(bb.getInt(), is(3));
-    assertThat(bb.remaining(), is(0));
+      assertThat(bb.getInt(), is(2));
+      assertThat(bb.getInt(), is(3));
+      assertThat(bb.remaining(), is(0));
+    }
   }
 }

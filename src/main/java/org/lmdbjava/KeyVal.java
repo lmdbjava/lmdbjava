@@ -15,13 +15,12 @@
  */
 package org.lmdbjava;
 
-import static java.util.Objects.requireNonNull;
-import static org.lmdbjava.BufferProxy.MDB_VAL_STRUCT_SIZE;
-import static org.lmdbjava.BufferProxy.STRUCT_FIELD_OFFSET_SIZE;
-import static org.lmdbjava.Library.RUNTIME;
+import org.lmdbjava.Lmdb.MDB_arr_val;
+import org.lmdbjava.Lmdb.MDB_val;
 
-import jnr.ffi.Pointer;
-import jnr.ffi.provider.MemoryManager;
+import java.lang.foreign.Arena;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Represents off-heap memory holding a key and value pair.
@@ -30,27 +29,23 @@ import jnr.ffi.provider.MemoryManager;
  */
 final class KeyVal<T> implements AutoCloseable {
 
-  private static final MemoryManager MEM_MGR = RUNTIME.getMemoryManager();
   private boolean closed;
   private T k;
   private final BufferProxy<T> proxy;
-  private final Pointer ptrArray;
-  private final Pointer ptrKey;
-  private final long ptrKeyAddr;
-  private final Pointer ptrVal;
-  private final long ptrValAddr;
+  private final MDB_arr_val ptrArray;
+  private final MDB_val ptrKey;
+  private final MDB_val ptrVal;
   private T v;
 
-  KeyVal(final BufferProxy<T> proxy) {
+  KeyVal(final Arena arena,
+         final BufferProxy<T> proxy) {
     requireNonNull(proxy);
     this.proxy = proxy;
     this.k = proxy.allocate();
     this.v = proxy.allocate();
-    ptrKey = MEM_MGR.allocateTemporary(MDB_VAL_STRUCT_SIZE, false);
-    ptrKeyAddr = ptrKey.address();
-    ptrArray = MEM_MGR.allocateTemporary(MDB_VAL_STRUCT_SIZE * 2, false);
-    ptrVal = ptrArray.slice(0, MDB_VAL_STRUCT_SIZE);
-    ptrValAddr = ptrVal.address();
+    ptrKey = new MDB_val(arena);
+    ptrArray = new MDB_arr_val(arena);
+    ptrVal = new MDB_val(ptrArray.segment());
   }
 
   @Override
@@ -68,19 +63,19 @@ final class KeyVal<T> implements AutoCloseable {
   }
 
   void keyIn(final T key) {
-    proxy.in(key, ptrKey, ptrKeyAddr);
+    proxy.in(key, ptrKey);
   }
 
   T keyOut() {
-    k = proxy.out(k, ptrKey, ptrKeyAddr);
+    k = proxy.out(ptrKey);
     return k;
   }
 
-  Pointer pointerKey() {
+  MDB_val pointerKey() {
     return ptrKey;
   }
 
-  Pointer pointerVal() {
+  MDB_val pointerVal() {
     return ptrVal;
   }
 
@@ -89,11 +84,11 @@ final class KeyVal<T> implements AutoCloseable {
   }
 
   void valIn(final T val) {
-    proxy.in(val, ptrVal, ptrValAddr);
+    proxy.in(val, ptrVal);
   }
 
   void valIn(final int size) {
-    proxy.in(v, size, ptrVal, ptrValAddr);
+    proxy.in(v, size, ptrVal);
   }
 
   /**
@@ -103,29 +98,28 @@ final class KeyVal<T> implements AutoCloseable {
    * <p>The returned array is equivalent of two <code>MDB_val</code>s as follows:
    *
    * <ul>
-   *   <li>ptrVal1.data = pointer to the data address of passed buffer
    *   <li>ptrVal1.size = size of each individual data element
-   *   <li>ptrVal2.data = unused
+   *   <li>ptrVal1.data = pointer to the data address of passed buffer
    *   <li>ptrVal2.size = number of data elements (as passed to this method)
+   *   <li>ptrVal2.data = unused
    * </ul>
    *
-   * @param val a user-provided buffer with data elements (required)
+   * @param val      a user-provided buffer with data elements (required)
    * @param elements number of data elements the user has provided
    * @return a properly-prepared pointer to an array for the operation
    */
-  Pointer valInMulti(final T val, final int elements) {
-    final long ptrVal2SizeOff = MDB_VAL_STRUCT_SIZE + STRUCT_FIELD_OFFSET_SIZE;
-    ptrArray.putLong(ptrVal2SizeOff, elements); // ptrVal2.size
-    proxy.in(val, ptrVal, ptrValAddr); // ptrVal1.data
-    final long totalBufferSize = ptrVal.getLong(STRUCT_FIELD_OFFSET_SIZE);
+  MDB_val valInMulti(final T val, final int elements) {
+    ptrArray.mvSize2(elements); // ptrVal2.size
+    proxy.in(val, ptrVal); // ptrVal1.data
+    final long totalBufferSize = ptrVal.mvSize();
     final long elemSize = totalBufferSize / elements;
-    ptrVal.putLong(STRUCT_FIELD_OFFSET_SIZE, elemSize); // ptrVal1.size
-
-    return ptrArray;
+    ptrArray.mvSize1(elemSize); // ptrVal1.size
+    // Return ptrVal as both array and value share same address.
+    return ptrVal;
   }
 
   T valOut() {
-    v = proxy.out(v, ptrVal, ptrValAddr);
+    v = proxy.out(ptrVal);
     return v;
   }
 }

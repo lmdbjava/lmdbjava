@@ -19,9 +19,7 @@ import static io.netty.buffer.PooledByteBufAllocator.DEFAULT;
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
-import static org.lmdbjava.ByteArrayProxy.PROXY_BA;
 import static org.lmdbjava.ByteBufProxy.PROXY_NETTY;
-import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
 import static org.lmdbjava.ComparatorTest.ComparatorResult.EQUAL_TO;
 import static org.lmdbjava.ComparatorTest.ComparatorResult.GREATER_THAN;
 import static org.lmdbjava.ComparatorTest.ComparatorResult.LESS_THAN;
@@ -31,6 +29,8 @@ import static org.lmdbjava.DirectBufferProxy.PROXY_DB;
 import com.google.common.primitives.SignedBytes;
 import com.google.common.primitives.UnsignedBytes;
 import io.netty.buffer.ByteBuf;
+
+import java.lang.foreign.Arena;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -66,7 +66,7 @@ public final class ComparatorTest {
   public static Object[] data() {
     final ComparatorRunner string = new StringRunner();
     final ComparatorRunner db = new DirectBufferRunner();
-    final ComparatorRunner ba = new ByteArrayRunner();
+    final ComparatorRunner ba = new ByteArrayRunner(new ByteArrayProxy(Arena.ofAuto()));
     final ComparatorRunner bb = new ByteBufferRunner();
     final ComparatorRunner netty = new NettyRunner();
     final ComparatorRunner gub = new GuavaUnsignedBytes();
@@ -133,9 +133,15 @@ public final class ComparatorTest {
   /** Tests {@link ByteArrayProxy}. */
   private static final class ByteArrayRunner implements ComparatorRunner {
 
+    private final ByteArrayProxy byteArrayProxy;
+
+    public ByteArrayRunner(ByteArrayProxy byteArrayProxy) {
+      this.byteArrayProxy = byteArrayProxy;
+    }
+
     @Override
     public int compare(final byte[] o1, final byte[] o2) {
-      final Comparator<byte[]> c = PROXY_BA.getComparator();
+      final Comparator<byte[]> c = byteArrayProxy.getComparator();
       return c.compare(o1, o2);
     }
   }
@@ -145,7 +151,7 @@ public final class ComparatorTest {
 
     @Override
     public int compare(final byte[] o1, final byte[] o2) {
-      final Comparator<ByteBuffer> c = PROXY_OPTIMAL.getComparator();
+      final Comparator<ByteBuffer> c = ByteBufferProxy.INSTANCE.getComparator();
 
       // Convert arrays to buffers that are larger than the array, with
       // limit set at the array length. One buffer bigger than the other.
