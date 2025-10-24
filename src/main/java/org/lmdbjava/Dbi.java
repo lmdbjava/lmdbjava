@@ -54,6 +54,7 @@ public final class Dbi<T> {
   private final Env<T> env;
   private final byte[] name;
   private final Pointer ptr;
+  private final BufferProxy<T> proxy;
 
   Dbi(
       final Env<T> env,
@@ -69,16 +70,14 @@ public final class Dbi<T> {
     }
     this.env = env;
     this.name = name == null ? null : Arrays.copyOf(name, name.length);
-    if (comparator == null) {
-      this.comparator = proxy.getComparator(flags);
-    } else {
-      this.comparator = comparator;
-    }
-    final int flagsMask = mask(true, flags);
+    this.proxy = proxy;
+    this.comparator = comparator;
+    final int flagsMask = mask(flags);
     final Pointer dbiPtr = allocateDirect(RUNTIME, ADDRESS);
     checkRc(LIB.mdb_dbi_open(txn.pointer(), name, flagsMask, dbiPtr));
     ptr = dbiPtr.getPointer(0);
     if (nativeCb) {
+      requireNonNull(comparator, "comparator cannot be null if nativeCb is set");
       this.ccb =
           (keyA, keyB) -> {
             final T compKeyA = proxy.allocate();
@@ -94,6 +93,10 @@ public final class Dbi<T> {
     } else {
       ccb = null;
     }
+  }
+
+  Pointer pointer() {
+    return ptr;
   }
 
   /**
@@ -275,7 +278,7 @@ public final class Dbi<T> {
       env.checkNotClosed();
       txn.checkReady();
     }
-    return new CursorIterable<>(txn, this, range, comparator);
+    return new CursorIterable<>(txn, this, range, comparator, proxy);
   }
 
   /**
@@ -368,7 +371,7 @@ public final class Dbi<T> {
     }
     txn.kv().keyIn(key);
     txn.kv().valIn(val);
-    final int mask = mask(true, flags);
+    final int mask = mask(flags);
     final int rc =
         LIB.mdb_put(txn.pointer(), ptr, txn.kv().pointerKey(), txn.kv().pointerVal(), mask);
     if (rc == MDB_KEYEXIST) {
@@ -410,7 +413,7 @@ public final class Dbi<T> {
     }
     txn.kv().keyIn(key);
     txn.kv().valIn(size);
-    final int flags = mask(true, op) | MDB_RESERVE.getMask();
+    final int flags = mask(op) | MDB_RESERVE.getMask();
     checkRc(LIB.mdb_put(txn.pointer(), ptr, txn.kv().pointerKey(), txn.kv().pointerVal(), flags));
     txn.kv().valOut(); // marked as in,out in LMDB C docs
     ReferenceUtil.reachabilityFence0(key);

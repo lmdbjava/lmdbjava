@@ -114,12 +114,12 @@ public final class ByteBufProxy extends BufferProxy<ByteBuf> {
   }
 
   @Override
-  protected Comparator<ByteBuf> getSignedComparator() {
+  public Comparator<ByteBuf> getSignedComparator() {
     return comparator;
   }
 
   @Override
-  protected Comparator<ByteBuf> getUnsignedComparator() {
+  public Comparator<ByteBuf> getUnsignedComparator() {
     return comparator;
   }
 

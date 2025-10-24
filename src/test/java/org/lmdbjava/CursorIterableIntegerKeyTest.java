@@ -21,6 +21,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
+import static org.lmdbjava.DbiFlags.MDB_INTEGERKEY;
 import static org.lmdbjava.Env.create;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.KeyRange.all;
@@ -47,11 +48,14 @@ import static org.lmdbjava.TestUtils.DB_2;
 import static org.lmdbjava.TestUtils.DB_3;
 import static org.lmdbjava.TestUtils.POSIX_MODE;
 import static org.lmdbjava.TestUtils.bb;
+import static org.lmdbjava.TestUtils.bbNative;
+import static org.lmdbjava.TestUtils.getNativeInt;
 
 import com.google.common.primitives.UnsignedBytes;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Deque;
@@ -67,8 +71,9 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.lmdbjava.CursorIterable.KeyVal;
 
-/** Test {@link CursorIterable}. */
-public final class CursorIterableTest {
+/** Test {@link CursorIterable} using {@link DbiFlags#MDB_INTEGERKEY} to ensure that
+ * comparators work with native order integer keys. */
+public final class CursorIterableIntegerKeyTest {
 
   @Rule public final TemporaryFolder tmp = new TemporaryFolder();
   private Dbi<ByteBuffer> dbJavaComparator;
@@ -95,27 +100,27 @@ public final class CursorIterableTest {
 
   @Test
   public void atLeastBackwardTest() {
-    verify(atLeastBackward(bb(5)), 4, 2);
-    verify(atLeastBackward(bb(6)), 6, 4, 2);
-    verify(atLeastBackward(bb(9)), 8, 6, 4, 2);
+    verify(atLeastBackward(bbNative(5)), 4, 2);
+    verify(atLeastBackward(bbNative(6)), 6, 4, 2);
+    verify(atLeastBackward(bbNative(9)), 8, 6, 4, 2);
   }
 
   @Test
   public void atLeastTest() {
-    verify(atLeast(bb(5)), 6, 8);
-    verify(atLeast(bb(6)), 6, 8);
+    verify(atLeast(bbNative(5)), 6, 8);
+    verify(atLeast(bbNative(6)), 6, 8);
   }
 
   @Test
   public void atMostBackwardTest() {
-    verify(atMostBackward(bb(5)), 8, 6);
-    verify(atMostBackward(bb(6)), 8, 6);
+    verify(atMostBackward(bbNative(5)), 8, 6);
+    verify(atMostBackward(bbNative(6)), 8, 6);
   }
 
   @Test
   public void atMostTest() {
-    verify(atMost(bb(5)), 2, 4);
-    verify(atMost(bb(6)), 2, 4, 6);
+    verify(atMost(bbNative(5)), 2, 4);
+    verify(atMost(bbNative(6)), 2, 4, 6);
   }
 
   @Before
@@ -130,11 +135,18 @@ public final class CursorIterableTest {
             .open(path, POSIX_MODE, MDB_NOSUBDIR);
 
     // Use a java comparator for start/stop keys only
-    dbJavaComparator = env.openDbi(DB_1, bufferProxy.getUnsignedComparator(), MDB_CREATE);
+    dbJavaComparator = env.openDbi(DB_1,
+        bufferProxy.getUnsignedComparator(),
+        MDB_CREATE,
+        MDB_INTEGERKEY);
     // Use LMDB comparator for start/stop keys
-    dbLmdbComparator = env.openDbi(DB_2, MDB_CREATE);
+    dbLmdbComparator = env.openDbi(DB_2, MDB_CREATE, MDB_INTEGERKEY);
     // Use a java comparator for start/stop keys and as a callback comparaotr
-    dbCallbackComparator = env.openDbi(DB_3, bufferProxy.getUnsignedComparator(), true, MDB_CREATE);
+    dbCallbackComparator = env.openDbi(DB_3,
+        bufferProxy.getUnsignedComparator(),
+        true,
+        MDB_CREATE,
+        MDB_INTEGERKEY);
 
     populateList();
 
@@ -155,60 +167,52 @@ public final class CursorIterableTest {
   private void populateDatabase(final Dbi<ByteBuffer> dbi) {
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
       final Cursor<ByteBuffer> c = dbi.openCursor(txn);
-      c.put(bb(2), bb(3), MDB_NOOVERWRITE);
-      c.put(bb(4), bb(5));
-      c.put(bb(6), bb(7));
-      c.put(bb(8), bb(9));
+      c.put(bbNative(2), bb(3), MDB_NOOVERWRITE);
+      c.put(bbNative(4), bb(5));
+      c.put(bbNative(6), bb(7));
+      c.put(bbNative(8), bb(9));
       txn.commit();
     }
   }
 
   @Test
   public void closedBackwardTest() {
-    verify(closedBackward(bb(7), bb(3)), 6, 4);
-    verify(closedBackward(bb(6), bb(2)), 6, 4, 2);
-    verify(closedBackward(bb(9), bb(3)), 8, 6, 4);
+    verify(closedBackward(bbNative(7), bbNative(3)), 6, 4);
+    verify(closedBackward(bbNative(6), bbNative(2)), 6, 4, 2);
+    verify(closedBackward(bbNative(9), bbNative(3)), 8, 6, 4);
   }
 
   @Test
   public void closedOpenBackwardTest() {
-    verify(closedOpenBackward(bb(8), bb(3)), 8, 6, 4);
-    verify(closedOpenBackward(bb(7), bb(2)), 6, 4);
-    verify(closedOpenBackward(bb(9), bb(3)), 8, 6, 4);
+    verify(closedOpenBackward(bbNative(8), bbNative(3)), 8, 6, 4);
+    verify(closedOpenBackward(bbNative(7), bbNative(2)), 6, 4);
+    verify(closedOpenBackward(bbNative(9), bbNative(3)), 8, 6, 4);
   }
 
   @Test
   public void closedOpenTest() {
-    verify(closedOpen(bb(3), bb(8)), 4, 6);
-    verify(closedOpen(bb(2), bb(6)), 2, 4);
+    verify(closedOpen(bbNative(3), bbNative(8)), 4, 6);
+    verify(closedOpen(bbNative(2), bbNative(6)), 2, 4);
   }
 
   @Test
   public void closedTest() {
-    verify(closed(bb(3), bb(7)), 4, 6);
-    verify(closed(bb(2), bb(6)), 2, 4, 6);
-    verify(closed(bb(1), bb(7)), 2, 4, 6);
-  }
-
-  public void closedTest1() {
-    verify(dbLmdbComparator, closed(bb(3), bb(7)), 4, 6);
-  }
-
-  public void closedTest2() {
-    verify(dbJavaComparator, closed(bb(3), bb(7)), 4, 6);
+    verify(closed(bbNative(3), bbNative(7)), 4, 6);
+    verify(closed(bbNative(2), bbNative(6)), 2, 4, 6);
+    verify(closed(bbNative(1), bbNative(7)), 2, 4, 6);
   }
 
   @Test
   public void greaterThanBackwardTest() {
-    verify(greaterThanBackward(bb(6)), 4, 2);
-    verify(greaterThanBackward(bb(7)), 6, 4, 2);
-    verify(greaterThanBackward(bb(9)), 8, 6, 4, 2);
+    verify(greaterThanBackward(bbNative(6)), 4, 2);
+    verify(greaterThanBackward(bbNative(7)), 6, 4, 2);
+    verify(greaterThanBackward(bbNative(9)), 8, 6, 4, 2);
   }
 
   @Test
   public void greaterThanTest() {
-    verify(greaterThan(bb(4)), 6, 8);
-    verify(greaterThan(bb(3)), 4, 6, 8);
+    verify(greaterThan(bbNative(4)), 6, 8);
+    verify(greaterThan(bbNative(3)), 4, 6, 8);
   }
 
   @Test(expected = IllegalStateException.class)
@@ -231,7 +235,7 @@ public final class CursorIterableTest {
 
         int cnt = 0;
         for (final KeyVal<ByteBuffer> kv : c) {
-          assertThat(kv.key().getInt(), is(list.pollFirst()));
+          assertThat(getNativeInt(kv.key()), is(list.pollFirst()));
           assertThat(kv.val().getInt(), is(list.pollFirst()));
         }
       }
@@ -251,14 +255,14 @@ public final class CursorIterableTest {
 
   @Test
   public void lessThanBackwardTest() {
-    verify(lessThanBackward(bb(5)), 8, 6);
-    verify(lessThanBackward(bb(2)), 8, 6, 4);
+    verify(lessThanBackward(bbNative(5)), 8, 6);
+    verify(lessThanBackward(bbNative(2)), 8, 6, 4);
   }
 
   @Test
   public void lessThanTest() {
-    verify(lessThan(bb(5)), 2, 4);
-    verify(lessThan(bb(8)), 2, 4, 6);
+    verify(lessThan(bbNative(5)), 2, 4);
+    verify(lessThan(bbNative(8)), 2, 4, 6);
   }
 
   @Test(expected = NoSuchElementException.class)
@@ -270,7 +274,7 @@ public final class CursorIterableTest {
         final Iterator<KeyVal<ByteBuffer>> i = c.iterator();
         while (i.hasNext()) {
           final KeyVal<ByteBuffer> kv = i.next();
-          assertThat(kv.key().getInt(), is(list.pollFirst()));
+          assertThat(TestUtils.getNativeInt(kv.key()), is(list.pollFirst()));
           assertThat(kv.val().getInt(), is(list.pollFirst()));
         }
         assertThat(i.hasNext(), is(false));
@@ -281,16 +285,16 @@ public final class CursorIterableTest {
 
   @Test
   public void openBackwardTest() {
-    verify(openBackward(bb(7), bb(2)), 6, 4);
-    verify(openBackward(bb(8), bb(1)), 6, 4, 2);
-    verify(openBackward(bb(9), bb(4)), 8, 6);
+    verify(openBackward(bbNative(7), bbNative(2)), 6, 4);
+    verify(openBackward(bbNative(8), bbNative(1)), 6, 4, 2);
+    verify(openBackward(bbNative(9), bbNative(4)), 8, 6);
   }
 
   @Test
   public void openClosedBackwardTest() {
-    verify(openClosedBackward(bb(7), bb(2)), 6, 4, 2);
-    verify(openClosedBackward(bb(8), bb(4)), 6, 4);
-    verify(openClosedBackward(bb(9), bb(4)), 8, 6, 4);
+    verify(openClosedBackward(bbNative(7), bbNative(2)), 6, 4, 2);
+    verify(openClosedBackward(bbNative(8), bbNative(4)), 6, 4);
+    verify(openClosedBackward(bbNative(9), bbNative(4)), 8, 6, 4);
   }
 
   @Test
@@ -310,20 +314,20 @@ public final class CursorIterableTest {
         };
     final Dbi<ByteBuffer> guavaDbi = env.openDbi(DB_1, comparator, MDB_CREATE);
     populateDatabase(guavaDbi);
-    verify(openClosedBackward(bb(7), bb(2)), guavaDbi, 6, 4, 2);
-    verify(openClosedBackward(bb(8), bb(4)), guavaDbi, 6, 4);
+    verify(openClosedBackward(bbNative(7), bbNative(2)), guavaDbi, 6, 4, 2);
+    verify(openClosedBackward(bbNative(8), bbNative(4)), guavaDbi, 6, 4);
   }
 
   @Test
   public void openClosedTest() {
-    verify(openClosed(bb(3), bb(8)), 4, 6, 8);
-    verify(openClosed(bb(2), bb(6)), 4, 6);
+    verify(openClosed(bbNative(3), bbNative(8)), 4, 6, 8);
+    verify(openClosed(bbNative(2), bbNative(6)), 4, 6);
   }
 
   @Test
   public void openTest() {
-    verify(open(bb(3), bb(7)), 4, 6);
-    verify(open(bb(2), bb(8)), 4, 6);
+    verify(open(bbNative(3), bbNative(7)), 4, 6);
+    verify(open(bbNative(2), bbNative(8)), 4, 6);
   }
 
   @Test
@@ -409,11 +413,11 @@ public final class CursorIterableTest {
 
   @Test
   public void testSignedVsUnsigned() {
-    final ByteBuffer val1 = bb(1);
-    final ByteBuffer val2 = bb(2);
-    final ByteBuffer val110 = bb(110);
-    final ByteBuffer val111 = bb(111);
-    final ByteBuffer val150 = bb(150);
+    final ByteBuffer val1 = bbNative(1);
+    final ByteBuffer val2 = bbNative(2);
+    final ByteBuffer val110 = bbNative(110);
+    final ByteBuffer val111 = bbNative(111);
+    final ByteBuffer val150 = bbNative(150);
 
     final BufferProxy<ByteBuffer> bufferProxy = ByteBufferProxy.PROXY_OPTIMAL;
     final Comparator<ByteBuffer> unsignedComparator = bufferProxy.getUnsignedComparator();
@@ -443,8 +447,8 @@ public final class CursorIterableTest {
 
       try (Txn<ByteBuffer> txn = env.txnRead();
           CursorIterable<ByteBuffer> c = db.iterate(txn, keyRange)) {
-        for (final CursorIterable.KeyVal<ByteBuffer> kv : c) {
-          final int key = kv.key().getInt();
+        for (final KeyVal<ByteBuffer> kv : c) {
+          final int key = getNativeInt(kv.key());
           final int val = kv.val().getInt();
           //          System.out.println("key: " + key + " val: " + val);
           assertThat(key, is(110));
@@ -474,7 +478,7 @@ public final class CursorIterableTest {
     try (Txn<ByteBuffer> txn = env.txnRead();
         CursorIterable<ByteBuffer> c = dbi.iterate(txn, range)) {
       for (final KeyVal<ByteBuffer> kv : c) {
-        final int key = kv.key().getInt();
+        final int key = kv.key().order(ByteOrder.nativeOrder()).getInt();
         final int val = kv.val().getInt();
         results.add(key);
         assertThat(val, is(key + 1));
