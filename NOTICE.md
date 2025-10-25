@@ -21,7 +21,7 @@ The LmdbJava project distribution JAR file includes a distribution of [LMDB](htt
 # Dependencies
 
 LmdbJava uses the following libraries.
-All licenese files can also be found in the `licences` directory in the root of this repository.
+All license files can also be found in the `licenses` directory in the root of this repository.
 
 | Dependency | License |
 |-------------|----------|
