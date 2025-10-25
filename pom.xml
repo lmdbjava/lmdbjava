@@ -60,7 +60,8 @@
     <maven.enforcer.java>1.8</maven.enforcer.java>
     <maven.enforcer.mvn>3.5.4</maven.enforcer.mvn>
     <mockito.version>4.11.0</mockito.version>
-    <netty-buffer.version>4.2.7.Final</netty-buffer.version>
+    <!-- Netty pinned at 4.1.118.Final until further testing -->
+    <netty-buffer.version>4.1.118.Final</netty-buffer.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <sortpom-maven-plugin.version>4.0.0</sortpom-maven-plugin.version>
     <trimStackTrace>false</trimStackTrace>
@@ -348,7 +349,7 @@
           <allowSnapshots>false</allowSnapshots>
           <allowDowngrade>false</allowDowngrade>
           <allowMajorUpdates>false</allowMajorUpdates>
-          <excludeProperties>agrona.version</excludeProperties>
+          <excludeProperties>agrona.version,netty-buffer.version</excludeProperties>
           <ruleSet>
             <ignoreVersions>
               <ignoreVersion>
