@@ -141,8 +141,8 @@ public final class Cursor<T> implements AutoCloseable {
       checkNotClosed();
       txn.checkReady();
     }
-    kv.keyIn(key);
-    kv.valIn(data);
+    final Pointer transientKey = kv.keyIn(key);
+    final Pointer transientVal = kv.valIn(data);
 
     final int rc = LIB.mdb_cursor_get(ptrCursor, kv.pointerKey(), kv.pointerVal(), op.getCode());
 
@@ -153,6 +153,10 @@ public final class Cursor<T> implements AutoCloseable {
     checkRc(rc);
     kv.keyOut();
     kv.valOut();
+    ReferenceUtil.reachabilityFence0(transientKey);
+    ReferenceUtil.reachabilityFence0(transientVal);
+    ReferenceUtil.reachabilityFence0(kv.key());
+    ReferenceUtil.reachabilityFence0(kv.val());
     ReferenceUtil.reachabilityFence0(key);
     return true;
   }
@@ -172,7 +176,7 @@ public final class Cursor<T> implements AutoCloseable {
       checkNotClosed();
       txn.checkReady();
     }
-    kv.keyIn(key);
+    final Pointer transientKey = kv.keyIn(key);
 
     final int rc = LIB.mdb_cursor_get(ptrCursor, kv.pointerKey(), kv.pointerVal(), op.getCode());
 
@@ -183,6 +187,9 @@ public final class Cursor<T> implements AutoCloseable {
     checkRc(rc);
     kv.keyOut();
     kv.valOut();
+    ReferenceUtil.reachabilityFence0(transientKey);
+    ReferenceUtil.reachabilityFence0(kv.key());
+    ReferenceUtil.reachabilityFence0(kv.val());
     ReferenceUtil.reachabilityFence0(key);
     return true;
   }
@@ -243,8 +250,8 @@ public final class Cursor<T> implements AutoCloseable {
       txn.checkReady();
       txn.checkWritesAllowed();
     }
-    kv.keyIn(key);
-    kv.valIn(val);
+    final Pointer transientKey = kv.keyIn(key);
+    final Pointer transientVal = kv.valIn(val);
     final int mask = mask(true, op);
     final int rc = LIB.mdb_cursor_put(ptrCursor, kv.pointerKey(), kv.pointerVal(), mask);
     if (rc == MDB_KEYEXIST) {
@@ -256,6 +263,8 @@ public final class Cursor<T> implements AutoCloseable {
       return false;
     }
     checkRc(rc);
+    ReferenceUtil.reachabilityFence0(transientKey);
+    ReferenceUtil.reachabilityFence0(transientVal);
     ReferenceUtil.reachabilityFence0(key);
     ReferenceUtil.reachabilityFence0(val);
     return true;
@@ -287,10 +296,12 @@ public final class Cursor<T> implements AutoCloseable {
     if (SHOULD_CHECK && !isSet(mask, MDB_MULTIPLE)) {
       throw new IllegalArgumentException("Must set " + MDB_MULTIPLE + " flag");
     }
-    txn.kv().keyIn(key);
+    final Pointer transientKey = txn.kv().keyIn(key);
     final Pointer dataPtr = txn.kv().valInMulti(val, elements);
     final int rc = LIB.mdb_cursor_put(ptrCursor, txn.kv().pointerKey(), dataPtr, mask);
     checkRc(rc);
+    ReferenceUtil.reachabilityFence0(transientKey);
+    ReferenceUtil.reachabilityFence0(dataPtr);
     ReferenceUtil.reachabilityFence0(key);
     ReferenceUtil.reachabilityFence0(val);
   }
@@ -340,11 +351,13 @@ public final class Cursor<T> implements AutoCloseable {
       txn.checkReady();
       txn.checkWritesAllowed();
     }
-    kv.keyIn(key);
-    kv.valIn(size);
+    final Pointer transientKey = kv.keyIn(key);
+    final Pointer transientVal = kv.valIn(size);
     final int flags = mask(true, op) | MDB_RESERVE.getMask();
     checkRc(LIB.mdb_cursor_put(ptrCursor, kv.pointerKey(), kv.pointerVal(), flags));
     kv.valOut();
+    ReferenceUtil.reachabilityFence0(transientKey);
+    ReferenceUtil.reachabilityFence0(transientVal);
     ReferenceUtil.reachabilityFence0(key);
     return val();
   }

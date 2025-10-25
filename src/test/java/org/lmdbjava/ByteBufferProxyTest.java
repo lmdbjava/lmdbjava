@@ -139,10 +139,10 @@ public final class ByteBufferProxyTest {
     b.position(BYTES); // skip 1
 
     final Pointer p = MEM_MGR.allocateTemporary(MDB_VAL_STRUCT_SIZE, false);
-    v.in(b, p, p.address());
+    v.in(b, p);
 
     final ByteBuffer bb = allocateDirect(1);
-    v.out(bb, p, p.address());
+    v.out(bb, p);
 
     assertThat(bb.getInt(), is(2));
     assertThat(bb.getInt(), is(3));

@@ -134,23 +134,27 @@ public final class DirectBufferProxy extends BufferProxy<DirectBuffer> {
   }
 
   @Override
-  protected void in(final DirectBuffer buffer, final Pointer ptr, final long ptrAddr) {
+  protected Pointer in(final DirectBuffer buffer, final Pointer ptr) {
+    final long ptrAddr = ptr.address();
     final long addr = buffer.addressOffset();
     final long size = buffer.capacity();
     UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_DATA, addr);
     UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE, size);
+    return null;
   }
 
   @Override
-  protected void in(
-      final DirectBuffer buffer, final int size, final Pointer ptr, final long ptrAddr) {
+  protected Pointer in(final DirectBuffer buffer, final int size, final Pointer ptr) {
+    final long ptrAddr = ptr.address();
     final long addr = buffer.addressOffset();
     UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_DATA, addr);
     UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE, size);
+    return null;
   }
 
   @Override
-  protected DirectBuffer out(final DirectBuffer buffer, final Pointer ptr, final long ptrAddr) {
+  protected DirectBuffer out(final DirectBuffer buffer, final Pointer ptr) {
+    final long ptrAddr = ptr.address();
     final long addr = UNSAFE.getLong(ptrAddr + STRUCT_FIELD_OFFSET_DATA);
     final long size = UNSAFE.getLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE);
     buffer.wrap(addr, (int) size);

@@ -107,9 +107,9 @@ public abstract class BufferProxy<T> {
    *
    * @param buffer the buffer to write to <code>MDB_val</code>
    * @param ptr the pointer to the <code>MDB_val</code>
-   * @param ptrAddr the address of the <code>MDB_val</code> pointer
+   * @return a transient pointer that must be kept alive, or null if none
    */
-  protected abstract void in(T buffer, Pointer ptr, long ptrAddr);
+  protected abstract Pointer in(T buffer, Pointer ptr);
 
   /**
    * Called when the <code>MDB_val</code> should be set to reflect the passed buffer.
@@ -117,9 +117,9 @@ public abstract class BufferProxy<T> {
    * @param buffer the buffer to write to <code>MDB_val</code>
    * @param size the buffer size to write to <code>MDB_val</code>
    * @param ptr the pointer to the <code>MDB_val</code>
-   * @param ptrAddr the address of the <code>MDB_val</code> pointer
+   * @return a transient pointer that must be kept alive, or null if none
    */
-  protected abstract void in(T buffer, int size, Pointer ptr, long ptrAddr);
+  protected abstract Pointer in(T buffer, int size, Pointer ptr);
 
   /**
    * Called when the <code>MDB_val</code> may have changed and the passed buffer should be modified
@@ -127,10 +127,9 @@ public abstract class BufferProxy<T> {
    *
    * @param buffer the buffer to write to <code>MDB_val</code>
    * @param ptr the pointer to the <code>MDB_val</code>
-   * @param ptrAddr the address of the <code>MDB_val</code> pointer
    * @return the buffer for <code>MDB_val</code>
    */
-  protected abstract T out(T buffer, Pointer ptr, long ptrAddr);
+  protected abstract T out(T buffer, Pointer ptr);
 
   /**
    * Create a new {@link KeyVal} to hold pointers for this buffer proxy.
