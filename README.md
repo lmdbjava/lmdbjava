@@ -67,7 +67,7 @@ updated (eg following a new official release of the upstream LMDB library).
 If you do not wish to install Zig and/or use an operating system which cannot
 easily execute the `cross-compile.sh` script, you can download the compiled
 LMDB native library for your platform from a location of your choice and set the
-`lmdbjava.native.lib` system property to the resulting file system system
+`lmdbjava.native.lib` system property to the resulting file system
 location. Possible sources of a compiled LMDB native library include operating
 system package managers, running `cross-compile.sh` on a supported system, or
 copying it from the `org/lmdbjava` directory of any recent, officially released
