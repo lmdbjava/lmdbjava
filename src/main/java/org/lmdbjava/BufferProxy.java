@@ -48,8 +48,7 @@ public abstract class BufferProxy<T> {
   protected BufferProxy() {}
 
   /**
-   * Allocate a new buffer suitable for passing to {@link #out(java.lang.Object, jnr.ffi.Pointer,
-   * long)}.
+   * Allocate a new buffer suitable for passing to {@link #out(java.lang.Object, jnr.ffi.Pointer)}.
    *
    * @return a buffer for passing to the <code>out</code> method
    */
