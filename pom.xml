@@ -185,19 +185,19 @@
             </goals>
             <configuration>
               <rules>
-                <dependencyConvergence />
+                <dependencyConvergence/>
                 <requireMavenVersion>
                   <version>[${maven.enforcer.mvn},)</version>
                 </requireMavenVersion>
                 <requireJavaVersion>
                   <version>[${maven.enforcer.java},)</version>
                 </requireJavaVersion>
-                <requireNoRepositories />
-                <requirePluginVersions />
+                <requireNoRepositories/>
+                <requirePluginVersions/>
                 <requireReleaseDeps>
                   <onlyWhenRelease>true</onlyWhenRelease>
                 </requireReleaseDeps>
-                <requireUpperBoundDeps />
+                <requireUpperBoundDeps/>
               </rules>
             </configuration>
           </execution>
@@ -352,7 +352,7 @@
       <name>Kristoffer Sjogren</name>
       <email>stoffe -at- gmail.com</email>
       <url>http://stoffe.deephacks.org/</url>
-      <organization />
+      <organization/>
       <timezone>+1</timezone>
     </developer>
     <developer>
