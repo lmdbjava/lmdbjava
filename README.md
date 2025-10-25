@@ -31,7 +31,7 @@
 * Low latency design (allocation-free; buffer pools; optional checks can be easily disabled in production etc)
 * Mature code (commenced in 2016) and used for heavy production workloads (eg > 500 TB of HFT data)
 * Actively maintained and with a "Zero Bug Policy" before every release (see [issues](https://github.com/lmdbjava/lmdbjava/issues))
-* Available from [Maven Central](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22org.lmdbjava%22%20AND%20a%3A%22lmdbjava%22) and [OSS Sonatype Snapshots](https://oss.sonatype.org/content/repositories/snapshots/org/lmdbjava/lmdbjava)
+* Available from [Maven Central](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22org.lmdbjava%22%20AND%20a%3A%22lmdbjava%22) and [Central Portal Snapshots](https://central.sonatype.com/repository/maven-snapshots/org/lmdbjava/lmdbjava)
 * [Continuous integration](https://github.com/lmdbjava/lmdbjava/actions) testing on Linux, Windows and macOS with Java 8, 11, 17 and 21
 
 ### Performance
