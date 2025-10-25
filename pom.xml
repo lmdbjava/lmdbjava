@@ -442,16 +442,17 @@
             </executions>
           </plugin>
           <plugin>
+            <!-- https://github.com/spotify/fmt-maven-plugin/issues/210 -->
             <groupId>com.spotify.fmt</groupId>
             <artifactId>fmt-maven-plugin</artifactId>
-            <version>2.25</version>
-            <executions>
-              <execution>
-                <goals>
-                  <goal>format</goal>
-                </goals>
-              </execution>
-            </executions>
+            <version>2.29</version>
+            <dependencies>
+              <dependency>
+                <groupId>com.google.googlejavaformat</groupId>
+                <artifactId>google-java-format</artifactId>
+                <version>1.28.0</version>
+              </dependency>
+            </dependencies>
           </plugin>
         </plugins>
       </build>
