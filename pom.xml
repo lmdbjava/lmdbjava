@@ -108,6 +108,7 @@
                 <exclude>LICENSE.txt</exclude>
                 <exclude>**/*.md</exclude>
                 <exclude>lmdb/**</exclude>
+                <exclude>licenses/**</exclude>
               </excludes>
             </licenseSet>
           </licenseSets>
