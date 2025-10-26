@@ -15,6 +15,17 @@
  */
 package org.lmdbjava;
 
+import jnr.ffi.Pointer;
+import jnr.ffi.byref.IntByReference;
+import jnr.ffi.byref.PointerByReference;
+import org.lmdbjava.Library.ComparatorCallback;
+import org.lmdbjava.Library.MDB_stat;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
+
 import static java.util.Objects.requireNonNull;
 import static jnr.ffi.Memory.allocateDirect;
 import static jnr.ffi.NativeType.ADDRESS;
@@ -30,16 +41,6 @@ import static org.lmdbjava.PutFlags.MDB_NODUPDATA;
 import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
 import static org.lmdbjava.PutFlags.MDB_RESERVE;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.List;
-import jnr.ffi.Pointer;
-import jnr.ffi.byref.IntByReference;
-import jnr.ffi.byref.PointerByReference;
-import org.lmdbjava.Library.ComparatorCallback;
-import org.lmdbjava.Library.MDB_stat;
 
 /**
  * LMDB Database.
@@ -81,10 +82,8 @@ public final class Dbi<T> {
     if (nativeCb) {
       this.ccb =
           (keyA, keyB) -> {
-            T compKeyA = proxy.allocate();
-            T compKeyB = proxy.allocate();
-            compKeyA = proxy.out(compKeyA, keyA, keyA.address());
-            compKeyB = proxy.out(compKeyB, keyB, keyB.address());
+            final T compKeyA  = proxy.out(proxy.allocate(), keyA);
+            final T compKeyB = proxy.out(proxy.allocate(), keyB);
             final int result = this.comparator.compare(compKeyA, compKeyB);
             proxy.deallocate(compKeyA);
             proxy.deallocate(compKeyB);
@@ -161,11 +160,12 @@ public final class Dbi<T> {
       txn.checkWritesAllowed();
     }
 
-    txn.kv().keyIn(key);
+    final Pointer transientKey = txn.kv().keyIn(key);
 
     Pointer data = null;
+    Pointer transientVal = null;
     if (val != null) {
-      txn.kv().valIn(val);
+      transientVal = txn.kv().valIn(val);
       data = txn.kv().pointerVal();
     }
     final int rc = LIB.mdb_del(txn.pointer(), ptr, txn.kv().pointerKey(), data);
@@ -173,6 +173,8 @@ public final class Dbi<T> {
       return false;
     }
     checkRc(rc);
+    ReferenceUtil.reachabilityFence0(transientKey);
+    ReferenceUtil.reachabilityFence0(transientVal);
     ReferenceUtil.reachabilityFence0(key);
     ReferenceUtil.reachabilityFence0(val);
     return true;
@@ -232,14 +234,16 @@ public final class Dbi<T> {
       env.checkNotClosed();
       txn.checkReady();
     }
-    txn.kv().keyIn(key);
+    final Pointer transientKey = txn.kv().keyIn(key);
     final int rc = LIB.mdb_get(txn.pointer(), ptr, txn.kv().pointerKey(), txn.kv().pointerVal());
     if (rc == MDB_NOTFOUND) {
       return null;
     }
     checkRc(rc);
+    final T result = txn.kv().valOut(); // marked as out in LMDB C docs
+    ReferenceUtil.reachabilityFence0(transientKey);
     ReferenceUtil.reachabilityFence0(key);
-    return txn.kv().valOut(); // marked as out in LMDB C docs
+    return result;
   }
 
   /**
@@ -366,8 +370,8 @@ public final class Dbi<T> {
       txn.checkReady();
       txn.checkWritesAllowed();
     }
-    txn.kv().keyIn(key);
-    txn.kv().valIn(val);
+    final Pointer transientKey = txn.kv().keyIn(key);
+    final Pointer transientVal = txn.kv().valIn(val);
     final int mask = mask(true, flags);
     final int rc =
         LIB.mdb_put(txn.pointer(), ptr, txn.kv().pointerKey(), txn.kv().pointerVal(), mask);
@@ -380,6 +384,8 @@ public final class Dbi<T> {
       return false;
     }
     checkRc(rc);
+    ReferenceUtil.reachabilityFence0(transientKey);
+    ReferenceUtil.reachabilityFence0(transientVal);
     ReferenceUtil.reachabilityFence0(key);
     ReferenceUtil.reachabilityFence0(val);
     return true;
@@ -408,11 +414,13 @@ public final class Dbi<T> {
       txn.checkReady();
       txn.checkWritesAllowed();
     }
-    txn.kv().keyIn(key);
-    txn.kv().valIn(size);
+    final Pointer transientKey = txn.kv().keyIn(key);
+    final Pointer transientVal = txn.kv().valIn(size);
     final int flags = mask(true, op) | MDB_RESERVE.getMask();
     checkRc(LIB.mdb_put(txn.pointer(), ptr, txn.kv().pointerKey(), txn.kv().pointerVal(), flags));
     txn.kv().valOut(); // marked as in,out in LMDB C docs
+    ReferenceUtil.reachabilityFence0(transientKey);
+    ReferenceUtil.reachabilityFence0(transientVal);
     ReferenceUtil.reachabilityFence0(key);
     return txn.val();
   }
