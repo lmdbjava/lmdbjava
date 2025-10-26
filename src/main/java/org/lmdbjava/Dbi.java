@@ -81,10 +81,8 @@ public final class Dbi<T> {
     if (nativeCb) {
       this.ccb =
           (keyA, keyB) -> {
-            final T compKeyA = proxy.allocate();
-            final T compKeyB = proxy.allocate();
-            proxy.out(compKeyA, keyA);
-            proxy.out(compKeyB, keyB);
+            final T compKeyA  = proxy.out(proxy.allocate(), keyA);
+            final T compKeyB = proxy.out(proxy.allocate(), keyB);
             final int result = this.comparator.compare(compKeyA, compKeyB);
             proxy.deallocate(compKeyA);
             proxy.deallocate(compKeyB);

@@ -36,9 +36,13 @@ final class TestUtils {
   private TestUtils() {}
 
   static byte[] ba(final int value) {
-    final MutableDirectBuffer b = new UnsafeBuffer(new byte[4]);
-    b.putInt(0, value);
-    return b.byteArray();
+    byte[] bytes = new byte[4];
+    ByteBuffer.wrap(bytes).putInt(value);
+    return bytes;
+  }
+
+  static int fromBa(final byte[] ba) {
+    return ByteBuffer.wrap(ba).getInt();
   }
 
   static ByteBuffer bb(final int value) {
