@@ -78,6 +78,10 @@ public abstract class BufferProxy<T> {
 
   /**
    * Get a suitable default {@link Comparator} to compare numeric key values as unsigned.
+   * <p>
+   * This should match the behaviour of the LMDB's mdb_cmp comparator as it may be used for
+   * {@link CursorIterable} start/stop keys comparisons, which must match LMDB's insertion order.
+   * </p>
    *
    * @return a comparator that can be used (never null)
    */

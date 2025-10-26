@@ -1,3 +1,18 @@
+/*
+ * Copyright © 2016-2025 The LmdbJava Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.lmdbjava;
 
 import java.nio.charset.StandardCharsets;
@@ -35,8 +50,11 @@ public class DbiBuilder<T> {
    * <p>
    * The name will be converted into bytes using {@link StandardCharsets#UTF_8}.
    * </p>
+   * @param name The name of the database or null for the unnamed database
+   *            (see also {@link DbiBuilder#withoutDbName()})
+   * @return The next builder stage.
    */
-  public RequireComparator<T> withDbName(final String name) {
+  public DbiBuilderStage2<T> withDbName(final String name) {
     // Null name is allowed so no null check
     final byte[] nameBytes = name == null
         ? null
@@ -46,11 +64,13 @@ public class DbiBuilder<T> {
 
   /**
    * Create the {@link Dbi} with the passed name in byte[] form.
+   * @param name The name of the database in byte form.
+   * @return The next builder stage.
    */
-  public RequireComparator<T> withDbName(final byte[] name) {
+  public DbiBuilderStage2<T> withDbName(final byte[] name) {
     // Null name is allowed so no null check
     this.name = name;
-    return new RequireComparator<>(this);
+    return new DbiBuilderStage2<>(this);
   }
 
   /**
@@ -61,8 +81,9 @@ public class DbiBuilder<T> {
    * Equivalent to passing null to
    * {@link DbiBuilder#withDbName(String)} or {@link DbiBuilder#withDbName(byte[])}.
    * </p>
+   * @return The next builder stage.
    */
-  public RequireComparator<T> withoutDbName() {
+  public DbiBuilderStage2<T> withoutDbName() {
     return withDbName((byte[]) null);
   }
 
@@ -75,14 +96,14 @@ public class DbiBuilder<T> {
    *
    * @param <T> buffer type
    */
-  public static class RequireComparator<T> {
+  public static class DbiBuilderStage2<T> {
 
     private final DbiBuilder<T> dbiBuilder;
 
     private Comparator<T> comparator;
     private boolean useNativeCallback;
 
-    private RequireComparator(final DbiBuilder<T> dbiBuilder) {
+    private DbiBuilderStage2(final DbiBuilder<T> dbiBuilder) {
       this.dbiBuilder = dbiBuilder;
     }
 
@@ -94,24 +115,24 @@ public class DbiBuilder<T> {
      * </p>
      * <p>
      * This option may be slightly less performant than when using
-     * {@link RequireComparator#withDefaultJavaComparator()} as it need to call down
+     * {@link DbiBuilderStage2#withDefaultIteratorComparator()} as it need to call down
      * to LMDB to perform the comparisons, however it guarantees that {@link CursorIterable}
      * key comparison matches LMDB key comparison.
      * </p>
      * <p>
      * If you do not intend to use {@link CursorIterable} then it doesn't matter whether
-     * you choose {@link RequireComparator#withNativeComparator()},
-     * {@link RequireComparator#withDefaultJavaComparator()} or
-     * {@link RequireComparator#withIteratorComparator(Comparator)} as these comparators will
+     * you choose {@link DbiBuilderStage2#withNativeComparator()},
+     * {@link DbiBuilderStage2#withDefaultIteratorComparator()} or
+     * {@link DbiBuilderStage2#withIteratorComparator(Comparator)} as these comparators will
      * never be used.
      * </p>
      *
-     * @return this builder instance.
+     * @return The next builder stage.
      */
-    public FinalStage<T> withNativeComparator() {
+    public DbiBuilderStage3<T> withNativeComparator() {
       this.comparator = null;
       this.useNativeCallback = false;
-      return new FinalStage<>(this);
+      return new DbiBuilderStage3<>(this);
     }
 
     /**
@@ -121,23 +142,23 @@ public class DbiBuilder<T> {
      * </p>
      * <p>
      * This option may be slightly more performant than when using
-     * {@link RequireComparator#withNativeComparator()} but it relies on the default comparator
+     * {@link DbiBuilderStage2#withNativeComparator()} but it relies on the default comparator
      * in LmdbJava behaving identically to the comparator in LMDB.
      * </p>
      * <p>
      * If you do not intend to use {@link CursorIterable} then it doesn't matter whether
-     * you choose {@link RequireComparator#withNativeComparator()},
-     * {@link RequireComparator#withDefaultJavaComparator()} or
-     * {@link RequireComparator#withIteratorComparator(Comparator)} as these comparators will
+     * you choose {@link DbiBuilderStage2#withNativeComparator()},
+     * {@link DbiBuilderStage2#withDefaultIteratorComparator()} or
+     * {@link DbiBuilderStage2#withIteratorComparator(Comparator)} as these comparators will
      * never be used.
      * </p>
      *
-     * @return this builder instance.
+     * @return The next builder stage.
      */
-    public FinalStage<T> withDefaultJavaComparator() {
+    public DbiBuilderStage3<T> withDefaultIteratorComparator() {
       this.comparator = dbiBuilder.proxy.getUnsignedComparator();
       this.useNativeCallback = false;
-      return new FinalStage<>(this);
+      return new DbiBuilderStage3<>(this);
     }
 
     /**
@@ -151,12 +172,12 @@ public class DbiBuilder<T> {
      * </p>
      *
      * @param comparator for all key comparison operations.
-     * @return this builder instance.
+     * @return The next builder stage.
      */
-    public FinalStage<T> withCallbackComparator(final Comparator<T> comparator) {
+    public DbiBuilderStage3<T> withCallbackIteratorComparator(final Comparator<T> comparator) {
       this.comparator = Objects.requireNonNull(comparator);
       this.useNativeCallback = true;
-      return new FinalStage<>(this);
+      return new DbiBuilderStage3<>(this);
     }
 
     /**
@@ -171,26 +192,23 @@ public class DbiBuilder<T> {
      * differently to the comparator in LMDB that controls the insert/iteration order.
      * </p>
      * <p>
-     * This option may be slightly less performant than when using
-     * {@link RequireComparator#withDefaultJavaComparator()} as it need to call down
-     * to LMDB to perform the comparisons, however it guarantees that {@link CursorIterable}
-     * key comparison matches LMDB key comparison.
+     * The supplied {@link Comparator} should match the behaviour of LMDB's mdb_cmp comparator.
      * </p>
      * <p>
      * If you do not intend to use {@link CursorIterable} then it doesn't matter whether
-     * you choose {@link RequireComparator#withNativeComparator()},
-     * {@link RequireComparator#withDefaultJavaComparator()} or
-     * {@link RequireComparator#withIteratorComparator(Comparator)} as these comparators will
+     * you choose {@link DbiBuilderStage2#withNativeComparator()},
+     * {@link DbiBuilderStage2#withDefaultIteratorComparator()} or
+     * {@link DbiBuilderStage2#withIteratorComparator(Comparator)} as these comparators will
      * never be used.
      * </p>
      *
      * @param comparator The comparator to use with {@link CursorIterable}.
-     * @return this builder instance.
+     * @return The next builder stage.
      */
-    public FinalStage<T> withIteratorComparator(final Comparator<T> comparator) {
+    public DbiBuilderStage3<T> withIteratorComparator(final Comparator<T> comparator) {
       this.comparator = Objects.requireNonNull(comparator);
       this.useNativeCallback = false;
-      return new FinalStage<>(this);
+      return new DbiBuilderStage3<>(this);
     }
   }
 
@@ -203,14 +221,14 @@ public class DbiBuilder<T> {
    *
    * @param <T> buffer type
    */
-  public static class FinalStage<T> {
+  public static class DbiBuilderStage3<T> {
 
-    private final RequireComparator<T> requireComparator;
+    private final DbiBuilderStage2<T> dbiBuilderStage2;
     private Set<DbiFlags> dbiFlags = null;
     private Txn<T> txn = null;
 
-    private FinalStage(RequireComparator<T> requireComparator) {
-      this.requireComparator = requireComparator;
+    private DbiBuilderStage3(DbiBuilderStage2<T> dbiBuilderStage2) {
+      this.dbiBuilderStage2 = dbiBuilderStage2;
     }
 
     private void initDbiFlags() {
@@ -225,16 +243,18 @@ public class DbiBuilder<T> {
      * </p>
      * <p>
      * Replaces any flags applies in previous calls to
-     * {@link FinalStage#withDbiFlags(Collection)}, {@link FinalStage#withDbiFlags(DbiFlags...)}
-     * or {@link FinalStage#addDbiFlag(DbiFlags)}.
+     * {@link DbiBuilderStage3#withDbiFlags(Collection)}, {@link DbiBuilderStage3#withDbiFlags(DbiFlags...)}
+     * or {@link DbiBuilderStage3#addDbiFlag(DbiFlags)}.
      * </p>
      *
      * @param dbiFlags to open the database with.
      */
-    public FinalStage<T> withDbiFlags(final Collection<DbiFlags> dbiFlags) {
+    public DbiBuilderStage3<T> withDbiFlags(final Collection<DbiFlags> dbiFlags) {
       initDbiFlags();
       if (dbiFlags != null) {
-        this.dbiFlags.addAll(dbiFlags);
+        this.dbiFlags.stream()
+                .filter(Objects::nonNull)
+                .forEach(dbiFlags::add);
       }
       return this;
     }
@@ -245,13 +265,14 @@ public class DbiBuilder<T> {
      * </p>
      * <p>
      * Replaces any flags applies in previous calls to
-     * {@link FinalStage#withDbiFlags(Collection)}, {@link FinalStage#withDbiFlags(DbiFlags...)}
-     * or {@link FinalStage#addDbiFlag(DbiFlags)}.
+     * {@link DbiBuilderStage3#withDbiFlags(Collection)}, {@link DbiBuilderStage3#withDbiFlags(DbiFlags...)}
+     * or {@link DbiBuilderStage3#addDbiFlag(DbiFlags)}.
      * </p>
      *
      * @param dbiFlags to open the database with.
+     *                 A null array is a no-op. Null items are ignored.
      */
-    public FinalStage<T> withDbiFlags(final DbiFlags... dbiFlags) {
+    public DbiBuilderStage3<T> withDbiFlags(final DbiFlags... dbiFlags) {
       initDbiFlags();
       if (dbiFlags != null) {
         Arrays.stream(dbiFlags)
@@ -262,12 +283,14 @@ public class DbiBuilder<T> {
     }
 
     /**
-     * Adds dbiFlag to those flags already added to this builder.
+     * Adds dbiFlag to those flags already added to this builder by
+     * {@link DbiBuilderStage3#withDbiFlags(DbiFlags...)}, {@link DbiBuilderStage3#withDbiFlags(Collection)}
+     * or {@link DbiBuilderStage3#addDbiFlag(DbiFlags)}.
      *
-     * @param dbiFlag to open the database with.
+     * @param dbiFlag to open the database with. A null value is a no-op.
      * @return this builder instance.
      */
-    public FinalStage<T> addDbiFlag(final DbiFlags dbiFlag) {
+    public DbiBuilderStage3<T> addDbiFlag(final DbiFlags dbiFlag) {
       initDbiFlags();
       if (dbiFlags != null) {
         this.dbiFlags.add(dbiFlag);
@@ -278,14 +301,14 @@ public class DbiBuilder<T> {
     /**
      * Use the supplied transaction to open the {@link Dbi}.
      * <p>
-     * The caller must commit the transaction after calling {@link FinalStage#open()}
+     * The caller MUST commit the transaction after calling {@link DbiBuilderStage3#open()},
      * in order to retain the <code>Dbi</code> in the <code>Env</code>.
      * </p>
      *
      * @param txn transaction to use (required; not closed)
      * @return this builder instance.
      */
-    public FinalStage<T> withTxn(final Txn<T> txn) {
+    public DbiBuilderStage3<T> withTxn(final Txn<T> txn) {
       this.txn = Objects.requireNonNull(txn);
       return this;
     }
@@ -300,7 +323,7 @@ public class DbiBuilder<T> {
      * @return A newly constructed and opened {@link Dbi}.
      */
     public Dbi<T> open() {
-      final DbiBuilder<T> dbiBuilder = requireComparator.dbiBuilder;
+      final DbiBuilder<T> dbiBuilder = dbiBuilderStage2.dbiBuilder;
       if (txn == null) {
         try (final Txn<T> txn = getTxn(dbiBuilder)) {
           return open(txn, dbiBuilder);
@@ -326,8 +349,8 @@ public class DbiBuilder<T> {
           dbiBuilder.env,
           txn,
           dbiBuilder.name,
-          requireComparator.comparator,
-          requireComparator.useNativeCallback,
+          dbiBuilderStage2.comparator,
+          dbiBuilderStage2.useNativeCallback,
           dbiBuilder.proxy,
           dbiFlagsArr);
     }
