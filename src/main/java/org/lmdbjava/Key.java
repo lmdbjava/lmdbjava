@@ -58,11 +58,11 @@ final class Key<T> implements AutoCloseable {
   }
 
   void keyIn(final T key) {
-    proxy.in(key, ptrKey, ptrKeyAddr);
+    proxy.in(key, ptrKey);
   }
 
   T keyOut() {
-    k = proxy.out(k, ptrKey, ptrKeyAddr);
+    k = proxy.out(k, ptrKey);
     return k;
   }
 

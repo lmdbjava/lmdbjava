@@ -6,12 +6,18 @@ We welcome patches and pull requests to improve LmdbJava.
 This will run:
 
 * Tests
-* Initial Test Coverage
 * Source Code Formatting
 * License Header Management
 
 `mvn clean verify` is also run by CI, but it's quicker and easier to run
 before submitting.
+
+### Version Management
+
+Update all dependency and plugin versions:
+```bash
+mvn versions:update-properties
+```
 
 ### Releasing
 
