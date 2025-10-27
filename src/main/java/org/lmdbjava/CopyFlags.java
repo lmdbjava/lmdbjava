@@ -15,10 +15,11 @@
  */
 package org.lmdbjava;
 
+import java.io.File;
 import java.util.EnumSet;
 import java.util.Set;
 
-/** Flags for use when performing a {@link Env#copy(java.io.File, org.lmdbjava.CopyFlags...)}. */
+/** Flags for use when performing a {@link Env#copy(File, CopyFlagSet)}. */
 public enum CopyFlags implements MaskedFlag, CopyFlagSet {
 
   /** Compacting copy: Omit free space from copy, and renumber all pages sequentially. */
