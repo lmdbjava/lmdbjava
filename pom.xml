@@ -20,52 +20,86 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.lmdbjava</groupId>
   <artifactId>lmdbjava</artifactId>
-  <version>0.9.3-test-SNAPSHOT</version>
+  <version>0.9.3-bugfix-SNAPSHOT</version>
   <packaging>jar</packaging>
   <name>LmdbJava</name>
   <description>Low latency Java API for the ultra-fast, embedded Symas Lightning Database (LMDB)</description>
   <properties>
+    <!-- Agrona 1.23+ requires Java 17+ -->
+    <agrona.version>1.22.0</agrona.version>
+    <buildnumber-maven-plugin.version>3.2.1</buildnumber-maven-plugin.version>
+    <byteunits.version>0.9.1</byteunits.version>
+    <central-publishing-maven-plugin.version>0.9.0</central-publishing-maven-plugin.version>
+    <fmt-maven-plugin.version>2.29</fmt-maven-plugin.version>
+    <google-java-format.version>1.28.0</google-java-format.version>
+    <guava.version>33.5.0-jre</guava.version>
+    <hamcrest.version>2.2</hamcrest.version>
+    <jacoco-maven-plugin.version>0.8.14</jacoco-maven-plugin.version>
+    <jnr-constants.version>0.10.4</jnr-constants.version>
+    <jnr-ffi.version>2.2.18</jnr-ffi.version>
+    <junit.version>4.13.2</junit.version>
+    <license-maven-plugin.version>4.6</license-maven-plugin.version>
+    <maven-clean-plugin.version>3.5.0</maven-clean-plugin.version>
+    <maven-compiler-plugin.version>3.14.1</maven-compiler-plugin.version>
+    <maven-dependency-plugin.version>3.9.0</maven-dependency-plugin.version>
+    <maven-deploy-plugin.version>3.1.4</maven-deploy-plugin.version>
+    <maven-enforcer-plugin.version>3.6.2</maven-enforcer-plugin.version>
+    <maven-gpg-plugin.version>3.2.7</maven-gpg-plugin.version>
+    <maven-install-plugin.version>3.1.4</maven-install-plugin.version>
+    <maven-jar-plugin.version>3.4.2</maven-jar-plugin.version>
+    <maven-javadoc-plugin.version>3.12.0</maven-javadoc-plugin.version>
+    <maven-release-plugin.version>3.1.1</maven-release-plugin.version>
+    <maven-resources-plugin.version>3.3.1</maven-resources-plugin.version>
+    <maven-scm-provider-jgit.version>2.2.1</maven-scm-provider-jgit.version>
+    <maven-site-plugin.version>3.21.0</maven-site-plugin.version>
+    <maven-source-plugin.version>3.3.1</maven-source-plugin.version>
+    <maven-surefire-plugin.version>3.5.4</maven-surefire-plugin.version>
     <maven.build.timestamp.format>yyyy-MM-dd'T'HH:mm:ss'Z'</maven.build.timestamp.format>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
     <maven.enforcer.java>1.8</maven.enforcer.java>
     <maven.enforcer.mvn>3.5.4</maven.enforcer.mvn>
+    <mockito.version>4.11.0</mockito.version>
+    <!-- Netty pinned at 4.1.118.Final until further testing -->
+    <netty-buffer.version>4.1.118.Final</netty-buffer.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <sortpom-maven-plugin.version>4.0.0</sortpom-maven-plugin.version>
     <trimStackTrace>false</trimStackTrace>
+    <versions-maven-plugin.version>2.19.1</versions-maven-plugin.version>
   </properties>
   <dependencies>
     <dependency>
       <groupId>com.github.jnr</groupId>
       <artifactId>jnr-constants</artifactId>
-      <version>0.10.4</version>
+      <version>${jnr-constants.version}</version>
     </dependency>
     <dependency>
       <groupId>com.github.jnr</groupId>
       <artifactId>jnr-ffi</artifactId>
-      <version>2.2.17</version>
+      <version>${jnr-ffi.version}</version>
     </dependency>
     <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
-      <version>33.4.0-jre</version>
+      <version>${guava.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>com.jakewharton.byteunits</groupId>
       <artifactId>byteunits</artifactId>
-      <version>0.9.1</version>
+      <version>${byteunits.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>io.netty</groupId>
       <artifactId>netty-buffer</artifactId>
-      <version>4.1.118.Final</version>
+      <version>${netty-buffer.version}</version>
       <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
-      <version>4.13.2</version>
+      <version>${junit.version}</version>
       <scope>test</scope>
       <exclusions>
         <exclusion>
@@ -77,20 +111,19 @@
     <dependency>
       <groupId>org.agrona</groupId>
       <artifactId>agrona</artifactId>
-      <!-- 1.23.0 requires Java 17+ -->
-      <version>1.22.0</version>
+      <version>${agrona.version}</version>
       <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.hamcrest</groupId>
       <artifactId>hamcrest</artifactId>
-      <version>2.2</version>
+      <version>${hamcrest.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-inline</artifactId>
-      <version>4.11.0</version>
+      <version>${mockito.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -99,7 +132,7 @@
       <plugin>
         <groupId>com.mycila</groupId>
         <artifactId>license-maven-plugin</artifactId>
-        <version>4.6</version>
+        <version>${license-maven-plugin.version}</version>
         <configuration>
           <licenseSets>
             <licenseSet>
@@ -108,6 +141,7 @@
                 <exclude>LICENSE.txt</exclude>
                 <exclude>**/*.md</exclude>
                 <exclude>lmdb/**</exclude>
+                <exclude>licenses/**</exclude>
               </excludes>
             </licenseSet>
           </licenseSets>
@@ -117,7 +151,7 @@
           <dependency>
             <groupId>com.mycila</groupId>
             <artifactId>license-maven-plugin-git</artifactId>
-            <version>4.6</version>
+            <version>${license-maven-plugin.version}</version>
           </dependency>
         </dependencies>
         <executions>
@@ -136,7 +170,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-clean-plugin</artifactId>
-        <version>3.4.0</version>
+        <version>${maven-clean-plugin.version}</version>
         <configuration>
           <failOnError>false</failOnError>
         </configuration>
@@ -144,12 +178,12 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.13.0</version>
+        <version>${maven-compiler-plugin.version}</version>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-dependency-plugin</artifactId>
-        <version>3.8.1</version>
+        <version>${maven-dependency-plugin.version}</version>
         <executions>
           <execution>
             <goals>
@@ -170,12 +204,12 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-deploy-plugin</artifactId>
-        <version>3.1.3</version>
+        <version>${maven-deploy-plugin.version}</version>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-enforcer-plugin</artifactId>
-        <version>3.5.0</version>
+        <version>${maven-enforcer-plugin.version}</version>
         <executions>
           <execution>
             <id>config-enforcer</id>
@@ -205,12 +239,12 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-install-plugin</artifactId>
-        <version>3.1.3</version>
+        <version>${maven-install-plugin.version}</version>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
-        <version>3.4.2</version>
+        <version>${maven-jar-plugin.version}</version>
         <configuration>
           <archive>
             <manifest>
@@ -225,7 +259,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-javadoc-plugin</artifactId>
-        <version>3.11.1</version>
+        <version>${maven-javadoc-plugin.version}</version>
         <executions>
           <execution>
             <id>attach-javadocs</id>
@@ -238,7 +272,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-release-plugin</artifactId>
-        <version>3.1.1</version>
+        <version>${maven-release-plugin.version}</version>
         <configuration>
           <completionGoals>clean</completionGoals>
           <preparationGoals>clean</preparationGoals>
@@ -249,12 +283,12 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-resources-plugin</artifactId>
-        <version>3.3.1</version>
+        <version>${maven-resources-plugin.version}</version>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-site-plugin</artifactId>
-        <version>3.21.0</version>
+        <version>${maven-site-plugin.version}</version>
         <configuration>
           <skipDeploy>true</skipDeploy>
         </configuration>
@@ -262,7 +296,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-source-plugin</artifactId>
-        <version>3.3.1</version>
+        <version>${maven-source-plugin.version}</version>
         <executions>
           <execution>
             <id>attach-sources</id>
@@ -275,12 +309,12 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>3.5.2</version>
+        <version>${maven-surefire-plugin.version}</version>
       </plugin>
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>buildnumber-maven-plugin</artifactId>
-        <version>3.2.1</version>
+        <version>${buildnumber-maven-plugin.version}</version>
         <configuration>
           <doCheck>false</doCheck>
           <doUpdate>false</doUpdate>
@@ -295,7 +329,7 @@
           <dependency>
             <groupId>org.apache.maven.scm</groupId>
             <artifactId>maven-scm-provider-jgit</artifactId>
-            <version>2.1.0</version>
+            <version>${maven-scm-provider-jgit.version}</version>
           </dependency>
         </dependencies>
         <executions>
@@ -310,12 +344,38 @@
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>versions-maven-plugin</artifactId>
-        <version>2.18.0</version>
+        <version>${versions-maven-plugin.version}</version>
+        <configuration>
+          <allowSnapshots>false</allowSnapshots>
+          <allowDowngrade>false</allowDowngrade>
+          <allowMajorUpdates>false</allowMajorUpdates>
+          <excludeProperties>agrona.version,netty-buffer.version</excludeProperties>
+          <ruleSet>
+            <ignoreVersions>
+              <ignoreVersion>
+                <type>regex</type>
+                <version>.*-alpha.*</version>
+              </ignoreVersion>
+              <ignoreVersion>
+                <type>regex</type>
+                <version>.*-beta.*</version>
+              </ignoreVersion>
+              <ignoreVersion>
+                <type>regex</type>
+                <version>.*-M.*</version>
+              </ignoreVersion>
+              <ignoreVersion>
+                <type>regex</type>
+                <version>.*-RC.*</version>
+              </ignoreVersion>
+            </ignoreVersions>
+          </ruleSet>
+        </configuration>
       </plugin>
       <plugin>
         <groupId>org.jacoco</groupId>
         <artifactId>jacoco-maven-plugin</artifactId>
-        <version>0.8.12</version>
+        <version>${jacoco-maven-plugin.version}</version>
         <executions>
           <execution>
             <id>config-jacoco-prepare-agent</id>
@@ -419,7 +479,7 @@
           <plugin>
             <groupId>com.github.ekryd.sortpom</groupId>
             <artifactId>sortpom-maven-plugin</artifactId>
-            <version>4.0.0</version>
+            <version>${sortpom-maven-plugin.version}</version>
             <configuration>
               <pomFile>${project.basedir}/pom.xml</pomFile>
               <encoding>${project.build.sourceEncoding}</encoding>
@@ -443,28 +503,29 @@
             </executions>
           </plugin>
           <plugin>
+            <!-- https://github.com/spotify/fmt-maven-plugin/issues/210 -->
             <groupId>com.spotify.fmt</groupId>
             <artifactId>fmt-maven-plugin</artifactId>
-            <version>2.25</version>
-            <executions>
-              <execution>
-                <goals>
-                  <goal>format</goal>
-                </goals>
-              </execution>
-            </executions>
+            <version>${fmt-maven-plugin.version}</version>
+            <dependencies>
+              <dependency>
+                <groupId>com.google.googlejavaformat</groupId>
+                <artifactId>google-java-format</artifactId>
+                <version>${google-java-format.version}</version>
+              </dependency>
+            </dependencies>
           </plugin>
         </plugins>
       </build>
     </profile>
     <profile>
-      <id>ossrh-deploy</id>
+      <id>central-deploy</id>
       <build>
         <plugins>
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-gpg-plugin</artifactId>
-            <version>3.2.7</version>
+            <version>${maven-gpg-plugin.version}</version>
             <executions>
               <execution>
                 <id>sign-artifacts</id>
@@ -482,14 +543,13 @@
             </executions>
           </plugin>
           <plugin>
-            <groupId>org.sonatype.plugins</groupId>
-            <artifactId>nexus-staging-maven-plugin</artifactId>
-            <version>1.7.0</version>
+            <groupId>org.sonatype.central</groupId>
+            <artifactId>central-publishing-maven-plugin</artifactId>
+            <version>${central-publishing-maven-plugin.version}</version>
             <extensions>true</extensions>
             <configuration>
-              <serverId>ossrh</serverId>
-              <nexusUrl>https://oss.sonatype.org/</nexusUrl>
-              <autoReleaseAfterClose>true</autoReleaseAfterClose>
+              <publishingServerId>central</publishingServerId>
+              <autoPublish>true</autoPublish>
             </configuration>
           </plugin>
         </plugins>

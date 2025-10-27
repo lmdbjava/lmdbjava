@@ -36,9 +36,7 @@ final class KeyVal<T> implements AutoCloseable {
   private final BufferProxy<T> proxy;
   private final Pointer ptrArray;
   private final Pointer ptrKey;
-  private final long ptrKeyAddr;
   private final Pointer ptrVal;
-  private final long ptrValAddr;
   private T v;
 
   KeyVal(final BufferProxy<T> proxy) {
@@ -47,10 +45,8 @@ final class KeyVal<T> implements AutoCloseable {
     this.k = proxy.allocate();
     this.v = proxy.allocate();
     ptrKey = MEM_MGR.allocateTemporary(MDB_VAL_STRUCT_SIZE, false);
-    ptrKeyAddr = ptrKey.address();
     ptrArray = MEM_MGR.allocateTemporary(MDB_VAL_STRUCT_SIZE * 2, false);
     ptrVal = ptrArray.slice(0, MDB_VAL_STRUCT_SIZE);
-    ptrValAddr = ptrVal.address();
   }
 
   @Override
@@ -67,12 +63,12 @@ final class KeyVal<T> implements AutoCloseable {
     return k;
   }
 
-  void keyIn(final T key) {
-    proxy.in(key, ptrKey, ptrKeyAddr);
+  Pointer keyIn(final T key) {
+    return proxy.in(key, ptrKey);
   }
 
   T keyOut() {
-    k = proxy.out(k, ptrKey, ptrKeyAddr);
+    k = proxy.out(k, ptrKey);
     return k;
   }
 
@@ -88,12 +84,12 @@ final class KeyVal<T> implements AutoCloseable {
     return v;
   }
 
-  void valIn(final T val) {
-    proxy.in(val, ptrVal, ptrValAddr);
+  Pointer valIn(final T val) {
+    return proxy.in(val, ptrVal);
   }
 
-  void valIn(final int size) {
-    proxy.in(v, size, ptrVal, ptrValAddr);
+  Pointer valIn(final int size) {
+    return proxy.in(v, size, ptrVal);
   }
 
   /**
@@ -116,7 +112,7 @@ final class KeyVal<T> implements AutoCloseable {
   Pointer valInMulti(final T val, final int elements) {
     final long ptrVal2SizeOff = MDB_VAL_STRUCT_SIZE + STRUCT_FIELD_OFFSET_SIZE;
     ptrArray.putLong(ptrVal2SizeOff, elements); // ptrVal2.size
-    proxy.in(val, ptrVal, ptrValAddr); // ptrVal1.data
+    proxy.in(val, ptrVal); // ptrVal1.data
     final long totalBufferSize = ptrVal.getLong(STRUCT_FIELD_OFFSET_SIZE);
     final long elemSize = totalBufferSize / elements;
     ptrVal.putLong(STRUCT_FIELD_OFFSET_SIZE, elemSize); // ptrVal1.size
@@ -125,7 +121,7 @@ final class KeyVal<T> implements AutoCloseable {
   }
 
   T valOut() {
-    v = proxy.out(v, ptrVal, ptrValAddr);
+    v = proxy.out(v, ptrVal);
     return v;
   }
 }

@@ -35,8 +35,8 @@ Forked from [lmdbjava/lmdbjava](https://github.com/lmdbjava/lmdbjava) for easy v
 * Low latency design (allocation-free; buffer pools; optional checks can be easily disabled in production etc)
 * Mature code (commenced in 2016) and used for heavy production workloads (eg > 500 TB of HFT data)
 * Actively maintained and with a "Zero Bug Policy" before every release (see [issues](https://github.com/lmdbjava/lmdbjava/issues))
-* Available from [Maven Central](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22org.lmdbjava%22%20AND%20a%3A%22lmdbjava%22) and [OSS Sonatype Snapshots](https://oss.sonatype.org/content/repositories/snapshots/org/lmdbjava/lmdbjava)
-* [Continuous integration](https://github.com/lmdbjava/lmdbjava/actions) testing on Linux, Windows and macOS with Java 8, 11, 17 and 21
+* Available from [Maven Central](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22org.lmdbjava%22%20AND%20a%3A%22lmdbjava%22) and [Central Portal Snapshots](https://central.sonatype.com/repository/maven-snapshots/org/lmdbjava/lmdbjava)
+* [Continuous integration](https://github.com/lmdbjava/lmdbjava/actions) testing on Linux, Windows and macOS with Java 8, 11, 17, 21 and 25
 
 ### Performance
 
@@ -71,7 +71,7 @@ updated (eg following a new official release of the upstream LMDB library).
 If you do not wish to install Zig and/or use an operating system which cannot
 easily execute the `cross-compile.sh` script, you can download the compiled
 LMDB native library for your platform from a location of your choice and set the
-`lmdbjava.native.lib` system property to the resulting file system system
+`lmdbjava.native.lib` system property to the resulting file system
 location. Possible sources of a compiled LMDB native library include operating
 system package managers, running `cross-compile.sh` on a supported system, or
 copying it from the `org/lmdbjava` directory of any recent, officially released

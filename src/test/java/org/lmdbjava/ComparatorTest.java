@@ -67,11 +67,12 @@ public final class ComparatorTest {
     final ComparatorRunner string = new StringRunner();
     final ComparatorRunner db = new DirectBufferRunner();
     final ComparatorRunner ba = new ByteArrayRunner();
+    final ComparatorRunner baUnsigned = new UnsignedByteArrayRunner();
     final ComparatorRunner bb = new ByteBufferRunner();
     final ComparatorRunner netty = new NettyRunner();
     final ComparatorRunner gub = new GuavaUnsignedBytes();
     final ComparatorRunner gsb = new GuavaSignedBytes();
-    return new Object[] {string, db, ba, bb, netty, gub, gsb};
+    return new Object[] {string, db, ba, baUnsigned, bb, netty, gub, gsb};
   }
 
   private static byte[] buffer(final int... bytes) {
@@ -136,6 +137,16 @@ public final class ComparatorTest {
     @Override
     public int compare(final byte[] o1, final byte[] o2) {
       final Comparator<byte[]> c = PROXY_BA.getComparator();
+      return c.compare(o1, o2);
+    }
+  }
+
+  /** Tests {@link ByteArrayProxy} (unsigned). */
+  private static final class UnsignedByteArrayRunner implements ComparatorRunner {
+
+    @Override
+    public int compare(final byte[] o1, final byte[] o2) {
+      final Comparator<byte[]> c = PROXY_BA.getUnsignedComparator();
       return c.compare(o1, o2);
     }
   }
