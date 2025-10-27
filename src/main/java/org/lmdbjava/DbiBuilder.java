@@ -19,9 +19,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.EnumSet;
 import java.util.Objects;
-import java.util.Set;
 
 /**
  * Staged builder for building a {@link Dbi}
@@ -224,17 +222,11 @@ public class DbiBuilder<T> {
   public static class DbiBuilderStage3<T> {
 
     private final DbiBuilderStage2<T> dbiBuilderStage2;
-    private Set<DbiFlags> dbiFlags = null;
+    private final FlagSet.Builder<DbiFlags, DbiFlagSet> flagSetBuilder = DbiFlagSet.builder();
     private Txn<T> txn = null;
 
     private DbiBuilderStage3(DbiBuilderStage2<T> dbiBuilderStage2) {
       this.dbiBuilderStage2 = dbiBuilderStage2;
-    }
-
-    private void initDbiFlags() {
-      if (dbiFlags == null) {
-        dbiFlags = EnumSet.noneOf(DbiFlags.class);
-      }
     }
 
     /**
@@ -244,15 +236,14 @@ public class DbiBuilder<T> {
      * <p>
      * Replaces any flags applies in previous calls to
      * {@link DbiBuilderStage3#withDbiFlags(Collection)}, {@link DbiBuilderStage3#withDbiFlags(DbiFlags...)}
-     * or {@link DbiBuilderStage3#addDbiFlag(DbiFlags)}.
+     * or {@link DbiBuilderStage3#setDbiFlag(DbiFlags)}.
      * </p>
      *
      * @param dbiFlags to open the database with.
      */
     public DbiBuilderStage3<T> withDbiFlags(final Collection<DbiFlags> dbiFlags) {
-      initDbiFlags();
       if (dbiFlags != null) {
-        this.dbiFlags.stream()
+        dbiFlags.stream()
                 .filter(Objects::nonNull)
                 .forEach(dbiFlags::add);
       }
@@ -265,36 +256,35 @@ public class DbiBuilder<T> {
      * </p>
      * <p>
      * Replaces any flags applies in previous calls to
-     * {@link DbiBuilderStage3#withDbiFlags(Collection)}, {@link DbiBuilderStage3#withDbiFlags(DbiFlags...)}
-     * or {@link DbiBuilderStage3#addDbiFlag(DbiFlags)}.
+     * {@link DbiBuilderStage3#withDbiFlags(Collection)},
+     * {@link DbiBuilderStage3#withDbiFlags(DbiFlags...)}
+     * or {@link DbiBuilderStage3#setDbiFlag(DbiFlags)}.
      * </p>
      *
      * @param dbiFlags to open the database with.
      *                 A null array is a no-op. Null items are ignored.
      */
     public DbiBuilderStage3<T> withDbiFlags(final DbiFlags... dbiFlags) {
-      initDbiFlags();
+      flagSetBuilder.clear();
       if (dbiFlags != null) {
         Arrays.stream(dbiFlags)
             .filter(Objects::nonNull)
-            .forEach(this.dbiFlags::add);
+            .forEach(this.flagSetBuilder::setFlag);
       }
       return this;
     }
 
     /**
      * Adds dbiFlag to those flags already added to this builder by
-     * {@link DbiBuilderStage3#withDbiFlags(DbiFlags...)}, {@link DbiBuilderStage3#withDbiFlags(Collection)}
-     * or {@link DbiBuilderStage3#addDbiFlag(DbiFlags)}.
+     * {@link DbiBuilderStage3#withDbiFlags(DbiFlags...)},
+     * {@link DbiBuilderStage3#withDbiFlags(Collection)}
+     * or {@link DbiBuilderStage3#setDbiFlag(DbiFlags)}.
      *
      * @param dbiFlag to open the database with. A null value is a no-op.
      * @return this builder instance.
      */
-    public DbiBuilderStage3<T> addDbiFlag(final DbiFlags dbiFlag) {
-      initDbiFlags();
-      if (dbiFlags != null) {
-        this.dbiFlags.add(dbiFlag);
-      }
+    public DbiBuilderStage3<T> setDbiFlag(final DbiFlags dbiFlag) {
+      this.flagSetBuilder.setFlag(dbiFlag);
       return this;
     }
 
@@ -341,9 +331,7 @@ public class DbiBuilder<T> {
 
     private Dbi<T> open(final Txn<T> txn,
                         final DbiBuilder<T> dbiBuilder) {
-      final DbiFlags[] dbiFlagsArr = dbiFlags != null && !dbiFlags.isEmpty()
-          ? this.dbiFlags.toArray(new DbiFlags[0])
-          : null;
+      final DbiFlagSet dbiFlagSet = flagSetBuilder.build();
 
       return new Dbi<>(
           dbiBuilder.env,
@@ -352,7 +340,7 @@ public class DbiBuilder<T> {
           dbiBuilderStage2.comparator,
           dbiBuilderStage2.useNativeCallback,
           dbiBuilder.proxy,
-          dbiFlagsArr);
+          dbiFlagSet);
     }
   }
 }

@@ -31,6 +31,7 @@ import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
 import static org.lmdbjava.PutFlags.MDB_RESERVE;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -55,6 +56,7 @@ public final class Dbi<T> {
   private final byte[] name;
   private final Pointer ptr;
   private final BufferProxy<T> proxy;
+  private final DbiFlagSet dbiFlagSet;
 
   Dbi(
       final Env<T> env,
@@ -63,7 +65,7 @@ public final class Dbi<T> {
       final Comparator<T> comparator,
       final boolean nativeCb,
       final BufferProxy<T> proxy,
-      final DbiFlags... flags) {
+      final DbiFlagSet dbiFlagSet) {
     if (SHOULD_CHECK) {
       requireNonNull(txn);
       txn.checkReady();
@@ -72,9 +74,9 @@ public final class Dbi<T> {
     this.name = name == null ? null : Arrays.copyOf(name, name.length);
     this.proxy = proxy;
     this.comparator = comparator;
-    final int flagsMask = mask(flags);
+    this.dbiFlagSet = dbiFlagSet;
     final Pointer dbiPtr = allocateDirect(RUNTIME, ADDRESS);
-    checkRc(LIB.mdb_dbi_open(txn.pointer(), name, flagsMask, dbiPtr));
+    checkRc(LIB.mdb_dbi_open(txn.pointer(), name, dbiFlagSet.getMask(), dbiPtr));
     ptr = dbiPtr.getPointer(0);
     if (nativeCb) {
       requireNonNull(comparator, "comparator cannot be null if nativeCb is set");
@@ -291,6 +293,7 @@ public final class Dbi<T> {
    * @return the list of flags this Dbi was created with
    */
   public List<DbiFlags> listFlags(final Txn<T> txn) {
+    // TODO we could just return what is in dbiFlagSet, rather than hitting LMDB.
     if (SHOULD_CHECK) {
       env.checkNotClosed();
     }
@@ -455,6 +458,26 @@ public final class Dbi<T> {
       return;
     }
     cleaned = true;
+  }
+
+  private String getNameAsString() {
+    if (name == null) {
+      return "";
+    } else {
+      try {
+        return new String(name, StandardCharsets.UTF_8);
+      } catch (Exception e) {
+        return "?";
+      }
+    }
+  }
+
+  @Override
+  public String toString() {
+    return "Dbi{" +
+            "name=" + getNameAsString() +
+            ", dbiFlagSet=" + dbiFlagSet +
+            '}';
   }
 
   /** The specified DBI was changed unexpectedly. */

@@ -17,8 +17,12 @@ package org.lmdbjava;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.Collection;
+
 /** Indicates an enum that can provide integers for each of its values. */
 public interface MaskedFlag {
+
+  int EMPTY_MASK = 0;
 
   /**
    * Obtains the integer value for this enum which can be included in a mask.
@@ -26,6 +30,11 @@ public interface MaskedFlag {
    * @return the integer value for combination into a mask
    */
   int getMask();
+
+  /**
+   * @return The name of the flag.
+   */
+  String name();
 
   /**
    * Fetch the integer mask for all presented flags.
@@ -37,17 +46,32 @@ public interface MaskedFlag {
   @SafeVarargs
   static <M extends MaskedFlag> int mask(final M... flags) {
     if (flags == null || flags.length == 0) {
-      return 0;
-    }
-
-    int result = 0;
-    for (MaskedFlag flag : flags) {
-      if (flag == null) {
-        continue;
+      return EMPTY_MASK;
+    } else {
+      int result = EMPTY_MASK;
+      for (MaskedFlag flag : flags) {
+        if (flag == null) {
+          continue;
+        }
+        result |= flag.getMask();
       }
-      result |= flag.getMask();
+      return result;
     }
-    return result;
+  }
+
+  static <M extends MaskedFlag> int mask(final Collection<M> flags) {
+    if (flags == null || flags.isEmpty()) {
+      return EMPTY_MASK;
+    } else {
+      int result = EMPTY_MASK;
+      for (MaskedFlag flag : flags) {
+        if (flag == null) {
+          continue;
+        }
+        result |= flag.getMask();
+      }
+      return result;
+    }
   }
 
   /**

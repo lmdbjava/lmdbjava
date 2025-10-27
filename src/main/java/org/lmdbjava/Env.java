@@ -405,7 +405,7 @@ public final class Env<T> implements AutoCloseable {
       final Comparator<T> comparator,
       final boolean nativeCb,
       final DbiFlags... flags) {
-    return new Dbi<>(this, txn, name, comparator, nativeCb, proxy, flags);
+    return new Dbi<>(this, txn, name, comparator, nativeCb, proxy, DbiFlagSet.of(flags));
   }
 
   /**
