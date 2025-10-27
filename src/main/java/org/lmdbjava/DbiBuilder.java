@@ -222,7 +222,7 @@ public class DbiBuilder<T> {
   public static class DbiBuilderStage3<T> {
 
     private final DbiBuilderStage2<T> dbiBuilderStage2;
-    private final FlagSet.Builder<DbiFlags, DbiFlagSet> flagSetBuilder = DbiFlagSet.builder();
+    private final AbstractFlagSet.Builder<DbiFlags, DbiFlagSet> flagSetBuilder = DbiFlagSet.builder();
     private Txn<T> txn = null;
 
     private DbiBuilderStage3(DbiBuilderStage2<T> dbiBuilderStage2) {

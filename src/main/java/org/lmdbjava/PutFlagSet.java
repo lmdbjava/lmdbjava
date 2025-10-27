@@ -3,7 +3,7 @@ package org.lmdbjava;
 import java.util.EnumSet;
 import java.util.Objects;
 
-public class PutFlagSet extends FlagSet<PutFlags> {
+public class PutFlagSet extends AbstractFlagSet<PutFlags> {
 
     public static final PutFlagSet EMPTY = new PutFlagSet(EnumSet.noneOf(PutFlags.class));
 

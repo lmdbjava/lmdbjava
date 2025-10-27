@@ -15,12 +15,12 @@ import java.util.stream.Collectors;
  *
  * @param <T>
  */
-public abstract class FlagSet<T extends Enum<T> & MaskedFlag> implements Iterable<T> {
+public abstract class AbstractFlagSet<T extends Enum<T> & MaskedFlag> implements Iterable<T> {
 
   private final Set<T> flags;
   private final int mask;
 
-  protected FlagSet(final EnumSet<T> flags) {
+  protected AbstractFlagSet(final EnumSet<T> flags) {
     Objects.requireNonNull(flags);
     this.mask = MaskedFlag.mask(flags);
     this.flags = Collections.unmodifiableSet(Objects.requireNonNull(flags));
@@ -74,7 +74,7 @@ public abstract class FlagSet<T extends Enum<T> & MaskedFlag> implements Iterabl
   public boolean equals(Object object) {
     if (this == object) return true;
     if (object == null || getClass() != object.getClass()) return false;
-    FlagSet<?> flagSet = (FlagSet<?>) object;
+    AbstractFlagSet<?> flagSet = (AbstractFlagSet<?>) object;
     return mask == flagSet.mask && Objects.equals(flags, flagSet.flags);
   }
 
@@ -100,12 +100,12 @@ public abstract class FlagSet<T extends Enum<T> & MaskedFlag> implements Iterabl
 
 
   /**
-   * A builder for creating a {@link FlagSet}.
+   * A builder for creating a {@link AbstractFlagSet}.
    *
-   * @param <E> The type of flag to be held in the {@link FlagSet}
-   * @param <S> The type of the {@link FlagSet} implementation.
+   * @param <E> The type of flag to be held in the {@link AbstractFlagSet}
+   * @param <S> The type of the {@link AbstractFlagSet} implementation.
    */
-  public static class Builder<E extends Enum<E> & MaskedFlag, S extends FlagSet<E>> {
+  public static class Builder<E extends Enum<E> & MaskedFlag, S extends AbstractFlagSet<E>> {
 
     final Class<E> type;
     final EnumSet<E> enumSet;

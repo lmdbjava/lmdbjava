@@ -3,7 +3,7 @@ package org.lmdbjava;
 import java.util.EnumSet;
 import java.util.Objects;
 
-public class DbiFlagSet extends FlagSet<DbiFlags> {
+public class DbiFlagSet extends AbstractFlagSet<DbiFlags> {
 
     public static final DbiFlagSet EMPTY = new DbiFlagSet(EnumSet.noneOf(DbiFlags.class));
 
