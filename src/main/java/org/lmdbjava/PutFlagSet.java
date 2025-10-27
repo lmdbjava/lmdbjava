@@ -1,32 +1,57 @@
 package org.lmdbjava;
 
+import java.util.Collection;
 import java.util.EnumSet;
 import java.util.Objects;
 
-public class PutFlagSet extends AbstractFlagSet<PutFlags> {
+public interface PutFlagSet extends FlagSet<PutFlags> {
 
-    public static final PutFlagSet EMPTY = new PutFlagSet(EnumSet.noneOf(PutFlags.class));
-
-    private PutFlagSet(final EnumSet<PutFlags> flags) {
-        super(flags);
+    static PutFlagSet empty() {
+        return PutFlagSetImpl.EMPTY;
     }
 
-    public static PutFlagSet empty() {
-        return EMPTY;
-    }
-
-    public static PutFlagSet of(final PutFlags putFlag) {
+    static PutFlagSet of(final PutFlags putFlag) {
         Objects.requireNonNull(putFlag);
-        return new org.lmdbjava.PutFlagSet(EnumSet.of(putFlag));
+        return putFlag;
     }
 
-    public static PutFlagSet of(final PutFlags... putFlags) {
+    static PutFlagSet of(final PutFlags... putFlags) {
         return builder()
                 .withFlags(putFlags)
                 .build();
     }
 
-    public static Builder<PutFlags, PutFlagSet> builder() {
-        return new Builder<>(PutFlags.class, PutFlagSet::new);
+    static PutFlagSet of(final Collection<PutFlags> putFlags) {
+        return builder()
+            .withFlags(putFlags)
+            .build();
+    }
+
+    static AbstractFlagSet.Builder<PutFlags, PutFlagSet> builder() {
+        return new AbstractFlagSet.Builder<>(
+            PutFlags.class,
+            PutFlagSetImpl::new,
+            putFlag -> putFlag,
+            EmptyPutFlagSet::new);
+    }
+
+
+    // --------------------------------------------------------------------------------
+
+
+    class PutFlagSetImpl extends AbstractFlagSet<PutFlags> implements PutFlagSet {
+
+        public static final PutFlagSet EMPTY = new EmptyPutFlagSet();
+
+        private PutFlagSetImpl(final EnumSet<PutFlags> flags) {
+            super(flags);
+        }
+    }
+
+
+    // --------------------------------------------------------------------------------
+
+
+    class EmptyPutFlagSet extends AbstractFlagSet.AbstractEmptyFlagSet<PutFlags> implements PutFlagSet {
     }
 }

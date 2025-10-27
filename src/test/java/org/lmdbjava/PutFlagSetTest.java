@@ -1,6 +1,7 @@
 package org.lmdbjava;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.util.Arrays;
@@ -24,6 +25,15 @@ public class PutFlagSetTest {
         assertThat(
                 putFlagSet.isSet(PutFlags.MDB_MULTIPLE),
                 is(false));
+        final PutFlagSet putFlagSet2 = PutFlagSet.builder()
+            .build();
+        assertThat(putFlagSet, is(putFlagSet2));
+        assertThat(putFlagSet, not(PutFlagSet.of(PutFlags.MDB_APPEND)));
+        assertThat(putFlagSet, not(PutFlagSet.of(PutFlags.MDB_APPEND, PutFlags.MDB_RESERVE)));
+        assertThat(putFlagSet, not(PutFlagSet.builder()
+            .setFlag(PutFlags.MDB_CURRENT)
+            .setFlag(PutFlags.MDB_MULTIPLE)
+            .build()));
     }
 
     @Test
@@ -44,6 +54,11 @@ public class PutFlagSetTest {
                     putFlagSet.isSet(flag),
                     is(true));
         }
+
+        final PutFlagSet putFlagSet2 = PutFlagSet.builder()
+            .setFlag(putFlag)
+            .build();
+        assertThat(putFlagSet, is(putFlagSet2));
     }
 
     @Test

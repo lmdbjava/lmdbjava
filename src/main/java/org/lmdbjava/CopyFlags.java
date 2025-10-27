@@ -15,8 +15,11 @@
  */
 package org.lmdbjava;
 
+import java.util.EnumSet;
+import java.util.Set;
+
 /** Flags for use when performing a {@link Env#copy(java.io.File, org.lmdbjava.CopyFlags...)}. */
-public enum CopyFlags implements MaskedFlag {
+public enum CopyFlags implements MaskedFlag, CopyFlagSet {
 
   /** Compacting copy: Omit free space from copy, and renumber all pages sequentially. */
   MDB_CP_COMPACT(0x01);
@@ -30,5 +33,30 @@ public enum CopyFlags implements MaskedFlag {
   @Override
   public int getMask() {
     return mask;
+  }
+
+  @Override
+  public Set<CopyFlags> getFlags() {
+    return EnumSet.of(this);
+  }
+
+  @Override
+  public boolean isSet(final CopyFlags flag) {
+    return flag != null && mask == flag.getMask();
+  }
+
+  @Override
+  public int size() {
+    return 1;
+  }
+
+  @Override
+  public boolean isEmpty() {
+    return false;
+  }
+
+  @Override
+  public String toString() {
+    return FlagSet.asString(this);
   }
 }

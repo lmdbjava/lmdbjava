@@ -20,8 +20,6 @@ import static jnr.ffi.NativeType.ADDRESS;
 import static org.lmdbjava.Env.SHOULD_CHECK;
 import static org.lmdbjava.Library.LIB;
 import static org.lmdbjava.Library.RUNTIME;
-import static org.lmdbjava.MaskedFlag.isSet;
-import static org.lmdbjava.MaskedFlag.mask;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
 import static org.lmdbjava.Txn.State.DONE;
 import static org.lmdbjava.Txn.State.READY;
@@ -46,11 +44,13 @@ public final class Txn<T> implements AutoCloseable {
   private final Env<T> env;
   private State state;
 
-  Txn(final Env<T> env, final Txn<T> parent, final BufferProxy<T> proxy, final TxnFlags... flags) {
+  Txn(final Env<T> env, final Txn<T> parent, final BufferProxy<T> proxy, final TxnFlagSet flags) {
+    final TxnFlagSet flagSet = flags != null
+        ? flags
+        : TxnFlagSet.EMPTY;
     this.proxy = proxy;
     this.keyVal = proxy.keyVal();
-    final int flagsMask = mask(flags);
-    this.readOnly = isSet(flagsMask, MDB_RDONLY_TXN);
+    this.readOnly = flagSet.isSet(MDB_RDONLY_TXN);
     if (env.isReadOnly() && !this.readOnly) {
       throw new EnvIsReadOnly();
     }
@@ -61,7 +61,7 @@ public final class Txn<T> implements AutoCloseable {
     }
     final Pointer txnPtr = allocateDirect(RUNTIME, ADDRESS);
     final Pointer txnParentPtr = parent == null ? null : parent.ptr;
-    checkRc(LIB.mdb_txn_begin(env.pointer(), txnParentPtr, flagsMask, txnPtr));
+    checkRc(LIB.mdb_txn_begin(env.pointer(), txnParentPtr, flagSet.getMask(), txnPtr));
     ptr = txnPtr.getPointer(0);
 
     state = READY;

@@ -26,7 +26,6 @@ import static org.lmdbjava.Library.RUNTIME;
 import static org.lmdbjava.MaskedFlag.isSet;
 import static org.lmdbjava.MaskedFlag.mask;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
-import static org.lmdbjava.TxnFlags.MDB_RDONLY_TXN;
 
 import java.io.File;
 import java.nio.ByteBuffer;
@@ -140,13 +139,33 @@ public final class Env<T> implements AutoCloseable {
    * "Caveats" in the LMDB native documentation.
    *
    * @param path writable destination path as described above
+   */
+  public void copy(final File path) {
+    copy(path, CopyFlagSet.EMPTY);
+  }
+
+  /**
+   * Copies an LMDB environment to the specified destination path.
+   *
+   * <p>This function may be used to make a backup of an existing environment. No lockfile is
+   * created, since it gets recreated at need.
+   *
+   * <p>If this environment was created using {@link EnvFlags#MDB_NOSUBDIR}, the destination path
+   * must be a directory that exists but contains no files. If {@link EnvFlags#MDB_NOSUBDIR} was
+   * used, the destination path must not exist, but it must be possible to create a file at the
+   * provided path.
+   *
+   * <p>Note: This call can trigger significant file size growth if run in parallel with write
+   * transactions, because it employs a read-only transaction. See long-lived transactions under
+   * "Caveats" in the LMDB native documentation.
+   *
+   * @param path writable destination path as described above
    * @param flags special options for this copy
    */
-  public void copy(final File path, final CopyFlags... flags) {
+  public void copy(final File path, final CopyFlagSet flags) {
     requireNonNull(path);
     validatePath(path);
-    final int flagsMask = mask(flags);
-    checkRc(LIB.mdb_env_copy2(ptr, path.getAbsolutePath(), flagsMask));
+    checkRc(LIB.mdb_env_copy2(ptr, path.getAbsolutePath(), flags.getMask()));
   }
 
   /**
@@ -443,16 +462,54 @@ public final class Env<T> implements AutoCloseable {
   }
 
   /**
+   * @deprecated Instead use {@link Env#txn(Txn, TxnFlagSet)}
+   *
    * Obtain a transaction with the requested parent and flags.
    *
    * @param parent parent transaction (may be null if no parent)
    * @param flags applicable flags (eg for a reusable, read-only transaction)
    * @return a transaction (never null)
    */
+  @Deprecated
   public Txn<T> txn(final Txn<T> parent, final TxnFlags... flags) {
-    if (closed) {
-      throw new AlreadyClosedException();
-    }
+    checkNotClosed();
+    return new Txn<>(this, parent, proxy, TxnFlagSet.of(flags));
+  }
+
+  /**
+   * Obtain a transaction with the requested parent and flags.
+   *
+   * @param parent parent transaction (may be null if no parent)
+   * @return a transaction (never null)
+   */
+  public Txn<T> txn(final Txn<T> parent) {
+    checkNotClosed();
+    return new Txn<>(this, parent, proxy, TxnFlagSet.EMPTY);
+  }
+
+  /**
+   * Obtain a transaction with the requested parent and flags.
+   *
+   * @param parent parent transaction (may be null if no parent)
+   * @param flag applicable flag (eg for a reusable, read-only transaction)
+   * @return a transaction (never null)
+   */
+  public Txn<T> txn(final Txn<T> parent, final TxnFlags flag) {
+    checkNotClosed();
+    return new Txn<>(this, parent, proxy, flag);
+  }
+
+  /**
+   * Obtain a transaction with the requested parent and flags.
+   *
+   * @param parent parent transaction (may be null if no parent)
+   * @param flags applicable flags (e.g. for a reusable, read-only transaction).
+   *              If the set of flags is used frequently it is recommended to hold
+   *              a static instance of the {@link TxnFlagSet} for re-use.
+   * @return a transaction (never null)
+   */
+  public Txn<T> txn(final Txn<T> parent, final TxnFlagSet flags) {
+    checkNotClosed();
     return new Txn<>(this, parent, proxy, flags);
   }
 
@@ -462,7 +519,8 @@ public final class Env<T> implements AutoCloseable {
    * @return a read-only transaction
    */
   public Txn<T> txnRead() {
-    return txn(null, MDB_RDONLY_TXN);
+    checkNotClosed();
+    return new Txn<>(this, null, proxy, TxnFlags.MDB_RDONLY_TXN);
   }
 
   /**
@@ -471,7 +529,8 @@ public final class Env<T> implements AutoCloseable {
    * @return a read-write transaction
    */
   public Txn<T> txnWrite() {
-    return txn(null);
+    checkNotClosed();
+    return new Txn<>(this, null, proxy, TxnFlagSet.EMPTY);
   }
 
   Pointer pointer() {

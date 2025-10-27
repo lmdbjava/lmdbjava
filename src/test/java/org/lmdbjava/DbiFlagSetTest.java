@@ -1,6 +1,7 @@
 package org.lmdbjava;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.util.Arrays;
@@ -11,91 +12,105 @@ public class DbiFlagSetTest {
 
     @Test
     public void testEmpty() {
-        final DbiFlagSet putFlagSet = DbiFlagSet.empty();
+        final DbiFlagSet dbiFlagSet = DbiFlagSet.empty();
         assertThat(
-                putFlagSet.getMask(),
+                dbiFlagSet.getMask(),
                 is(0));
         assertThat(
-                putFlagSet.size(),
+                dbiFlagSet.size(),
                 is(0));
         assertThat(
-                putFlagSet.isEmpty(),
+                dbiFlagSet.isEmpty(),
                 is(true));
         assertThat(
-                putFlagSet.isSet(DbiFlags.MDB_REVERSEDUP),
+                dbiFlagSet.isSet(DbiFlags.MDB_REVERSEDUP),
                 is(false));
+        final DbiFlagSet dbiFlagSet2 = DbiFlagSet.builder()
+            .build();
+        assertThat(dbiFlagSet, is(dbiFlagSet2));
+        assertThat(dbiFlagSet, not(DbiFlagSet.of(DbiFlags.MDB_CREATE)));
+        assertThat(dbiFlagSet, not(DbiFlagSet.of(DbiFlags.MDB_CREATE, DbiFlags.MDB_DUPSORT)));
+        assertThat(dbiFlagSet, not(DbiFlagSet.builder()
+            .setFlag(DbiFlags.MDB_CREATE)
+            .setFlag(DbiFlags.MDB_DUPFIXED)
+            .build()));
     }
 
     @Test
     public void testOf() {
-        final DbiFlags putFlag = DbiFlags.MDB_CREATE;
-        final DbiFlagSet putFlagSet = DbiFlagSet.of(putFlag);
+        final DbiFlags dbiFlag = DbiFlags.MDB_CREATE;
+        final DbiFlagSet dbiFlagSet = DbiFlagSet.of(dbiFlag);
         assertThat(
-                putFlagSet.getMask(),
-                is(MaskedFlag.mask(putFlag)));
+                dbiFlagSet.getMask(),
+                is(MaskedFlag.mask(dbiFlag)));
         assertThat(
-                putFlagSet.size(),
+                dbiFlagSet.size(),
                 is(1));
         assertThat(
-                putFlagSet.isSet(DbiFlags.MDB_REVERSEDUP),
+                dbiFlagSet.isSet(DbiFlags.MDB_REVERSEDUP),
                 is(false));
-        for (DbiFlags flag : putFlagSet) {
+        for (DbiFlags flag : dbiFlagSet) {
             assertThat(
-                    putFlagSet.isSet(flag),
+                    dbiFlagSet.isSet(flag),
                     is(true));
         }
+
+        final DbiFlagSet dbiFlagSet2 = DbiFlagSet.builder()
+            .setFlag(dbiFlag)
+            .build();
+        assertThat(dbiFlagSet, is(dbiFlagSet2));
     }
 
     @Test
     public void testOf2() {
-        final DbiFlags putFlag1 = DbiFlags.MDB_CREATE;
-        final DbiFlags putFlag2 = DbiFlags.MDB_INTEGERKEY;
-        final DbiFlagSet putFlagSet = DbiFlagSet.of(putFlag1, putFlag2);
+        final DbiFlags dbiFlag1 = DbiFlags.MDB_CREATE;
+        final DbiFlags dbiFlag2 = DbiFlags.MDB_INTEGERKEY;
+        final DbiFlagSet dbiFlagSet = DbiFlagSet.of(dbiFlag1, dbiFlag2);
         assertThat(
-                putFlagSet.getMask(),
-                is(MaskedFlag.mask(putFlag1, putFlag2)));
+                dbiFlagSet.getMask(),
+                is(MaskedFlag.mask(dbiFlag1, dbiFlag2)));
         assertThat(
-                putFlagSet.size(),
+                dbiFlagSet.size(),
                 is(2));
         assertThat(
-                putFlagSet.isSet(DbiFlags.MDB_REVERSEDUP),
+                dbiFlagSet.isSet(DbiFlags.MDB_REVERSEDUP),
                 is(false));
-        for (DbiFlags flag : putFlagSet) {
+        for (DbiFlags flag : dbiFlagSet) {
             assertThat(
-                    putFlagSet.isSet(flag),
+                    dbiFlagSet.isSet(flag),
                     is(true));
         }
     }
 
     @Test
     public void testBuilder() {
-        final DbiFlags putFlag1 = DbiFlags.MDB_CREATE;
-        final DbiFlags putFlag2 = DbiFlags.MDB_INTEGERKEY;
-        final DbiFlagSet putFlagSet = DbiFlagSet.builder()
-                .setFlag(putFlag1)
-                .setFlag(putFlag2)
+        final DbiFlags dbiFlag1 = DbiFlags.MDB_CREATE;
+        final DbiFlags dbiFlag2 = DbiFlags.MDB_INTEGERKEY;
+        final DbiFlagSet dbiFlagSet = DbiFlagSet.builder()
+                .setFlag(dbiFlag1)
+                .setFlag(dbiFlag2)
                 .build();
         assertThat(
-                putFlagSet.getMask(),
-                is(MaskedFlag.mask(putFlag1, putFlag2)));
+                dbiFlagSet.getMask(),
+                is(MaskedFlag.mask(dbiFlag1, dbiFlag2)));
         assertThat(
-                putFlagSet.size(),
+                dbiFlagSet.size(),
                 is(2));
         assertThat(
-                putFlagSet.isSet(DbiFlags.MDB_REVERSEDUP),
+                dbiFlagSet.isSet(DbiFlags.MDB_REVERSEDUP),
                 is(false));
-        for (DbiFlags flag : putFlagSet) {
+        for (DbiFlags flag : dbiFlagSet) {
             assertThat(
-                    putFlagSet.isSet(flag),
+                    dbiFlagSet.isSet(flag),
                     is(true));
         }
-        final DbiFlagSet putFlagSet2 = DbiFlagSet.builder()
-                .withFlags(putFlag1, putFlag2)
+        final DbiFlagSet dbiFlagSet2 = DbiFlagSet.builder()
+                .withFlags(dbiFlag1, dbiFlag2)
                 .build();
-        final DbiFlagSet putFlagSet3 = DbiFlagSet.builder()
-                .withFlags(new HashSet<>(Arrays.asList(putFlag1, putFlag2)))
+        final DbiFlagSet dbiFlagSet3 = DbiFlagSet.builder()
+                .withFlags(new HashSet<>(Arrays.asList(dbiFlag1, dbiFlag2)))
                 .build();
-        assertThat(putFlagSet, is(putFlagSet2));
-        assertThat(putFlagSet, is(putFlagSet3));
+        assertThat(dbiFlagSet, is(dbiFlagSet2));
+        assertThat(dbiFlagSet, is(dbiFlagSet3));
     }
 }

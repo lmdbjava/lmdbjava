@@ -15,8 +15,11 @@
  */
 package org.lmdbjava;
 
+import java.util.EnumSet;
+import java.util.Set;
+
 /** Flags for use when opening a {@link Dbi}. */
-public enum DbiFlags implements MaskedFlag {
+public enum DbiFlags implements MaskedFlag, DbiFlagSet {
 
   /**
    * Use reverse string keys.
@@ -81,5 +84,30 @@ public enum DbiFlags implements MaskedFlag {
   @Override
   public int getMask() {
     return mask;
+  }
+
+  @Override
+  public Set<DbiFlags> getFlags() {
+    return EnumSet.of(this);
+  }
+
+  @Override
+  public boolean isSet(final DbiFlags flag) {
+    return flag != null && mask == flag.getMask();
+  }
+
+  @Override
+  public int size() {
+    return 1;
+  }
+
+  @Override
+  public boolean isEmpty() {
+    return false;
+  }
+
+  @Override
+  public String toString() {
+    return FlagSet.asString(this);
   }
 }
