@@ -18,9 +18,9 @@
 
 set -o errexit
 
-rm -rf lmdb
-git clone --depth 1 --branch LMDB_0.9.31 https://github.com/LMDB/lmdb.git
-pushd lmdb/libraries/liblmdb
+rm -rf openldap
+git clone --depth 1 --branch LMDB_0.9.33 https://git.openldap.org/openldap/openldap.git
+pushd openldap/libraries/liblmdb
 trap popd SIGINT
 
 # zig targets | jq -r '.libc[]'
