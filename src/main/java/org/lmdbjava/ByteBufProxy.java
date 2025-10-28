@@ -114,14 +114,19 @@ public final class ByteBufProxy extends BufferProxy<ByteBuf> {
   }
 
   @Override
-  public Comparator<ByteBuf> getSignedComparator() {
+  public Comparator<ByteBuf> getComparator(final DbiFlagSet dbiFlagSet) {
     return comparator;
   }
 
-  @Override
-  public Comparator<ByteBuf> getUnsignedComparator() {
-    return comparator;
-  }
+  //  @Override
+//  public Comparator<ByteBuf> getSignedComparator() {
+//    return comparator;
+//  }
+//
+//  @Override
+//  public Comparator<ByteBuf> getUnsignedComparator() {
+//    return comparator;
+//  }
 
   @Override
   protected void deallocate(final ByteBuf buff) {

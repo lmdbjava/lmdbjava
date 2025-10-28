@@ -136,7 +136,7 @@ public final class ComparatorTest {
 
     @Override
     public int compare(final byte[] o1, final byte[] o2) {
-      final Comparator<byte[]> c = PROXY_BA.getUnsignedComparator();
+      final Comparator<byte[]> c = PROXY_BA.getComparator();
       return c.compare(o1, o2);
     }
   }
@@ -146,7 +146,7 @@ public final class ComparatorTest {
 
     @Override
     public int compare(final byte[] o1, final byte[] o2) {
-      final Comparator<byte[]> c = PROXY_BA.getUnsignedComparator();
+      final Comparator<byte[]> c = PROXY_BA.getComparator();
       return c.compare(o1, o2);
     }
   }
@@ -156,7 +156,7 @@ public final class ComparatorTest {
 
     @Override
     public int compare(final byte[] o1, final byte[] o2) {
-      final Comparator<ByteBuffer> c = PROXY_OPTIMAL.getUnsignedComparator();
+      final Comparator<ByteBuffer> c = PROXY_OPTIMAL.getComparator();
 
       // Convert arrays to buffers that are larger than the array, with
       // limit set at the array length. One buffer bigger than the other.
@@ -200,7 +200,7 @@ public final class ComparatorTest {
     public int compare(final byte[] o1, final byte[] o2) {
       final DirectBuffer o1b = new UnsafeBuffer(o1);
       final DirectBuffer o2b = new UnsafeBuffer(o2);
-      final Comparator<DirectBuffer> c = PROXY_DB.getUnsignedComparator();
+      final Comparator<DirectBuffer> c = PROXY_DB.getComparator();
       return c.compare(o1b, o2b);
     }
   }
@@ -234,7 +234,7 @@ public final class ComparatorTest {
       final ByteBuf o2b = DEFAULT.directBuffer(o2.length);
       o1b.writeBytes(o1);
       o2b.writeBytes(o2);
-      final Comparator<ByteBuf> c = PROXY_NETTY.getUnsignedComparator();
+      final Comparator<ByteBuf> c = PROXY_NETTY.getComparator();
       return c.compare(o1b, o2b);
     }
   }

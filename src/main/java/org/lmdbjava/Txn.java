@@ -164,7 +164,7 @@ public final class Txn<T> implements AutoCloseable {
   }
 
   /**
-   * Aborts this read-only transaction and resets the transaction handle so it can be reused upon
+   * Aborts this read-only transaction and resets the transaction handle, so it can be reused upon
    * calling {@link #renew()}.
    */
   public void reset() {

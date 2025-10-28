@@ -51,6 +51,7 @@ public final class Dbi<T> {
 
   private final ComparatorCallback ccb;
   private boolean cleaned;
+  // Used for CursorIterable KeyRange testing and/or native callbacks
   private final Comparator<T> comparator;
   private final Env<T> env;
   private final byte[] name;
@@ -80,6 +81,7 @@ public final class Dbi<T> {
     ptr = dbiPtr.getPointer(0);
     if (nativeCb) {
       requireNonNull(comparator, "comparator cannot be null if nativeCb is set");
+      // LMDB will call back to this comparator for insertion/iteration order
       this.ccb =
           (keyA, keyB) -> {
             final T compKeyA  = proxy.out(proxy.allocate(), keyA);
@@ -465,6 +467,7 @@ public final class Dbi<T> {
       return "";
     } else {
       try {
+        // Assume a UTF8 encoding as we don't know, thus swallow if it fails
         return new String(name, StandardCharsets.UTF_8);
       } catch (Exception e) {
         return "?";
@@ -475,8 +478,8 @@ public final class Dbi<T> {
   @Override
   public String toString() {
     return "Dbi{" +
-            "name=" + getNameAsString() +
-            ", dbiFlagSet=" + dbiFlagSet +
+            "name='" + getNameAsString() +
+            "', dbiFlagSet=" + dbiFlagSet +
             '}';
   }
 

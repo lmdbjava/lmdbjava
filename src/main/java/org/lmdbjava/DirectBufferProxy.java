@@ -111,14 +111,19 @@ public final class DirectBufferProxy extends BufferProxy<DirectBuffer> {
   }
 
   @Override
-  public Comparator<DirectBuffer> getSignedComparator() {
-    return signedComparator;
-  }
-
-  @Override
-  public Comparator<DirectBuffer> getUnsignedComparator() {
+  public Comparator<DirectBuffer> getComparator(final DbiFlagSet dbiFlagSet) {
     return unsignedComparator;
   }
+
+  //  @Override
+//  public Comparator<DirectBuffer> getSignedComparator() {
+//    return signedComparator;
+//  }
+//
+//  @Override
+//  public Comparator<DirectBuffer> getUnsignedComparator(final DbiFlagSet dbiFlagSet) {
+//    return unsignedComparator;
+//  }
 
   @Override
   protected void deallocate(final DirectBuffer buff) {

@@ -104,14 +104,19 @@ public final class ByteArrayProxy extends BufferProxy<byte[]> {
   }
 
   @Override
-  public Comparator<byte[]> getSignedComparator() {
-    return signedComparator;
-  }
-
-  @Override
-  public Comparator<byte[]> getUnsignedComparator() {
+  public Comparator<byte[]> getComparator(final DbiFlagSet dbiFlagSet) {
     return unsignedComparator;
   }
+
+  //  @Override
+//  public Comparator<byte[]> getSignedComparator() {
+//    return signedComparator;
+//  }
+//
+//  @Override
+//  public Comparator<byte[]> getUnsignedComparator() {
+//    return unsignedComparator;
+//  }
 
   @Override
   protected Pointer in(final byte[] buffer, final Pointer ptr) {

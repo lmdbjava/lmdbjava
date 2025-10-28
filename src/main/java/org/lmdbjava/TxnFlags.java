@@ -20,6 +20,7 @@ import java.util.Set;
 
 /** Flags for use when creating a {@link Txn}. */
 public enum TxnFlags implements MaskedFlag, TxnFlagSet {
+
   /** Read only. */
   MDB_RDONLY_TXN(0x2_0000);
 

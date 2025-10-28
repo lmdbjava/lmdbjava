@@ -148,6 +148,35 @@ public final class ByteBufferProxy {
       return o1.remaining() - o2.remaining();
     }
 
+//    /**
+//     * Possible compareBuff method specifically for 4/8 byte keys when using MDB_INTEGER_KEY
+//     */
+//    public static int compareBuff(final ByteBuffer o1, final ByteBuffer o2) {
+//      requireNonNull(o1);
+//      requireNonNull(o2);
+//      // Both buffers should be same len
+//      final int len1 = o1.limit();
+//      final int len2 = o2.limit();
+//      if (len1 != len2) {
+//        throw new RuntimeException("Length mismatch, len1: " + len1 + ", len2: " + len2
+//            + ". Lengths must be identical and either 4 or 8 bytes.");
+//      }
+//      final boolean reverse1 = o1.order() == LITTLE_ENDIAN;
+//      final boolean reverse2 = o2.order() == LITTLE_ENDIAN;
+//      if (len1 == 8) {
+//          final long lw = reverse1 ? Long.reverseBytes(o1.getLong()) : o1.getLong();
+//          final long rw = reverse2 ? Long.reverseBytes(o2.getLong()) : o2.getLong();
+//          return Long.compareUnsigned(lw, rw);
+//      } else if (len1 == 4) {
+//        final int lw = reverse1 ? Integer.reverseBytes(o1.getInt()) : o1.getInt();
+//        final int rw = reverse2 ? Integer.reverseBytes(o2.getInt()) : o2.getInt();
+//          return Integer.compareUnsigned(lw, rw);
+//      } else {
+//        throw new RuntimeException("Unexpected length len1: " + len1 + ", len2: " + len2
+//            + ". Lengths must be identical and either 4 or 8 bytes.");
+//      }
+//    }
+
     static Field findField(final Class<?> c, final String name) {
       Class<?> clazz = c;
       do {
@@ -182,14 +211,19 @@ public final class ByteBufferProxy {
     }
 
     @Override
-    public Comparator<ByteBuffer> getSignedComparator() {
-      return signedComparator;
-    }
-
-    @Override
-    public Comparator<ByteBuffer> getUnsignedComparator() {
+    public Comparator<ByteBuffer> getComparator(DbiFlagSet dbiFlagSet) {
       return unsignedComparator;
     }
+
+    //    @Override
+//    public Comparator<ByteBuffer> getSignedComparator() {
+//      return signedComparator;
+//    }
+//
+//    @Override
+//    public Comparator<ByteBuffer> getUnsignedComparator(final DbiFlagSet dbiFlagSet) {
+//      return unsignedComparator;
+//    }
 
     @Override
     protected final void deallocate(final ByteBuffer buff) {

@@ -60,10 +60,10 @@ public final class CursorIterable<T> implements Iterable<CursorIterable.KeyVal<T
     this.entry = new KeyVal<>();
 
     if (comparator != null) {
-      // User supplied java-side comparator so use that
+      // User supplied Java-side comparator so use that
       this.rangeComparator = new JavaRangeComparator<>(range, comparator, entry::key);
     } else {
-      // No java-side comparator so call down to LMDB to do the comparison
+      // No Java-side comparator, so call down to LMDB to do the comparison
       this.rangeComparator = new LmdbRangeComparator<>(txn, dbi, cursor, range, proxy);
     }
   }

@@ -118,7 +118,7 @@ public final class DbiTest {
   public void customComparator() {
     final Comparator<ByteBuffer> reverseOrder =
         (o1, o2) -> {
-          final int lexical = PROXY_OPTIMAL.getUnsignedComparator().compare(o1, o2);
+          final int lexical = PROXY_OPTIMAL.getComparator().compare(o1, o2);
           if (lexical == 0) {
             return 0;
           }
@@ -131,7 +131,7 @@ public final class DbiTest {
   public void customComparatorByteArray() {
     final Comparator<byte[]> reverseOrder =
         (o1, o2) -> {
-          final int lexical = PROXY_BA.getUnsignedComparator().compare(o1, o2);
+          final int lexical = PROXY_BA.getComparator().compare(o1, o2);
           if (lexical == 0) {
             return 0;
           }
@@ -172,13 +172,13 @@ public final class DbiTest {
   @Test
   public void dbiWithComparatorThreadSafety() {
     doDbiWithComparatorThreadSafety(
-        env, PROXY_OPTIMAL::getUnsignedComparator, TestUtils::bb, ByteBuffer::getInt);
+        env, PROXY_OPTIMAL::getComparator, TestUtils::bb, ByteBuffer::getInt);
   }
 
   @Test
   public void dbiWithComparatorThreadSafetyByteArray() {
     doDbiWithComparatorThreadSafety(
-        envBa, PROXY_BA::getUnsignedComparator, TestUtils::ba, TestUtils::fromBa);
+        envBa, PROXY_BA::getComparator, TestUtils::ba, TestUtils::fromBa);
   }
 
   public <T> void doDbiWithComparatorThreadSafety(

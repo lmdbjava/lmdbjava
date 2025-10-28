@@ -66,26 +66,49 @@ public abstract class BufferProxy<T> {
   protected abstract byte[] getBytes(T buffer);
 
   /**
-   * Get a suitable default {@link Comparator} to compare numeric key values as signed.
+   * Get a suitable default {@link Comparator} given the provided flags.
    *
-   * <p>Note: LMDB's default comparator is unsigned so if this is used only for the {@link
-   * CursorIterable} start/stop key comparisons then its behaviour will differ from the iteration
-   * order. Use with caution.
+   * <p>The provided comparator must strictly match the lexicographical order of keys in the native
+   * LMDB database.
    *
+   * @param dbiFlagSet The {@link DbiFlags} set for the database.
    * @return a comparator that can be used (never null)
    */
-  public abstract Comparator<T> getSignedComparator();
+  public abstract Comparator<T> getComparator(final DbiFlagSet dbiFlagSet);
 
   /**
-   * Get a suitable default {@link Comparator} to compare numeric key values as unsigned.
-   * <p>
-   * This should match the behaviour of the LMDB's mdb_cmp comparator as it may be used for
-   * {@link CursorIterable} start/stop keys comparisons, which must match LMDB's insertion order.
-   * </p>
+   * Get a suitable default {@link Comparator}
+   *
+   * <p>The provided comparator must strictly match the lexicographical order of keys in the native
+   * LMDB database.
    *
    * @return a comparator that can be used (never null)
    */
-  public abstract Comparator<T> getUnsignedComparator();
+  public Comparator<T> getComparator() {
+    return getComparator(DbiFlagSet.empty());
+  }
+
+//  /**
+//   * Get a suitable default {@link Comparator} to compare numeric key values as signed.
+//   *
+//   * <p>Note: LMDB's default comparator is unsigned so if this is used only for the {@link
+//   * CursorIterable} start/stop key comparisons then its behaviour will differ from the iteration
+//   * order. Use with caution.
+//   *
+//   * @return a comparator that can be used (never null)
+//   */
+//  public abstract Comparator<T> getSignedComparator();
+//
+//  /**
+//   * Get a suitable default {@link Comparator} to compare numeric key values as unsigned.
+//   * <p>
+//   * This should match the behaviour of the LMDB's mdb_cmp comparator as it may be used for
+//   * {@link CursorIterable} start/stop keys comparisons, which must match LMDB's insertion order.
+//   * </p>
+//   *
+//   * @return a comparator that can be used (never null)
+//   */
+//  public abstract Comparator<T> getUnsignedComparator(final DbiFlagSet dbiFlagSet);
 
   /**
    * Called when the <code>MDB_val</code> should be set to reflect the passed buffer. This buffer

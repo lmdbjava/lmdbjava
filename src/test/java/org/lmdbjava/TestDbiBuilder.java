@@ -10,7 +10,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import junit.framework.TestCase;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
@@ -31,6 +30,7 @@ public class TestDbiBuilder {
 
     @Before
     public void before() throws IOException {
+        System.out.println("before");
         final File path = tmp.newFile();
         env =
                 create()
@@ -44,7 +44,7 @@ public class TestDbiBuilder {
     public void unnamed() {
         final Dbi<ByteBuffer> dbi = env.buildDbi()
                 .withoutDbName()
-                .withDefaultIteratorComparator()
+                .withDefaultComparator()
                 .withDbiFlags(DbiFlags.MDB_CREATE)
                 .open();
 
@@ -58,7 +58,7 @@ public class TestDbiBuilder {
     public void named() {
         final Dbi<ByteBuffer> dbi = env.buildDbi()
                 .withDbName("foo")
-                .withDefaultIteratorComparator()
+                .withDefaultComparator()
                 .withDbiFlags(DbiFlags.MDB_CREATE)
                 .open();
 
