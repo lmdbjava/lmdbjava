@@ -73,6 +73,32 @@ public final class CursorIterableTest {
   private Env<ByteBuffer> env;
   private Deque<Integer> list;
 
+    @Before
+    public void before() throws IOException {
+        final File path = tmp.newFile();
+        env =
+                create()
+                        .setMapSize(KIBIBYTES.toBytes(256))
+                        .setMaxReaders(1)
+                        .setMaxDbs(1)
+                        .open(path, POSIX_MODE, MDB_NOSUBDIR);
+        db = env.openDbi(DB_1, MDB_CREATE);
+        populateDatabase(db);
+    }
+
+    private void populateDatabase(final Dbi<ByteBuffer> dbi) {
+        list = new LinkedList<>();
+        list.addAll(asList(2, 3, 4, 5, 6, 7, 8, 9));
+        try (Txn<ByteBuffer> txn = env.txnWrite()) {
+            final Cursor<ByteBuffer> c = dbi.openCursor(txn);
+            c.put(bb(2), bb(3), MDB_NOOVERWRITE);
+            c.put(bb(4), bb(5));
+            c.put(bb(6), bb(7));
+            c.put(bb(8), bb(9));
+            txn.commit();
+        }
+    }
+
   @After
   public void after() {
     env.close();
@@ -111,32 +137,6 @@ public final class CursorIterableTest {
   public void atMostTest() {
     verify(atMost(bb(5)), 2, 4);
     verify(atMost(bb(6)), 2, 4, 6);
-  }
-
-  @Before
-  public void before() throws IOException {
-    final File path = tmp.newFile();
-    env =
-        create()
-            .setMapSize(KIBIBYTES.toBytes(256))
-            .setMaxReaders(1)
-            .setMaxDbs(1)
-            .open(path, POSIX_MODE, MDB_NOSUBDIR);
-    db = env.openDbi(DB_1, MDB_CREATE);
-    populateDatabase(db);
-  }
-
-  private void populateDatabase(final Dbi<ByteBuffer> dbi) {
-    list = new LinkedList<>();
-    list.addAll(asList(2, 3, 4, 5, 6, 7, 8, 9));
-    try (Txn<ByteBuffer> txn = env.txnWrite()) {
-      final Cursor<ByteBuffer> c = dbi.openCursor(txn);
-      c.put(bb(2), bb(3), MDB_NOOVERWRITE);
-      c.put(bb(4), bb(5));
-      c.put(bb(6), bb(7));
-      c.put(bb(8), bb(9));
-      txn.commit();
-    }
   }
 
   @Test
