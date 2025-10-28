@@ -56,14 +56,14 @@ public final class ComparatorTest {
 
   static Stream<Arguments> comparatorProvider() {
     return Stream.of(
-        Arguments.arguments("StringRunner", new StringRunner()),
-        Arguments.arguments("DirectBufferRunner", new DirectBufferRunner()),
-        Arguments.arguments("ByteArrayRunner", new ByteArrayRunner()),
-        Arguments.arguments("UnsignedByteArrayRunner", new UnsignedByteArrayRunner()),
-        Arguments.arguments("ByteBufferRunner", new ByteBufferRunner()),
-        Arguments.arguments("NettyRunner", new NettyRunner()),
-        Arguments.arguments("GuavaUnsignedBytes", new GuavaUnsignedBytes()),
-        Arguments.arguments("GuavaSignedBytes", new GuavaSignedBytes()));
+        Arguments.argumentSet("StringRunner", new StringRunner()),
+        Arguments.argumentSet("DirectBufferRunner", new DirectBufferRunner()),
+        Arguments.argumentSet("ByteArrayRunner", new ByteArrayRunner()),
+        Arguments.argumentSet("UnsignedByteArrayRunner", new UnsignedByteArrayRunner()),
+        Arguments.argumentSet("ByteBufferRunner", new ByteBufferRunner()),
+        Arguments.argumentSet("NettyRunner", new NettyRunner()),
+        Arguments.argumentSet("GuavaUnsignedBytes", new GuavaUnsignedBytes()),
+        Arguments.argumentSet("GuavaSignedBytes", new GuavaSignedBytes()));
   }
 
   private static byte[] buffer(final int... bytes) {
@@ -76,7 +76,7 @@ public final class ComparatorTest {
 
   @ParameterizedTest
   @MethodSource("comparatorProvider")
-  void atLeastOneBufferHasEightBytes(final String str, final ComparatorRunner comparator) {
+  void atLeastOneBufferHasEightBytes(final ComparatorRunner comparator) {
     assertThat(get(comparator.compare(HLLLLLLL, LLLLLLLL))).isEqualTo(GREATER_THAN);
     assertThat(get(comparator.compare(LLLLLLLL, HLLLLLLL))).isEqualTo(LESS_THAN);
 
@@ -95,7 +95,7 @@ public final class ComparatorTest {
 
   @ParameterizedTest
   @MethodSource("comparatorProvider")
-  void buffersOfTwoBytes(final String str, final ComparatorRunner comparator) {
+  void buffersOfTwoBytes(final ComparatorRunner comparator) {
     assertThat(get(comparator.compare(LL, XX))).isEqualTo(GREATER_THAN);
     assertThat(get(comparator.compare(XX, LL))).isEqualTo(LESS_THAN);
 
@@ -111,7 +111,7 @@ public final class ComparatorTest {
 
   @ParameterizedTest
   @MethodSource("comparatorProvider")
-  void equalBuffers(final String str, final ComparatorRunner comparator) {
+  void equalBuffers(final ComparatorRunner comparator) {
     assertThat(get(comparator.compare(LL, LL))).isEqualTo(EQUAL_TO);
     assertThat(get(comparator.compare(HX, HX))).isEqualTo(EQUAL_TO);
     assertThat(get(comparator.compare(LH, LH))).isEqualTo(EQUAL_TO);

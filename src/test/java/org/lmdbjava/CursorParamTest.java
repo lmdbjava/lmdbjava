@@ -58,16 +58,16 @@ public final class CursorParamTest {
 
   static Stream<Arguments> data() {
     return Stream.of(
-        Arguments.arguments("ByteBufferRunner(PROXY_OPTIMAL)", new ByteBufferRunner(PROXY_OPTIMAL)),
-        Arguments.arguments("ByteBufferRunner(PROXY_SAFE)", new ByteBufferRunner(PROXY_SAFE)),
-        Arguments.arguments("ByteArrayRunner(PROXY_BA)", new ByteArrayRunner(PROXY_BA)),
-        Arguments.arguments("DirectBufferRunner", new DirectBufferRunner()),
-        Arguments.arguments("NettyBufferRunner", new NettyBufferRunner()));
+        Arguments.argumentSet("ByteBufferRunner(PROXY_OPTIMAL)", new ByteBufferRunner(PROXY_OPTIMAL)),
+        Arguments.argumentSet("ByteBufferRunner(PROXY_SAFE)", new ByteBufferRunner(PROXY_SAFE)),
+        Arguments.argumentSet("ByteArrayRunner(PROXY_BA)", new ByteArrayRunner(PROXY_BA)),
+        Arguments.argumentSet("DirectBufferRunner", new DirectBufferRunner()),
+        Arguments.argumentSet("NettyBufferRunner", new NettyBufferRunner()));
   }
 
   @ParameterizedTest
   @MethodSource("data")
-  void execute(final String name, final BufferRunner<?> runner, @TempDir final Path tmp) {
+  void execute(final BufferRunner<?> runner, @TempDir final Path tmp) {
     runner.execute(tmp);
   }
 
