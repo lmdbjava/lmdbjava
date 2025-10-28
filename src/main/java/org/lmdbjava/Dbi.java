@@ -49,7 +49,7 @@ import org.lmdbjava.Library.MDB_stat;
  */
 public final class Dbi<T> {
 
-  private final ComparatorCallback ccb;
+  private final ComparatorCallback callbackComparator;
   private boolean cleaned;
   // Used for CursorIterable KeyRange testing and/or native callbacks
   private final Comparator<T> comparator;
@@ -82,7 +82,7 @@ public final class Dbi<T> {
     if (nativeCb) {
       requireNonNull(comparator, "comparator cannot be null if nativeCb is set");
       // LMDB will call back to this comparator for insertion/iteration order
-      this.ccb =
+      this.callbackComparator =
           (keyA, keyB) -> {
             final T compKeyA  = proxy.out(proxy.allocate(), keyA);
             final T compKeyB = proxy.out(proxy.allocate(), keyB);
@@ -91,9 +91,9 @@ public final class Dbi<T> {
             proxy.deallocate(compKeyB);
             return result;
           };
-      LIB.mdb_set_compare(txn.pointer(), ptr, ccb);
+      LIB.mdb_set_compare(txn.pointer(), ptr, callbackComparator);
     } else {
-      ccb = null;
+      callbackComparator = null;
     }
   }
 
@@ -380,8 +380,7 @@ public final class Dbi<T> {
     final Pointer transientKey = txn.kv().keyIn(key);
     final Pointer transientVal = txn.kv().valIn(val);
     final int mask = mask(flags);
-    final int rc =
-        LIB.mdb_put(txn.pointer(), ptr, txn.kv().pointerKey(), txn.kv().pointerVal(), mask);
+    final int rc = LIB.mdb_put(txn.pointer(), ptr, txn.kv().pointerKey(), txn.kv().pointerVal(), mask);
     if (rc == MDB_KEYEXIST) {
       if (isSet(mask, MDB_NOOVERWRITE)) {
         txn.kv().valOut(); // marked as in,out in LMDB C docs

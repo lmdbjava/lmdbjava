@@ -42,15 +42,16 @@ public final class Txn<T> implements AutoCloseable {
   private final Pointer ptr;
   private final boolean readOnly;
   private final Env<T> env;
+  private final TxnFlagSet flags;
   private State state;
 
   Txn(final Env<T> env, final Txn<T> parent, final BufferProxy<T> proxy, final TxnFlagSet flags) {
-    final TxnFlagSet flagSet = flags != null
+    this.flags = flags != null
         ? flags
         : TxnFlagSet.EMPTY;
     this.proxy = proxy;
     this.keyVal = proxy.keyVal();
-    this.readOnly = flagSet.isSet(MDB_RDONLY_TXN);
+    this.readOnly = this.flags.isSet(MDB_RDONLY_TXN);
     if (env.isReadOnly() && !this.readOnly) {
       throw new EnvIsReadOnly();
     }
@@ -61,7 +62,7 @@ public final class Txn<T> implements AutoCloseable {
     }
     final Pointer txnPtr = allocateDirect(RUNTIME, ADDRESS);
     final Pointer txnParentPtr = parent == null ? null : parent.ptr;
-    checkRc(LIB.mdb_txn_begin(env.pointer(), txnParentPtr, flagSet.getMask(), txnPtr));
+    checkRc(LIB.mdb_txn_begin(env.pointer(), txnParentPtr, this.flags.getMask(), txnPtr));
     ptr = txnPtr.getPointer(0);
 
     state = READY;

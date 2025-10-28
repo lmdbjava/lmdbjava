@@ -355,20 +355,23 @@ public class DbiBuilder<T> {
     /**
      * Construct and open the {@link Dbi}.
      * <p>
-     * If a {@link Txn} was supplied to the builder, it should be committed upon return from
-     * this method.
+     * If a {@link Txn} was supplied to the builder, it is the callers responsibility to
+     * commit and close the txn upon return from this method, else the created DB won't be retained.
      * </p>
      *
      * @return A newly constructed and opened {@link Dbi}.
      */
     public Dbi<T> open() {
       final DbiBuilder<T> dbiBuilder = dbiBuilderStage2.dbiBuilder;
-      if (txn == null) {
-        try (final Txn<T> txn = getTxn(dbiBuilder)) {
-          return open(txn, dbiBuilder);
-        }
-      } else {
+      if (txn != null) {
         return open(txn, dbiBuilder);
+      } else {
+        try (final Txn<T> txn = getTxn(dbiBuilder)) {
+          final Dbi<T> dbi = open(txn, dbiBuilder);
+          // even RO Txns require a commit to retain Dbi in Env
+          txn.commit();
+          return dbi;
+        }
       }
     }
 
