@@ -41,6 +41,7 @@ public final class ReferenceUtil {
    */
   public static void reachabilityFence0(final Object ref) {
     if (ref != null) {
+      //noinspection EmptySynchronizedStatement
       synchronized (ref) {
         // Empty synchronized is ok: https://stackoverflow.com/a/31933260/1151521
       }

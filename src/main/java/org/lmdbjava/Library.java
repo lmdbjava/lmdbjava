@@ -235,6 +235,8 @@ final class Library {
 
     void mdb_txn_reset(@In Pointer txn);
 
+    int mdb_cmp(@In Pointer txn, @In Pointer dbi, @In Pointer key1, @In Pointer key2);
+
     Pointer mdb_version(IntByReference major, IntByReference minor, IntByReference patch);
   }
 }

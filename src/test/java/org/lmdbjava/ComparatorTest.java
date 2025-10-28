@@ -146,7 +146,7 @@ public final class ComparatorTest {
 
     @Override
     public int compare(final byte[] o1, final byte[] o2) {
-      final Comparator<byte[]> c = PROXY_BA.getUnsignedComparator();
+      final Comparator<byte[]> c = PROXY_BA.getComparator();
       return c.compare(o1, o2);
     }
   }

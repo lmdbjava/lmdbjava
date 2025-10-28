@@ -104,6 +104,8 @@ public final class DbiTest {
             .open(pathBa, MDB_NOSUBDIR);
   }
 
+
+
   @Test(expected = ConstantDerivedException.class)
   public void close() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
@@ -181,11 +183,11 @@ public final class DbiTest {
 
   public <T> void doDbiWithComparatorThreadSafety(
       Env<T> env,
-      Function<DbiFlags[], Comparator<T>> comparator,
+      Supplier<Comparator<T>> comparatorSupplier,
       IntFunction<T> serializer,
       ToIntFunction<T> deserializer) {
     final DbiFlags[] flags = new DbiFlags[] {MDB_CREATE, MDB_INTEGERKEY};
-    final Comparator<T> c = comparator.apply(flags);
+    final Comparator<T> c = comparatorSupplier.get();
     final Dbi<T> db = env.openDbi(DB_1, c, true, flags);
 
     final List<Integer> keys = range(0, 1_000).boxed().collect(toList());

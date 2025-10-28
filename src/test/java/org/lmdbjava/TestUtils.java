@@ -23,6 +23,7 @@ import io.netty.buffer.ByteBuf;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
@@ -30,6 +31,9 @@ import org.agrona.concurrent.UnsafeBuffer;
 final class TestUtils {
 
   public static final String DB_1 = "test-db-1";
+  public static final String DB_2 = "test-db-2";
+  public static final String DB_3 = "test-db-3";
+  public static final String DB_4 = "test-db-2";
 
   public static final int POSIX_MODE = 0664;
 
@@ -49,6 +53,20 @@ final class TestUtils {
     final ByteBuffer bb = allocateDirect(BYTES);
     bb.putInt(value).flip();
     return bb;
+  }
+
+  static ByteBuffer bbNative(final int value) {
+    final ByteBuffer bb = allocateDirect(Long.BYTES)
+        .order(ByteOrder.nativeOrder());
+    bb.putInt(value).flip();
+    return bb;
+  }
+
+  static int getNativeInt(final ByteBuffer bb) {
+    final int val = bb.order(ByteOrder.nativeOrder())
+        .getInt();
+    bb.rewind();
+    return val;
   }
 
   static void invokePrivateConstructor(final Class<?> clazz) {
