@@ -31,7 +31,7 @@ import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
 import static org.lmdbjava.PutFlags.MDB_RESERVE;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
 
-import java.nio.charset.StandardCharsets;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -261,6 +261,31 @@ public final class Dbi<T> {
     return name == null ? null : Arrays.copyOf(name, name.length);
   }
 
+  public String getNameAsString() {
+    return getNameAsString(Env.DEFAULT_NAME_CHARSET);
+  }
+
+
+  /**
+   * Obtains the name of this database, using the supplied {@link Charset}.
+   *
+   * @return The name of the database. If this is the unnamed database an empty
+   * string will be returned.
+   * @throws RuntimeException if the name can't be decoded.
+   */
+  public String getNameAsString(final Charset charset) {
+    if (name == null) {
+      return "";
+    } else {
+      // Assume a UTF8 encoding as we don't know, thus swallow if it fails
+      try {
+        return new String(name, requireNonNull(charset));
+      } catch (Exception e) {
+        throw new RuntimeException("Unable to decode database name using charset " + charset);
+      }
+    }
+  }
+
   /**
    * Iterate the database from the first item and forwards.
    *
@@ -345,13 +370,50 @@ public final class Dbi<T> {
    *
    * @param key key to store in the database (not null)
    * @param val value to store in the database (not null)
-   * @see #put(org.lmdbjava.Txn, java.lang.Object, java.lang.Object, org.lmdbjava.PutFlags...)
+   * @see #put(Txn, Object, Object, PutFlagSet)
    */
   public void put(final T key, final T val) {
     try (Txn<T> txn = env.txnWrite()) {
-      put(txn, key, val);
+      put(txn, key, val, PutFlagSet.EMPTY);
       txn.commit();
     }
+  }
+
+  /**
+   * @deprecated Use {@link Dbi#put(Txn, Object, Object, PutFlagSet)} instead, with a statically
+   * held {@link PutFlagSet}.
+   * <hr>
+   * <p>
+   * Store a key/value pair in the database.
+   * </p>
+   * <p>This function stores key/data pairs in the database. The default behavior is to enter the
+   * new key/data pair, replacing any previously existing key if duplicates are disallowed, or
+   * adding a duplicate data item if duplicates are allowed ({@link DbiFlags#MDB_DUPSORT}).
+   *
+   * @param txn transaction handle (not null; not committed; must be R-W)
+   * @param key key to store in the database (not null)
+   * @param val value to store in the database (not null)
+   * @param flags Special options for this operation
+   * @return true if the value was put, false if MDB_NOOVERWRITE or MDB_NODUPDATA were set and the
+   *     key/value existed already.
+   */
+  @Deprecated
+  public boolean put(final Txn<T> txn, final T key, final T val, final PutFlags... flags) {
+    return put(txn, key, val, PutFlagSet.of(flags));
+  }
+
+  /**
+   * Store a key/value pair in the database.
+   *
+   * @param txn transaction handle (not null; not committed; must be R-W)
+   * @param key key to store in the database (not null)
+   * @param val value to store in the database (not null)
+   * @return true if the value was put, false if MDB_NOOVERWRITE or MDB_NODUPDATA were set and the
+   *     key/value existed already.
+   * @see #put(Txn, Object, Object, PutFlagSet)
+   */
+  public boolean put(final Txn<T> txn, final T key, final T val) {
+    return put(txn, key, val, PutFlagSet.EMPTY);
   }
 
   /**
@@ -364,11 +426,11 @@ public final class Dbi<T> {
    * @param txn transaction handle (not null; not committed; must be R-W)
    * @param key key to store in the database (not null)
    * @param val value to store in the database (not null)
-   * @param flags Special options for this operation
+   * @param flags Special options for this operation.
    * @return true if the value was put, false if MDB_NOOVERWRITE or MDB_NODUPDATA were set and the
    *     key/value existed already.
    */
-  public boolean put(final Txn<T> txn, final T key, final T val, final PutFlags... flags) {
+  public boolean put(final Txn<T> txn, final T key, final T val, final PutFlagSet flags) {
     if (SHOULD_CHECK) {
       requireNonNull(txn);
       requireNonNull(key);
@@ -377,14 +439,14 @@ public final class Dbi<T> {
       txn.checkReady();
       txn.checkWritesAllowed();
     }
+    final PutFlagSet flagSet = flags != null ? flags : PutFlagSet.empty();
     final Pointer transientKey = txn.kv().keyIn(key);
     final Pointer transientVal = txn.kv().valIn(val);
-    final int mask = mask(flags);
-    final int rc = LIB.mdb_put(txn.pointer(), ptr, txn.kv().pointerKey(), txn.kv().pointerVal(), mask);
+    final int rc = LIB.mdb_put(txn.pointer(), ptr, txn.kv().pointerKey(), txn.kv().pointerVal(), flagSet.getMask());
     if (rc == MDB_KEYEXIST) {
-      if (isSet(mask, MDB_NOOVERWRITE)) {
+      if (flagSet.isSet(MDB_NOOVERWRITE)) {
         txn.kv().valOut(); // marked as in,out in LMDB C docs
-      } else if (!isSet(mask, MDB_NODUPDATA)) {
+      } else if (!flagSet.isSet(MDB_NODUPDATA)) {
         checkRc(rc);
       }
       return false;
@@ -461,23 +523,16 @@ public final class Dbi<T> {
     cleaned = true;
   }
 
-  private String getNameAsString() {
-    if (name == null) {
-      return "";
-    } else {
-      try {
-        // Assume a UTF8 encoding as we don't know, thus swallow if it fails
-        return new String(name, StandardCharsets.UTF_8);
-      } catch (Exception e) {
-        return "?";
-      }
-    }
-  }
-
   @Override
   public String toString() {
+    String name;
+    try {
+      name = getNameAsString();
+    } catch (Exception e) {
+      name = "?";
+    }
     return "Dbi{" +
-            "name='" + getNameAsString() +
+            "name='" + name +
             "', dbiFlagSet=" + dbiFlagSet +
             '}';
   }

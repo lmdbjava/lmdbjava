@@ -28,24 +28,57 @@ import java.util.stream.Collectors;
  */
 public interface FlagSet<T extends MaskedFlag> extends Iterable<T> {
 
+  /**
+   * @return The combined mask for this flagSet.
+   */
   int getMask();
 
+  /**
+   * @return The result of combining the mask of this {@link FlagSet}
+   * with the mask of the other {@link FlagSet}.
+   */
+  default int getMaskWith(final FlagSet<T> other) {
+    if (other != null) {
+      return MaskedFlag.mask(getMask(), other.getMask());
+    } else {
+      return getMask();
+    }
+  }
+
+  /**
+   * @return The set of flags in this {@link FlagSet}.
+   */
   Set<T> getFlags();
 
+  /**
+   * @return True if flag is non-null and included in this {@link FlagSet}.
+   */
   boolean isSet(T flag);
 
+  /**
+   * @return The size of this {@link FlagSet}
+   */
   default int size() {
     return getFlags().size();
   }
 
+  /**
+   * @return True if this {@link FlagSet} is empty.
+   */
   default boolean isEmpty() {
     return getFlags().isEmpty();
   }
 
+  /**
+   * @return The {@link Iterator} (in no particular order) for the flags in this {@link FlagSet}.
+   */
   default Iterator<T> iterator() {
     return getFlags().iterator();
   }
 
+  /**
+   * Convert this {@link FlagSet} to a string for use in toString methods.
+   */
   static <T extends MaskedFlag> String asString(final FlagSet<T> flagSet) {
     Objects.requireNonNull(flagSet);
     final String flagsStr = flagSet.getFlags()

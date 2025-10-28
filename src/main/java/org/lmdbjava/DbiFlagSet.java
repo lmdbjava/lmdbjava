@@ -21,6 +21,8 @@ import java.util.Objects;
 
 public interface DbiFlagSet extends FlagSet<DbiFlags> {
 
+  DbiFlagSet EMPTY = DbiFlagSetImpl.EMPTY;
+
   static DbiFlagSet empty() {
     return DbiFlagSetImpl.EMPTY;
   }

@@ -59,6 +59,10 @@ public interface MaskedFlag {
     }
   }
 
+  static <M extends MaskedFlag> int mask(final int mask1, final int mask2) {
+    return mask1 | mask2;
+  }
+
   static <M extends MaskedFlag> int mask(final Collection<M> flags) {
     if (flags == null || flags.isEmpty()) {
       return EMPTY_MASK;

@@ -28,6 +28,7 @@ import java.util.Objects;
  */
 public class DbiBuilder<T> {
 
+
   private final Env<T> env;
   private final BufferProxy<T> proxy;
   private final boolean readOnly;
@@ -56,7 +57,7 @@ public class DbiBuilder<T> {
     // Null name is allowed so no null check
     final byte[] nameBytes = name == null
         ? null
-        : name.getBytes(StandardCharsets.UTF_8);
+        : name.getBytes(Env.DEFAULT_NAME_CHARSET);
     return withDbName(nameBytes);
   }
 
@@ -252,7 +253,7 @@ public class DbiBuilder<T> {
      * Clears all flags currently set by previous calls to
      * {@link DbiBuilderStage3#withDbiFlags(Collection)},
      * {@link DbiBuilderStage3#withDbiFlags(DbiFlags...)}
-     * or {@link DbiBuilderStage3#setDbiFlag(DbiFlags)}.
+     * or {@link DbiBuilderStage3#addDbiFlag(DbiFlags)}.
      * </p>
      *
      * @param dbiFlags to open the database with.
@@ -277,7 +278,7 @@ public class DbiBuilder<T> {
      * Clears all flags currently set by previous calls to
      * {@link DbiBuilderStage3#withDbiFlags(Collection)},
      * {@link DbiBuilderStage3#withDbiFlags(DbiFlags...)}
-     * or {@link DbiBuilderStage3#setDbiFlag(DbiFlags)}.
+     * or {@link DbiBuilderStage3#addDbiFlag(DbiFlags)}.
      * </p>
      *
      * @param dbiFlags to open the database with.
@@ -302,7 +303,7 @@ public class DbiBuilder<T> {
      * Clears all flags currently set by previous calls to
      * {@link DbiBuilderStage3#withDbiFlags(Collection)},
      * {@link DbiBuilderStage3#withDbiFlags(DbiFlags...)}
-     * or {@link DbiBuilderStage3#setDbiFlag(DbiFlags)}.
+     * or {@link DbiBuilderStage3#addDbiFlag(DbiFlags)}.
      * </p>
      *
      * @param dbiFlagSet to open the database with.
@@ -320,12 +321,12 @@ public class DbiBuilder<T> {
      * Adds a dbiFlag to those flags already added to this builder by
      * {@link DbiBuilderStage3#withDbiFlags(DbiFlags...)},
      * {@link DbiBuilderStage3#withDbiFlags(Collection)}
-     * or {@link DbiBuilderStage3#setDbiFlag(DbiFlags)}.
+     * or {@link DbiBuilderStage3#addDbiFlag(DbiFlags)}.
      *
      * @param dbiFlag to open the database with. A null value is a no-op.
      * @return this builder instance.
      */
-    public DbiBuilderStage3<T> setDbiFlag(final DbiFlags dbiFlag) {
+    public DbiBuilderStage3<T> addDbiFlag(final DbiFlags dbiFlag) {
       this.flagSetBuilder.setFlag(dbiFlag);
       return this;
     }
@@ -409,7 +410,6 @@ public class DbiBuilder<T> {
       final ComparatorType comparatorType = dbiBuilderStage2.comparatorType;
       final Comparator<T> comparator = getComparator(dbiBuilder, comparatorType, dbiFlagSet);
       final boolean useNativeCallback = comparatorType == ComparatorType.CALLBACK;
-
       return new Dbi<>(
           dbiBuilder.env,
           txn,

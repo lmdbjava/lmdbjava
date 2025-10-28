@@ -21,6 +21,8 @@ import java.util.Objects;
 
 public interface EnvFlagSet extends FlagSet<EnvFlags> {
 
+  EnvFlagSet EMPTY = EnvFlagSetImpl.EMPTY;
+
   static EnvFlagSet empty() {
     return EnvFlagSetImpl.EMPTY;
   }

@@ -110,6 +110,8 @@ public class CursorIterablePerfTest {
       data = this.data;
     }
 
+    final PutFlagSet noOverwriteAndAppendFlagSet = PutFlagSet.of(MDB_NOOVERWRITE, MDB_APPEND);
+
     for (int round = 0; round < 3; round++) {
       System.out.println("round: " + round + " -----------------------------------------");
 
@@ -122,14 +124,14 @@ public class CursorIterablePerfTest {
           }
         }
 
-        final String dbName = new String(db.getName(), StandardCharsets.UTF_8);
+        final String dbName = db.getNameAsString(StandardCharsets.UTF_8);
         final Instant start = Instant.now();
         try (Txn<ByteBuffer> txn = env.txnWrite()) {
           for (final Integer i : data) {
             if (randomOrder) {
               db.put(txn, bb(i), bb(i + 1), MDB_NOOVERWRITE);
             } else {
-              db.put(txn, bb(i), bb(i + 1), MDB_NOOVERWRITE, MDB_APPEND);
+              db.put(txn, bb(i), bb(i + 1), noOverwriteAndAppendFlagSet);
             }
           }
           txn.commit();

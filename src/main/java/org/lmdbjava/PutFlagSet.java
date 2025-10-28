@@ -21,6 +21,8 @@ import java.util.Objects;
 
 public interface PutFlagSet extends FlagSet<PutFlags> {
 
+    PutFlagSet EMPTY = PutFlagSetImpl.EMPTY;
+
     static PutFlagSet empty() {
         return PutFlagSetImpl.EMPTY;
     }
