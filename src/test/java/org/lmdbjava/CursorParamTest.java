@@ -13,14 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.lmdbjava;
 
-import static com.jakewharton.byteunits.BinaryByteUnit.KIBIBYTES;
+import static com.jakewharton.byteunits.BinaryByteUnit.MEBIBYTES;
 import static java.lang.Long.BYTES;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.collection.IsEmptyCollection.empty;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.lmdbjava.ByteArrayProxy.PROXY_BA;
 import static org.lmdbjava.ByteBufProxy.PROXY_NETTY;
 import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
@@ -44,40 +43,31 @@ import static org.lmdbjava.TestUtils.mdb;
 import static org.lmdbjava.TestUtils.nb;
 
 import io.netty.buffer.ByteBuf;
-import java.io.File;
-import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.file.Path;
+import java.util.stream.Stream;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameter;
-import org.junit.runners.Parameterized.Parameters;
+import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 /** Test {@link Cursor} with different buffer implementations. */
-@RunWith(Parameterized.class)
 public final class CursorParamTest {
 
-  /** Injected by {@link #data()} with appropriate runner. */
-  @Parameter public BufferRunner<?> runner;
-
-  @Rule public final TemporaryFolder tmp = new TemporaryFolder();
-
-  @Parameters(name = "{index}: buffer adapter: {0}")
-  public static Object[] data() {
-    final BufferRunner<ByteBuffer> bb1 = new ByteBufferRunner(PROXY_OPTIMAL);
-    final BufferRunner<ByteBuffer> bb2 = new ByteBufferRunner(PROXY_SAFE);
-    final BufferRunner<byte[]> ba = new ByteArrayRunner(PROXY_BA);
-    final BufferRunner<DirectBuffer> db = new DirectBufferRunner();
-    final BufferRunner<ByteBuf> netty = new NettyBufferRunner();
-    return new Object[] {bb1, bb2, ba, db, netty};
+  static Stream<Arguments> data() {
+    return Stream.of(
+        Arguments.arguments("ByteBufferRunner(PROXY_OPTIMAL)", new ByteBufferRunner(PROXY_OPTIMAL)),
+        Arguments.arguments("ByteBufferRunner(PROXY_SAFE)", new ByteBufferRunner(PROXY_SAFE)),
+        Arguments.arguments("ByteArrayRunner(PROXY_BA)", new ByteArrayRunner(PROXY_BA)),
+        Arguments.arguments("DirectBufferRunner", new DirectBufferRunner()),
+        Arguments.arguments("NettyBufferRunner", new NettyBufferRunner()));
   }
 
-  @Test
-  public void execute() {
+  @ParameterizedTest
+  @MethodSource("data")
+  void execute(final String name, final BufferRunner<?> runner, @TempDir final Path tmp) {
     runner.execute(tmp);
   }
 
@@ -95,11 +85,11 @@ public final class CursorParamTest {
     }
 
     @Override
-    public final void execute(final TemporaryFolder tmp) {
+    public final void execute(final Path tmp) {
       try (Env<T> env = env(tmp)) {
-        assertThat(env.getDbiNames(), empty());
+        assertThat(env.getDbiNames()).isEmpty();
         final Dbi<T> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
-        assertThat(env.getDbiNames().get(0), is(DB_1.getBytes(UTF_8)));
+        assertThat(env.getDbiNames().get(0)).isEqualTo(DB_1.getBytes(UTF_8));
         try (Txn<T> txn = env.txnWrite();
             Cursor<T> c = db.openCursor(txn)) {
           // populate data
@@ -113,71 +103,66 @@ public final class CursorParamTest {
 
           // check MDB_SET operations
           final T key3 = set(3);
-          assertThat(c.get(key3, MDB_SET_KEY), is(true));
-          assertThat(get(c.key()), is(3));
-          assertThat(get(c.val()), is(4));
+          assertThat(c.get(key3, MDB_SET_KEY)).isTrue();
+          assertThat(get(c.key())).isEqualTo(3);
+          assertThat(get(c.val())).isEqualTo(4);
           final T key6 = set(6);
-          assertThat(c.get(key6, MDB_SET_RANGE), is(true));
-          assertThat(get(c.key()), is(7));
+          assertThat(c.get(key6, MDB_SET_RANGE)).isTrue();
+          assertThat(get(c.key())).isEqualTo(7);
           if (!(this instanceof ByteArrayRunner)) {
-            assertThat(get(c.val()), is(8));
+            assertThat(get(c.val())).isEqualTo(8);
           }
           final T key999 = set(999);
-          assertThat(c.get(key999, MDB_SET_KEY), is(false));
+          assertThat(c.get(key999, MDB_SET_KEY)).isFalse();
 
           // check MDB navigation operations
-          assertThat(c.seek(MDB_LAST), is(true));
+          assertThat(c.seek(MDB_LAST)).isTrue();
           final int mdb1 = get(c.key());
           final int mdb2 = get(c.val());
 
-          assertThat(c.seek(MDB_PREV), is(true));
+          assertThat(c.seek(MDB_PREV)).isTrue();
           final int mdb3 = get(c.key());
           final int mdb4 = get(c.val());
 
-          assertThat(c.seek(MDB_NEXT), is(true));
+          assertThat(c.seek(MDB_NEXT)).isTrue();
           final int mdb5 = get(c.key());
           final int mdb6 = get(c.val());
 
-          assertThat(c.seek(MDB_FIRST), is(true));
+          assertThat(c.seek(MDB_FIRST)).isTrue();
           final int mdb7 = get(c.key());
           final int mdb8 = get(c.val());
 
           // assert afterwards to ensure memory address from LMDB
           // are valid within same txn and across cursor movement
           // MDB_LAST
-          assertThat(mdb1, is(7));
+          assertThat(mdb1).isEqualTo(7);
           if (!(this instanceof ByteArrayRunner)) {
-            assertThat(mdb2, is(8));
+            assertThat(mdb2).isEqualTo(8);
           }
 
           // MDB_PREV
-          assertThat(mdb3, is(5));
-          assertThat(mdb4, is(6));
+          assertThat(mdb3).isEqualTo(5);
+          assertThat(mdb4).isEqualTo(6);
 
           // MDB_NEXT
-          assertThat(mdb5, is(7));
+          assertThat(mdb5).isEqualTo(7);
           if (!(this instanceof ByteArrayRunner)) {
-            assertThat(mdb6, is(8));
+            assertThat(mdb6).isEqualTo(8);
           }
 
           // MDB_FIRST
-          assertThat(mdb7, is(1));
-          assertThat(mdb8, is(2));
+          assertThat(mdb7).isEqualTo(1);
+          assertThat(mdb8).isEqualTo(2);
         }
       }
     }
 
-    private Env<T> env(final TemporaryFolder tmp) {
-      try {
-        final File path = tmp.newFile();
-        return create(proxy)
-            .setMapSize(KIBIBYTES.toBytes(1_024))
-            .setMaxReaders(1)
-            .setMaxDbs(1)
-            .open(path, POSIX_MODE, MDB_NOSUBDIR);
-      } catch (final IOException e) {
-        throw new LmdbException("IO failure", e);
-      }
+    private Env<T> env(final Path tmp) {
+      return create(proxy)
+          .setMapSize(MEBIBYTES.toBytes(1))
+          .setMaxReaders(1)
+          .setMaxDbs(1)
+          .open(tmp.resolve("db").toFile(), POSIX_MODE, MDB_NOSUBDIR);
     }
   }
 
@@ -291,7 +276,7 @@ public final class CursorParamTest {
    */
   private interface BufferRunner<T> {
 
-    void execute(TemporaryFolder tmp);
+    void execute(Path tmp);
 
     T set(int val);
 

@@ -13,17 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.lmdbjava;
 
 import static com.jakewharton.byteunits.BinaryByteUnit.KIBIBYTES;
 import static java.nio.ByteBuffer.allocateDirect;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.CoreMatchers.nullValue;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import static org.lmdbjava.Env.create;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
@@ -38,17 +35,15 @@ import static org.lmdbjava.Txn.State.RELEASED;
 import static org.lmdbjava.Txn.State.RESET;
 import static org.lmdbjava.TxnFlags.MDB_RDONLY_TXN;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.lmdbjava.Dbi.BadValueSizeException;
 import org.lmdbjava.Env.AlreadyClosedException;
 import org.lmdbjava.Txn.EnvIsReadOnly;
@@ -62,36 +57,40 @@ import org.lmdbjava.Txn.ResetException;
 /** Test {@link Txn}. */
 public final class TxnTest {
 
-  @Rule public final TemporaryFolder tmp = new TemporaryFolder();
+  private Path file;
   private Env<ByteBuffer> env;
-  private File path;
 
-  @After
-  public void after() {
-    env.close();
-  }
-
-  @Before
-  public void before() throws IOException {
-    path = tmp.newFile();
+  @BeforeEach
+  void beforeEach() {
+    file = FileUtil.createTempFile();
     env =
         create()
             .setMapSize(KIBIBYTES.toBytes(256))
             .setMaxReaders(1)
             .setMaxDbs(2)
-            .open(path, POSIX_MODE, MDB_NOSUBDIR);
+            .open(file.toFile(), POSIX_MODE, MDB_NOSUBDIR);
   }
 
-  @Test(expected = BadValueSizeException.class)
-  public void largeKeysRejected() throws IOException {
-    final Dbi<ByteBuffer> dbi = env.openDbi(DB_1, MDB_CREATE);
-    final ByteBuffer key = allocateDirect(env.getMaxKeySize() + 1);
-    key.limit(key.capacity());
-    dbi.put(key, bb(2));
+  @AfterEach
+  void afterEach() {
+    env.close();
+    FileUtil.delete(file);
   }
 
   @Test
-  public void rangeSearch() {
+  void largeKeysRejected() throws IOException {
+    assertThatThrownBy(
+            () -> {
+              final Dbi<ByteBuffer> dbi = env.openDbi(DB_1, MDB_CREATE);
+              final ByteBuffer key = allocateDirect(env.getMaxKeySize() + 1);
+              key.limit(key.capacity());
+              dbi.put(key, bb(2));
+            })
+        .isInstanceOf(BadValueSizeException.class);
+  }
+
+  @Test
+  void rangeSearch() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
 
     final ByteBuffer key = allocateDirect(env.getMaxKeySize());
@@ -120,53 +119,69 @@ public final class TxnTest {
         }
       }
 
-      assertEquals(3, keysFound.size());
+      assertThat(keysFound.size()).isEqualTo(3);
     }
   }
 
   @Test
-  public void readOnlyTxnAllowedInReadOnlyEnv() {
+  void readOnlyTxnAllowedInReadOnlyEnv() {
     env.openDbi(DB_1, MDB_CREATE);
     try (Env<ByteBuffer> roEnv =
-        create().setMaxReaders(1).open(path, MDB_NOSUBDIR, MDB_RDONLY_ENV)) {
-      assertThat(roEnv.txnRead(), is(notNullValue()));
-    }
-  }
-
-  @Test(expected = EnvIsReadOnly.class)
-  public void readWriteTxnDeniedInReadOnlyEnv() {
-    env.openDbi(DB_1, MDB_CREATE);
-    env.close();
-    try (Env<ByteBuffer> roEnv =
-        create().setMaxReaders(1).open(path, MDB_NOSUBDIR, MDB_RDONLY_ENV)) {
-      roEnv.txnWrite(); // error
-    }
-  }
-
-  @Test(expected = NotReadyException.class)
-  public void testCheckNotCommitted() {
-    try (Txn<ByteBuffer> txn = env.txnRead()) {
-      txn.commit();
-      txn.checkReady();
-    }
-  }
-
-  @Test(expected = ReadOnlyRequiredException.class)
-  public void testCheckReadOnly() {
-    try (Txn<ByteBuffer> txn = env.txnWrite()) {
-      txn.checkReadOnly();
-    }
-  }
-
-  @Test(expected = ReadWriteRequiredException.class)
-  public void testCheckWritesAllowed() {
-    try (Txn<ByteBuffer> txn = env.txnRead()) {
-      txn.checkWritesAllowed();
+        create().setMaxReaders(1).open(file.toFile(), MDB_NOSUBDIR, MDB_RDONLY_ENV)) {
+      assertThat(roEnv.txnRead()).isNotNull();
     }
   }
 
   @Test
-  public void testGetId() {
+  void readWriteTxnDeniedInReadOnlyEnv() {
+    assertThatThrownBy(
+            () -> {
+              env.openDbi(DB_1, MDB_CREATE);
+              env.close();
+              try (Env<ByteBuffer> roEnv =
+                  create().setMaxReaders(1).open(file.toFile(), MDB_NOSUBDIR, MDB_RDONLY_ENV)) {
+                roEnv.txnWrite(); // error
+              }
+            })
+        .isInstanceOf(EnvIsReadOnly.class);
+  }
+
+  @Test
+  void testCheckNotCommitted() {
+    assertThatThrownBy(
+            () -> {
+              try (Txn<ByteBuffer> txn = env.txnRead()) {
+                txn.commit();
+                txn.checkReady();
+              }
+            })
+        .isInstanceOf(NotReadyException.class);
+  }
+
+  @Test
+  void testCheckReadOnly() {
+    assertThatThrownBy(
+            () -> {
+              try (Txn<ByteBuffer> txn = env.txnWrite()) {
+                txn.checkReadOnly();
+              }
+            })
+        .isInstanceOf(ReadOnlyRequiredException.class);
+  }
+
+  @Test
+  void testCheckWritesAllowed() {
+    assertThatThrownBy(
+            () -> {
+              try (Txn<ByteBuffer> txn = env.txnRead()) {
+                txn.checkWritesAllowed();
+              }
+            })
+        .isInstanceOf(ReadWriteRequiredException.class);
+  }
+
+  @Test
+  void testGetId() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
 
     final AtomicLong txId1 = new AtomicLong();
@@ -182,173 +197,233 @@ public final class TxnTest {
       txId2.set(tx2.getId());
     }
     // should not see the same snapshot
-    assertThat(txId1.get(), is(not(txId2.get())));
+    assertThat(txId1.get()).isNotEqualTo(txId2.get());
   }
 
   @Test
-  public void txCanCommitThenCloseWithoutError() {
+  void txCanCommitThenCloseWithoutError() {
     try (Txn<ByteBuffer> txn = env.txnRead()) {
-      assertThat(txn.getState(), is(READY));
+      assertThat(txn.getState()).isEqualTo(READY);
       txn.commit();
-      assertThat(txn.getState(), is(DONE));
+      assertThat(txn.getState()).isEqualTo(DONE);
     }
   }
 
-  @Test(expected = NotReadyException.class)
-  public void txCannotAbortIfAlreadyCommitted() {
-    try (Txn<ByteBuffer> txn = env.txnRead()) {
-      assertThat(txn.getState(), is(READY));
-      txn.commit();
-      assertThat(txn.getState(), is(DONE));
-      txn.abort();
-    }
+  @Test
+  void txCannotAbortIfAlreadyCommitted() {
+    assertThatThrownBy(
+            () -> {
+              try (Txn<ByteBuffer> txn = env.txnRead()) {
+                assertThat(txn.getState()).isEqualTo(READY);
+                txn.commit();
+                assertThat(txn.getState()).isEqualTo(DONE);
+                txn.abort();
+              }
+            })
+        .isInstanceOf(NotReadyException.class);
   }
 
-  @Test(expected = NotReadyException.class)
-  public void txCannotCommitTwice() {
-    try (Txn<ByteBuffer> txn = env.txnRead()) {
-      txn.commit();
-      txn.commit(); // error
-    }
+  @Test
+  void txCannotCommitTwice() {
+    assertThatThrownBy(
+            () -> {
+              try (Txn<ByteBuffer> txn = env.txnRead()) {
+                txn.commit();
+                txn.commit(); // error
+              }
+            })
+        .isInstanceOf(NotReadyException.class);
   }
 
-  @Test(expected = AlreadyClosedException.class)
-  public void txConstructionDeniedIfEnvClosed() {
-    env.close();
-    env.txnRead();
+  @Test
+  void txConstructionDeniedIfEnvClosed() {
+    assertThatThrownBy(
+            () -> {
+              env.close();
+              env.txnRead();
+            })
+        .isInstanceOf(AlreadyClosedException.class);
   }
 
-  @Test(expected = AlreadyClosedException.class)
-  public void txRenewDeniedIfEnvClosed() {
-    final Txn<ByteBuffer> txnRead = env.txnRead();
-    txnRead.close();
-    env.close();
-    txnRead.renew();
+  @Test
+  void txRenewDeniedIfEnvClosed() {
+    assertThatThrownBy(
+            () -> {
+              final Txn<ByteBuffer> txnRead = env.txnRead();
+              txnRead.close();
+              env.close();
+              txnRead.renew();
+            })
+        .isInstanceOf(AlreadyClosedException.class);
   }
 
-  @Test(expected = AlreadyClosedException.class)
-  public void txCloseDeniedIfEnvClosed() {
-    final Txn<ByteBuffer> txnRead = env.txnRead();
-    env.close();
-    txnRead.close();
+  @Test
+  void txCloseDeniedIfEnvClosed() {
+    assertThatThrownBy(
+            () -> {
+              final Txn<ByteBuffer> txnRead = env.txnRead();
+              env.close();
+              txnRead.close();
+            })
+        .isInstanceOf(AlreadyClosedException.class);
   }
 
-  @Test(expected = AlreadyClosedException.class)
-  public void txCommitDeniedIfEnvClosed() {
-    final Txn<ByteBuffer> txnRead = env.txnRead();
-    env.close();
-    txnRead.commit();
+  @Test
+  void txCommitDeniedIfEnvClosed() {
+    assertThatThrownBy(
+            () -> {
+              final Txn<ByteBuffer> txnRead = env.txnRead();
+              env.close();
+              txnRead.commit();
+            })
+        .isInstanceOf(AlreadyClosedException.class);
   }
 
-  @Test(expected = AlreadyClosedException.class)
-  public void txAbortDeniedIfEnvClosed() {
-    final Txn<ByteBuffer> txnRead = env.txnRead();
-    env.close();
-    txnRead.abort();
+  @Test
+  void txAbortDeniedIfEnvClosed() {
+    assertThatThrownBy(
+            () -> {
+              final Txn<ByteBuffer> txnRead = env.txnRead();
+              env.close();
+              txnRead.abort();
+            })
+        .isInstanceOf(AlreadyClosedException.class);
   }
 
-  @Test(expected = AlreadyClosedException.class)
-  public void txResetDeniedIfEnvClosed() {
-    final Txn<ByteBuffer> txnRead = env.txnRead();
-    env.close();
-    txnRead.reset();
+  @Test
+  void txResetDeniedIfEnvClosed() {
+    assertThatThrownBy(
+            () -> {
+              final Txn<ByteBuffer> txnRead = env.txnRead();
+              env.close();
+              txnRead.reset();
+            })
+        .isInstanceOf(AlreadyClosedException.class);
   }
 
   @Test
   public void txParent() {
     try (Txn<ByteBuffer> txRoot = env.txnWrite();
         Txn<ByteBuffer> txChild = env.txn(txRoot)) {
-      assertThat(txRoot.getParent(), is(nullValue()));
-      assertThat(txChild.getParent(), is(txRoot));
-    }
-  }
-
-  @Test(expected = AlreadyClosedException.class)
-  public void txParentDeniedIfEnvClosed() {
-    try (Txn<ByteBuffer> txRoot = env.txnWrite();
-        Txn<ByteBuffer> txChild = env.txn(txRoot)) {
-      env.close();
-      assertThat(txChild.getParent(), is(txRoot));
-    }
-  }
-
-  @Test(expected = IncompatibleParent.class)
-  public void txParentROChildRWIncompatible() {
-    try (Txn<ByteBuffer> txRoot = env.txnRead()) {
-      env.txn(txRoot); // error
-    }
-  }
-
-  @Test(expected = IncompatibleParent.class)
-  public void txParentRWChildROIncompatible() {
-    try (Txn<ByteBuffer> txRoot = env.txnWrite()) {
-      env.txn(txRoot, MDB_RDONLY_TXN); // error
+      assertThat(txRoot.getParent()).isNull();
+      assertThat(txChild.getParent()).isEqualTo(txRoot);
     }
   }
 
   @Test
-  public void txReadOnly() {
+  void txParentDeniedIfEnvClosed() {
+    assertThatThrownBy(
+            () -> {
+              try (Txn<ByteBuffer> txRoot = env.txnWrite();
+                  Txn<ByteBuffer> txChild = env.txn(txRoot)) {
+                env.close();
+                assertThat(txChild.getParent()).isEqualTo(txRoot);
+              }
+            })
+        .isInstanceOf(AlreadyClosedException.class);
+  }
+
+  @Test
+  void txParentROChildRWIncompatible() {
+    assertThatThrownBy(
+            () -> {
+              try (Txn<ByteBuffer> txRoot = env.txnRead()) {
+                env.txn(txRoot); // error
+              }
+            })
+        .isInstanceOf(IncompatibleParent.class);
+  }
+
+  @Test
+  void txParentRWChildROIncompatible() {
+    assertThatThrownBy(
+            () -> {
+              try (Txn<ByteBuffer> txRoot = env.txnWrite()) {
+                env.txn(txRoot, MDB_RDONLY_TXN); // error
+              }
+            })
+        .isInstanceOf(IncompatibleParent.class);
+  }
+
+  @Test
+  void txReadOnly() {
     try (Txn<ByteBuffer> txn = env.txnRead()) {
-      assertThat(txn.getParent(), is(nullValue()));
-      assertThat(txn.getState(), is(READY));
-      assertThat(txn.isReadOnly(), is(true));
+      assertThat(txn.getParent()).isNull();
+      assertThat(txn.getState()).isEqualTo(READY);
+      assertThat(txn.isReadOnly()).isTrue();
       txn.checkReady();
       txn.checkReadOnly();
       txn.reset();
-      assertThat(txn.getState(), is(RESET));
+      assertThat(txn.getState()).isEqualTo(RESET);
       txn.renew();
-      assertThat(txn.getState(), is(READY));
+      assertThat(txn.getState()).isEqualTo(READY);
       txn.commit();
-      assertThat(txn.getState(), is(DONE));
+      assertThat(txn.getState()).isEqualTo(DONE);
       txn.close();
-      assertThat(txn.getState(), is(RELEASED));
+      assertThat(txn.getState()).isEqualTo(RELEASED);
     }
   }
 
   @Test
-  public void txReadWrite() {
+  void txReadWrite() {
     final Txn<ByteBuffer> txn = env.txnWrite();
-    assertThat(txn.getParent(), is(nullValue()));
-    assertThat(txn.getState(), is(READY));
-    assertThat(txn.isReadOnly(), is(false));
+    assertThat(txn.getParent()).isNull();
+    assertThat(txn.getState()).isEqualTo(READY);
+    assertThat(txn.isReadOnly()).isFalse();
     txn.checkReady();
     txn.checkWritesAllowed();
     txn.commit();
-    assertThat(txn.getState(), is(DONE));
+    assertThat(txn.getState()).isEqualTo(DONE);
     txn.close();
-    assertThat(txn.getState(), is(RELEASED));
+    assertThat(txn.getState()).isEqualTo(RELEASED);
   }
 
-  @Test(expected = NotResetException.class)
-  public void txRenewDeniedWithoutPriorReset() {
-    try (Txn<ByteBuffer> txn = env.txnRead()) {
-      txn.renew();
-    }
+  @Test
+  void txRenewDeniedWithoutPriorReset() {
+    assertThatThrownBy(
+            () -> {
+              try (Txn<ByteBuffer> txn = env.txnRead()) {
+                txn.renew();
+              }
+            })
+        .isInstanceOf(NotResetException.class);
   }
 
-  @Test(expected = ResetException.class)
-  public void txResetDeniedForAlreadyResetTransaction() {
-    try (Txn<ByteBuffer> txn = env.txnRead()) {
-      txn.reset();
-      txn.renew();
-      txn.reset();
-      txn.reset();
-    }
+  @Test
+  void txResetDeniedForAlreadyResetTransaction() {
+    assertThatThrownBy(
+            () -> {
+              try (Txn<ByteBuffer> txn = env.txnRead()) {
+                txn.reset();
+                txn.renew();
+                txn.reset();
+                txn.reset();
+              }
+            })
+        .isInstanceOf(ResetException.class);
   }
 
-  @Test(expected = ReadOnlyRequiredException.class)
-  public void txResetDeniedForReadWriteTransaction() {
-    try (Txn<ByteBuffer> txn = env.txnWrite()) {
-      txn.reset();
-    }
+  @Test
+  void txResetDeniedForReadWriteTransaction() {
+    assertThatThrownBy(
+            () -> {
+              try (Txn<ByteBuffer> txn = env.txnWrite()) {
+                txn.reset();
+              }
+            })
+        .isInstanceOf(ReadOnlyRequiredException.class);
   }
 
-  @Test(expected = BadValueSizeException.class)
-  public void zeroByteKeysRejected() throws IOException {
-    final Dbi<ByteBuffer> dbi = env.openDbi(DB_1, MDB_CREATE);
-    final ByteBuffer key = allocateDirect(4);
-    key.putInt(1);
-    assertThat(key.remaining(), is(0)); // because key.flip() skipped
-    dbi.put(key, bb(2));
+  @Test
+  void zeroByteKeysRejected() {
+    assertThatThrownBy(
+            () -> {
+              final Dbi<ByteBuffer> dbi = env.openDbi(DB_1, MDB_CREATE);
+              final ByteBuffer key = allocateDirect(4);
+              key.putInt(1);
+              assertThat(key.remaining()).isEqualTo(0); // because key.flip() skipped
+              dbi.put(key, bb(2));
+            })
+        .isInstanceOf(BadValueSizeException.class);
   }
 }
