@@ -29,20 +29,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.lmdbjava.ByteArrayProxy.PROXY_BA;
 import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
-import static org.lmdbjava.DbiFlags.MDB_CREATE;
-import static org.lmdbjava.DbiFlags.MDB_DUPSORT;
-import static org.lmdbjava.DbiFlags.MDB_INTEGERKEY;
-import static org.lmdbjava.DbiFlags.MDB_REVERSEKEY;
+import static org.lmdbjava.DbiFlags.*;
 import static org.lmdbjava.Env.create;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.GetOp.MDB_SET_KEY;
 import static org.lmdbjava.KeyRange.atMost;
 import static org.lmdbjava.PutFlags.MDB_NODUPDATA;
 import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
-import static org.lmdbjava.TestUtils.DB_1;
-import static org.lmdbjava.TestUtils.ba;
-import static org.lmdbjava.TestUtils.bb;
-import static org.lmdbjava.TestUtils.fromBa;
+import static org.lmdbjava.TestUtils.*;
 
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
@@ -50,11 +44,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
@@ -197,44 +187,43 @@ public final class DbiTest {
 
     final List<Integer> keys = range(0, 1_000).boxed().collect(toList());
 
-    try (final ExecutorService pool = Executors.newCachedThreadPool()) {
-      final AtomicBoolean proceed = new AtomicBoolean(true);
-      final Future<?> reader =
-          pool.submit(
-              () -> {
-                while (proceed.get()) {
-                  try (Txn<T> txn = env.txnRead()) {
-                    db.get(txn, serializer.apply(50));
-                  }
+    final ExecutorService pool = Executors.newCachedThreadPool();
+    final AtomicBoolean proceed = new AtomicBoolean(true);
+    final Future<?> reader =
+        pool.submit(
+            () -> {
+              while (proceed.get()) {
+                try (Txn<T> txn = env.txnRead()) {
+                  db.get(txn, serializer.apply(50));
                 }
-              });
+              }
+            });
 
-      for (final Integer key : keys) {
-        try (Txn<T> txn = env.txnWrite()) {
-          db.put(txn, serializer.apply(key), serializer.apply(3));
-          txn.commit();
-        }
+    for (final Integer key : keys) {
+      try (Txn<T> txn = env.txnWrite()) {
+        db.put(txn, serializer.apply(key), serializer.apply(3));
+        txn.commit();
+      }
+    }
+
+    try (Txn<T> txn = env.txnRead();
+        CursorIterable<T> ci = db.iterate(txn)) {
+      final Iterator<KeyVal<T>> iter = ci.iterator();
+      final List<Integer> result = new ArrayList<>();
+      while (iter.hasNext()) {
+        result.add(deserializer.applyAsInt(iter.next().key()));
       }
 
-      try (Txn<T> txn = env.txnRead();
-          CursorIterable<T> ci = db.iterate(txn)) {
-        final Iterator<KeyVal<T>> iter = ci.iterator();
-        final List<Integer> result = new ArrayList<>();
-        while (iter.hasNext()) {
-          result.add(deserializer.applyAsInt(iter.next().key()));
-        }
+      assertThat(result).contains(keys.toArray(new Integer[0]));
+    }
 
-        assertThat(result).contains(keys.toArray(new Integer[0]));
-      }
-
-      proceed.set(false);
-      try {
-        reader.get(1, SECONDS);
-        pool.shutdown();
-        pool.awaitTermination(1, SECONDS);
-      } catch (ExecutionException | InterruptedException | TimeoutException e) {
-        throw new IllegalStateException(e);
-      }
+    proceed.set(false);
+    try {
+      reader.get(1, SECONDS);
+      pool.shutdown();
+      pool.awaitTermination(1, SECONDS);
+    } catch (ExecutionException | InterruptedException | TimeoutException e) {
+      throw new IllegalStateException(e);
     }
   }
 
