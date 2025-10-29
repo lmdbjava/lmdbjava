@@ -24,6 +24,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
@@ -55,10 +56,26 @@ final class TestUtils {
     return bb;
   }
 
+  static ByteBuffer bb(final String value) {
+    final ByteBuffer bb = allocateDirect(100);
+    if (value != null) {
+      bb.put(value.getBytes(StandardCharsets.UTF_8));
+      bb.flip();
+    }
+    return bb;
+  }
+
   static ByteBuffer bbNative(final int value) {
-    final ByteBuffer bb = allocateDirect(Long.BYTES)
+    final ByteBuffer bb = allocateDirect(Integer.BYTES)
         .order(ByteOrder.nativeOrder());
     bb.putInt(value).flip();
+    return bb;
+  }
+
+  static ByteBuffer bbNative(final long value) {
+    final ByteBuffer bb = allocateDirect(Long.BYTES)
+        .order(ByteOrder.nativeOrder());
+    bb.putLong(value).flip();
     return bb;
   }
 
@@ -67,6 +84,20 @@ final class TestUtils {
         .getInt();
     bb.rewind();
     return val;
+  }
+
+  static long getNativeLong(final ByteBuffer bb) {
+    final long val = bb.order(ByteOrder.nativeOrder())
+        .getLong();
+    bb.rewind();
+    return val;
+  }
+
+  static String getString(final ByteBuffer bb) {
+    final String str = StandardCharsets.UTF_8.decode(bb)
+        .toString();
+    bb.rewind();
+    return str;
   }
 
   static void invokePrivateConstructor(final Class<?> clazz) {

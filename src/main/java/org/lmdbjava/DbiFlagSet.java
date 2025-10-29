@@ -21,7 +21,13 @@ import java.util.Objects;
 
 public interface DbiFlagSet extends FlagSet<DbiFlags> {
 
+  /** An immutable empty {@link DbiFlagSet}. */
   DbiFlagSet EMPTY = DbiFlagSetImpl.EMPTY;
+
+  /** The set of {@link DbiFlags} that indicate unsigned integer keys are being used. */
+  DbiFlagSet INTEGER_KEY_FLAGS = DbiFlagSet.of(
+      DbiFlags.MDB_INTEGERKEY,
+      DbiFlags.MDB_INTEGERDUP);
 
   static DbiFlagSet empty() {
     return DbiFlagSetImpl.EMPTY;

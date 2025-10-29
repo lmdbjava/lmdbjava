@@ -82,15 +82,27 @@ public final class Dbi<T> {
     if (nativeCb) {
       requireNonNull(comparator, "comparator cannot be null if nativeCb is set");
       // LMDB will call back to this comparator for insertion/iteration order
-      this.callbackComparator =
-          (keyA, keyB) -> {
-            final T compKeyA  = proxy.out(proxy.allocate(), keyA);
-            final T compKeyB = proxy.out(proxy.allocate(), keyB);
-            final int result = this.comparator.compare(compKeyA, compKeyB);
-            proxy.deallocate(compKeyA);
-            proxy.deallocate(compKeyB);
-            return result;
-          };
+//      if (dbiFlagSet.areAnySet(DbiFlagSet.INTEGER_KEY_FLAGS)) {
+//        this.callbackComparator =
+//            (keyA, keyB) -> {
+//              final T compKeyA  = proxy.out(proxy.allocate(), keyA);
+//              final T compKeyB = proxy.out(proxy.allocate(), keyB);
+//              final int result = this.comparator.compare(compKeyA, compKeyB);
+//              proxy.deallocate(compKeyA);
+//              proxy.deallocate(compKeyB);
+//              return result;
+//            };
+//      } else {
+        this.callbackComparator =
+            (keyA, keyB) -> {
+              final T compKeyA  = proxy.out(proxy.allocate(), keyA);
+              final T compKeyB = proxy.out(proxy.allocate(), keyB);
+              final int result = this.comparator.compare(compKeyA, compKeyB);
+              proxy.deallocate(compKeyA);
+              proxy.deallocate(compKeyB);
+              return result;
+            };
+//      }
       LIB.mdb_set_compare(txn.pointer(), ptr, callbackComparator);
     } else {
       callbackComparator = null;

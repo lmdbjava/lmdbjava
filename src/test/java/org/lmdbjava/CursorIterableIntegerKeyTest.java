@@ -51,20 +51,24 @@ import static org.lmdbjava.TestUtils.POSIX_MODE;
 import static org.lmdbjava.TestUtils.bb;
 import static org.lmdbjava.TestUtils.bbNative;
 import static org.lmdbjava.TestUtils.getNativeInt;
+import static org.lmdbjava.TestUtils.getString;
 
 import com.google.common.primitives.UnsignedBytes;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
@@ -148,6 +152,98 @@ public final class CursorIterableIntegerKeyTest {
   @After
   public void after() {
     env.close();
+  }
+
+  @Test
+  public void testNumericOrderLong() {
+    final Dbi<ByteBuffer> dbi = dbiFactory.factory.apply(env);
+
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
+      final Cursor<ByteBuffer> c = dbi.openCursor(txn);
+      long i = 1;
+      while (true) {
+//        System.out.println("putting " + i);
+        c.put(bbNative(i), bb(i + "-long"));
+          final long i2 = i * 10;
+          if (i2 < i) {
+            // Overflowed
+            break;
+          }
+        i = i2;
+      }
+      txn.commit();
+    }
+
+    final List<Map.Entry<Long, String>> entries = new ArrayList<>();
+    try (Txn<ByteBuffer> txn = env.txnRead()) {
+      try (CursorIterable<ByteBuffer> iterable = dbi.iterate(txn)) {
+        for (KeyVal<ByteBuffer> keyVal : iterable) {
+          final String val = getString(keyVal.val());
+          final long key = TestUtils.getNativeLong(keyVal.key());
+          entries.add(new AbstractMap.SimpleEntry<>(key, val));
+//          System.out.println(val);
+        }
+      }
+    }
+
+    final List<Long> dbKeys = entries.stream()
+        .map(Map.Entry::getKey)
+        .collect(Collectors.toList());
+    final List<Long> dbKeysSorted = entries.stream()
+        .map(Map.Entry::getKey)
+        .sorted()
+        .collect(Collectors.toList());
+    for (int i = 0; i < dbKeys.size(); i++) {
+      final long dbKey1 = dbKeys.get(i);
+      final long dbKey2 = dbKeysSorted.get(i);
+      assertThat(dbKey1, is(dbKey2));
+    }
+  }
+
+  @Test
+  public void testNumericOrderInt() {
+    final Dbi<ByteBuffer> dbi = dbiFactory.factory.apply(env);
+
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
+      final Cursor<ByteBuffer> c = dbi.openCursor(txn);
+      int i = 1;
+      while (true) {
+//        System.out.println("putting " + i);
+        c.put(bbNative(i), bb(i + "-int"));
+        final int i2 = i * 10;
+        if (i2 < i) {
+          // Overflowed
+          break;
+        }
+        i = i2;
+      }
+      txn.commit();
+    }
+
+    final List<Map.Entry<Integer, String>> entries = new ArrayList<>();
+    try (Txn<ByteBuffer> txn = env.txnRead()) {
+      try (CursorIterable<ByteBuffer> iterable = dbi.iterate(txn)) {
+        for (KeyVal<ByteBuffer> keyVal : iterable) {
+          final String val = getString(keyVal.val());
+          final int key = TestUtils.getNativeInt(keyVal.key());
+          entries.add(new AbstractMap.SimpleEntry<>(key, val));
+//          System.out.println(val);
+        }
+      }
+    }
+
+    final List<Integer> dbKeys = entries.stream()
+        .map(Map.Entry::getKey)
+        .collect(Collectors.toList());
+    final List<Integer> dbKeysSorted = entries.stream()
+        .map(Map.Entry::getKey)
+        .sorted()
+        .collect(Collectors.toList());
+    for (int i = 0; i < dbKeys.size(); i++) {
+      final long dbKey1 = dbKeys.get(i);
+      final long dbKey2 = dbKeysSorted.get(i);
+      assertThat(dbKey1, is(dbKey2));
+    }
   }
 
   @Test

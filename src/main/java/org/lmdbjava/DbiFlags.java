@@ -41,7 +41,7 @@ public enum DbiFlags implements MaskedFlag, DbiFlagSet {
   MDB_DUPSORT(0x04),
   /**
    * Numeric keys in native byte order: either unsigned int or size_t.
-   * The keys must all be of the same size.
+   * <strong>The keys must all be of the same size.</strong>
    * <p>
    * This is an optimisation that is available when your keys are 4 or 8 byte unsigned numeric values.
    * There are performance benefits for both ordered and un-ordered puts as compared to not using

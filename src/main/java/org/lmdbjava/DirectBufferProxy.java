@@ -138,7 +138,7 @@ public final class DirectBufferProxy extends BufferProxy<DirectBuffer> {
 
   @Override
   public Comparator<DirectBuffer> getComparator(final DbiFlagSet dbiFlagSet) {
-    if (dbiFlagSet.areAnySet(INTEGER_KEY_FLAGS)) {
+    if (dbiFlagSet.areAnySet(DbiFlagSet.INTEGER_KEY_FLAGS)) {
       return DirectBufferProxy::compareAsIntegerKeys;
     } else {
       return DirectBufferProxy::compareLexicographically;

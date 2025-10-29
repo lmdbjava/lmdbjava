@@ -40,10 +40,6 @@ public abstract class BufferProxy<T> {
   /** Offset from a pointer of the <code>MDB_val.mv_size</code> field. */
   protected static final int STRUCT_FIELD_OFFSET_SIZE = 0;
 
-  /** The set of {@link DbiFlags} that indicate unsigned integer keys are being used. */
-  protected static final DbiFlagSet INTEGER_KEY_FLAGS = DbiFlagSet.of(
-      DbiFlags.MDB_INTEGERKEY,
-      DbiFlags.MDB_INTEGERDUP);
 
   /** Explicitly-defined default constructor to avoid warnings. */
   protected BufferProxy() {}
