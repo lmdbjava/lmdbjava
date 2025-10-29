@@ -154,7 +154,7 @@ public final class ByteBufferProxy {
      * Buffer comparator specifically for 4/8 byte keys that are unsigned ints/longs,
      * i.e. when using MDB_INTEGER_KEY/MDB_INTEGERDUP. Compares the buffers numerically.
      * <p>
-     * Both buffer must have 4 or 8 bytes remaining
+     * Both buffers must have 4 or 8 bytes remaining
      * </p>
      *
      * @param o1 left operand (required)

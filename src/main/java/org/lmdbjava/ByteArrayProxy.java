@@ -36,8 +36,6 @@ public final class ByteArrayProxy extends BufferProxy<byte[]> {
 
   private static final MemoryManager MEM_MGR = RUNTIME.getMemoryManager();
 
-  private static final Comparator<byte[]> unsignedComparator = ByteArrayProxy::compareArrays;
-
   private ByteArrayProxy() {}
 
   /**
@@ -47,7 +45,7 @@ public final class ByteArrayProxy extends BufferProxy<byte[]> {
    * @param o2 right operand (required)
    * @return as specified by {@link Comparable} interface
    */
-  public static int compareArrays(final byte[] o1, final byte[] o2) {
+  public static int compareLexicographically(final byte[] o1, final byte[] o2) {
     requireNonNull(o1);
     requireNonNull(o2);
     if (o1 == o2) {
@@ -84,7 +82,7 @@ public final class ByteArrayProxy extends BufferProxy<byte[]> {
 
   @Override
   public Comparator<byte[]> getComparator(final DbiFlagSet dbiFlagSet) {
-    return unsignedComparator;
+    return ByteArrayProxy::compareLexicographically;
   }
 
   @Override
