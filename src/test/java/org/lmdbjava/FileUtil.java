@@ -25,52 +25,11 @@ import java.nio.file.NotDirectoryException;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.EnumSet;
-import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 final class FileUtil {
 
   private FileUtil() {}
-
-  static Path createTempDir() {
-    try {
-      return Files.createTempDirectory("lmdbjava");
-    } catch (final IOException e) {
-      throw new UncheckedIOException(e);
-    }
-  }
-
-  static Path createTempFile() {
-    try {
-      return Files.createTempFile("lmdbjava", "db");
-    } catch (final IOException e) {
-      throw new UncheckedIOException(e);
-    }
-  }
-
-  static void useTempDir(final Consumer<Path> consumer) {
-    Path path = null;
-    try {
-      path = createTempDir();
-      consumer.accept(path);
-    } finally {
-      if (path != null) {
-        deleteDir(path);
-      }
-    }
-  }
-
-  static void useTempFile(final Consumer<Path> consumer) {
-    Path path = null;
-    try {
-      path = createTempFile();
-      consumer.accept(path);
-    } finally {
-      if (path != null) {
-        deleteIfExists(path);
-      }
-    }
-  }
 
   public static long size(final Path path) {
     try {

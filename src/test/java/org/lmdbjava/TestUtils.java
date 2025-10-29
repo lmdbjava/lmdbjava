@@ -56,6 +56,15 @@ final class TestUtils {
     return bb;
   }
 
+  static byte[] getBytes(final ByteBuffer byteBuffer) {
+    if (byteBuffer == null) {
+      return null;
+    }
+    final byte[] bytes = new byte[byteBuffer.remaining()];
+    byteBuffer.duplicate().get(bytes);
+    return bytes;
+  }
+
   static void invokePrivateConstructor(final Class<?> clazz) {
     try {
       final Constructor<?> c = clazz.getDeclaredConstructor();

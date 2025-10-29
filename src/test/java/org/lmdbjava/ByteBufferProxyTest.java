@@ -36,6 +36,7 @@ import static org.lmdbjava.UnsafeAccess.ALLOW_UNSAFE;
 
 import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
+import java.nio.file.Path;
 import jnr.ffi.Pointer;
 import jnr.ffi.provider.MemoryManager;
 import org.junit.jupiter.api.Test;
@@ -51,17 +52,17 @@ public final class ByteBufferProxyTest {
   void buffersMustBeDirect() {
     assertThatThrownBy(
             () -> {
-              FileUtil.useTempDir(
-                  dir -> {
-                    try (Env<ByteBuffer> env = create().setMaxReaders(1).open(dir.toFile())) {
-                      final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
-                      final ByteBuffer key = allocate(100);
-                      key.putInt(1).flip();
-                      final ByteBuffer val = allocate(100);
-                      val.putInt(1).flip();
-                      db.put(key, val); // error
-                    }
-                  });
+              try (final TempDir tempDir = new TempDir()) {
+                final Path dir = tempDir.createTempDir();
+                try (final Env<ByteBuffer> env = create().setMaxReaders(1).open(dir.toFile())) {
+                  final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
+                  final ByteBuffer key = allocate(100);
+                  key.putInt(1).flip();
+                  final ByteBuffer val = allocate(100);
+                  val.putInt(1).flip();
+                  db.put(key, val); // error
+                }
+              }
             })
         .isInstanceOf(BufferMustBeDirectException.class);
   }

@@ -62,21 +62,21 @@ import org.lmdbjava.LmdbNativeException.ConstantDerivedException;
 /** Test {@link Dbi}. */
 public final class DbiTest {
 
-  private Path file;
+  private TempDir tempDir;
   private Env<ByteBuffer> env;
-  private Path fileBa;
   private Env<byte[]> envBa;
 
   @BeforeEach
   void beforeEach() {
-    file = FileUtil.createTempFile();
+    tempDir = new TempDir();
+    final Path file = tempDir.createTempFile();
     env =
         create()
             .setMapSize(MEBIBYTES.toBytes(64))
             .setMaxReaders(2)
             .setMaxDbs(2)
             .open(file.toFile(), MDB_NOSUBDIR);
-    fileBa = FileUtil.createTempFile();
+    final Path fileBa = tempDir.createTempFile();
     envBa =
         create(PROXY_BA)
             .setMapSize(MEBIBYTES.toBytes(64))
@@ -89,8 +89,7 @@ public final class DbiTest {
   void afterEach() {
     env.close();
     envBa.close();
-    FileUtil.deleteFile(file);
-    FileUtil.deleteFile(fileBa);
+    tempDir.cleanup();
   }
 
   @Test
@@ -362,26 +361,24 @@ public final class DbiTest {
 
   @Test
   void putCommitGetByteArray() {
-    FileUtil.useTempFile(
-        file -> {
-          try (Env<byte[]> envBa =
-              create(PROXY_BA)
-                  .setMapSize(MEBIBYTES.toBytes(64))
-                  .setMaxReaders(1)
-                  .setMaxDbs(2)
-                  .open(file.toFile(), MDB_NOSUBDIR)) {
-            final Dbi<byte[]> db = envBa.openDbi(DB_1, MDB_CREATE);
-            try (Txn<byte[]> txn = envBa.txnWrite()) {
-              db.put(txn, ba(5), ba(5));
-              txn.commit();
-            }
-            try (Txn<byte[]> txn = envBa.txnWrite()) {
-              final byte[] found = db.get(txn, ba(5));
-              assertThat(found).isNotNull();
-              assertThat(fromBa(txn.val())).isEqualTo(5);
-            }
-          }
-        });
+    final Path file = tempDir.createTempFile();
+    try (Env<byte[]> envBa =
+        create(PROXY_BA)
+            .setMapSize(MEBIBYTES.toBytes(64))
+            .setMaxReaders(1)
+            .setMaxDbs(2)
+            .open(file.toFile(), MDB_NOSUBDIR)) {
+      final Dbi<byte[]> db = envBa.openDbi(DB_1, MDB_CREATE);
+      try (Txn<byte[]> txn = envBa.txnWrite()) {
+        db.put(txn, ba(5), ba(5));
+        txn.commit();
+      }
+      try (Txn<byte[]> txn = envBa.txnWrite()) {
+        final byte[] found = db.get(txn, ba(5));
+        assertThat(found).isNotNull();
+        assertThat(fromBa(txn.val())).isEqualTo(5);
+      }
+    }
   }
 
   @Test

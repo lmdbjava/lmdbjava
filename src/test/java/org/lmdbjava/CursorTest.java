@@ -54,12 +54,13 @@ import org.lmdbjava.Txn.ReadOnlyRequiredException;
 /** Test {@link Cursor}. */
 public final class CursorTest {
 
-  private Path file;
   private Env<ByteBuffer> env;
+  private TempDir tempDir;
 
   @BeforeEach
   void beforeEach() {
-    file = FileUtil.createTempFile();
+    tempDir = new TempDir();
+    Path file = tempDir.createTempFile();
     env =
         create(PROXY_OPTIMAL)
             .setMapSize(MEBIBYTES.toBytes(1))
@@ -71,7 +72,7 @@ public final class CursorTest {
   @AfterEach
   void afterEach() {
     env.close();
-    FileUtil.deleteFile(file);
+    tempDir.cleanup();
   }
 
   @Test

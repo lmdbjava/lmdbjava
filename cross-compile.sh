@@ -20,6 +20,7 @@ set -o errexit
 
 rm -rf openldap
 git clone --depth 1 --branch LMDB_0.9.33 https://git.openldap.org/openldap/openldap.git
+rm -rf openldap/.git
 pushd openldap/libraries/liblmdb
 trap popd SIGINT
 

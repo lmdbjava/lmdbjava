@@ -15,11 +15,7 @@
  */
 package org.lmdbjava;
 
-import static org.lmdbjava.CursorIterable.State.RELEASED;
-import static org.lmdbjava.CursorIterable.State.REQUIRES_INITIAL_OP;
-import static org.lmdbjava.CursorIterable.State.REQUIRES_ITERATOR_OP;
-import static org.lmdbjava.CursorIterable.State.REQUIRES_NEXT_OP;
-import static org.lmdbjava.CursorIterable.State.TERMINATED;
+import static org.lmdbjava.CursorIterable.State.*;
 import static org.lmdbjava.GetOp.MDB_SET_RANGE;
 
 import java.util.Comparator;
@@ -101,7 +97,7 @@ public final class CursorIterable<T> implements Iterable<CursorIterable.KeyVal<T
   }
 
   private void executeCursorOp(final CursorOp op) {
-    final boolean found;
+    boolean found;
     switch (op) {
       case FIRST:
         found = cursor.first();
@@ -119,7 +115,31 @@ public final class CursorIterable<T> implements Iterable<CursorIterable.KeyVal<T
         found = cursor.get(range.getStart(), MDB_SET_RANGE);
         break;
       case GET_START_KEY_BACKWARD:
-        found = cursor.get(range.getStart(), MDB_SET_RANGE) || cursor.last();
+        found = cursor.get(range.getStart(), MDB_SET_RANGE);
+        if (found) {
+          if (!range.getType().isDirectionForward()
+              && range.getType().isStartKeyRequired()
+              && range.getType().isStartKeyInclusive()) {
+            // We need to ensure we move to the last matching key if using DUPSORT, see issue 267
+            boolean loop = true;
+            while (loop) {
+              if (comparator.compare(cursor.key(), range.getStart()) <= 0) {
+                found = cursor.next();
+                if (!found) {
+                  // We got to the end so move last.
+                  found = cursor.last();
+                  loop = false;
+                }
+              } else {
+                // We have moved past so go back one.
+                found = cursor.prev();
+                loop = false;
+              }
+            }
+          }
+        } else {
+          found = cursor.last();
+        }
         break;
       default:
         throw new IllegalStateException("Unknown cursor operation");

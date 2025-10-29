@@ -48,7 +48,6 @@ import static org.lmdbjava.TestUtils.bb;
 
 import com.google.common.primitives.UnsignedBytes;
 import java.nio.ByteBuffer;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Deque;
@@ -64,20 +63,20 @@ import org.lmdbjava.CursorIterable.KeyVal;
 /** Test {@link CursorIterable}. */
 public final class CursorIterableTest {
 
-  private Path file;
+  private TempDir tempDir;
   private Dbi<ByteBuffer> db;
   private Env<ByteBuffer> env;
   private Deque<Integer> list;
 
   @BeforeEach
   void beforeEach() {
-    file = FileUtil.createTempFile();
+    tempDir = new TempDir();
     env =
         create()
             .setMapSize(KIBIBYTES.toBytes(256))
             .setMaxReaders(1)
             .setMaxDbs(1)
-            .open(file.toFile(), POSIX_MODE, MDB_NOSUBDIR);
+            .open(tempDir.createTempFile().toFile(), POSIX_MODE, MDB_NOSUBDIR);
     db = env.openDbi(DB_1, MDB_CREATE);
     populateDatabase(db);
   }
@@ -98,7 +97,7 @@ public final class CursorIterableTest {
   @AfterEach
   void afterEach() {
     env.close();
-    FileUtil.deleteFile(file);
+    tempDir.cleanup();
   }
 
   @Test
