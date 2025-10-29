@@ -118,16 +118,6 @@ public final class ByteBufProxy extends BufferProxy<ByteBuf> {
     return comparator;
   }
 
-  //  @Override
-//  public Comparator<ByteBuf> getSignedComparator() {
-//    return comparator;
-//  }
-//
-//  @Override
-//  public Comparator<ByteBuf> getUnsignedComparator() {
-//    return comparator;
-//  }
-
   @Override
   protected void deallocate(final ByteBuf buff) {
     buff.release();

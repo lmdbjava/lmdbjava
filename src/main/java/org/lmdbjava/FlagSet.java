@@ -56,6 +56,22 @@ public interface FlagSet<T extends MaskedFlag> extends Iterable<T> {
   boolean isSet(T flag);
 
   /**
+   * @return True if at least one of flags are included in thie {@link FlagSet}
+   */
+  default boolean areAnySet(final FlagSet<T> flags) {
+    if (flags == null) {
+      return false;
+    } else {
+      for (final T flag : flags) {
+        if (isSet(flag)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  /**
    * @return The size of this {@link FlagSet}
    */
   default int size() {
@@ -92,17 +108,20 @@ public interface FlagSet<T extends MaskedFlag> extends Iterable<T> {
         '}';
   }
 
-  static boolean equals(final FlagSet<?> flagSet1,
-                        final FlagSet<?> flagSet2) {
-    if (flagSet1 == flagSet2) {
-      return true;
-    } else if (flagSet1 != null && flagSet2 == null) {
-      return false;
-    } else if (flagSet1 == null) {
-      return false;
+  static boolean equals(final FlagSet<?> flagSet,
+                        final Object other) {
+    if (other instanceof FlagSet) {
+      final FlagSet<?> flagSet2 = (FlagSet<?>) other;
+      if (flagSet == flagSet2) {
+        return true;
+      } else if (flagSet == null) {
+        return false;
+      } else {
+        return flagSet.getMask() == flagSet2.getMask()
+            && Objects.equals(flagSet.getFlags(), flagSet2.getFlags());
+      }
     } else {
-      return flagSet1.getMask() == flagSet2.getMask()
-          && Objects.equals(flagSet1.getFlags(), flagSet2.getFlags());
+      return false;
     }
   }
 

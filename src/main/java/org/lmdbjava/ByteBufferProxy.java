@@ -54,15 +54,19 @@ public final class ByteBufferProxy {
    */
   public static final BufferProxy<ByteBuffer> PROXY_OPTIMAL;
 
-  /** The safe, reflective {@link ByteBuffer} proxy for this system. Guaranteed to never be null. */
+  /**
+   * The safe, reflective {@link ByteBuffer} proxy for this system. Guaranteed to never be null.
+   */
   public static final BufferProxy<ByteBuffer> PROXY_SAFE;
+
 
   static {
     PROXY_SAFE = new ReflectiveProxy();
     PROXY_OPTIMAL = getProxyOptimal();
   }
 
-  private ByteBufferProxy() {}
+  private ByteBufferProxy() {
+  }
 
   private static BufferProxy<ByteBuffer> getProxyOptimal() {
     try {
@@ -72,16 +76,24 @@ public final class ByteBufferProxy {
     }
   }
 
-  /** The buffer must be a direct buffer (not heap allocated). */
+  /**
+   * The buffer must be a direct buffer (not heap allocated).
+   */
   public static final class BufferMustBeDirectException extends LmdbException {
 
     private static final long serialVersionUID = 1L;
 
-    /** Creates a new instance. */
+    /**
+     * Creates a new instance.
+     */
     public BufferMustBeDirectException() {
       super("The buffer must be a direct buffer (not heap allocated");
     }
   }
+
+
+  // --------------------------------------------------------------------------------
+
 
   /**
    * Provides {@link ByteBuffer} pooling and address resolution for concrete {@link BufferProxy}
@@ -91,16 +103,6 @@ public final class ByteBufferProxy {
 
     protected static final String FIELD_NAME_ADDRESS = "address";
     protected static final String FIELD_NAME_CAPACITY = "capacity";
-
-    private static final Comparator<ByteBuffer> signedComparator =
-        (o1, o2) -> {
-          requireNonNull(o1);
-          requireNonNull(o2);
-
-          return o1.compareTo(o2);
-        };
-    private static final Comparator<ByteBuffer> unsignedComparator =
-        AbstractByteBufferProxy::compareBuff;
 
     /**
      * A thread-safe pool for a given length. If the buffer found is valid (ie not of a negative
@@ -116,7 +118,7 @@ public final class ByteBufferProxy {
      * @param o2 right operand (required)
      * @return as specified by {@link Comparable} interface
      */
-    public static int compareBuff(final ByteBuffer o1, final ByteBuffer o2) {
+    public static int compareLexicographically(final ByteBuffer o1, final ByteBuffer o2) {
       requireNonNull(o1);
       requireNonNull(o2);
       if (o1.equals(o2)) {
@@ -148,34 +150,42 @@ public final class ByteBufferProxy {
       return o1.remaining() - o2.remaining();
     }
 
-//    /**
-//     * Possible compareBuff method specifically for 4/8 byte keys when using MDB_INTEGER_KEY
-//     */
-//    public static int compareBuff(final ByteBuffer o1, final ByteBuffer o2) {
-//      requireNonNull(o1);
-//      requireNonNull(o2);
-//      // Both buffers should be same len
-//      final int len1 = o1.limit();
-//      final int len2 = o2.limit();
-//      if (len1 != len2) {
-//        throw new RuntimeException("Length mismatch, len1: " + len1 + ", len2: " + len2
-//            + ". Lengths must be identical and either 4 or 8 bytes.");
-//      }
-//      final boolean reverse1 = o1.order() == LITTLE_ENDIAN;
-//      final boolean reverse2 = o2.order() == LITTLE_ENDIAN;
-//      if (len1 == 8) {
-//          final long lw = reverse1 ? Long.reverseBytes(o1.getLong()) : o1.getLong();
-//          final long rw = reverse2 ? Long.reverseBytes(o2.getLong()) : o2.getLong();
-//          return Long.compareUnsigned(lw, rw);
-//      } else if (len1 == 4) {
-//        final int lw = reverse1 ? Integer.reverseBytes(o1.getInt()) : o1.getInt();
-//        final int rw = reverse2 ? Integer.reverseBytes(o2.getInt()) : o2.getInt();
-//          return Integer.compareUnsigned(lw, rw);
-//      } else {
-//        throw new RuntimeException("Unexpected length len1: " + len1 + ", len2: " + len2
-//            + ". Lengths must be identical and either 4 or 8 bytes.");
-//      }
-//    }
+    /**
+     * Buffer comparator specifically for 4/8 byte keys that are unsigned ints/longs,
+     * i.e. when using MDB_INTEGER_KEY/MDB_INTEGERDUP. Compares the buffers numerically.
+     * <p>
+     * Both buffer must have 4 or 8 bytes remaining
+     * </p>
+     *
+     * @param o1 left operand (required)
+     * @param o2 right operand (required)
+     * @return as specified by {@link Comparable} interface
+     */
+    public static int compareAsIntegerKeys(final ByteBuffer o1, final ByteBuffer o2) {
+      requireNonNull(o1);
+      requireNonNull(o2);
+      // Both buffers should be same len
+      final int len1 = o1.limit();
+      final int len2 = o2.limit();
+      if (len1 != len2) {
+        throw new RuntimeException("Length mismatch, len1: " + len1 + ", len2: " + len2
+            + ". Lengths must be identical and either 4 or 8 bytes.");
+      }
+      final boolean reverse1 = o1.order() == LITTLE_ENDIAN;
+      final boolean reverse2 = o2.order() == LITTLE_ENDIAN;
+      if (len1 == 8) {
+        final long lw = reverse1 ? Long.reverseBytes(o1.getLong(0)) : o1.getLong(0);
+        final long rw = reverse2 ? Long.reverseBytes(o2.getLong(0)) : o2.getLong(0);
+        return Long.compareUnsigned(lw, rw);
+      } else if (len1 == 4) {
+        final int lw = reverse1 ? Integer.reverseBytes(o1.getInt(0)) : o1.getInt(0);
+        final int rw = reverse2 ? Integer.reverseBytes(o2.getInt(0)) : o2.getInt(0);
+        return Integer.compareUnsigned(lw, rw);
+      } else {
+        throw new RuntimeException("Unexpected length1: " + len1
+            + ". Lengths must be identical and either 4 or 8 bytes.");
+      }
+    }
 
     static Field findField(final Class<?> c, final String name) {
       Class<?> clazz = c;
@@ -211,19 +221,13 @@ public final class ByteBufferProxy {
     }
 
     @Override
-    public Comparator<ByteBuffer> getComparator(DbiFlagSet dbiFlagSet) {
-      return unsignedComparator;
+    public Comparator<ByteBuffer> getComparator(final DbiFlagSet dbiFlagSet) {
+      if (dbiFlagSet.areAnySet(INTEGER_KEY_FLAGS)) {
+        return AbstractByteBufferProxy::compareAsIntegerKeys;
+      } else {
+        return AbstractByteBufferProxy::compareLexicographically;
+      }
     }
-
-    //    @Override
-//    public Comparator<ByteBuffer> getSignedComparator() {
-//      return signedComparator;
-//    }
-//
-//    @Override
-//    public Comparator<ByteBuffer> getUnsignedComparator(final DbiFlagSet dbiFlagSet) {
-//      return unsignedComparator;
-//    }
 
     @Override
     protected final void deallocate(final ByteBuffer buff) {
@@ -239,6 +243,10 @@ public final class ByteBufferProxy {
       return dest;
     }
   }
+
+
+  // --------------------------------------------------------------------------------
+
 
   /**
    * A proxy that uses Java reflection to modify byte buffer fields, and official JNR-FFF methods to
@@ -283,6 +291,10 @@ public final class ByteBufferProxy {
       return buffer;
     }
   }
+
+
+  // --------------------------------------------------------------------------------
+
 
   /**
    * A proxy that uses Java's "unsafe" class to directly manipulate byte buffer fields and JNR-FFF

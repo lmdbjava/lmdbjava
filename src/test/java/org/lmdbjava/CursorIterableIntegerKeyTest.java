@@ -46,6 +46,7 @@ import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
 import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.DB_2;
 import static org.lmdbjava.TestUtils.DB_3;
+import static org.lmdbjava.TestUtils.DB_4;
 import static org.lmdbjava.TestUtils.POSIX_MODE;
 import static org.lmdbjava.TestUtils.bb;
 import static org.lmdbjava.TestUtils.bbNative;
@@ -63,25 +64,127 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.function.Function;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.lmdbjava.CursorIterable.KeyVal;
 
-/** Test {@link CursorIterable} using {@link DbiFlags#MDB_INTEGERKEY} to ensure that
- * comparators work with native order integer keys. */
+/**
+ * Test {@link CursorIterable} using {@link DbiFlags#MDB_INTEGERKEY} to ensure that
+ * comparators work with native order integer keys.
+ */
+@RunWith(Parameterized.class)
 public final class CursorIterableIntegerKeyTest {
 
-  @Rule public final TemporaryFolder tmp = new TemporaryFolder();
-  private Dbi<ByteBuffer> dbJavaComparator;
-  private Dbi<ByteBuffer> dbLmdbComparator;
-  private Dbi<ByteBuffer> dbCallbackComparator;
-  private List<Dbi<ByteBuffer>> dbs = new ArrayList<>();
+  private static final DbiFlagSet DBI_FLAGS = DbiFlagSet.of(MDB_CREATE, MDB_INTEGERKEY);
+  private static final BufferProxy<ByteBuffer> BUFFER_PROXY = ByteBufferProxy.PROXY_OPTIMAL;
+
+  @Rule
+  public final TemporaryFolder tmp = new TemporaryFolder();
+
   private Env<ByteBuffer> env;
   private Deque<Integer> list;
+
+  /**
+   * Injected by {@link #data()} with appropriate runner.
+   */
+  @SuppressWarnings("ClassEscapesDefinedScope")
+  @Parameterized.Parameter
+  public DbiFactory dbiFactory;
+
+  @Parameterized.Parameters(name = "{index}: dbi: {0}")
+  public static Object[] data() {
+    final DbiFactory defaultComparator = new DbiFactory("defaultComparator", env ->
+        env.buildDbi()
+            .withDbName(DB_1)
+            .withDefaultComparator()
+            .withDbiFlags(DBI_FLAGS)
+            .open());
+    final DbiFactory nativeComparator = new DbiFactory("nativeComparator", env ->
+        env.buildDbi()
+            .withDbName(DB_2)
+            .withNativeComparator()
+            .withDbiFlags(DBI_FLAGS)
+            .open());
+    final DbiFactory callbackComparator = new DbiFactory("callbackComparator", env ->
+        env.buildDbi()
+            .withDbName(DB_3)
+            .withCallbackComparator(BUFFER_PROXY.getComparator(DBI_FLAGS))
+            .withDbiFlags(DBI_FLAGS)
+            .open());
+    final DbiFactory iteratorComparator = new DbiFactory("iteratorComparator", env ->
+        env.buildDbi()
+            .withDbName(DB_4)
+            .withIteratorComparator(BUFFER_PROXY.getComparator(DBI_FLAGS))
+            .withDbiFlags(DBI_FLAGS)
+            .open());
+    return new Object[]{
+        defaultComparator,
+        nativeComparator,
+        callbackComparator,
+        iteratorComparator};
+  }
+
+  @Before
+  public void before() throws IOException {
+    final File path = tmp.newFile();
+    final BufferProxy<ByteBuffer> bufferProxy = ByteBufferProxy.PROXY_OPTIMAL;
+    env =
+        create(bufferProxy)
+            .setMapSize(KIBIBYTES.toBytes(256))
+            .setMaxReaders(1)
+            .setMaxDbs(3)
+            .open(path, POSIX_MODE, MDB_NOSUBDIR);
+
+    populateTestDataList();
+//    final File path = tmp.newFile();
+//    final BufferProxy<ByteBuffer> bufferProxy = ByteBufferProxy.PROXY_OPTIMAL;
+//    env =
+//        create(bufferProxy)
+//            .setMapSize(KIBIBYTES.toBytes(256))
+//            .setMaxReaders(1)
+//            .setMaxDbs(3)
+//            .open(path, POSIX_MODE, MDB_NOSUBDIR);
+//
+//    // Use a java comparator for start/stop keys only
+//    DbiFlagSet dbiFlagSet = DbiFlagSet.of(MDB_CREATE, MDB_INTEGERKEY);
+//
+//    dbJavaComparator = env.buildDbi()
+//        .withDbName(DB_1)
+//        .withIteratorComparator(bufferProxy.getComparator(dbiFlagSet))
+//        .withDbiFlags(dbiFlagSet)
+//        .open();
+//
+//    // Use LMDB comparator for start/stop keys
+//    dbLmdbComparator = env.buildDbi()
+//        .withDbName(DB_2)
+//        .withDefaultComparator()
+//        .withDbiFlags(dbiFlagSet)
+//        .open();
+//
+//    // Use a java comparator for start/stop keys and as a callback comparaotr
+//    dbCallbackComparator = env.buildDbi()
+//        .withDbName(DB_3)
+//        .withCallbackComparator(bufferProxy.getComparator(dbiFlagSet))
+//        .withDbiFlags(dbiFlagSet)
+//        .open();
+//
+//    populateTestDataList();
+//
+//    populateDatabase(dbJavaComparator);
+//    populateDatabase(dbLmdbComparator);
+//    populateDatabase(dbCallbackComparator);
+//
+//    dbs.add(dbJavaComparator);
+//    dbs.add(dbLmdbComparator);
+//    dbs.add(dbCallbackComparator);
+  }
 
   @After
   public void after() {
@@ -123,52 +226,8 @@ public final class CursorIterableIntegerKeyTest {
     verify(atMost(bbNative(6)), 2, 4, 6);
   }
 
-  @Before
-  public void before() throws IOException {
-    final File path = tmp.newFile();
-    final BufferProxy<ByteBuffer> bufferProxy = ByteBufferProxy.PROXY_OPTIMAL;
-    env =
-        create(bufferProxy)
-            .setMapSize(KIBIBYTES.toBytes(256))
-            .setMaxReaders(1)
-            .setMaxDbs(3)
-            .open(path, POSIX_MODE, MDB_NOSUBDIR);
 
-    // Use a java comparator for start/stop keys only
-    DbiFlagSet dbiFlagSet = DbiFlagSet.of(MDB_CREATE, MDB_INTEGERKEY);
-
-    dbJavaComparator = env.buildDbi()
-        .withDbName(DB_1)
-        .withIteratorComparator(bufferProxy.getComparator(dbiFlagSet))
-        .withDbiFlags(dbiFlagSet)
-        .open();
-
-    // Use LMDB comparator for start/stop keys
-    dbLmdbComparator = env.buildDbi()
-        .withDbName(DB_2)
-        .withDefaultComparator()
-        .withDbiFlags(dbiFlagSet)
-        .open();
-
-    // Use a java comparator for start/stop keys and as a callback comparaotr
-    dbCallbackComparator = env.buildDbi()
-        .withDbName(DB_3)
-        .withCallbackComparator(bufferProxy.getComparator(dbiFlagSet))
-        .withDbiFlags(dbiFlagSet)
-        .open();
-
-    populateList();
-
-    populateDatabase(dbJavaComparator);
-    populateDatabase(dbLmdbComparator);
-    populateDatabase(dbCallbackComparator);
-
-    dbs.add(dbJavaComparator);
-    dbs.add(dbLmdbComparator);
-    dbs.add(dbCallbackComparator);
-  }
-
-  private void populateList() {
+  private void populateTestDataList() {
     list = new LinkedList<>();
     list.addAll(asList(2, 3, 4, 5, 6, 7, 8, 9));
   }
@@ -226,40 +285,37 @@ public final class CursorIterableIntegerKeyTest {
 
   @Test(expected = IllegalStateException.class)
   public void iterableOnlyReturnedOnce() {
-    for (final Dbi<ByteBuffer> db : dbs) {
-      try (Txn<ByteBuffer> txn = env.txnRead();
-          CursorIterable<ByteBuffer> c = db.iterate(txn)) {
-        c.iterator(); // ok
-        c.iterator(); // fails
-      }
+    final Dbi<ByteBuffer> db = getDb();
+    try (Txn<ByteBuffer> txn = env.txnRead();
+         CursorIterable<ByteBuffer> c = db.iterate(txn)) {
+      c.iterator(); // ok
+      c.iterator(); // fails
     }
   }
 
   @Test
   public void iterate() {
-    for (final Dbi<ByteBuffer> db : dbs) {
-      populateList();
-      try (Txn<ByteBuffer> txn = env.txnRead();
-          CursorIterable<ByteBuffer> c = db.iterate(txn)) {
+    populateTestDataList();
+    final Dbi<ByteBuffer> db = getDb();
+    try (Txn<ByteBuffer> txn = env.txnRead();
+         CursorIterable<ByteBuffer> c = db.iterate(txn)) {
 
-        int cnt = 0;
-        for (final KeyVal<ByteBuffer> kv : c) {
-          assertThat(getNativeInt(kv.key()), is(list.pollFirst()));
-          assertThat(kv.val().getInt(), is(list.pollFirst()));
-        }
+      int cnt = 0;
+      for (final KeyVal<ByteBuffer> kv : c) {
+        assertThat(getNativeInt(kv.key()), is(list.pollFirst()));
+        assertThat(kv.val().getInt(), is(list.pollFirst()));
       }
     }
   }
 
   @Test(expected = IllegalStateException.class)
   public void iteratorOnlyReturnedOnce() {
-    for (final Dbi<ByteBuffer> db : dbs) {
+    final Dbi<ByteBuffer> db = getDb();
       try (Txn<ByteBuffer> txn = env.txnRead();
-          CursorIterable<ByteBuffer> c = db.iterate(txn)) {
+           CursorIterable<ByteBuffer> c = db.iterate(txn)) {
         c.iterator(); // ok
         c.iterator(); // fails
       }
-    }
   }
 
   @Test
@@ -276,19 +332,18 @@ public final class CursorIterableIntegerKeyTest {
 
   @Test(expected = NoSuchElementException.class)
   public void nextThrowsNoSuchElementExceptionIfNoMoreElements() {
-    for (final Dbi<ByteBuffer> db : dbs) {
-      populateList();
-      try (Txn<ByteBuffer> txn = env.txnRead();
-          CursorIterable<ByteBuffer> c = db.iterate(txn)) {
-        final Iterator<KeyVal<ByteBuffer>> i = c.iterator();
-        while (i.hasNext()) {
-          final KeyVal<ByteBuffer> kv = i.next();
-          assertThat(TestUtils.getNativeInt(kv.key()), is(list.pollFirst()));
-          assertThat(kv.val().getInt(), is(list.pollFirst()));
-        }
-        assertThat(i.hasNext(), is(false));
-        i.next();
+    populateTestDataList();
+    final Dbi<ByteBuffer> db = getDb();
+    try (Txn<ByteBuffer> txn = env.txnRead();
+         CursorIterable<ByteBuffer> c = db.iterate(txn)) {
+      final Iterator<KeyVal<ByteBuffer>> i = c.iterator();
+      while (i.hasNext()) {
+        final KeyVal<ByteBuffer> kv = i.next();
+        assertThat(TestUtils.getNativeInt(kv.key()), is(list.pollFirst()));
+        assertThat(kv.val().getInt(), is(list.pollFirst()));
       }
+      assertThat(i.hasNext(), is(false));
+      i.next();
     }
   }
 
@@ -341,29 +396,28 @@ public final class CursorIterableIntegerKeyTest {
 
   @Test
   public void removeOddElements() {
-    for (final Dbi<ByteBuffer> db : dbs) {
-      verify(db, all(), 2, 4, 6, 8);
-      int idx = -1;
-      try (Txn<ByteBuffer> txn = env.txnWrite()) {
-        try (CursorIterable<ByteBuffer> ci = db.iterate(txn)) {
-          final Iterator<KeyVal<ByteBuffer>> c = ci.iterator();
-          while (c.hasNext()) {
-            c.next();
-            idx++;
-            if (idx % 2 == 0) {
-              c.remove();
-            }
+    final Dbi<ByteBuffer> db = getDb();
+    verify(db, all(), 2, 4, 6, 8);
+    int idx = -1;
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
+      try (CursorIterable<ByteBuffer> ci = db.iterate(txn)) {
+        final Iterator<KeyVal<ByteBuffer>> c = ci.iterator();
+        while (c.hasNext()) {
+          c.next();
+          idx++;
+          if (idx % 2 == 0) {
+            c.remove();
           }
         }
-        txn.commit();
       }
-      verify(db, all(), 4, 8);
+      txn.commit();
     }
+    verify(db, all(), 4, 8);
   }
 
   @Test(expected = Env.AlreadyClosedException.class)
   public void nextWithClosedEnvTest() {
-    for (final Dbi<ByteBuffer> db : dbs) {
+    final Dbi<ByteBuffer> db = getDb();
       try (Txn<ByteBuffer> txn = env.txnRead()) {
         try (CursorIterable<ByteBuffer> ci = db.iterate(txn, KeyRange.all())) {
           final Iterator<KeyVal<ByteBuffer>> c = ci.iterator();
@@ -372,12 +426,11 @@ public final class CursorIterableIntegerKeyTest {
           c.next();
         }
       }
-    }
   }
 
   @Test(expected = Env.AlreadyClosedException.class)
   public void removeWithClosedEnvTest() {
-    for (final Dbi<ByteBuffer> db : dbs) {
+    final Dbi<ByteBuffer> db = getDb();
       try (Txn<ByteBuffer> txn = env.txnWrite()) {
         try (CursorIterable<ByteBuffer> ci = db.iterate(txn, KeyRange.all())) {
           final Iterator<KeyVal<ByteBuffer>> c = ci.iterator();
@@ -389,12 +442,11 @@ public final class CursorIterableIntegerKeyTest {
           c.remove();
         }
       }
-    }
   }
 
   @Test(expected = Env.AlreadyClosedException.class)
   public void hasNextWithClosedEnvTest() {
-    for (final Dbi<ByteBuffer> db : dbs) {
+    final Dbi<ByteBuffer> db = getDb();
       try (Txn<ByteBuffer> txn = env.txnRead()) {
         try (CursorIterable<ByteBuffer> ci = db.iterate(txn, KeyRange.all())) {
           final Iterator<KeyVal<ByteBuffer>> c = ci.iterator();
@@ -403,21 +455,20 @@ public final class CursorIterableIntegerKeyTest {
           c.hasNext();
         }
       }
-    }
   }
 
   @Test(expected = Env.AlreadyClosedException.class)
   public void forEachRemainingWithClosedEnvTest() {
-    for (final Dbi<ByteBuffer> db : dbs) {
+    final Dbi<ByteBuffer> db = getDb();
       try (Txn<ByteBuffer> txn = env.txnRead()) {
         try (CursorIterable<ByteBuffer> ci = db.iterate(txn, KeyRange.all())) {
           final Iterator<KeyVal<ByteBuffer>> c = ci.iterator();
 
           env.close();
-          c.forEachRemaining(keyVal -> {});
+          c.forEachRemaining(keyVal -> {
+          });
         }
       }
-    }
   }
 
 //  @Test
@@ -469,9 +520,8 @@ public final class CursorIterableIntegerKeyTest {
 
   private void verify(final KeyRange<ByteBuffer> range, final int... expected) {
     // Verify using all comparator types
-    for (final Dbi<ByteBuffer> db : dbs) {
-      verify(range, db, expected);
-    }
+    final Dbi<ByteBuffer> db = getDb();
+    verify(range, db, expected);
   }
 
   private void verify(
@@ -485,7 +535,7 @@ public final class CursorIterableIntegerKeyTest {
     final List<Integer> results = new ArrayList<>();
 
     try (Txn<ByteBuffer> txn = env.txnRead();
-        CursorIterable<ByteBuffer> c = dbi.iterate(txn, range)) {
+         CursorIterable<ByteBuffer> c = dbi.iterate(txn, range)) {
       for (final KeyVal<ByteBuffer> kv : c) {
         final int key = kv.key().order(ByteOrder.nativeOrder()).getInt();
         final int val = kv.val().getInt();
@@ -497,6 +547,31 @@ public final class CursorIterableIntegerKeyTest {
     assertThat(results, hasSize(expected.length));
     for (int idx = 0; idx < results.size(); idx++) {
       assertThat(results.get(idx), is(expected[idx]));
+    }
+  }
+
+  private Dbi<ByteBuffer> getDb() {
+    final Dbi<ByteBuffer> dbi = dbiFactory.factory.apply(env);
+    populateDatabase(dbi);
+    return dbi;
+  }
+
+
+  // --------------------------------------------------------------------------------
+
+
+  private static class DbiFactory {
+    private final String name;
+    private final Function<Env<ByteBuffer>, Dbi<ByteBuffer>> factory;
+
+    private DbiFactory(String name, Function<Env<ByteBuffer>, Dbi<ByteBuffer>> factory) {
+      this.name = name;
+      this.factory = factory;
+    }
+
+    @Override
+    public String toString() {
+      return name;
     }
   }
 }

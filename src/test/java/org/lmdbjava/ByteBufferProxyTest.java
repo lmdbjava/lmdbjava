@@ -40,20 +40,31 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.Random;
+import java.util.Set;
 import jnr.ffi.Pointer;
 import jnr.ffi.provider.MemoryManager;
+import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.lmdbjava.ByteBufferProxy.BufferMustBeDirectException;
 import org.lmdbjava.Env.ReadersFullException;
 
-/** Test {@link ByteBufferProxy}. */
+/**
+ * Test {@link ByteBufferProxy}.
+ */
 public final class ByteBufferProxyTest {
 
   static final MemoryManager MEM_MGR = RUNTIME.getMemoryManager();
 
-  @Rule public final TemporaryFolder tmp = new TemporaryFolder();
+  @Rule
+  public final TemporaryFolder tmp = new TemporaryFolder();
 
   @Test(expected = BufferMustBeDirectException.class)
   public void buffersMustBeDirect() throws IOException {
@@ -127,6 +138,81 @@ public final class ByteBufferProxyTest {
     assertThat(v, is(notNullValue()));
     assertThat(v, is(not(PROXY_SAFE)));
     assertThat(v.getClass().getSimpleName(), startsWith("Unsafe"));
+  }
+
+  /**
+   * For 100 rounds of 1,000,000 comparisons
+   * compareAsIntegerKeys: PT0.267813487S
+   * compareLexicographically: PT0.644165235S
+   */
+  @Test
+  public void comparatorPerformance() {
+    final Random random = new Random();
+    final ByteBuffer buffer1 = ByteBuffer.allocateDirect(Long.BYTES);
+    final ByteBuffer buffer2 = ByteBuffer.allocateDirect(Long.BYTES);
+    buffer1.limit(Long.BYTES);
+    buffer2.limit(Long.BYTES);
+    final long[] values = random.longs(1_000_000).toArray();
+
+    Instant time = Instant.now();
+    int x = 0;
+    for (int rounds = 0; rounds < 100; rounds++) {
+      for (int i = 1; i < values.length; i++) {
+        buffer1.putLong(0, values[i - 1]);
+        buffer2.putLong(0, values[i]);
+        final int result = ByteBufferProxy.AbstractByteBufferProxy.compareAsIntegerKeys(buffer1, buffer2);
+        x += result;
+      }
+    }
+    System.out.println("compareAsIntegerKeys: " + Duration.between(time, Instant.now()));
+
+    time = Instant.now();
+    x = 0;
+    for (int rounds = 0; rounds < 100; rounds++) {
+      for (int i = 1; i < values.length; i++) {
+        buffer1.putLong(0, values[i - 1]);
+        buffer2.putLong(0, values[i]);
+        final int result = ByteBufferProxy.AbstractByteBufferProxy.compareLexicographically(buffer1, buffer2);
+        x += result;
+      }
+    }
+    System.out.println("compareLexicographically: " + Duration.between(time, Instant.now()));
+  }
+
+  @Test
+  public void verifyComparators() {
+    final Random random = new Random(203948);
+    final ByteBuffer buffer1 = ByteBuffer.allocateDirect(Long.BYTES);
+    final ByteBuffer buffer2 = ByteBuffer.allocateDirect(Long.BYTES);
+    buffer1.limit(Long.BYTES);
+    buffer2.limit(Long.BYTES);
+    final long[] values = random.longs(10_000_000).toArray();
+
+    final LinkedHashMap<String, Comparator<ByteBuffer>> comparators = new LinkedHashMap<>();
+    comparators.put("compareAsIntegerKeys", ByteBufferProxy.AbstractByteBufferProxy::compareAsIntegerKeys);
+    comparators.put("compareLexicographically", ByteBufferProxy.AbstractByteBufferProxy::compareLexicographically);
+
+    final LinkedHashMap<String, Integer> results = new LinkedHashMap<>(comparators.size());
+    final Set<Integer> uniqueResults = new HashSet<>(comparators.size());
+
+    for (int i = 1; i < values.length; i++) {
+      final long val1 = values[i - 1];
+      final long val2 = values[i];
+      buffer1.putLong(0, val1);
+      buffer2.putLong(0, val2);
+      uniqueResults.clear();
+
+      // Make sure all comparators give the same result for the same inputs
+      comparators.forEach((name, comparator) -> {
+        final int result = comparator.compare(buffer1, buffer2);
+        results.put(name, result);
+        uniqueResults.add(result);
+      });
+
+      if (uniqueResults.size() != 1) {
+        Assert.fail("Comparator mismatch for values: " + val1 + " and " + val2 + ". Results: " + results);
+      }
+    }
   }
 
   private void checkInOut(final BufferProxy<ByteBuffer> v) {

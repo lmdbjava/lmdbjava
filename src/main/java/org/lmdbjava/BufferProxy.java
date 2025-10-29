@@ -40,6 +40,11 @@ public abstract class BufferProxy<T> {
   /** Offset from a pointer of the <code>MDB_val.mv_size</code> field. */
   protected static final int STRUCT_FIELD_OFFSET_SIZE = 0;
 
+  /** The set of {@link DbiFlags} that indicate unsigned integer keys are being used. */
+  protected static final DbiFlagSet INTEGER_KEY_FLAGS = DbiFlagSet.of(
+      DbiFlags.MDB_INTEGERKEY,
+      DbiFlags.MDB_INTEGERDUP);
+
   /** Explicitly-defined default constructor to avoid warnings. */
   protected BufferProxy() {}
 
@@ -87,28 +92,6 @@ public abstract class BufferProxy<T> {
   public Comparator<T> getComparator() {
     return getComparator(DbiFlagSet.empty());
   }
-
-//  /**
-//   * Get a suitable default {@link Comparator} to compare numeric key values as signed.
-//   *
-//   * <p>Note: LMDB's default comparator is unsigned so if this is used only for the {@link
-//   * CursorIterable} start/stop key comparisons then its behaviour will differ from the iteration
-//   * order. Use with caution.
-//   *
-//   * @return a comparator that can be used (never null)
-//   */
-//  public abstract Comparator<T> getSignedComparator();
-//
-//  /**
-//   * Get a suitable default {@link Comparator} to compare numeric key values as unsigned.
-//   * <p>
-//   * This should match the behaviour of the LMDB's mdb_cmp comparator as it may be used for
-//   * {@link CursorIterable} start/stop keys comparisons, which must match LMDB's insertion order.
-//   * </p>
-//   *
-//   * @return a comparator that can be used (never null)
-//   */
-//  public abstract Comparator<T> getUnsignedComparator(final DbiFlagSet dbiFlagSet);
 
   /**
    * Called when the <code>MDB_val</code> should be set to reflect the passed buffer. This buffer

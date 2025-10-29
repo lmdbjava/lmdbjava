@@ -45,7 +45,6 @@ public class DbiBuilderTest {
 
   @Before
   public void before() throws IOException {
-    System.out.println("before");
     final File path = tmp.newFile();
     env = create()
         .setMapSize(MEBIBYTES.toBytes(64))

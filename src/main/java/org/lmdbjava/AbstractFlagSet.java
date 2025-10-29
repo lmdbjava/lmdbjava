@@ -64,7 +64,6 @@ public abstract class AbstractFlagSet<T extends Enum<T> & MaskedFlag> implements
     // Probably cheaper to compare the masks than to use EnumSet.contains()
     return flag != null
         && MaskedFlag.isSet(mask, flag);
-
   }
 
   /**
@@ -93,9 +92,7 @@ public abstract class AbstractFlagSet<T extends Enum<T> & MaskedFlag> implements
 
   @Override
   public boolean equals(Object object) {
-    if (this == object) return true;
-//    if (object == null || getClass() != object.getClass()) return false;
-    return FlagSet.equals(this, (FlagSet<?>) object);
+    return FlagSet.equals(this, object);
   }
 
   @Override
@@ -142,6 +139,15 @@ public abstract class AbstractFlagSet<T extends Enum<T> & MaskedFlag> implements
     }
 
     @Override
+    public boolean areAnySet(FlagSet<T> flags) {
+      if (flags == null) {
+        return false;
+      } else {
+        return flags.isSet(this.flag);
+      }
+    }
+
+    @Override
     public int size() {
       return 1;
     }
@@ -167,9 +173,7 @@ public abstract class AbstractFlagSet<T extends Enum<T> & MaskedFlag> implements
 
     @Override
     public boolean equals(Object object) {
-      if (this == object) return true;
-//      if (object == null || getClass() != object.getClass()) return false;
-      return FlagSet.equals(this, (FlagSet<?>) object);
+      return FlagSet.equals(this, object);
     }
 
     @Override
@@ -206,6 +210,11 @@ public abstract class AbstractFlagSet<T extends Enum<T> & MaskedFlag> implements
     }
 
     @Override
+    public boolean areAnySet(final FlagSet<T> flags) {
+      return false;
+    }
+
+    @Override
     public int size() {
       return 0;
     }
@@ -227,9 +236,7 @@ public abstract class AbstractFlagSet<T extends Enum<T> & MaskedFlag> implements
 
     @Override
     public boolean equals(Object object) {
-      if (this == object) return true;
-//      if (object == null || getClass() != object.getClass()) return false;
-      return FlagSet.equals(this, (FlagSet<?>) object);
+      return FlagSet.equals(this, object);
     }
 
     @Override

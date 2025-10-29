@@ -77,8 +77,8 @@ import org.lmdbjava.CursorIterable.KeyVal;
 @RunWith(Parameterized.class)
 public final class CursorIterableTest {
 
-  private static final DbiFlagSet dbiFlagSet = MDB_CREATE;
-  private static final BufferProxy<ByteBuffer> bufferProxy = ByteBufferProxy.PROXY_OPTIMAL;
+  private static final DbiFlagSet DBI_FLAGS = MDB_CREATE;
+  private static final BufferProxy<ByteBuffer> BUFFER_PROXY = ByteBufferProxy.PROXY_OPTIMAL;
 
   @Rule
   public final TemporaryFolder tmp = new TemporaryFolder();
@@ -87,8 +87,42 @@ public final class CursorIterableTest {
   private Deque<Integer> list;
 
   /** Injected by {@link #data()} with appropriate runner. */
+  @SuppressWarnings("ClassEscapesDefinedScope")
   @Parameterized.Parameter
   public DbiFactory dbiFactory;
+
+  @Parameterized.Parameters(name = "{index}: dbi: {0}")
+  public static Object[] data() {
+    final DbiFactory defaultComparator = new DbiFactory("defaultComparator", env ->
+        env.buildDbi()
+            .withDbName(DB_1)
+            .withDefaultComparator()
+            .withDbiFlags(DBI_FLAGS)
+            .open());
+    final DbiFactory nativeComparator = new DbiFactory("nativeComparator", env ->
+        env.buildDbi()
+            .withDbName(DB_2)
+            .withNativeComparator()
+            .withDbiFlags(DBI_FLAGS)
+            .open());
+    final DbiFactory callbackComparator = new DbiFactory("callbackComparator", env ->
+        env.buildDbi()
+            .withDbName(DB_3)
+            .withCallbackComparator(BUFFER_PROXY.getComparator(DBI_FLAGS))
+            .withDbiFlags(DBI_FLAGS)
+            .open());
+    final DbiFactory iteratorComparator = new DbiFactory("iteratorComparator", env ->
+        env.buildDbi()
+            .withDbName(DB_4)
+            .withIteratorComparator(BUFFER_PROXY.getComparator(DBI_FLAGS))
+            .withDbiFlags(DBI_FLAGS)
+            .open());
+    return new Object[] {
+        defaultComparator,
+        nativeComparator,
+        callbackComparator,
+        iteratorComparator};
+  }
 
   @Before
   public void before() throws IOException {
@@ -102,39 +136,6 @@ public final class CursorIterableTest {
             .open(path, POSIX_MODE, MDB_NOSUBDIR);
 
     populateTestDataList();
-  }
-
-  @Parameterized.Parameters(name = "{index}: dbi: {0}")
-  public static Object[] data() {
-    final DbiFactory defaultComparator = new DbiFactory("defaultComparator", env ->
-        env.buildDbi()
-            .withDbName(DB_1)
-            .withDefaultComparator()
-            .withDbiFlags(dbiFlagSet)
-            .open());
-    final DbiFactory nativeComparator = new DbiFactory("nativeComparator", env ->
-        env.buildDbi()
-            .withDbName(DB_2)
-            .withNativeComparator()
-            .withDbiFlags(dbiFlagSet)
-            .open());
-    final DbiFactory callbackComparator = new DbiFactory("callbackComparator", env ->
-        env.buildDbi()
-            .withDbName(DB_3)
-            .withCallbackComparator(bufferProxy.getComparator(dbiFlagSet))
-            .withDbiFlags(dbiFlagSet)
-            .open());
-    final DbiFactory iteratorComparator = new DbiFactory("iteratorComparator", env ->
-        env.buildDbi()
-            .withDbName(DB_4)
-            .withIteratorComparator(bufferProxy.getComparator(dbiFlagSet))
-            .withDbiFlags(dbiFlagSet)
-            .open());
-    return new Object[] {
-        defaultComparator,
-        nativeComparator,
-        callbackComparator,
-        iteratorComparator};
   }
 
   @After
