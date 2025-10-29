@@ -13,11 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.lmdbjava;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.nullValue;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.lmdbjava.KeyRange.all;
 import static org.lmdbjava.KeyRange.allBackward;
 import static org.lmdbjava.KeyRange.atLeast;
@@ -40,8 +39,8 @@ import static org.lmdbjava.KeyRangeType.IteratorOp.TERMINATE;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.lmdbjava.KeyRangeType.CursorOp;
 import org.lmdbjava.KeyRangeType.IteratorOp;
 
@@ -55,135 +54,135 @@ public final class KeyRangeTest {
 
   private final FakeCursor cursor = new FakeCursor();
 
+  @BeforeEach
+  void beforeEach() {
+    cursor.reset();
+  }
+
   @Test
-  public void allBackwardTest() {
+  void allBackwardTest() {
     verify(allBackward(), 8, 6, 4, 2);
   }
 
   @Test
-  public void allTest() {
+  void allTest() {
     verify(all(), 2, 4, 6, 8);
   }
 
   @Test
-  public void atLeastBackwardTest() {
+  void atLeastBackwardTest() {
     verify(atLeastBackward(5), 4, 2);
     verify(atLeastBackward(6), 6, 4, 2);
     verify(atLeastBackward(9), 8, 6, 4, 2);
   }
 
   @Test
-  public void atLeastTest() {
+  void atLeastTest() {
     verify(atLeast(5), 6, 8);
     verify(atLeast(6), 6, 8);
   }
 
   @Test
-  public void atMostBackwardTest() {
+  void atMostBackwardTest() {
     verify(atMostBackward(5), 8, 6);
     verify(atMostBackward(6), 8, 6);
   }
 
   @Test
-  public void atMostTest() {
+  void atMostTest() {
     verify(atMost(5), 2, 4);
     verify(atMost(6), 2, 4, 6);
   }
 
-  @Before
-  public void before() {
-    cursor.reset();
-  }
-
   @Test
-  public void closedBackwardTest() {
+  void closedBackwardTest() {
     verify(closedBackward(7, 3), 6, 4);
     verify(closedBackward(6, 2), 6, 4, 2);
     verify(closedBackward(9, 3), 8, 6, 4);
   }
 
   @Test
-  public void closedOpenBackwardTest() {
+  void closedOpenBackwardTest() {
     verify(closedOpenBackward(8, 3), 8, 6, 4);
     verify(closedOpenBackward(7, 2), 6, 4);
     verify(closedOpenBackward(9, 3), 8, 6, 4);
   }
 
   @Test
-  public void closedOpenTest() {
+  void closedOpenTest() {
     verify(closedOpen(3, 8), 4, 6);
     verify(closedOpen(2, 6), 2, 4);
   }
 
   @Test
-  public void closedTest() {
+  void closedTest() {
     verify(closed(3, 7), 4, 6);
     verify(closed(2, 6), 2, 4, 6);
   }
 
   @Test
-  public void fakeCursor() {
-    assertThat(cursor.first(), is(2));
-    assertThat(cursor.next(), is(4));
-    assertThat(cursor.next(), is(6));
-    assertThat(cursor.next(), is(8));
-    assertThat(cursor.next(), nullValue());
-    assertThat(cursor.first(), is(2));
-    assertThat(cursor.prev(), nullValue());
-    assertThat(cursor.getWithSetRange(3), is(4));
-    assertThat(cursor.next(), is(6));
-    assertThat(cursor.getWithSetRange(1), is(2));
-    assertThat(cursor.last(), is(8));
-    assertThat(cursor.getWithSetRange(100), nullValue());
+  void fakeCursor() {
+    assertThat(cursor.first()).isEqualTo(2);
+    assertThat(cursor.next()).isEqualTo(4);
+    assertThat(cursor.next()).isEqualTo(6);
+    assertThat(cursor.next()).isEqualTo(8);
+    assertThat(cursor.next()).isNull();
+    assertThat(cursor.first()).isEqualTo(2);
+    assertThat(cursor.prev()).isNull();
+    assertThat(cursor.getWithSetRange(3)).isEqualTo(4);
+    assertThat(cursor.next()).isEqualTo(6);
+    assertThat(cursor.getWithSetRange(1)).isEqualTo(2);
+    assertThat(cursor.last()).isEqualTo(8);
+    assertThat(cursor.getWithSetRange(100)).isNull();
   }
 
   @Test
-  public void greaterThanBackwardTest() {
+  void greaterThanBackwardTest() {
     verify(greaterThanBackward(6), 4, 2);
     verify(greaterThanBackward(7), 6, 4, 2);
     verify(greaterThanBackward(9), 8, 6, 4, 2);
   }
 
   @Test
-  public void greaterThanTest() {
+  void greaterThanTest() {
     verify(greaterThan(4), 6, 8);
     verify(greaterThan(3), 4, 6, 8);
   }
 
   @Test
-  public void lessThanBackwardTest() {
+  void lessThanBackwardTest() {
     verify(lessThanBackward(5), 8, 6);
     verify(lessThanBackward(2), 8, 6, 4);
   }
 
   @Test
-  public void lessThanTest() {
+  void lessThanTest() {
     verify(lessThan(5), 2, 4);
     verify(lessThan(8), 2, 4, 6);
   }
 
   @Test
-  public void openBackwardTest() {
+  void openBackwardTest() {
     verify(openBackward(7, 2), 6, 4);
     verify(openBackward(8, 1), 6, 4, 2);
     verify(openBackward(9, 4), 8, 6);
   }
 
   @Test
-  public void openClosedBackwardTest() {
+  void openClosedBackwardTest() {
     verify(openClosedBackward(7, 2), 6, 4, 2);
     verify(openClosedBackward(8, 4), 6, 4);
     verify(openClosedBackward(9, 4), 8, 6, 4);
   }
 
   @Test
-  public void openClosedTest() {
+  void openClosedTest() {
     verify(openClosed(3, 8), 4, 6, 8);
     verify(openClosed(2, 6), 4, 6);
   }
 
   @Test
-  public void openTest() {
+  void openTest() {
     verify(open(3, 7), 4, 6);
     verify(open(2, 8), 4, 6);
   }
@@ -212,9 +211,9 @@ public final class KeyRangeTest {
     } while (op != TERMINATE);
 
     for (int idx = 0; idx < results.size(); idx++) {
-      assertThat("idx " + idx, results.get(idx), is(expected[idx]));
+      assertThat(results.get(idx)).withFailMessage("idx " + idx).isEqualTo(expected[idx]);
     }
-    assertThat(results.size(), is(expected.length));
+    assertThat(results.size()).isEqualTo(expected.length);
   }
 
   /**

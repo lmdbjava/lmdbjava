@@ -13,16 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.lmdbjava;
 
 import static com.jakewharton.byteunits.BinaryByteUnit.KIBIBYTES;
 import static com.jakewharton.byteunits.BinaryByteUnit.MEBIBYTES;
 import static java.nio.ByteBuffer.allocateDirect;
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.greaterThan;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.lmdbjava.CopyFlags.MDB_CP_COMPACT;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import static org.lmdbjava.Env.Builder.MAX_READERS_DEFAULT;
@@ -33,13 +31,13 @@ import static org.lmdbjava.EnvFlags.MDB_RDONLY_ENV;
 import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.bb;
 
-import java.io.File;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Random;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.Test;
 import org.lmdbjava.Env.AlreadyClosedException;
 import org.lmdbjava.Env.AlreadyOpenException;
 import org.lmdbjava.Env.Builder;
@@ -50,306 +48,453 @@ import org.lmdbjava.Txn.BadReaderLockException;
 /** Test {@link Env}. */
 public final class EnvTest {
 
-  @Rule public final TemporaryFolder tmp = new TemporaryFolder();
-
   @Test
-  public void byteUnit() throws IOException {
-    final File path = tmp.newFile();
-    try (Env<ByteBuffer> env =
-        create().setMaxReaders(1).setMapSize(MEBIBYTES.toBytes(1)).open(path, MDB_NOSUBDIR)) {
-      final EnvInfo info = env.info();
-      assertThat(info.mapSize, is(MEBIBYTES.toBytes(1)));
-    }
-  }
-
-  @Test(expected = AlreadyOpenException.class)
-  public void cannotChangeMapSizeAfterOpen() throws IOException {
-    final File path = tmp.newFile();
-    final Builder<ByteBuffer> builder = create().setMaxReaders(1);
-    try (Env<ByteBuffer> env = builder.open(path, MDB_NOSUBDIR)) {
-      builder.setMapSize(1);
-    }
-  }
-
-  @Test(expected = AlreadyOpenException.class)
-  public void cannotChangeMaxDbsAfterOpen() throws IOException {
-    final File path = tmp.newFile();
-    final Builder<ByteBuffer> builder = create().setMaxReaders(1);
-    try (Env<ByteBuffer> env = builder.open(path, MDB_NOSUBDIR)) {
-      builder.setMaxDbs(1);
-    }
-  }
-
-  @Test(expected = AlreadyOpenException.class)
-  public void cannotChangeMaxReadersAfterOpen() throws IOException {
-    final File path = tmp.newFile();
-    final Builder<ByteBuffer> builder = create().setMaxReaders(1);
-    try (Env<ByteBuffer> env = builder.open(path, MDB_NOSUBDIR)) {
-      builder.setMaxReaders(1);
-    }
-  }
-
-  @Test(expected = AlreadyClosedException.class)
-  public void cannotInfoOnceClosed() throws IOException {
-    final File path = tmp.newFile();
-    final Env<ByteBuffer> env = create().setMaxReaders(1).open(path, MDB_NOSUBDIR);
-    env.close();
-    env.info();
-  }
-
-  @Test(expected = AlreadyOpenException.class)
-  public void cannotOpenTwice() throws IOException {
-    final File path = tmp.newFile();
-    final Builder<ByteBuffer> builder = create().setMaxReaders(1);
-
-    builder.open(path, MDB_NOSUBDIR).close();
-    builder.open(path, MDB_NOSUBDIR);
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void cannotOverflowMapSize() {
-    final Builder<ByteBuffer> builder = create().setMaxReaders(1);
-    final int mb = 1_024 * 1_024;
-    final int size = mb * 2_048; // as per issue 18
-    builder.setMapSize(size);
-  }
-
-  @Test(expected = AlreadyClosedException.class)
-  public void cannotStatOnceClosed() throws IOException {
-    final File path = tmp.newFile();
-    final Env<ByteBuffer> env = create().setMaxReaders(1).open(path, MDB_NOSUBDIR);
-    env.close();
-    env.stat();
-  }
-
-  @Test(expected = AlreadyClosedException.class)
-  public void cannotSyncOnceClosed() throws IOException {
-    final File path = tmp.newFile();
-    final Env<ByteBuffer> env = create().setMaxReaders(1).open(path, MDB_NOSUBDIR);
-    env.close();
-    env.sync(false);
+  void byteUnit() {
+    FileUtil.useTempFile(
+        file -> {
+          try (Env<ByteBuffer> env =
+              create()
+                  .setMaxReaders(1)
+                  .setMapSize(MEBIBYTES.toBytes(1))
+                  .open(file.toFile(), MDB_NOSUBDIR)) {
+            final EnvInfo info = env.info();
+            assertThat(info.mapSize).isEqualTo(MEBIBYTES.toBytes(1));
+          }
+        });
   }
 
   @Test
-  public void copyDirectoryBased() throws IOException {
-    final File dest = tmp.newFolder();
-    assertThat(dest.exists(), is(true));
-    assertThat(dest.isDirectory(), is(true));
-    assertThat(dest.list().length, is(0));
-    final File src = tmp.newFolder();
-    try (Env<ByteBuffer> env = create().setMaxReaders(1).open(src)) {
-      env.copy(dest, MDB_CP_COMPACT);
-      assertThat(dest.list().length, is(1));
-    }
-  }
-
-  @Test(expected = InvalidCopyDestination.class)
-  public void copyDirectoryRejectsFileDestination() throws IOException {
-    final File dest = tmp.newFile();
-    final File src = tmp.newFolder();
-    try (Env<ByteBuffer> env = create().setMaxReaders(1).open(src)) {
-      env.copy(dest, MDB_CP_COMPACT);
-    }
-  }
-
-  @Test(expected = InvalidCopyDestination.class)
-  public void copyDirectoryRejectsMissingDestination() throws IOException {
-    final File dest = tmp.newFolder();
-    assertThat(dest.delete(), is(true));
-    final File src = tmp.newFolder();
-    try (Env<ByteBuffer> env = create().setMaxReaders(1).open(src)) {
-      env.copy(dest, MDB_CP_COMPACT);
-    }
-  }
-
-  @Test(expected = InvalidCopyDestination.class)
-  public void copyDirectoryRejectsNonEmptyDestination() throws IOException {
-    final File dest = tmp.newFolder();
-    final File subDir = new File(dest, "hello");
-    assertThat(subDir.mkdir(), is(true));
-    final File src = tmp.newFolder();
-    try (Env<ByteBuffer> env = create().setMaxReaders(1).open(src)) {
-      env.copy(dest, MDB_CP_COMPACT);
-    }
+  void cannotChangeMapSizeAfterOpen() {
+    assertThatThrownBy(
+            () -> {
+              FileUtil.useTempFile(
+                  file -> {
+                    final Builder<ByteBuffer> builder = create().setMaxReaders(1);
+                    try (Env<ByteBuffer> env = builder.open(file.toFile(), MDB_NOSUBDIR)) {
+                      builder.setMapSize(1);
+                    }
+                  });
+            })
+        .isInstanceOf(AlreadyOpenException.class);
   }
 
   @Test
-  public void copyFileBased() throws IOException {
-    final File dest = tmp.newFile();
-    assertThat(dest.delete(), is(true));
-    assertThat(dest.exists(), is(false));
-    final File src = tmp.newFile();
-    try (Env<ByteBuffer> env = create().setMaxReaders(1).open(src, MDB_NOSUBDIR)) {
-      env.copy(dest, MDB_CP_COMPACT);
-    }
-    assertThat(dest.length(), greaterThan(0L));
-  }
-
-  @Test(expected = InvalidCopyDestination.class)
-  public void copyFileRejectsExistingDestination() throws IOException {
-    final File dest = tmp.newFile();
-    assertThat(dest.exists(), is(true));
-    final File src = tmp.newFile();
-    try (Env<ByteBuffer> env = create().setMaxReaders(1).open(src, MDB_NOSUBDIR)) {
-      env.copy(dest, MDB_CP_COMPACT);
-    }
+  void cannotChangeMaxDbsAfterOpen() {
+    assertThatThrownBy(
+            () -> {
+              FileUtil.useTempFile(
+                  file -> {
+                    final Builder<ByteBuffer> builder = create().setMaxReaders(1);
+                    try (Env<ByteBuffer> env = builder.open(file.toFile(), MDB_NOSUBDIR)) {
+                      builder.setMaxDbs(1);
+                    }
+                  });
+            })
+        .isInstanceOf(AlreadyOpenException.class);
   }
 
   @Test
-  public void createAsDirectory() throws IOException {
-    final File path = tmp.newFolder();
-    final Env<ByteBuffer> env = create().setMaxReaders(1).open(path);
-    assertThat(path.isDirectory(), is(true));
-    env.sync(false);
-    env.close();
-    assertThat(env.isClosed(), is(true));
-    env.close(); // safe to repeat
+  void cannotChangeMaxReadersAfterOpen() {
+    assertThatThrownBy(
+            () -> {
+              FileUtil.useTempFile(
+                  file -> {
+                    final Builder<ByteBuffer> builder = create().setMaxReaders(1);
+                    try (Env<ByteBuffer> env = builder.open(file.toFile(), MDB_NOSUBDIR)) {
+                      builder.setMaxReaders(1);
+                    }
+                  });
+            })
+        .isInstanceOf(AlreadyOpenException.class);
   }
 
   @Test
-  public void createAsFile() throws IOException {
-    final File path = tmp.newFile();
-    try (Env<ByteBuffer> env =
-        create().setMapSize(1_024 * 1_024).setMaxDbs(1).setMaxReaders(1).open(path, MDB_NOSUBDIR)) {
-      env.sync(true);
-      assertThat(path.isFile(), is(true));
-    }
-  }
-
-  @Test(expected = BadReaderLockException.class)
-  public void detectTransactionThreadViolation() throws IOException {
-    final File path = tmp.newFile();
-    try (Env<ByteBuffer> env = create().setMaxReaders(1).open(path, MDB_NOSUBDIR)) {
-      env.txnRead();
-      env.txnRead();
-    }
+  void cannotInfoOnceClosed() {
+    assertThatThrownBy(
+            () -> {
+              FileUtil.useTempFile(
+                  file -> {
+                    final Env<ByteBuffer> env =
+                        create().setMaxReaders(1).open(file.toFile(), MDB_NOSUBDIR);
+                    env.close();
+                    env.info();
+                  });
+            })
+        .isInstanceOf(AlreadyClosedException.class);
   }
 
   @Test
-  public void info() throws IOException {
-    final File path = tmp.newFile();
-    try (Env<ByteBuffer> env =
-        create().setMaxReaders(4).setMapSize(123_456).open(path, MDB_NOSUBDIR)) {
-      final EnvInfo info = env.info();
-      assertThat(info, is(notNullValue()));
-      assertThat(info.lastPageNumber, is(1L));
-      assertThat(info.lastTransactionId, is(0L));
-      assertThat(info.mapAddress, is(0L));
-      assertThat(info.mapSize, is(123_456L));
-      assertThat(info.maxReaders, is(4));
-      assertThat(info.numReaders, is(0));
-      assertThat(info.toString(), containsString("maxReaders="));
-      assertThat(env.getMaxKeySize(), is(511));
-    }
-  }
-
-  @Test(expected = MapFullException.class)
-  public void mapFull() throws IOException {
-    final File path = tmp.newFolder();
-    final byte[] k = new byte[500];
-    final ByteBuffer key = allocateDirect(500);
-    final ByteBuffer val = allocateDirect(1_024);
-    final Random rnd = new Random();
-    try (Env<ByteBuffer> env =
-        create().setMaxReaders(1).setMapSize(MEBIBYTES.toBytes(8)).setMaxDbs(1).open(path)) {
-      final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
-      for (; ; ) {
-        rnd.nextBytes(k);
-        key.clear();
-        key.put(k).flip();
-        val.clear();
-        db.put(key, val);
-      }
-    }
+  void cannotOpenTwice() {
+    assertThatThrownBy(
+            () -> {
+              FileUtil.useTempFile(
+                  file -> {
+                    final Builder<ByteBuffer> builder = create().setMaxReaders(1);
+                    builder.open(file.toFile(), MDB_NOSUBDIR).close();
+                    builder.open(file.toFile(), MDB_NOSUBDIR);
+                  });
+            })
+        .isInstanceOf(AlreadyOpenException.class);
   }
 
   @Test
-  public void readOnlySupported() throws IOException {
-    final File path = tmp.newFolder();
-    try (Env<ByteBuffer> rwEnv = create().setMaxReaders(1).open(path)) {
-      final Dbi<ByteBuffer> rwDb = rwEnv.openDbi(DB_1, MDB_CREATE);
-      rwDb.put(bb(1), bb(42));
-    }
-    try (Env<ByteBuffer> roEnv = create().setMaxReaders(1).open(path, MDB_RDONLY_ENV)) {
-      final Dbi<ByteBuffer> roDb = roEnv.openDbi(DB_1);
-      try (Txn<ByteBuffer> roTxn = roEnv.txnRead()) {
-        assertThat(roDb.get(roTxn, bb(1)), notNullValue());
-      }
-    }
+  void cannotOverflowMapSize() {
+    assertThatThrownBy(
+            () -> {
+              final Builder<ByteBuffer> builder = create().setMaxReaders(1);
+              final int mb = 1_024 * 1_024;
+              final int size = mb * 2_048; // as per issue 18
+              builder.setMapSize(size);
+            })
+        .isInstanceOf(IllegalArgumentException.class);
   }
 
   @Test
-  public void setMapSize() throws IOException {
-    final File path = tmp.newFolder();
-    final byte[] k = new byte[500];
-    final ByteBuffer key = allocateDirect(500);
-    final ByteBuffer val = allocateDirect(1_024);
-    final Random rnd = new Random();
-    try (Env<ByteBuffer> env =
-        create().setMaxReaders(1).setMapSize(KIBIBYTES.toBytes(256)).setMaxDbs(1).open(path)) {
-      final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
-
-      db.put(bb(1), bb(42));
-      boolean mapFullExThrown = false;
-      try {
-        for (int i = 0; i < 70; i++) {
-          rnd.nextBytes(k);
-          key.clear();
-          key.put(k).flip();
-          val.clear();
-          db.put(key, val);
-        }
-      } catch (final MapFullException mfE) {
-        mapFullExThrown = true;
-      }
-      assertThat(mapFullExThrown, is(true));
-
-      env.setMapSize(KIBIBYTES.toBytes(1024));
-
-      try (Txn<ByteBuffer> roTxn = env.txnRead()) {
-        assertThat(db.get(roTxn, bb(1)).getInt(), is(42));
-      }
-
-      mapFullExThrown = false;
-      try {
-        for (int i = 0; i < 70; i++) {
-          rnd.nextBytes(k);
-          key.clear();
-          key.put(k).flip();
-          val.clear();
-          db.put(key, val);
-        }
-      } catch (final MapFullException mfE) {
-        mapFullExThrown = true;
-      }
-      assertThat(mapFullExThrown, is(false));
-    }
+  void cannotStatOnceClosed() {
+    assertThatThrownBy(
+            () -> {
+              FileUtil.useTempFile(
+                  file -> {
+                    final Env<ByteBuffer> env =
+                        create().setMaxReaders(1).open(file.toFile(), MDB_NOSUBDIR);
+                    env.close();
+                    env.stat();
+                  });
+            })
+        .isInstanceOf(AlreadyClosedException.class);
   }
 
   @Test
-  public void stats() throws IOException {
-    final File path = tmp.newFile();
-    try (Env<ByteBuffer> env = create().setMaxReaders(1).open(path, MDB_NOSUBDIR)) {
-      final Stat stat = env.stat();
-      assertThat(stat, is(notNullValue()));
-      assertThat(stat.branchPages, is(0L));
-      assertThat(stat.depth, is(0));
-      assertThat(stat.entries, is(0L));
-      assertThat(stat.leafPages, is(0L));
-      assertThat(stat.overflowPages, is(0L));
-      assertThat(stat.pageSize % 4_096, is(0));
-      assertThat(stat.toString(), containsString("pageSize="));
-    }
+  void cannotSyncOnceClosed() {
+    assertThatThrownBy(
+            () -> {
+              FileUtil.useTempFile(
+                  file -> {
+                    final Env<ByteBuffer> env =
+                        create().setMaxReaders(1).open(file.toFile(), MDB_NOSUBDIR);
+                    env.close();
+                    env.sync(false);
+                  });
+            })
+        .isInstanceOf(AlreadyClosedException.class);
   }
 
   @Test
-  public void testDefaultOpen() throws IOException {
-    final File path = tmp.newFolder();
-    try (Env<ByteBuffer> env = open(path, 10)) {
-      final EnvInfo info = env.info();
-      assertThat(info.maxReaders, is(MAX_READERS_DEFAULT));
-      final Dbi<ByteBuffer> db = env.openDbi("test", MDB_CREATE);
-      db.put(allocateDirect(1), allocateDirect(1));
-    }
+  void copyDirectoryBased() {
+    FileUtil.useTempDir(
+        dest -> {
+          assertThat(Files.exists(dest)).isTrue();
+          assertThat(Files.isDirectory(dest)).isTrue();
+          assertThat(FileUtil.count(dest)).isEqualTo(0);
+          FileUtil.useTempDir(
+              src -> {
+                try (Env<ByteBuffer> env = create().setMaxReaders(1).open(src.toFile())) {
+                  env.copy(dest.toFile(), MDB_CP_COMPACT);
+                  assertThat(FileUtil.count(dest)).isEqualTo(1);
+                }
+              });
+        });
+  }
+
+  @Test
+  void copyDirectoryRejectsFileDestination() {
+    assertThatThrownBy(
+            () -> {
+              FileUtil.useTempDir(
+                  dest -> {
+                    FileUtil.deleteDir(dest);
+                    FileUtil.useTempDir(
+                        src -> {
+                          try (Env<ByteBuffer> env = create().setMaxReaders(1).open(src.toFile())) {
+                            env.copy(dest.toFile(), MDB_CP_COMPACT);
+                          }
+                        });
+                  });
+            })
+        .isInstanceOf(InvalidCopyDestination.class);
+  }
+
+  @Test
+  void copyDirectoryRejectsMissingDestination() {
+    assertThatThrownBy(
+            () -> {
+              FileUtil.useTempDir(
+                  dest -> {
+                    try {
+                      Files.delete(dest);
+                      FileUtil.useTempDir(
+                          src -> {
+                            try (Env<ByteBuffer> env =
+                                create().setMaxReaders(1).open(src.toFile())) {
+                              env.copy(dest.toFile(), MDB_CP_COMPACT);
+                            }
+                          });
+                    } catch (final IOException e) {
+                      throw new UncheckedIOException(e);
+                    }
+                  });
+            })
+        .isInstanceOf(InvalidCopyDestination.class);
+  }
+
+  @Test
+  void copyDirectoryRejectsNonEmptyDestination() {
+    assertThatThrownBy(
+            () -> {
+              FileUtil.useTempDir(
+                  dest -> {
+                    try {
+                      final Path subDir = dest.resolve("hello");
+                      Files.createDirectory(subDir);
+                      assertThat(Files.isDirectory(subDir)).isTrue();
+                      FileUtil.useTempDir(
+                          src -> {
+                            try (Env<ByteBuffer> env =
+                                create().setMaxReaders(1).open(src.toFile())) {
+                              env.copy(dest.toFile(), MDB_CP_COMPACT);
+                            }
+                          });
+                    } catch (final IOException e) {
+                      throw new UncheckedIOException(e);
+                    }
+                  });
+            })
+        .isInstanceOf(InvalidCopyDestination.class);
+  }
+
+  @Test
+  void copyFileBased() {
+    FileUtil.useTempFile(
+        dest -> {
+          FileUtil.deleteFile(dest);
+          assertThat(Files.exists(dest)).isFalse();
+          FileUtil.useTempFile(
+              src -> {
+                try (Env<ByteBuffer> env =
+                    create().setMaxReaders(1).open(src.toFile(), MDB_NOSUBDIR)) {
+                  env.copy(dest.toFile(), MDB_CP_COMPACT);
+                }
+                assertThat(FileUtil.size(dest)).isGreaterThan(0L);
+              });
+        });
+  }
+
+  @Test
+  void copyFileRejectsExistingDestination() {
+    assertThatThrownBy(
+            () -> {
+              FileUtil.useTempFile(
+                  dest -> {
+                    assertThat(Files.exists(dest)).isTrue();
+                    FileUtil.useTempFile(
+                        src -> {
+                          try (Env<ByteBuffer> env =
+                              create().setMaxReaders(1).open(src.toFile(), MDB_NOSUBDIR)) {
+                            env.copy(dest.toFile(), MDB_CP_COMPACT);
+                          }
+                        });
+                  });
+            })
+        .isInstanceOf(InvalidCopyDestination.class);
+  }
+
+  @Test
+  void createAsDirectory() {
+    FileUtil.useTempDir(
+        dest -> {
+          final Env<ByteBuffer> env = create().setMaxReaders(1).open(dest.toFile());
+          assertThat(Files.isDirectory(dest)).isTrue();
+          env.sync(false);
+          env.close();
+          assertThat(env.isClosed()).isTrue();
+          env.close(); // safe to repeat
+        });
+  }
+
+  @Test
+  void createAsFile() {
+    FileUtil.useTempFile(
+        file -> {
+          try (Env<ByteBuffer> env =
+              create()
+                  .setMapSize(MEBIBYTES.toBytes(1))
+                  .setMaxDbs(1)
+                  .setMaxReaders(1)
+                  .open(file.toFile(), MDB_NOSUBDIR)) {
+            env.sync(true);
+            assertThat(Files.isRegularFile(file)).isTrue();
+          }
+        });
+  }
+
+  @Test
+  void detectTransactionThreadViolation() {
+    assertThatThrownBy(
+            () -> {
+              FileUtil.useTempFile(
+                  file -> {
+                    try (Env<ByteBuffer> env =
+                        create().setMaxReaders(1).open(file.toFile(), MDB_NOSUBDIR)) {
+                      env.txnRead();
+                      env.txnRead();
+                    }
+                  });
+            })
+        .isInstanceOf(BadReaderLockException.class);
+  }
+
+  @Test
+  void info() {
+    FileUtil.useTempFile(
+        file -> {
+          try (Env<ByteBuffer> env =
+              create().setMaxReaders(4).setMapSize(123_456).open(file.toFile(), MDB_NOSUBDIR)) {
+            final EnvInfo info = env.info();
+            assertThat(info).isNotNull();
+            assertThat(info.lastPageNumber).isEqualTo(1L);
+            assertThat(info.lastTransactionId).isEqualTo(0L);
+            assertThat(info.mapAddress).isEqualTo(0L);
+            assertThat(info.mapSize).isEqualTo(123_456L);
+            assertThat(info.maxReaders).isEqualTo(4);
+            assertThat(info.numReaders).isEqualTo(0);
+            assertThat(info.toString()).contains("maxReaders=");
+            assertThat(env.getMaxKeySize()).isEqualTo(511);
+          }
+        });
+  }
+
+  @Test
+  void mapFull() {
+    assertThatThrownBy(
+            () -> {
+              FileUtil.useTempDir(
+                  dir -> {
+                    final byte[] k = new byte[500];
+                    final ByteBuffer key = allocateDirect(500);
+                    final ByteBuffer val = allocateDirect(1_024);
+                    final Random rnd = new Random();
+                    try (Env<ByteBuffer> env =
+                        create()
+                            .setMaxReaders(1)
+                            .setMapSize(MEBIBYTES.toBytes(8))
+                            .setMaxDbs(1)
+                            .open(dir.toFile())) {
+                      final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
+                      for (; ; ) {
+                        rnd.nextBytes(k);
+                        key.clear();
+                        key.put(k).flip();
+                        val.clear();
+                        db.put(key, val);
+                      }
+                    }
+                  });
+            })
+        .isInstanceOf(MapFullException.class);
+  }
+
+  @Test
+  void readOnlySupported() {
+    FileUtil.useTempDir(
+        dir -> {
+          try (Env<ByteBuffer> rwEnv = create().setMaxReaders(1).open(dir.toFile())) {
+            final Dbi<ByteBuffer> rwDb = rwEnv.openDbi(DB_1, MDB_CREATE);
+            rwDb.put(bb(1), bb(42));
+          }
+          try (Env<ByteBuffer> roEnv =
+              create().setMaxReaders(1).open(dir.toFile(), MDB_RDONLY_ENV)) {
+            final Dbi<ByteBuffer> roDb = roEnv.openDbi(DB_1);
+            try (Txn<ByteBuffer> roTxn = roEnv.txnRead()) {
+              assertThat(roDb.get(roTxn, bb(1))).isNotNull();
+            }
+          }
+        });
+  }
+
+  @Test
+  void setMapSize() {
+    FileUtil.useTempDir(
+        dir -> {
+          final byte[] k = new byte[500];
+          final ByteBuffer key = allocateDirect(500);
+          final ByteBuffer val = allocateDirect(1_024);
+          final Random rnd = new Random();
+          try (Env<ByteBuffer> env =
+              create()
+                  .setMaxReaders(1)
+                  .setMapSize(KIBIBYTES.toBytes(256))
+                  .setMaxDbs(1)
+                  .open(dir.toFile())) {
+            final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
+
+            db.put(bb(1), bb(42));
+            boolean mapFullExThrown = false;
+            try {
+              for (int i = 0; i < 70; i++) {
+                rnd.nextBytes(k);
+                key.clear();
+                key.put(k).flip();
+                val.clear();
+                db.put(key, val);
+              }
+            } catch (final MapFullException mfE) {
+              mapFullExThrown = true;
+            }
+            assertThat(mapFullExThrown).isTrue();
+
+            env.setMapSize(KIBIBYTES.toBytes(1024));
+
+            try (Txn<ByteBuffer> roTxn = env.txnRead()) {
+              final ByteBuffer byteBuffer = db.get(roTxn, bb(1));
+              assertThat(byteBuffer).isNotNull();
+              assertThat(byteBuffer.getInt()).isEqualTo(42);
+            }
+
+            mapFullExThrown = false;
+            try {
+              for (int i = 0; i < 70; i++) {
+                rnd.nextBytes(k);
+                key.clear();
+                key.put(k).flip();
+                val.clear();
+                db.put(key, val);
+              }
+            } catch (final MapFullException mfE) {
+              mapFullExThrown = true;
+            }
+            assertThat(mapFullExThrown).isFalse();
+          }
+        });
+  }
+
+  @Test
+  void stats() {
+    FileUtil.useTempFile(
+        file -> {
+          try (Env<ByteBuffer> env = create().setMaxReaders(1).open(file.toFile(), MDB_NOSUBDIR)) {
+            final Stat stat = env.stat();
+            assertThat(stat).isNotNull();
+            assertThat(stat.branchPages).isEqualTo(0L);
+            assertThat(stat.depth).isEqualTo(0);
+            assertThat(stat.entries).isEqualTo(0L);
+            assertThat(stat.leafPages).isEqualTo(0L);
+            assertThat(stat.overflowPages).isEqualTo(0L);
+            assertThat(stat.pageSize % 4_096).isEqualTo(0);
+            assertThat(stat.toString()).contains("pageSize=");
+          }
+        });
+  }
+
+  @Test
+  void testDefaultOpen() {
+    FileUtil.useTempDir(
+        dir -> {
+          try (Env<ByteBuffer> env = open(dir.toFile(), 10)) {
+            final EnvInfo info = env.info();
+            assertThat(info.maxReaders).isEqualTo(MAX_READERS_DEFAULT);
+            final Dbi<ByteBuffer> db = env.openDbi("test", MDB_CREATE);
+            db.put(allocateDirect(1), allocateDirect(1));
+          }
+        });
   }
 }

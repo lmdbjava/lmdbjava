@@ -16,7 +16,6 @@
 package org.lmdbjava;
 
 import static io.netty.buffer.PooledByteBufAllocator.DEFAULT;
-import static java.lang.Integer.BYTES;
 import static java.nio.ByteBuffer.allocateDirect;
 
 import io.netty.buffer.ByteBuf;
@@ -46,8 +45,14 @@ final class TestUtils {
   }
 
   static ByteBuffer bb(final int value) {
-    final ByteBuffer bb = allocateDirect(BYTES);
+    final ByteBuffer bb = allocateDirect(Integer.BYTES);
     bb.putInt(value).flip();
+    return bb;
+  }
+
+  static ByteBuffer bb(final long value) {
+    final ByteBuffer bb = allocateDirect(Long.BYTES);
+    bb.putLong(value).flip();
     return bb;
   }
 
@@ -66,13 +71,13 @@ final class TestUtils {
   }
 
   static MutableDirectBuffer mdb(final int value) {
-    final MutableDirectBuffer b = new UnsafeBuffer(allocateDirect(BYTES));
+    final MutableDirectBuffer b = new UnsafeBuffer(allocateDirect(Integer.BYTES));
     b.putInt(0, value);
     return b;
   }
 
   static ByteBuf nb(final int value) {
-    final ByteBuf b = DEFAULT.directBuffer(BYTES);
+    final ByteBuf b = DEFAULT.directBuffer(Integer.BYTES);
     b.writeInt(value);
     return b;
   }
