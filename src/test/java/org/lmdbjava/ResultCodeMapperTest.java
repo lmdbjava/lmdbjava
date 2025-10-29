@@ -13,22 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.lmdbjava;
 
 import static java.lang.Integer.MAX_VALUE;
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.hasSize;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.fail;
 import static org.lmdbjava.Cursor.FullException.MDB_CURSOR_FULL;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
 import static org.lmdbjava.TestUtils.invokePrivateConstructor;
 
 import java.util.HashSet;
 import java.util.Set;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.lmdbjava.Cursor.FullException;
 import org.lmdbjava.Dbi.BadDbiException;
 import org.lmdbjava.Dbi.BadValueSizeException;
@@ -86,71 +84,71 @@ public final class ResultCodeMapperTest {
   }
 
   @Test
-  public void checkErrAll() {
+  void checkErrAll() {
     for (final Integer rc : RESULT_CODES) {
       try {
         checkRc(rc);
         fail("Exception expected for RC " + rc);
       } catch (final LmdbNativeException e) {
-        assertThat(e.getResultCode(), is(rc));
+        assertThat(e.getResultCode()).isEqualTo(rc);
       }
     }
   }
 
-  @Test(expected = ConstantDerivedException.class)
-  public void checkErrConstantDerived() {
-    checkRc(20);
+  @Test
+  void checkErrConstantDerived() {
+    assertThatThrownBy(() -> checkRc(20)).isInstanceOf(ConstantDerivedException.class);
   }
 
   @Test
-  public void checkErrConstantDerivedMessage() {
+  void checkErrConstantDerivedMessage() {
     try {
       checkRc(2);
       fail("Should have raised exception");
     } catch (final ConstantDerivedException ex) {
-      assertThat(ex.getMessage(), containsString("No such file or directory"));
+      assertThat(ex.getMessage()).contains("No such file or directory");
     }
   }
 
-  @Test(expected = FullException.class)
-  public void checkErrCursorFull() {
-    checkRc(MDB_CURSOR_FULL);
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void checkErrUnknownResultCode() {
-    checkRc(MAX_VALUE);
+  @Test
+  void checkErrCursorFull() {
+    assertThatThrownBy(() -> checkRc(MDB_CURSOR_FULL)).isInstanceOf(FullException.class);
   }
 
   @Test
-  public void coverPrivateConstructors() {
+  void checkErrUnknownResultCode() {
+    assertThatThrownBy(() -> checkRc(MAX_VALUE)).isInstanceOf(IllegalArgumentException.class);
+  }
+
+  @Test
+  void coverPrivateConstructors() {
     invokePrivateConstructor(ResultCodeMapper.class);
   }
 
   @Test
-  public void lmdbExceptionPreservesRootCause() {
+  void lmdbExceptionPreservesRootCause() {
     final Exception cause = new IllegalStateException("root cause");
     final LmdbException e = new LmdbException("test", cause);
-    assertThat(e.getCause(), is(cause));
-    assertThat(e.getMessage(), is("test"));
+    assertThat(e.getCause()).isEqualTo(cause);
+    assertThat(e.getMessage()).isEqualTo("test");
   }
 
   @Test
-  public void mapperReturnsUnique() {
+  void mapperReturnsUnique() {
     final Set<LmdbNativeException> seen = new HashSet<>();
     for (final Integer rc : RESULT_CODES) {
       try {
         checkRc(rc);
       } catch (final LmdbNativeException ex) {
-        assertThat(ex, is(notNullValue()));
+        assertThat(ex).isNotNull();
         seen.add(ex);
       }
     }
-    assertThat(seen, hasSize(RESULT_CODES.size()));
+    assertThat(seen).hasSize(RESULT_CODES.size());
   }
 
   @Test
-  public void noDuplicateResultCodes() {
-    assertThat(RESULT_CODES.size(), is(EXCEPTIONS.size()));
+  void noDuplicateResultCodes() {
+    assertThat(RESULT_CODES.size()).isEqualTo(EXCEPTIONS.size());
   }
 }
