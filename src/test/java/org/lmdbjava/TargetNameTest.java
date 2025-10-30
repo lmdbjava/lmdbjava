@@ -61,7 +61,7 @@ public final class TargetNameTest {
   }
 
   private void embed(final String lib, final String arch, final String os) {
-    assertThat(resolveFilename(NONE, NONE, arch, os)).isEqualTo("org/lmdbjava/" + lib);
+    assertThat(resolveFilename(NONE, NONE, arch, os)).isEqualTo("org/lmdbjava/native/" + lib);
     assertThat(isExternal(NONE)).isFalse();
   }
 }

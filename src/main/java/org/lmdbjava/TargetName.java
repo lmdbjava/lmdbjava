@@ -43,7 +43,7 @@ public final class TargetName {
    * Java system property name that can be set to override the embedded library that will be used.
    * This is likely to be required if automatic resolution fails but the user still prefers to use
    * an LmdbJava-bundled library. This path must include the classpath prefix (usually <code>
-   * org/lmdbjava</code>).
+   * org/lmdbjava/native</code>).
    */
   public static final String LMDB_EMBEDDED_LIB_PROP = "lmdbjava.embedded.lib";
 
@@ -94,7 +94,7 @@ public final class TargetName {
 
     final String pkg = TargetName.class.getPackage().getName().replace('.', '/');
     return pkg
-        + "/"
+        + "/native/"
         + resolveArch(arch)
         + "-"
         + resolveOs(os)
