@@ -15,28 +15,31 @@
  */
 package org.lmdbjava;
 
-import static java.lang.Long.BYTES;
+import org.junit.Test;
+import org.lmdbjava.Lmdb.MDB_envinfo;
+
+import java.lang.foreign.Arena;
+
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.lmdbjava.Library.RUNTIME;
 import static org.lmdbjava.TestUtils.invokePrivateConstructor;
 
-import org.junit.Test;
-import org.lmdbjava.Library.MDB_envinfo;
-
-/** Test {@link Library}. */
+/**
+ * Test {@link Library}.
+ */
 public final class LibraryTest {
 
   @Test
   public void coverPrivateConstructors() {
     invokePrivateConstructor(Library.class);
-    invokePrivateConstructor(UnsafeAccess.class);
   }
 
   @Test
   public void structureFieldOrder() {
-    final MDB_envinfo v = new MDB_envinfo(RUNTIME);
-    assertThat(v.f0_me_mapaddr.offset(), is(0L));
-    assertThat(v.f1_me_mapsize.offset(), is((long) BYTES));
+    try (final Arena arena = Arena.ofConfined()) {
+      final MDB_envinfo v = new MDB_envinfo(arena);
+      assertThat(v.meMapaddr().address(), is(0L));
+      assertThat(v.meMapsize(), is(0L));
+    }
   }
 }

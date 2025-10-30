@@ -16,14 +16,10 @@
 package org.lmdbjava;
 
 import static java.util.Objects.requireNonNull;
-import static jnr.ffi.Memory.allocateDirect;
-import static jnr.ffi.NativeType.ADDRESS;
 import static org.lmdbjava.Dbi.KeyExistsException.MDB_KEYEXIST;
 import static org.lmdbjava.Dbi.KeyNotFoundException.MDB_NOTFOUND;
 import static org.lmdbjava.Env.SHOULD_CHECK;
 import static org.lmdbjava.KeyRange.all;
-import static org.lmdbjava.Library.LIB;
-import static org.lmdbjava.Library.RUNTIME;
 import static org.lmdbjava.MaskedFlag.isSet;
 import static org.lmdbjava.MaskedFlag.mask;
 import static org.lmdbjava.PutFlags.MDB_NODUPDATA;
@@ -31,15 +27,15 @@ import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
 import static org.lmdbjava.PutFlags.MDB_RESERVE;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
 
+import java.lang.foreign.Arena;
+import java.lang.foreign.MemorySegment;
+import java.lang.foreign.ValueLayout;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
-import jnr.ffi.Pointer;
-import jnr.ffi.byref.IntByReference;
-import jnr.ffi.byref.PointerByReference;
-import org.lmdbjava.Library.ComparatorCallback;
-import org.lmdbjava.Library.MDB_stat;
+
+import org.lmdbjava.Lmdb.MDB_val;
 
 /**
  * LMDB Database.
@@ -48,14 +44,16 @@ import org.lmdbjava.Library.MDB_stat;
  */
 public final class Dbi<T> {
 
-  private final ComparatorCallback ccb;
+  private final Arena arena;
+  private final Lmdb.ComparatorCallback ccb;
   private boolean cleaned;
   private final Comparator<T> comparator;
   private final Env<T> env;
   private final byte[] name;
-  private final Pointer ptr;
+  private final int ptr;
 
   Dbi(
+      final Arena arena,
       final Env<T> env,
       final Txn<T> txn,
       final byte[] name,
@@ -67,6 +65,7 @@ public final class Dbi<T> {
       requireNonNull(txn);
       txn.checkReady();
     }
+    this.arena = arena;
     this.env = env;
     this.name = name == null ? null : Arrays.copyOf(name, name.length);
     if (comparator == null) {
@@ -75,22 +74,28 @@ public final class Dbi<T> {
       this.comparator = comparator;
     }
     final int flagsMask = mask(true, flags);
-    final Pointer dbiPtr = allocateDirect(RUNTIME, ADDRESS);
-    checkRc(LIB.mdb_dbi_open(txn.pointer(), name, flagsMask, dbiPtr));
-    ptr = dbiPtr.getPointer(0);
+
+    final MemorySegment nameSegment;
+    if (name != null) {
+      // Ensure null termination for C style strings.
+      nameSegment = arena.allocate(name.length + 1);
+      MemorySegment.copy(name, 0, nameSegment, ValueLayout.JAVA_BYTE, 0, name.length);
+      nameSegment.set(ValueLayout.JAVA_BYTE, name.length, (byte) 0);
+    } else {
+      nameSegment = MemorySegment.NULL;
+    }
+
+    final MemorySegment dbiPtr = arena.allocate(ValueLayout.JAVA_INT);
+    checkRc(Lmdb.mdb_dbi_open(txn.pointer(), nameSegment, flagsMask, dbiPtr));
+    ptr = dbiPtr.get(ValueLayout.JAVA_INT, 0);
     if (nativeCb) {
       this.ccb =
           (keyA, keyB) -> {
-            final T compKeyA = proxy.allocate();
-            final T compKeyB = proxy.allocate();
-            proxy.out(compKeyA, keyA, keyA.address());
-            proxy.out(compKeyB, keyB, keyB.address());
-            final int result = this.comparator.compare(compKeyA, compKeyB);
-            proxy.deallocate(compKeyA);
-            proxy.deallocate(compKeyB);
-            return result;
+            final T compKeyA = proxy.out(keyA);
+            final T compKeyB = proxy.out(keyB);
+            return this.comparator.compare(compKeyA, compKeyB);
           };
-      LIB.mdb_set_compare(txn.pointer(), ptr, ccb);
+      Lmdb.mdb_set_compare(txn.pointer(), ptr, ccb, arena);
     } else {
       ccb = null;
     }
@@ -110,7 +115,7 @@ public final class Dbi<T> {
     if (SHOULD_CHECK) {
       env.checkNotClosed();
     }
-    LIB.mdb_dbi_close(env.pointer(), ptr);
+    Lmdb.mdb_dbi_close(env.pointer(), ptr);
   }
 
   /**
@@ -163,12 +168,12 @@ public final class Dbi<T> {
 
     txn.kv().keyIn(key);
 
-    Pointer data = null;
+    MDB_val data = null;
     if (val != null) {
       txn.kv().valIn(val);
       data = txn.kv().pointerVal();
     }
-    final int rc = LIB.mdb_del(txn.pointer(), ptr, txn.kv().pointerKey(), data);
+    final int rc = Lmdb.mdb_del(txn.pointer(), ptr, txn.kv().pointerKey(), data);
     if (rc == MDB_NOTFOUND) {
       return false;
     }
@@ -209,7 +214,7 @@ public final class Dbi<T> {
       clean();
     }
     final int del = delete ? 1 : 0;
-    checkRc(LIB.mdb_drop(txn.pointer(), ptr, del));
+    checkRc(Lmdb.mdb_drop(txn.pointer(), ptr, del));
   }
 
   /**
@@ -233,7 +238,7 @@ public final class Dbi<T> {
       txn.checkReady();
     }
     txn.kv().keyIn(key);
-    final int rc = LIB.mdb_get(txn.pointer(), ptr, txn.kv().pointerKey(), txn.kv().pointerVal());
+    final int rc = Lmdb.mdb_get(txn.pointer(), ptr, txn.kv().pointerKey(), txn.kv().pointerVal());
     if (rc == MDB_NOTFOUND) {
       return null;
     }
@@ -288,10 +293,10 @@ public final class Dbi<T> {
     if (SHOULD_CHECK) {
       env.checkNotClosed();
     }
-    final IntByReference resultPtr = new IntByReference();
-    checkRc(LIB.mdb_dbi_flags(txn.pointer(), ptr, resultPtr));
+    MemorySegment resultPtr = arena.allocate(ValueLayout.JAVA_INT);
+    checkRc(Lmdb.mdb_dbi_flags(txn.pointer(), ptr, resultPtr));
 
-    final int flags = resultPtr.intValue();
+    final int flags = resultPtr.get(ValueLayout.JAVA_INT, 0);
 
     final List<DbiFlags> result = new ArrayList<>();
 
@@ -324,9 +329,9 @@ public final class Dbi<T> {
       env.checkNotClosed();
       txn.checkReady();
     }
-    final PointerByReference cursorPtr = new PointerByReference();
-    checkRc(LIB.mdb_cursor_open(txn.pointer(), ptr, cursorPtr));
-    return new Cursor<>(cursorPtr.getValue(), txn, env);
+    MemorySegment cursorPtr = arena.allocate(ValueLayout.ADDRESS);
+    checkRc(Lmdb.mdb_cursor_open(txn.pointer(), ptr, cursorPtr));
+    return new Cursor<>(arena, cursorPtr.get(ValueLayout.ADDRESS, 0), txn, env);
   }
 
   /**
@@ -370,7 +375,7 @@ public final class Dbi<T> {
     txn.kv().valIn(val);
     final int mask = mask(true, flags);
     final int rc =
-        LIB.mdb_put(txn.pointer(), ptr, txn.kv().pointerKey(), txn.kv().pointerVal(), mask);
+        Lmdb.mdb_put(txn.pointer(), ptr, txn.kv().pointerKey(), txn.kv().pointerVal(), mask);
     if (rc == MDB_KEYEXIST) {
       if (isSet(mask, MDB_NOOVERWRITE)) {
         txn.kv().valOut(); // marked as in,out in LMDB C docs
@@ -411,7 +416,7 @@ public final class Dbi<T> {
     txn.kv().keyIn(key);
     txn.kv().valIn(size);
     final int flags = mask(true, op) | MDB_RESERVE.getMask();
-    checkRc(LIB.mdb_put(txn.pointer(), ptr, txn.kv().pointerKey(), txn.kv().pointerVal(), flags));
+    checkRc(Lmdb.mdb_put(txn.pointer(), ptr, txn.kv().pointerKey(), txn.kv().pointerVal(), flags));
     txn.kv().valOut(); // marked as in,out in LMDB C docs
     ReferenceUtil.reachabilityFence0(key);
     return txn.val();
@@ -429,15 +434,15 @@ public final class Dbi<T> {
       env.checkNotClosed();
       txn.checkReady();
     }
-    final MDB_stat stat = new MDB_stat(RUNTIME);
-    checkRc(LIB.mdb_stat(txn.pointer(), ptr, stat));
+    final Lmdb.MDB_stat stat = new Lmdb.MDB_stat(arena);
+    checkRc(Lmdb.mdb_stat(txn.pointer(), ptr, stat));
     return new Stat(
-        stat.f0_ms_psize.intValue(),
-        stat.f1_ms_depth.intValue(),
-        stat.f2_ms_branch_pages.longValue(),
-        stat.f3_ms_leaf_pages.longValue(),
-        stat.f4_ms_overflow_pages.longValue(),
-        stat.f5_ms_entries.longValue());
+        stat.msPsize(),
+        stat.msDepth(),
+        stat.msBranchPages(),
+        stat.msLeafPages(),
+        stat.msOverflowPages(),
+        stat.msEntries());
   }
 
   private void clean() {

@@ -19,12 +19,12 @@ import static java.lang.ThreadLocal.withInitial;
 import static java.nio.ByteBuffer.allocateDirect;
 import static java.nio.ByteOrder.BIG_ENDIAN;
 import static java.util.Objects.requireNonNull;
-import static org.lmdbjava.UnsafeAccess.UNSAFE;
 
+import java.lang.foreign.MemorySegment;
 import java.nio.ByteBuffer;
 import java.util.ArrayDeque;
 import java.util.Comparator;
-import jnr.ffi.Pointer;
+import org.lmdbjava.Lmdb.MDB_val;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -32,7 +32,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 /**
  * A buffer proxy backed by Agrona's {@link DirectBuffer}.
  *
- * <p>This class requires {@link UnsafeAccess} and Agrona must be in the classpath.
+ * <p>This class requires Agrona in the classpath.
  */
 public final class DirectBufferProxy extends BufferProxy<DirectBuffer> {
   private static final Comparator<DirectBuffer> signedComparator =
@@ -134,26 +134,35 @@ public final class DirectBufferProxy extends BufferProxy<DirectBuffer> {
   }
 
   @Override
-  protected void in(final DirectBuffer buffer, final Pointer ptr, final long ptrAddr) {
-    final long addr = buffer.addressOffset();
-    final long size = buffer.capacity();
-    UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_DATA, addr);
-    UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE, size);
+  protected void in(final DirectBuffer buffer, final MDB_val ptr) {
+    ptr.mvSize(buffer.capacity());
+    ptr.mvData(fromAgronaAddress(buffer));
   }
 
   @Override
   protected void in(
-      final DirectBuffer buffer, final int size, final Pointer ptr, final long ptrAddr) {
-    final long addr = buffer.addressOffset();
-    UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_DATA, addr);
-    UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE, size);
+          final DirectBuffer buffer, final int size, final MDB_val ptr) {
+    ptr.mvSize(size);
+    ptr.mvData(fromAgronaAddress(buffer));
   }
 
   @Override
-  protected DirectBuffer out(final DirectBuffer buffer, final Pointer ptr, final long ptrAddr) {
-    final long addr = UNSAFE.getLong(ptrAddr + STRUCT_FIELD_OFFSET_DATA);
-    final long size = UNSAFE.getLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE);
-    buffer.wrap(addr, (int) size);
+  protected DirectBuffer out(final MDB_val ptr) {
+    final MutableDirectBuffer buffer = new UnsafeBuffer(0, 0);
+    buffer.wrap(ptr.mvData().address(), (int) ptr.mvSize());
     return buffer;
+  }
+
+  /**
+   * Convert DirectBuffer to MemorySegment using native address
+   */
+  public static MemorySegment fromAgronaAddress(DirectBuffer buffer) {
+    // Get the native address from Agrona buffer
+    long address = buffer.addressOffset();
+    int capacity = buffer.capacity();
+
+    // Create MemorySegment from address
+    // Note: This requires the address to remain valid
+    return MemorySegment.ofAddress(address).reinterpret(capacity);
   }
 }

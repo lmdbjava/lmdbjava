@@ -15,11 +15,11 @@
  */
 package org.lmdbjava;
 
-import static jnr.ffi.Memory.allocateDirect;
-import static jnr.ffi.NativeType.ADDRESS;
+import java.lang.foreign.Arena;
+import java.lang.foreign.MemorySegment;
+import java.lang.foreign.ValueLayout;
+
 import static org.lmdbjava.Env.SHOULD_CHECK;
-import static org.lmdbjava.Library.LIB;
-import static org.lmdbjava.Library.RUNTIME;
 import static org.lmdbjava.MaskedFlag.isSet;
 import static org.lmdbjava.MaskedFlag.mask;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
@@ -28,8 +28,6 @@ import static org.lmdbjava.Txn.State.READY;
 import static org.lmdbjava.Txn.State.RELEASED;
 import static org.lmdbjava.Txn.State.RESET;
 import static org.lmdbjava.TxnFlags.MDB_RDONLY_TXN;
-
-import jnr.ffi.Pointer;
 
 /**
  * LMDB transaction.
@@ -41,14 +39,16 @@ public final class Txn<T> implements AutoCloseable {
   private final KeyVal<T> keyVal;
   private final Txn<T> parent;
   private final BufferProxy<T> proxy;
-  private final Pointer ptr;
+  private final MemorySegment ptr;
   private final boolean readOnly;
+  private final Arena arena;
   private final Env<T> env;
   private State state;
 
-  Txn(final Env<T> env, final Txn<T> parent, final BufferProxy<T> proxy, final TxnFlags... flags) {
+  Txn(final Arena arena, final Env<T> env, final Txn<T> parent, final BufferProxy<T> proxy, final TxnFlags... flags) {
+    this.arena = arena;
     this.proxy = proxy;
-    this.keyVal = proxy.keyVal();
+    this.keyVal = proxy.keyVal(arena);
     final int flagsMask = mask(true, flags);
     this.readOnly = isSet(flagsMask, MDB_RDONLY_TXN);
     if (env.isReadOnly() && !this.readOnly) {
@@ -59,10 +59,10 @@ public final class Txn<T> implements AutoCloseable {
     if (parent != null && parent.isReadOnly() != this.readOnly) {
       throw new IncompatibleParent();
     }
-    final Pointer txnPtr = allocateDirect(RUNTIME, ADDRESS);
-    final Pointer txnParentPtr = parent == null ? null : parent.ptr;
-    checkRc(LIB.mdb_txn_begin(env.pointer(), txnParentPtr, flagsMask, txnPtr));
-    ptr = txnPtr.getPointer(0);
+    final MemorySegment txnPtr = arena.allocate(ValueLayout.ADDRESS);
+    final MemorySegment txnParentPtr = parent == null ? MemorySegment.NULL : parent.ptr;
+    checkRc(Lmdb.mdb_txn_begin(env.pointer(), txnParentPtr, flagsMask, txnPtr));
+    ptr = txnPtr.get(ValueLayout.ADDRESS, 0);
 
     state = READY;
   }
@@ -74,7 +74,7 @@ public final class Txn<T> implements AutoCloseable {
     }
     checkReady();
     state = DONE;
-    LIB.mdb_txn_abort(ptr);
+    Lmdb.mdb_txn_abort(ptr);
   }
 
   /**
@@ -92,7 +92,7 @@ public final class Txn<T> implements AutoCloseable {
       return;
     }
     if (state == READY) {
-      LIB.mdb_txn_abort(ptr);
+      Lmdb.mdb_txn_abort(ptr);
     }
     keyVal.close();
     state = RELEASED;
@@ -105,7 +105,7 @@ public final class Txn<T> implements AutoCloseable {
     }
     checkReady();
     state = DONE;
-    checkRc(LIB.mdb_txn_commit(ptr));
+    checkRc(Lmdb.mdb_txn_commit(ptr));
   }
 
   /**
@@ -117,7 +117,7 @@ public final class Txn<T> implements AutoCloseable {
     if (SHOULD_CHECK) {
       env.checkNotClosed();
     }
-    return LIB.mdb_txn_id(ptr);
+    return Lmdb.mdb_txn_id(ptr);
   }
 
   /**
@@ -159,7 +159,7 @@ public final class Txn<T> implements AutoCloseable {
       throw new NotResetException();
     }
     state = DONE;
-    checkRc(LIB.mdb_txn_renew(ptr));
+    checkRc(Lmdb.mdb_txn_renew(ptr));
     state = READY;
   }
 
@@ -176,7 +176,7 @@ public final class Txn<T> implements AutoCloseable {
       throw new ResetException();
     }
     state = RESET;
-    LIB.mdb_txn_reset(ptr);
+    Lmdb.mdb_txn_reset(ptr);
   }
 
   /**
@@ -223,10 +223,10 @@ public final class Txn<T> implements AutoCloseable {
   }
 
   KeyVal<T> newKeyVal() {
-    return proxy.keyVal();
+    return proxy.keyVal(arena);
   }
 
-  Pointer pointer() {
+  MemorySegment pointer() {
     return ptr;
   }
 

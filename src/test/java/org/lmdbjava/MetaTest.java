@@ -26,6 +26,8 @@ import static org.lmdbjava.TestUtils.invokePrivateConstructor;
 import org.junit.Test;
 import org.lmdbjava.Meta.Version;
 
+import java.lang.foreign.Arena;
+
 /** Test {@link Meta}. */
 public final class MetaTest {
 
@@ -41,9 +43,11 @@ public final class MetaTest {
 
   @Test
   public void version() {
-    final Version v = Meta.version();
-    assertThat(v, not(nullValue()));
-    assertThat(v.major, is(0));
-    assertThat(v.minor, is(9));
+    try (final Arena arena = Arena.ofConfined()) {
+      final Version v = Meta.version(arena);
+      assertThat(v, not(nullValue()));
+      assertThat(v.major, is(0));
+      assertThat(v.minor, is(9));
+    }
   }
 }

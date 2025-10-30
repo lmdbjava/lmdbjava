@@ -25,7 +25,6 @@ import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import static org.lmdbjava.DbiFlags.MDB_DUPSORT;
 import static org.lmdbjava.DirectBufferProxy.PROXY_DB;
@@ -404,7 +403,7 @@ public final class TutorialTest {
   public void tutorial6() throws IOException {
     // Note we need to specify the Verifier's DBI_COUNT for the Env.
     final Env<ByteBuffer> env =
-        create(PROXY_OPTIMAL)
+        create(ByteBufferProxy.INSTANCE)
             .setMapSize(10_485_760)
             .setMaxDbs(Verifier.DBI_COUNT)
             .open(tmp.newFolder());
