@@ -57,21 +57,10 @@ any questions.
 
 ### Building
 
-This project uses [Zig](https://ziglang.org/) to cross-compile the LMDB native
-library for all supported architectures. To locally build LmdbJava you must
-firstly install a recent version of Zig and then execute the project's
-[cross-compile.sh](https://github.com/lmdbjava/lmdbjava/tree/master/cross-compile.sh)
-script. This only needs to be repeated when the `cross-compile.sh` script is
-updated (eg following a new official release of the upstream LMDB library).
+LmdbJava uses a standard Maven build. Its native libraries are provided by the
+[`org.lmdbjava:native`](https://github.com/lmdbjava/native) dependency.
 
-If you do not wish to install Zig and/or use an operating system which cannot
-easily execute the `cross-compile.sh` script, you can download the compiled
-LMDB native library for your platform from a location of your choice and set the
-`lmdbjava.native.lib` system property to the resulting file system
-location. Possible sources of a compiled LMDB native library include operating
-system package managers, running `cross-compile.sh` on a supported system, or
-copying it from the `org/lmdbjava` directory of any recent, officially released
-LmdbJava JAR.
+To use a different LMDB library, set `lmdbjava.native.lib` system property to the file path.
 
 ### Contributing
 
