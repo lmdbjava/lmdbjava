@@ -75,7 +75,20 @@ public interface MaskedFlag {
    */
   @SafeVarargs
   static <M extends MaskedFlag> int mask(final boolean onlyPropagatedToLmdb, final M... flags) {
-    return flags == null ? 0 : mask(onlyPropagatedToLmdb, Arrays.stream(flags));
+    if (flags == null || flags.length == 0) {
+      return 0;
+    }
+
+    int result = 0;
+    for (final M flag : flags) {
+      if (flag == null) {
+        continue;
+      }
+      if (!onlyPropagatedToLmdb || flag.isPropagatedToLmdb()) {
+        result |= flag.getMask();
+      }
+    }
+    return result;
   }
 
   /**
