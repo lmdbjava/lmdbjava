@@ -27,6 +27,7 @@ import static org.lmdbjava.UnsafeAccess.UNSAFE;
 import java.lang.reflect.Field;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.ArrayDeque;
 import java.util.Comparator;
 import jnr.ffi.Pointer;
@@ -148,6 +149,41 @@ public final class ByteBufferProxy {
       return o1.remaining() - o2.remaining();
     }
 
+
+    /**
+     * Lexicographically compare two buffers up to a specified length.
+     *
+     * @param o1 left operand (required)
+     * @param o2 right operand (required)
+     * @param minLength The length of the section to compare.
+     * @return as specified by {@link Comparable} interface
+     */
+    public static int compareBuff(final ByteBuffer o1, final ByteBuffer o2, final int minLength) {
+      final int minWords = minLength / Long.BYTES;
+
+      final boolean reverse1 = o1.order() == LITTLE_ENDIAN;
+      final boolean reverse2 = o2.order() == LITTLE_ENDIAN;
+      for (int i = 0; i < minWords * Long.BYTES; i += Long.BYTES) {
+        final long lw = reverse1 ? reverseBytes(o1.getLong(i)) : o1.getLong(i);
+        final long rw = reverse2 ? reverseBytes(o2.getLong(i)) : o2.getLong(i);
+        final int diff = Long.compareUnsigned(lw, rw);
+        if (diff != 0) {
+          return diff;
+        }
+      }
+
+      for (int i = minWords * Long.BYTES; i < minLength; i++) {
+        final int lw = Byte.toUnsignedInt(o1.get(i));
+        final int rw = Byte.toUnsignedInt(o2.get(i));
+        final int result = Integer.compareUnsigned(lw, rw);
+        if (result != 0) {
+          return result;
+        }
+      }
+
+      return 0;
+    }
+
     static Field findField(final Class<?> c, final String name) {
       Class<?> clazz = c;
       do {
@@ -203,6 +239,61 @@ public final class ByteBufferProxy {
       final byte[] dest = new byte[buffer.limit()];
       buffer.get(dest, 0, buffer.limit());
       return dest;
+    }
+
+    @Override
+    boolean containsPrefix(final ByteBuffer buffer, final ByteBuffer prefixBuffer) {
+      if (buffer.remaining() < prefixBuffer.remaining()) {
+        return false;
+      }
+
+      // TODO : Use mismatch after upgrade beyond Java 11.
+      //      final int pos =  prefixBuffer.mismatch(buffer);
+      //      return pos == -1 || pos == prefixBuffer.limit();
+
+      // We don't care about signed or unsigned since we are checking for equality.
+      return compareBuff(buffer, prefixBuffer, prefixBuffer.remaining()) == 0;
+    }
+
+    @Override
+    ByteBuffer incrementLeastSignificantByte(final ByteBuffer buffer) {
+        if (buffer == null || buffer.remaining() == 0) {
+            return null;
+        }
+
+        if (LITTLE_ENDIAN.equals(buffer.order())) {
+          // Start from the least significant byte (closest to start)
+          for (int i = buffer.position(); i < buffer.limit(); i++) {
+            final byte b = buffer.get(i);
+
+            // Check if byte is not at max unsigned value (0xFF = 255 = -1 in signed)
+            if (b != (byte) 0xFF) {
+              final ByteBuffer oneBigger = ByteBuffer.allocateDirect(buffer.remaining());
+              oneBigger.put(buffer.duplicate());
+              oneBigger.flip();
+              oneBigger.put(i - buffer.position(), (byte) (b + 1));
+              return oneBigger;
+            }
+          }
+
+        } else {
+          // Start from the least significant byte (closest to limit)
+          for (int i = buffer.limit() - 1; i >= buffer.position(); i--) {
+            final byte b = buffer.get(i);
+
+            // Check if byte is not at max unsigned value (0xFF = 255 = -1 in signed)
+            if (b != (byte) 0xFF) {
+              final ByteBuffer oneBigger = ByteBuffer.allocateDirect(buffer.remaining());
+              oneBigger.put(buffer.duplicate());
+              oneBigger.flip();
+              oneBigger.put(i - buffer.position(), (byte) (b + 1));
+              return oneBigger;
+            }
+          }
+        }
+
+        // All bytes are at maximum value
+        return null;
     }
   }
 

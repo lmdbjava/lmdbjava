@@ -43,7 +43,7 @@ import jnr.ffi.byref.NativeLongByReference;
 public final class Cursor<T> implements AutoCloseable {
 
   private boolean closed;
-  private final KeyVal<T> kv;
+  final KeyVal<T> kv;
   private final Pointer ptrCursor;
   private Txn<T> txn;
   private final Env<T> env;

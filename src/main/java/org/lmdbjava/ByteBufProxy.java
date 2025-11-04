@@ -17,12 +17,14 @@ package org.lmdbjava;
 
 import static io.netty.buffer.PooledByteBufAllocator.DEFAULT;
 import static java.lang.Class.forName;
+import static java.nio.ByteOrder.LITTLE_ENDIAN;
 import static java.util.Objects.requireNonNull;
 import static org.lmdbjava.UnsafeAccess.UNSAFE;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
 import java.lang.reflect.Field;
+import java.nio.ByteBuffer;
 import java.util.Comparator;
 import jnr.ffi.Pointer;
 
@@ -162,5 +164,51 @@ public final class ByteBufProxy extends BufferProxy<ByteBuf> {
     UNSAFE.putInt(buffer, lengthOffset, (int) size);
     buffer.clear().writerIndex((int) size);
     return buffer;
+  }
+
+  @Override
+  boolean containsPrefix(final ByteBuf buffer, final ByteBuf prefixBuffer) {
+    if (buffer.capacity() < prefixBuffer.capacity()) {
+      return false;
+    }
+    return buffer.slice(0, prefixBuffer.capacity()).compareTo(prefixBuffer) == 0;
+  }
+
+  @Override
+  ByteBuf incrementLeastSignificantByte(final ByteBuf buffer) {
+    if (buffer == null || buffer.capacity() == 0) {
+      return null;
+    }
+
+    // TODO : Since endianness isn't a state for Netty ByteBuf we might not be able to do this.
+    if (LITTLE_ENDIAN.equals(buffer.order())) {
+      // Start from the least significant byte (closest to start)
+      for (int i = 0; i < buffer.capacity(); i++) {
+        final byte b = buffer.getByte(i);
+
+        // Check if byte is not at max unsigned value (0xFF = 255 = -1 in signed)
+        if (b != (byte) 0xFF) {
+          final ByteBuf oneBigger = buffer.copy();
+          oneBigger.setByte(i, (byte) (b + 1));
+          return oneBigger;
+        }
+      }
+
+    } else {
+      // Start from the least significant byte (closest to limit)
+      for (int i = buffer.capacity() - 1; i >= 0; i--) {
+        final byte b = buffer.getByte(i);
+
+        // Check if byte is not at max unsigned value (0xFF = 255 = -1 in signed)
+        if (b != (byte) 0xFF) {
+          final ByteBuf oneBigger = buffer.copy();
+          oneBigger.setByte(i, (byte) (b + 1));
+          return oneBigger;
+        }
+      }
+    }
+
+    // All bytes are at maximum value
+    return null;
   }
 }

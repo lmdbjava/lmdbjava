@@ -40,7 +40,7 @@ public final class Txn<T> implements AutoCloseable {
 
   private final KeyVal<T> keyVal;
   private final Txn<T> parent;
-  private final BufferProxy<T> proxy;
+  final BufferProxy<T> proxy;
   private final Pointer ptr;
   private final boolean readOnly;
   private final Env<T> env;
