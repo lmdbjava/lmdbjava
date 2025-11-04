@@ -644,6 +644,8 @@ public final class Env<T> implements AutoCloseable {
      * @return an environment ready for use
      */
     public Env<T> open(final File path, final int mode, final EnvFlags... flags) {
+      // TODO Use EnvFlagSet and deprecate
+      // TODO Make setUnixPermissions(int) method on builder.
       requireNonNull(path);
       if (opened) {
         throw new AlreadyOpenException();
@@ -675,6 +677,7 @@ public final class Env<T> implements AutoCloseable {
      * @return an environment ready for use
      */
     public Env<T> open(final File path, final EnvFlags... flags) {
+      // TODO make constant
       return open(path, 0664, flags);
     }
 

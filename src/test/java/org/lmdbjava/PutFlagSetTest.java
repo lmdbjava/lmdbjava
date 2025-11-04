@@ -15,9 +15,7 @@
  */
 package org.lmdbjava;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -26,59 +24,43 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class PutFlagSetTest {
 
   @Test
   public void testEmpty() {
     final PutFlagSet putFlagSet = PutFlagSet.empty();
-    assertThat(
-        putFlagSet.getMask(),
-        is(0));
-    assertThat(
-        putFlagSet.size(),
-        is(0));
-    assertThat(
-        putFlagSet.isEmpty(),
-        is(true));
-    assertThat(
-        putFlagSet.isSet(PutFlags.MDB_MULTIPLE),
-        is(false));
+    assertThat(putFlagSet.getMask()).isEqualTo(0);
+    assertThat(putFlagSet.size()).isEqualTo(0);
+    assertThat(putFlagSet.isEmpty()).isEqualTo(true);
+    assertThat(putFlagSet.isSet(PutFlags.MDB_MULTIPLE)).isEqualTo(false);
     final PutFlagSet putFlagSet2 = PutFlagSet.builder()
         .build();
-    assertThat(putFlagSet, is(putFlagSet2));
-    assertThat(putFlagSet, not(PutFlagSet.of(PutFlags.MDB_APPEND)));
-    assertThat(putFlagSet, not(PutFlagSet.of(PutFlags.MDB_APPEND, PutFlags.MDB_RESERVE)));
-    assertThat(putFlagSet, not(PutFlagSet.builder()
+    assertThat(putFlagSet).isEqualTo(putFlagSet2);
+    assertThat(putFlagSet).isNotEqualTo(PutFlagSet.of(PutFlags.MDB_APPEND));
+    assertThat(putFlagSet).isNotEqualTo(PutFlagSet.of(PutFlags.MDB_APPEND, PutFlags.MDB_RESERVE));
+    assertThat(putFlagSet).isNotEqualTo(PutFlagSet.builder()
         .setFlag(PutFlags.MDB_CURRENT)
         .setFlag(PutFlags.MDB_MULTIPLE)
-        .build()));
+        .build());
   }
 
   @Test
   public void testOf() {
     final PutFlags putFlag = PutFlags.MDB_APPEND;
     final PutFlagSet putFlagSet = PutFlagSet.of(putFlag);
-    assertThat(
-        putFlagSet.getMask(),
-        is(MaskedFlag.mask(putFlag)));
-    assertThat(
-        putFlagSet.size(),
-        is(1));
-    assertThat(
-        putFlagSet.isSet(PutFlags.MDB_MULTIPLE),
-        is(false));
+    assertThat(putFlagSet.getMask()).isEqualTo(MaskedFlag.mask(putFlag));
+    assertThat(putFlagSet.size()).isEqualTo(1);
+    assertThat(putFlagSet.isSet(PutFlags.MDB_MULTIPLE)).isEqualTo(false);
     for (PutFlags flag : putFlagSet) {
-      assertThat(
-          putFlagSet.isSet(flag),
-          is(true));
+      assertThat(putFlagSet.isSet(flag)).isEqualTo(true);
     }
 
     final PutFlagSet putFlagSet2 = PutFlagSet.builder()
         .setFlag(putFlag)
         .build();
-    assertThat(putFlagSet, is(putFlagSet2));
+    assertThat(putFlagSet).isEqualTo(putFlagSet2);
   }
 
   @Test
@@ -86,19 +68,11 @@ public class PutFlagSetTest {
     final PutFlags putFlag1 = PutFlags.MDB_APPEND;
     final PutFlags putFlag2 = PutFlags.MDB_NOOVERWRITE;
     final PutFlagSet putFlagSet = PutFlagSet.of(putFlag1, putFlag2);
-    assertThat(
-        putFlagSet.getMask(),
-        is(MaskedFlag.mask(putFlag1, putFlag2)));
-    assertThat(
-        putFlagSet.size(),
-        is(2));
-    assertThat(
-        putFlagSet.isSet(PutFlags.MDB_MULTIPLE),
-        is(false));
+    assertThat(putFlagSet.getMask()).isEqualTo(MaskedFlag.mask(putFlag1, putFlag2));
+    assertThat(putFlagSet.size()).isEqualTo(2);
+    assertThat(putFlagSet.isSet(PutFlags.MDB_MULTIPLE)).isEqualTo(false);
     for (PutFlags flag : putFlagSet) {
-      assertThat(
-          putFlagSet.isSet(flag),
-          is(true));
+      assertThat(putFlagSet.isSet(flag)).isEqualTo(true);
     }
   }
 
@@ -110,19 +84,11 @@ public class PutFlagSetTest {
         .setFlag(putFlag1)
         .setFlag(putFlag2)
         .build();
-    assertThat(
-        putFlagSet.getMask(),
-        is(MaskedFlag.mask(putFlag1, putFlag2)));
-    assertThat(
-        putFlagSet.size(),
-        is(2));
-    assertThat(
-        putFlagSet.isSet(PutFlags.MDB_MULTIPLE),
-        is(false));
+    assertThat(putFlagSet.getMask()).isEqualTo(MaskedFlag.mask(putFlag1, putFlag2));
+    assertThat(putFlagSet.size()).isEqualTo(2);
+    assertThat(putFlagSet.isSet(PutFlags.MDB_MULTIPLE)).isEqualTo(false);
     for (PutFlags flag : putFlagSet) {
-      assertThat(
-          putFlagSet.isSet(flag),
-          is(true));
+      assertThat(putFlagSet.isSet(flag)).isEqualTo(true);
     }
     final PutFlagSet putFlagSet2 = PutFlagSet.builder()
         .withFlags(putFlag1, putFlag2)
@@ -130,8 +96,8 @@ public class PutFlagSetTest {
     final PutFlagSet putFlagSet3 = PutFlagSet.builder()
         .withFlags(new HashSet<>(Arrays.asList(putFlag1, putFlag2)))
         .build();
-    assertThat(putFlagSet, is(putFlagSet2));
-    assertThat(putFlagSet, is(putFlagSet3));
+    assertThat(putFlagSet).isEqualTo(putFlagSet2);
+    assertThat(putFlagSet).isEqualTo(putFlagSet3);
   }
 
   @Test

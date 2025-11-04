@@ -15,65 +15,47 @@
  */
 package org.lmdbjava;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Arrays;
 import java.util.HashSet;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class EnvFlagSetTest {
 
     @Test
     public void testEmpty() {
         final EnvFlagSet envFlagSet = EnvFlagSet.empty();
-        assertThat(
-                envFlagSet.getMask(),
-                is(0));
-        assertThat(
-                envFlagSet.size(),
-                is(0));
-        assertThat(
-                envFlagSet.isEmpty(),
-                is(true));
-        assertThat(
-                envFlagSet.isSet(EnvFlags.MDB_NOSUBDIR),
-                is(false));
+        assertThat(envFlagSet.getMask()).isEqualTo(0);
+        assertThat(envFlagSet.size()).isEqualTo(0);
+        assertThat(envFlagSet.isEmpty()).isEqualTo(true);
+        assertThat(envFlagSet.isSet(EnvFlags.MDB_NOSUBDIR)).isEqualTo(false);
         final EnvFlagSet envFlagSet2 = EnvFlagSet.builder()
             .build();
-        assertThat(envFlagSet, is(envFlagSet2));
-        assertThat(envFlagSet, not(EnvFlagSet.of(EnvFlags.MDB_FIXEDMAP)));
-        assertThat(envFlagSet, not(EnvFlagSet.of(EnvFlags.MDB_FIXEDMAP, EnvFlags.MDB_NORDAHEAD)));
-        assertThat(envFlagSet, not(EnvFlagSet.builder()
+        assertThat(envFlagSet).isEqualTo(envFlagSet2);
+        assertThat(envFlagSet).isNotEqualTo(EnvFlagSet.of(EnvFlags.MDB_FIXEDMAP));
+        assertThat(envFlagSet).isNotEqualTo(EnvFlagSet.of(EnvFlags.MDB_FIXEDMAP, EnvFlags.MDB_NORDAHEAD));
+        assertThat(envFlagSet).isNotEqualTo(EnvFlagSet.builder()
             .setFlag(EnvFlags.MDB_FIXEDMAP)
             .setFlag(EnvFlags.MDB_NORDAHEAD)
-            .build()));
+            .build());
     }
 
     @Test
     public void testOf() {
         final EnvFlags envFlag = EnvFlags.MDB_FIXEDMAP;
         final EnvFlagSet envFlagSet = EnvFlagSet.of(envFlag);
-        assertThat(
-                envFlagSet.getMask(),
-                is(MaskedFlag.mask(envFlag)));
-        assertThat(
-                envFlagSet.size(),
-                is(1));
-        assertThat(
-                envFlagSet.isSet(EnvFlags.MDB_NOSUBDIR),
-                is(false));
+        assertThat(envFlagSet.getMask()).isEqualTo(MaskedFlag.mask(envFlag));
+        assertThat(envFlagSet.size()).isEqualTo(1);
+        assertThat(envFlagSet.isSet(EnvFlags.MDB_NOSUBDIR)).isEqualTo(false);
         for (EnvFlags flag : envFlagSet) {
-            assertThat(
-                    envFlagSet.isSet(flag),
-                    is(true));
+            assertThat(envFlagSet.isSet(flag)).isEqualTo(true);
         }
 
         final EnvFlagSet envFlagSet2 = EnvFlagSet.builder()
             .setFlag(envFlag)
             .build();
-        assertThat(envFlagSet, is(envFlagSet2));
+        assertThat(envFlagSet).isEqualTo(envFlagSet2);
     }
 
     @Test
@@ -81,19 +63,11 @@ public class EnvFlagSetTest {
         final EnvFlags envFlag1 = EnvFlags.MDB_FIXEDMAP;
         final EnvFlags envFlag2 = EnvFlags.MDB_NORDAHEAD;
         final EnvFlagSet envFlagSet = EnvFlagSet.of(envFlag1, envFlag2);
-        assertThat(
-                envFlagSet.getMask(),
-                is(MaskedFlag.mask(envFlag1, envFlag2)));
-        assertThat(
-                envFlagSet.size(),
-                is(2));
-        assertThat(
-                envFlagSet.isSet(EnvFlags.MDB_WRITEMAP),
-                is(false));
+        assertThat(envFlagSet.getMask()).isEqualTo(MaskedFlag.mask(envFlag1, envFlag2));
+        assertThat(envFlagSet.size()).isEqualTo(2);
+        assertThat(envFlagSet.isSet(EnvFlags.MDB_WRITEMAP)).isEqualTo(false);
         for (EnvFlags flag : envFlagSet) {
-            assertThat(
-                    envFlagSet.isSet(flag),
-                    is(true));
+            assertThat(envFlagSet.isSet(flag)).isEqualTo(true);
         }
     }
 
@@ -105,19 +79,11 @@ public class EnvFlagSetTest {
                 .setFlag(envFlag1)
                 .setFlag(envFlag2)
                 .build();
-        assertThat(
-                envFlagSet.getMask(),
-                is(MaskedFlag.mask(envFlag1, envFlag2)));
-        assertThat(
-                envFlagSet.size(),
-                is(2));
-        assertThat(
-                envFlagSet.isSet(EnvFlags.MDB_NOTLS),
-                is(false));
+        assertThat(envFlagSet.getMask()).isEqualTo(MaskedFlag.mask(envFlag1, envFlag2));
+        assertThat(envFlagSet.size()).isEqualTo(2);
+        assertThat(envFlagSet.isSet(EnvFlags.MDB_NOTLS)).isEqualTo(false);
         for (EnvFlags flag : envFlagSet) {
-            assertThat(
-                    envFlagSet.isSet(flag),
-                    is(true));
+            assertThat(envFlagSet.isSet(flag)).isEqualTo(true);
         }
         final EnvFlagSet envFlagSet2 = EnvFlagSet.builder()
                 .withFlags(envFlag1, envFlag2)
@@ -125,7 +91,7 @@ public class EnvFlagSetTest {
         final EnvFlagSet envFlagSet3 = EnvFlagSet.builder()
                 .withFlags(new HashSet<>(Arrays.asList(envFlag1, envFlag2)))
                 .build();
-        assertThat(envFlagSet, is(envFlagSet2));
-        assertThat(envFlagSet, is(envFlagSet3));
+        assertThat(envFlagSet).isEqualTo(envFlagSet2);
+        assertThat(envFlagSet).isEqualTo(envFlagSet3);
     }
 }

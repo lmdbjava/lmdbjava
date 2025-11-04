@@ -33,18 +33,18 @@ public final class ReferenceUtil {
    * but it was only introduced in Java 9. LmdbJava presently supports Java 8 and therefore this
    * method provides an alternative.
    *
-   * <p>This method is always implemented as a synchronization on {@code ref}. <b>It is the caller's
-   * responsibility to ensure that this synchronization will not cause deadlock.</b>
+   * <p>This method works because HotSpot JIT-compilers prune dead locals based on method bytecode
+   * analysis rather than optimized IR. As Vladimir Ivanov explains: "any usage of a local extends
+   * its live range, even if that usage is eliminated in generated code". The method call at the
+   * bytecode level is sufficient to keep the object alive through safepoints, preventing premature
+   * garbage collection during native operations.
    *
-   * @param ref the reference (null is acceptable but has no effect)
-   * @see <a href="https://github.com/netty/netty/pull/8410">Netty PR 8410</a>
+   * @param ref the reference
+   * @see <a href="https://mail.openjdk.org/pipermail/core-libs-dev/2018-February/051312.html">
+   *     Vladimir Ivanov on reachabilityFence implementation</a>
    */
   public static void reachabilityFence0(final Object ref) {
-    if (ref != null) {
-      //noinspection EmptySynchronizedStatement
-      synchronized (ref) {
-        // Empty synchronized is ok: https://stackoverflow.com/a/31933260/1151521
-      }
-    }
+    // Empty method body is intentional - the method call itself at bytecode level
+    // extends the object's live range per HotSpot JIT behavior
   }
 }

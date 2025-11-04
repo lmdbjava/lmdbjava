@@ -16,41 +16,37 @@
 package org.lmdbjava;
 
 import static com.jakewharton.byteunits.BinaryByteUnit.MEBIBYTES;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.lmdbjava.Env.create;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.TestUtils.bb;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import org.hamcrest.Matchers;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import java.nio.file.Path;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class DbiBuilderTest {
 
-  @Rule
-  public final TemporaryFolder tmp = new TemporaryFolder();
+  private Path file;
   private Env<ByteBuffer> env;
 
-  @After
-  public void after() {
-    env.close();
-  }
-
-  @Before
+  @BeforeEach
   public void before() throws IOException {
-    final File path = tmp.newFile();
+    file = FileUtil.createTempFile();
     env = create()
         .setMapSize(MEBIBYTES.toBytes(64))
         .setMaxReaders(2)
         .setMaxDbs(2)
-        .open(path, MDB_NOSUBDIR);
+        .open(file.toFile(), MDB_NOSUBDIR);
+  }
+
+  @AfterEach
+  public void after() {
+    env.close();
   }
 
   @Test
@@ -60,9 +56,9 @@ public class DbiBuilderTest {
         .withDefaultComparator()
         .withDbiFlags(DbiFlags.MDB_CREATE)
         .open();
-    assertThat(dbi.getName(), Matchers.nullValue());
-    assertThat(dbi.getNameAsString(), Matchers.emptyString());
-    assertThat(env.getDbiNames().size(), Matchers.is(0));
+    assertThat(dbi.getName()).isNull();
+    assertThat(dbi.getNameAsString()).isEmpty();
+    assertThat(env.getDbiNames()).isEmpty();
     assertPutAndGet(dbi);
   }
 
@@ -76,8 +72,8 @@ public class DbiBuilderTest {
 
     assertPutAndGet(dbi);
 
-    assertThat(env.getDbiNames().size(), Matchers.is(1));
-    assertThat(new String(env.getDbiNames().get(0), StandardCharsets.UTF_8), Matchers.is("foo"));
+    assertThat(env.getDbiNames()).hasSize(1);
+    assertThat(new String(env.getDbiNames().get(0), StandardCharsets.UTF_8)).isEqualTo("foo");
   }
 
   private void assertPutAndGet(Dbi<ByteBuffer> dbi) {
@@ -88,9 +84,9 @@ public class DbiBuilderTest {
 
     try (Txn<ByteBuffer> readTxn = env.txnRead()) {
       final ByteBuffer byteBuffer = dbi.get(readTxn, bb(123));
-      assertThat(byteBuffer, Matchers.notNullValue());
+      assertThat(byteBuffer).isNotNull();
       final int val = byteBuffer.getInt();
-      assertThat(val, Matchers.is(123_000));
+      assertThat(val).isEqualTo(123_000);
     }
   }
 }

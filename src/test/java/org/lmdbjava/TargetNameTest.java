@@ -13,15 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.lmdbjava;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.lmdbjava.TargetName.isExternal;
 import static org.lmdbjava.TargetName.resolveFilename;
 import static org.lmdbjava.TestUtils.invokePrivateConstructor;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /** Test {@link TargetName}. */
 public final class TargetNameTest {
@@ -29,18 +29,18 @@ public final class TargetNameTest {
   private static final String NONE = "";
 
   @Test
-  public void coverPrivateConstructors() {
+  void coverPrivateConstructors() {
     invokePrivateConstructor(TargetName.class);
   }
 
   @Test
-  public void customEmbedded() {
-    assertThat(resolveFilename(NONE, "x/y.so", NONE, NONE), is("x/y.so"));
-    assertThat(isExternal(NONE), is(false));
+  void customEmbedded() {
+    assertThat(resolveFilename(NONE, "x/y.so", NONE, NONE)).isEqualTo("x/y.so");
+    assertThat(isExternal(NONE)).isFalse();
   }
 
   @Test
-  public void embeddedNameResolution() {
+  void embeddedNameResolution() {
     embed("aarch64-linux-gnu.so", "aarch64", "Linux");
     embed("aarch64-macos-none.so", "aarch64", "Mac OS");
     embed("x86_64-linux-gnu.so", "x86_64", "Linux");
@@ -49,19 +49,19 @@ public final class TargetNameTest {
   }
 
   @Test
-  public void externalLibrary() {
-    assertThat(resolveFilename("/l.so", NONE, NONE, NONE), is("/l.so"));
-    assertThat(TargetName.isExternal("/l.so"), is(true));
+  void externalLibrary() {
+    assertThat(resolveFilename("/l.so", NONE, NONE, NONE)).isEqualTo("/l.so");
+    assertThat(TargetName.isExternal("/l.so")).isTrue();
   }
 
   @Test
-  public void externalTakesPriority() {
-    assertThat(resolveFilename("/lm.so", "x/y.so", NONE, NONE), is("/lm.so"));
-    assertThat(isExternal("/lm.so"), is(true));
+  void externalTakesPriority() {
+    assertThat(resolveFilename("/lm.so", "x/y.so", NONE, NONE)).isEqualTo("/lm.so");
+    assertThat(isExternal("/lm.so")).isTrue();
   }
 
   private void embed(final String lib, final String arch, final String os) {
-    assertThat(resolveFilename(NONE, NONE, arch, os), is("org/lmdbjava/" + lib));
-    assertThat(isExternal(NONE), is(false));
+    assertThat(resolveFilename(NONE, NONE, arch, os)).isEqualTo("org/lmdbjava/native/" + lib);
+    assertThat(isExternal(NONE)).isFalse();
   }
 }

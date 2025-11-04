@@ -24,29 +24,26 @@ import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
 import static org.lmdbjava.TestUtils.POSIX_MODE;
 import static org.lmdbjava.TestUtils.bb;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class CursorIterablePerfTest {
-
-  @Rule public final TemporaryFolder tmp = new TemporaryFolder();
 
   //    private static final int ITERATIONS = 5_000_000;
   private static final int ITERATIONS = 100_000;
   //    private static final int ITERATIONS = 10;
 
+  private Path file;
   private Dbi<ByteBuffer> dbJavaComparator;
   private Dbi<ByteBuffer> dbLmdbComparator;
   private Dbi<ByteBuffer> dbCallbackComparator;
@@ -54,16 +51,16 @@ public class CursorIterablePerfTest {
   private Env<ByteBuffer> env;
   private List<Integer> data = new ArrayList<>(ITERATIONS);
 
-  @Before
+  @BeforeEach
   public void before() throws IOException {
-    final File path = tmp.newFile();
+    file = FileUtil.createTempFile();
     final BufferProxy<ByteBuffer> bufferProxy = ByteBufferProxy.PROXY_OPTIMAL;
     env =
         create(bufferProxy)
             .setMapSize(GIBIBYTES.toBytes(1))
             .setMaxReaders(1)
             .setMaxDbs(3)
-            .open(path, POSIX_MODE, MDB_NOSUBDIR);
+            .open(file.toFile(), POSIX_MODE, MDB_NOSUBDIR);
 
     final DbiFlagSet dbiFlagSet = MDB_CREATE;
     // Use a java comparator for start/stop keys only
@@ -91,6 +88,12 @@ public class CursorIterablePerfTest {
     dbs.add(dbCallbackComparator);
 
     populateList();
+  }
+
+  @AfterEach
+  public void after() {
+    env.close();
+    FileUtil.delete(file);
   }
 
   private void populateList() {
@@ -146,12 +149,6 @@ public class CursorIterablePerfTest {
                 + duration.toMillis());
       }
     }
-  }
-
-  @After
-  public void after() {
-    env.close();
-    tmp.delete();
   }
 
   @Test
