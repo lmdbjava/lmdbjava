@@ -23,6 +23,9 @@ import org.lmdbjava.Txn.BadException;
 import org.lmdbjava.Txn.BadReaderLockException;
 import org.lmdbjava.Txn.TxFullException;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * Maps a LMDB C result code to the equivalent Java exception.
  *
@@ -34,11 +37,36 @@ final class ResultCodeMapper {
   /** Successful result. */
   static final int MDB_SUCCESS = 0;
 
-  private static final ConstantSet CONSTANTS;
   private static final String POSIX_ERR_NO = "Errno";
+  private static final Map<Integer, RuntimeException> EXCEPTION_MAP = new HashMap<>();
 
   static {
-    CONSTANTS = getConstantSet(POSIX_ERR_NO);
+    for (final Constant constant : getConstantSet(POSIX_ERR_NO)) {
+      EXCEPTION_MAP.put(
+              constant.intValue(),
+              new LmdbNativeException.ConstantDerivedException(
+                      constant.intValue(), constant.name() + " " + constant));
+    }
+    EXCEPTION_MAP.put( Dbi.BadDbiException.MDB_BAD_DBI, new Dbi.BadDbiException());
+    EXCEPTION_MAP.put( BadReaderLockException.MDB_BAD_RSLOT, new BadReaderLockException());
+    EXCEPTION_MAP.put( BadException.MDB_BAD_TXN, new BadException());
+    EXCEPTION_MAP.put( Dbi.BadValueSizeException.MDB_BAD_VALSIZE, new Dbi.BadValueSizeException());
+    EXCEPTION_MAP.put( LmdbNativeException.PageCorruptedException.MDB_CORRUPTED, new LmdbNativeException.PageCorruptedException());
+    EXCEPTION_MAP.put( Cursor.FullException.MDB_CURSOR_FULL, new Cursor.FullException());
+    EXCEPTION_MAP.put( Dbi.DbFullException.MDB_DBS_FULL, new Dbi.DbFullException());
+    EXCEPTION_MAP.put( Dbi.IncompatibleException.MDB_INCOMPATIBLE, new Dbi.IncompatibleException());
+    EXCEPTION_MAP.put( Env.FileInvalidException.MDB_INVALID, new Env.FileInvalidException());
+    EXCEPTION_MAP.put( Dbi.KeyExistsException.MDB_KEYEXIST, new Dbi.KeyExistsException());
+    EXCEPTION_MAP.put( Env.MapFullException.MDB_MAP_FULL,new Env.MapFullException());
+    EXCEPTION_MAP.put( Dbi.MapResizedException.MDB_MAP_RESIZED, new Dbi.MapResizedException());
+    EXCEPTION_MAP.put( Dbi.KeyNotFoundException.MDB_NOTFOUND, new Dbi.KeyNotFoundException());
+    EXCEPTION_MAP.put( LmdbNativeException.PageFullException.MDB_PAGE_FULL, new LmdbNativeException.PageFullException());
+    EXCEPTION_MAP.put( LmdbNativeException.PageNotFoundException.MDB_PAGE_NOTFOUND, new LmdbNativeException.PageNotFoundException());
+    EXCEPTION_MAP.put( LmdbNativeException.PanicException.MDB_PANIC, new LmdbNativeException.PanicException());
+    EXCEPTION_MAP.put( Env.ReadersFullException.MDB_READERS_FULL, new Env.ReadersFullException());
+    EXCEPTION_MAP.put( LmdbNativeException.TlsFullException.MDB_TLS_FULL, new LmdbNativeException.TlsFullException());
+    EXCEPTION_MAP.put( TxFullException.MDB_TXN_FULL, new TxFullException());
+    EXCEPTION_MAP.put( Env.VersionMismatchException.MDB_VERSION_MISMATCH, new Env.VersionMismatchException());
   }
 
   private ResultCodeMapper() {}
@@ -49,58 +77,12 @@ final class ResultCodeMapper {
    * @param rc the LMDB result code
    */
   static void checkRc(final int rc) {
-    switch (rc) {
-      case MDB_SUCCESS:
-        return;
-      case Dbi.BadDbiException.MDB_BAD_DBI:
-        throw new Dbi.BadDbiException();
-      case BadReaderLockException.MDB_BAD_RSLOT:
-        throw new BadReaderLockException();
-      case BadException.MDB_BAD_TXN:
-        throw new BadException();
-      case Dbi.BadValueSizeException.MDB_BAD_VALSIZE:
-        throw new Dbi.BadValueSizeException();
-      case LmdbNativeException.PageCorruptedException.MDB_CORRUPTED:
-        throw new LmdbNativeException.PageCorruptedException();
-      case Cursor.FullException.MDB_CURSOR_FULL:
-        throw new Cursor.FullException();
-      case Dbi.DbFullException.MDB_DBS_FULL:
-        throw new Dbi.DbFullException();
-      case Dbi.IncompatibleException.MDB_INCOMPATIBLE:
-        throw new Dbi.IncompatibleException();
-      case Env.FileInvalidException.MDB_INVALID:
-        throw new Env.FileInvalidException();
-      case Dbi.KeyExistsException.MDB_KEYEXIST:
-        throw new Dbi.KeyExistsException();
-      case Env.MapFullException.MDB_MAP_FULL:
-        throw new Env.MapFullException();
-      case Dbi.MapResizedException.MDB_MAP_RESIZED:
-        throw new Dbi.MapResizedException();
-      case Dbi.KeyNotFoundException.MDB_NOTFOUND:
-        throw new Dbi.KeyNotFoundException();
-      case LmdbNativeException.PageFullException.MDB_PAGE_FULL:
-        throw new LmdbNativeException.PageFullException();
-      case LmdbNativeException.PageNotFoundException.MDB_PAGE_NOTFOUND:
-        throw new LmdbNativeException.PageNotFoundException();
-      case LmdbNativeException.PanicException.MDB_PANIC:
-        throw new LmdbNativeException.PanicException();
-      case Env.ReadersFullException.MDB_READERS_FULL:
-        throw new Env.ReadersFullException();
-      case LmdbNativeException.TlsFullException.MDB_TLS_FULL:
-        throw new LmdbNativeException.TlsFullException();
-      case TxFullException.MDB_TXN_FULL:
-        throw new TxFullException();
-      case Env.VersionMismatchException.MDB_VERSION_MISMATCH:
-        throw new Env.VersionMismatchException();
-      default:
-        break;
+    if (rc != MDB_SUCCESS) {
+      final RuntimeException exception = EXCEPTION_MAP.get(rc);
+      if (exception == null) {
+        throw new IllegalArgumentException("Unknown result code " + rc);
+      }
+      throw exception;
     }
-
-    final Constant constant = CONSTANTS.getConstant(rc);
-    if (constant == null) {
-      throw new IllegalArgumentException("Unknown result code " + rc);
-    }
-    final String msg = constant.name() + " " + constant.toString();
-    throw new LmdbNativeException.ConstantDerivedException(rc, msg);
   }
 }
