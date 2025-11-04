@@ -162,7 +162,9 @@ public final class ByteBufferProxy {
     public static int compareAsIntegerKeys(final ByteBuffer o1, final ByteBuffer o2) {
       requireNonNull(o1);
       requireNonNull(o2);
-      // Both buffers should be same lenght according to LMDB API.
+      // Both buffers should be same length according to LMDB API.
+      // From the LMDB docs for MDB_INTEGER_KEY
+      // numeric keys in native byte order: either unsigned int or size_t. The keys must all be of the same size.
       final int len1 = o1.limit();
       final int len2 = o2.limit();
       if (len1 != len2) {

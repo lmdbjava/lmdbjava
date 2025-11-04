@@ -93,6 +93,14 @@ final class TestUtils {
     return val;
   }
 
+  static long getNativeIntOrLong(final ByteBuffer bb) {
+    if (bb.remaining() == BYTES) {
+      return getNativeInt(bb);
+    } else {
+      return getNativeLong(bb);
+    }
+  }
+
   static String getString(final ByteBuffer bb) {
     final String str = StandardCharsets.UTF_8.decode(bb)
         .toString();

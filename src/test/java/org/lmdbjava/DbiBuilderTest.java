@@ -60,12 +60,11 @@ public class DbiBuilderTest {
         .withDefaultComparator()
         .withDbiFlags(DbiFlags.MDB_CREATE)
         .open();
-
+    assertThat(dbi.getName(), Matchers.nullValue());
+    assertThat(dbi.getNameAsString(), Matchers.emptyString());
     assertThat(env.getDbiNames().size(), Matchers.is(0));
-
     assertPutAndGet(dbi);
   }
-
 
   @Test
   public void named() {
@@ -89,6 +88,7 @@ public class DbiBuilderTest {
 
     try (Txn<ByteBuffer> readTxn = env.txnRead()) {
       final ByteBuffer byteBuffer = dbi.get(readTxn, bb(123));
+      assertThat(byteBuffer, Matchers.notNullValue());
       final int val = byteBuffer.getInt();
       assertThat(val, Matchers.is(123_000));
     }

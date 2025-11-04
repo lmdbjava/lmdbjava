@@ -326,6 +326,19 @@ public abstract class AbstractFlagSet<T extends Enum<T> & MaskedFlag> implements
     }
 
     /**
+     * Sets multiple flag in the builder.
+     *
+     * @param flags The flags to set in the builder.
+     * @return this builder instance.
+     */
+    public Builder<E, S> setFlags(final Collection<E> flags) {
+      if (flags != null) {
+        enumSet.addAll(flags);
+      }
+      return this;
+    }
+
+    /**
      * Clears any flags already set in this {@link Builder}
      *
      * @return this builder instance.

@@ -74,10 +74,13 @@ import org.lmdbjava.Env.AlreadyClosedException;
 import org.lmdbjava.Env.MapFullException;
 import org.lmdbjava.LmdbNativeException.ConstantDerivedException;
 
-/** Test {@link Dbi}. */
+/**
+ * Test {@link Dbi}.
+ */
 public final class DbiTest {
 
-  @Rule public final TemporaryFolder tmp = new TemporaryFolder();
+  @Rule
+  public final TemporaryFolder tmp = new TemporaryFolder();
   private Env<ByteBuffer> env;
   private Env<byte[]> envBa;
 
@@ -105,10 +108,13 @@ public final class DbiTest {
   }
 
 
-
   @Test(expected = ConstantDerivedException.class)
   public void close() {
-    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
+    final Dbi<ByteBuffer> db = env.buildDbi()
+        .withDbName(DB_1)
+        .withDefaultComparator()
+        .addDbiFlag(MDB_CREATE)
+        .open();
     db.put(bb(1), bb(42));
     db.close();
     db.put(bb(2), bb(42)); // error
@@ -154,7 +160,7 @@ public final class DbiTest {
       txn.commit();
     }
     try (Txn<T> txn = env.txnRead();
-        CursorIterable<T> ci = db.iterate(txn, atMost(serializer.apply(4)))) {
+         CursorIterable<T> ci = db.iterate(txn, atMost(serializer.apply(4)))) {
       final Iterator<KeyVal<T>> iter = ci.iterator();
       assertThat(deserializer.applyAsInt(iter.next().key()), is(8));
       assertThat(deserializer.applyAsInt(iter.next().key()), is(6));
@@ -186,7 +192,7 @@ public final class DbiTest {
       Supplier<Comparator<T>> comparatorSupplier,
       IntFunction<T> serializer,
       ToIntFunction<T> deserializer) {
-    final DbiFlags[] flags = new DbiFlags[] {MDB_CREATE, MDB_INTEGERKEY};
+    final DbiFlags[] flags = new DbiFlags[]{MDB_CREATE, MDB_INTEGERKEY};
     final Comparator<T> c = comparatorSupplier.get();
     final Dbi<T> db = env.openDbi(DB_1, c, true, flags);
 
@@ -212,7 +218,7 @@ public final class DbiTest {
     }
 
     try (Txn<T> txn = env.txnRead();
-        CursorIterable<T> ci = db.iterate(txn)) {
+         CursorIterable<T> ci = db.iterate(txn)) {
       final Iterator<KeyVal<T>> iter = ci.iterator();
       final List<Integer> result = new ArrayList<>();
       while (iter.hasNext()) {
@@ -292,8 +298,8 @@ public final class DbiTest {
 
   @Test
   public void getNamesWhenDbisPresent() {
-    final byte[] dbHello = new byte[] {'h', 'e', 'l', 'l', 'o'};
-    final byte[] dbWorld = new byte[] {'w', 'o', 'r', 'l', 'd'};
+    final byte[] dbHello = new byte[]{'h', 'e', 'l', 'l', 'o'};
+    final byte[] dbWorld = new byte[]{'w', 'o', 'r', 'l', 'd'};
     env.openDbi(dbHello, MDB_CREATE);
     env.openDbi(dbWorld, MDB_CREATE);
     final List<byte[]> dbiNames = env.getDbiNames();
@@ -369,11 +375,11 @@ public final class DbiTest {
   public void putCommitGetByteArray() throws IOException {
     final File path = tmp.newFile();
     try (Env<byte[]> envBa =
-        create(PROXY_BA)
-            .setMapSize(MEBIBYTES.toBytes(64))
-            .setMaxReaders(1)
-            .setMaxDbs(2)
-            .open(path, MDB_NOSUBDIR)) {
+             create(PROXY_BA)
+                 .setMapSize(MEBIBYTES.toBytes(64))
+                 .setMaxReaders(1)
+                 .setMaxDbs(2)
+                 .open(path, MDB_NOSUBDIR)) {
       final Dbi<byte[]> db = envBa.openDbi(DB_1, MDB_CREATE);
       try (Txn<byte[]> txn = envBa.txnWrite()) {
         db.put(txn, ba(5), ba(5));

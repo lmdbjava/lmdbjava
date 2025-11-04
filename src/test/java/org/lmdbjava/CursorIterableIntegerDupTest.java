@@ -50,6 +50,7 @@ import static org.lmdbjava.TestUtils.POSIX_MODE;
 import static org.lmdbjava.TestUtils.bb;
 import static org.lmdbjava.TestUtils.bbNative;
 import static org.lmdbjava.TestUtils.getNativeInt;
+import static org.lmdbjava.TestUtils.getNativeIntOrLong;
 
 import com.google.common.primitives.UnsignedBytes;
 import java.io.File;
@@ -71,6 +72,7 @@ import java.util.stream.Stream;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matchers;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -88,7 +90,10 @@ import org.lmdbjava.CursorIterable.KeyVal;
 @RunWith(Parameterized.class)
 public final class CursorIterableIntegerDupTest {
 
-  private static final DbiFlagSet DBI_FLAGS = DbiFlagSet.of(MDB_CREATE, MDB_INTEGERDUP, MDB_DUPSORT);
+  private static final DbiFlagSet DBI_FLAGS = DbiFlagSet.of(
+      MDB_CREATE,
+      MDB_INTEGERDUP,
+      MDB_DUPSORT);
   private static final BufferProxy<ByteBuffer> BUFFER_PROXY = ByteBufferProxy.PROXY_OPTIMAL;
   private static final List<Map.Entry<Integer, Integer>> INPUT_DATA;
 
@@ -122,35 +127,47 @@ public final class CursorIterableIntegerDupTest {
 
   @Parameterized.Parameters(name = "{index}: dbi: {0}")
   public static Object[] data() {
-    final DbiFactory defaultComparator = new DbiFactory("defaultComparator", env ->
+    final DbiFactory defaultComparatorDb = new DbiFactory("defaultComparator", env ->
         env.buildDbi()
             .withDbName(DB_1)
             .withDefaultComparator()
             .withDbiFlags(DBI_FLAGS)
             .open());
-    final DbiFactory nativeComparator = new DbiFactory("nativeComparator", env ->
+    final DbiFactory nativeComparatorDb = new DbiFactory("nativeComparator", env ->
         env.buildDbi()
             .withDbName(DB_2)
             .withNativeComparator()
             .withDbiFlags(DBI_FLAGS)
             .open());
-    final DbiFactory callbackComparator = new DbiFactory("callbackComparator", env ->
+    final DbiFactory callbackComparatorDb = new DbiFactory("callbackComparator", env ->
         env.buildDbi()
             .withDbName(DB_3)
-            .withCallbackComparator(BUFFER_PROXY.getComparator(DBI_FLAGS))
+            .withCallbackComparator(buildComparator())
             .withDbiFlags(DBI_FLAGS)
             .open());
-    final DbiFactory iteratorComparator = new DbiFactory("iteratorComparator", env ->
+    final DbiFactory iteratorComparatorDb = new DbiFactory("iteratorComparator", env ->
         env.buildDbi()
             .withDbName(DB_4)
-            .withIteratorComparator(BUFFER_PROXY.getComparator(DBI_FLAGS))
+            .withIteratorComparator(buildComparator())
             .withDbiFlags(DBI_FLAGS)
             .open());
     return new Object[]{
-        defaultComparator,
-        nativeComparator,
-        callbackComparator,
-        iteratorComparator};
+        defaultComparatorDb,
+        nativeComparatorDb,
+        callbackComparatorDb,
+        iteratorComparatorDb};
+  }
+
+  private static Comparator<ByteBuffer> buildComparator() {
+    final Comparator<ByteBuffer> baseComparator = BUFFER_PROXY.getComparator(DBI_FLAGS);
+    return (o1, o2) -> {
+      if (o1.remaining() != o2.remaining()) {
+        // Make sure LMDB is always giving us consistent key lengths.
+        Assert.fail("o1: " + o1 + " " + getNativeIntOrLong(o1)
+            + ", o2: " + o2 + " " + getNativeIntOrLong(o2));
+      }
+      return baseComparator.compare(o1, o2);
+    };
   }
 
   @Before

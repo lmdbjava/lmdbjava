@@ -93,35 +93,35 @@ public final class CursorIterableTest {
 
   @Parameterized.Parameters(name = "{index}: dbi: {0}")
   public static Object[] data() {
-    final DbiFactory defaultComparator = new DbiFactory("defaultComparator", env ->
+    final DbiFactory defaultComparatorDb = new DbiFactory("defaultComparator", env ->
         env.buildDbi()
             .withDbName(DB_1)
             .withDefaultComparator()
             .withDbiFlags(DBI_FLAGS)
             .open());
-    final DbiFactory nativeComparator = new DbiFactory("nativeComparator", env ->
+    final DbiFactory nativeComparatorDb = new DbiFactory("nativeComparator", env ->
         env.buildDbi()
             .withDbName(DB_2)
             .withNativeComparator()
             .withDbiFlags(DBI_FLAGS)
             .open());
-    final DbiFactory callbackComparator = new DbiFactory("callbackComparator", env ->
+    final DbiFactory callbackComparatorDb = new DbiFactory("callbackComparator", env ->
         env.buildDbi()
             .withDbName(DB_3)
             .withCallbackComparator(BUFFER_PROXY.getComparator(DBI_FLAGS))
             .withDbiFlags(DBI_FLAGS)
             .open());
-    final DbiFactory iteratorComparator = new DbiFactory("iteratorComparator", env ->
+    final DbiFactory iteratorComparatorDb = new DbiFactory("iteratorComparator", env ->
         env.buildDbi()
             .withDbName(DB_4)
             .withIteratorComparator(BUFFER_PROXY.getComparator(DBI_FLAGS))
             .withDbiFlags(DBI_FLAGS)
             .open());
     return new Object[] {
-        defaultComparator,
-        nativeComparator,
-        callbackComparator,
-        iteratorComparator};
+        defaultComparatorDb,
+        nativeComparatorDb,
+        callbackComparatorDb,
+        iteratorComparatorDb};
   }
 
   @Before

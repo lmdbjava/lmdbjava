@@ -43,6 +43,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -142,9 +143,9 @@ public final class ByteBufferProxyTest {
   }
 
   /**
-   * For 100 rounds of 1,000,000 comparisons
-   * compareAsIntegerKeys: PT0.267813487S
-   * compareLexicographically: PT0.644165235S
+   * For 100 rounds of 5,000,000 comparisons
+   * compareAsIntegerKeys: PT1.600525631S
+   * compareLexicographically: PT3.381935001S
    */
   @Test
   public void comparatorPerformance() {
@@ -153,7 +154,7 @@ public final class ByteBufferProxyTest {
     final ByteBuffer buffer2 = ByteBuffer.allocateDirect(Long.BYTES);
     buffer1.limit(Long.BYTES);
     buffer2.limit(Long.BYTES);
-    final long[] values = random.longs(1_000_000).toArray();
+    final long[] values = random.longs(5_000_000).toArray();
 
     Instant time = Instant.now();
     int x = 0;
@@ -195,7 +196,13 @@ public final class ByteBufferProxyTest {
     buffer2native.limit(Long.BYTES);
     buffer1be.limit(Long.BYTES);
     buffer2be.limit(Long.BYTES);
-    final long[] values = random.longs(10_000_000).toArray();
+    final long[] values = random.longs()
+        .filter(i -> i >= 0)
+        .limit(5_000_000)
+        .toArray();
+    System.out.println("stats: " + Arrays.stream(values)
+        .summaryStatistics()
+        .toString());
 
     final LinkedHashMap<String, Comparator<ByteBuffer>> comparators = new LinkedHashMap<>();
     comparators.put("compareAsIntegerKeys", ByteBufferProxy.AbstractByteBufferProxy::compareAsIntegerKeys);

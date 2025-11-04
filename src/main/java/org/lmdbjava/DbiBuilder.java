@@ -80,6 +80,9 @@ public class DbiBuilder<T> {
    * Equivalent to passing null to
    * {@link DbiBuilder#withDbName(String)} or {@link DbiBuilder#withDbName(byte[])}.
    * </p>
+   * <p>Note: The 'unnamed database' is used by LMDB to store the names of named databases, with
+   * the database name being the key. Use of the unnamed database is intended for simple applications
+   * with only one database.</p>
    * @return The next builder stage.
    */
   public DbiBuilderStage2<T> withoutDbName() {
@@ -323,11 +326,27 @@ public class DbiBuilder<T> {
      * {@link DbiBuilderStage3#withDbiFlags(Collection)}
      * or {@link DbiBuilderStage3#addDbiFlag(DbiFlags)}.
      *
-     * @param dbiFlag to open the database with. A null value is a no-op.
+     * @param dbiFlag to add to any existing flags. A null value is a no-op.
      * @return this builder instance.
      */
     public DbiBuilderStage3<T> addDbiFlag(final DbiFlags dbiFlag) {
       this.flagSetBuilder.setFlag(dbiFlag);
+      return this;
+    }
+
+    /**
+     * Adds a dbiFlag to those flags already added to this builder by
+     * {@link DbiBuilderStage3#withDbiFlags(DbiFlags...)},
+     * {@link DbiBuilderStage3#withDbiFlags(Collection)}
+     * or {@link DbiBuilderStage3#addDbiFlag(DbiFlags)}.
+     *
+     * @param dbiFlagSet to add to any existing flags. A null value is a no-op.
+     * @return this builder instance.
+     */
+    public DbiBuilderStage3<T> addDbiFlags(final DbiFlagSet dbiFlagSet) {
+      if (dbiFlagSet != null) {
+        flagSetBuilder.setFlags(dbiFlagSet.getFlags());
+      }
       return this;
     }
 

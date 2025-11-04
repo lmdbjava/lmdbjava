@@ -472,7 +472,7 @@ public final class Cursor<T> implements AutoCloseable {
    * Reserve space for data of the given size, but don't copy the given val. Instead, return a
    * pointer to the reserved space, which the caller can fill in later - before the next update
    * operation or the transaction ends. This saves an extra memcpy if the data is being generated
-   * later. LMDB does nothing else with this memory, the caller is expected to modify all of the
+   * later. LMDB does nothing else with this memory, the caller is expected to modify all the
    * space requested.
    *
    * <p>This flag must not be specified if the database was opened with MDB_DUPSORT
