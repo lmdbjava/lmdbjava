@@ -17,12 +17,12 @@ package org.lmdbjava;
 
 import static java.util.Objects.requireNonNull;
 
-import java.util.Objects;
-import java.util.function.Predicate;
-import java.util.stream.Stream;
+import java.util.Collection;
 
 /** Indicates an enum that can provide integers for each of its values. */
 public interface MaskedFlag {
+
+  int EMPTY_MASK = 0;
 
   /**
    * Obtains the integer value for this enum which can be included in a mask.
@@ -32,13 +32,9 @@ public interface MaskedFlag {
   int getMask();
 
   /**
-   * Indicates if the flag must be propagated to the underlying C code of LMDB or not.
-   *
-   * @return the boolean value indicating the propagation
+   * @return The name of the flag.
    */
-  default boolean isPropagatedToLmdb() {
-    return true;
-  }
+  String name();
 
   /**
    * Fetch the integer mask for all presented flags.
@@ -49,67 +45,45 @@ public interface MaskedFlag {
    */
   @SafeVarargs
   static <M extends MaskedFlag> int mask(final M... flags) {
-    return mask(false, flags);
+    if (flags == null || flags.length == 0) {
+      return EMPTY_MASK;
+    } else {
+      int result = EMPTY_MASK;
+      for (MaskedFlag flag : flags) {
+        if (flag == null) {
+          continue;
+        }
+        result |= flag.getMask();
+      }
+      return result;
+    }
   }
 
-  /**
-   * Fetch the integer mask for all presented flags.
-   *
-   * @param <M> flag type
-   * @param flags to mask (null or empty returns zero)
-   * @return the integer mask for use in C
-   */
-  static <M extends MaskedFlag> int mask(final Stream<M> flags) {
-    return mask(false, flags);
+  /** Combine the two masks into a single mask value, i.e. when combining two {@link FlagSet}s. */
+  static <M extends MaskedFlag> int mask(final int mask1, final int mask2) {
+    return mask1 | mask2;
   }
 
   /**
    * Fetch the integer mask for the presented flags.
    *
    * @param <M> flag type
-   * @param onlyPropagatedToLmdb if to include only the flags which are also propagate to the C code
-   *     or all of them
    * @param flags to mask (null or empty returns zero)
    * @return the integer mask for use in C
    */
-  @SafeVarargs
-  static <M extends MaskedFlag> int mask(final boolean onlyPropagatedToLmdb, final M... flags) {
-    if (flags == null || flags.length == 0) {
-      return 0;
-    }
-
-    int result = 0;
-    for (final M flag : flags) {
-      if (flag == null) {
-        continue;
-      }
-      if (!onlyPropagatedToLmdb || flag.isPropagatedToLmdb()) {
+  static <M extends MaskedFlag> int mask(final Collection<M> flags) {
+    if (flags == null || flags.isEmpty()) {
+      return EMPTY_MASK;
+    } else {
+      int result = EMPTY_MASK;
+      for (MaskedFlag flag : flags) {
+        if (flag == null) {
+          continue;
+        }
         result |= flag.getMask();
       }
+      return result;
     }
-    return result;
-  }
-
-  /**
-   * Fetch the integer mask for all presented flags.
-   *
-   * @param <M> flag type
-   * @param onlyPropagatedToLmdb if to include only the flags which are also propagate to the C code
-   *     or all of them
-   * @param flags to mask
-   * @return the integer mask for use in C
-   */
-  static <M extends MaskedFlag> int mask(
-      final boolean onlyPropagatedToLmdb, final Stream<M> flags) {
-    final Predicate<M> filter = onlyPropagatedToLmdb ? MaskedFlag::isPropagatedToLmdb : f -> true;
-
-    return flags == null
-        ? 0
-        : flags
-            .filter(Objects::nonNull)
-            .filter(filter)
-            .map(M::getMask)
-            .reduce(0, (f1, f2) -> f1 | f2);
   }
 
   /**

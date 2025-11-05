@@ -22,6 +22,11 @@ import io.netty.buffer.ByteBuf;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
+import java.util.Objects;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
@@ -29,6 +34,9 @@ import org.agrona.concurrent.UnsafeBuffer;
 final class TestUtils {
 
   public static final String DB_1 = "test-db-1";
+  public static final String DB_2 = "test-db-2";
+  public static final String DB_3 = "test-db-3";
+  public static final String DB_4 = "test-db-2";
 
   public static final int POSIX_MODE = 0664;
 
@@ -54,6 +62,53 @@ final class TestUtils {
     final ByteBuffer bb = allocateDirect(Long.BYTES);
     bb.putLong(value).flip();
     return bb;
+  }
+
+  static ByteBuffer bb(final String value) {
+    final ByteBuffer bb = allocateDirect(100);
+    if (value != null) {
+      bb.put(value.getBytes(StandardCharsets.UTF_8));
+      bb.flip();
+    }
+    return bb;
+  }
+
+  static ByteBuffer bbNative(final int value) {
+    final ByteBuffer bb = allocateDirect(Integer.BYTES).order(ByteOrder.nativeOrder());
+    bb.putInt(value).flip();
+    return bb;
+  }
+
+  static ByteBuffer bbNative(final long value) {
+    final ByteBuffer bb = allocateDirect(Long.BYTES).order(ByteOrder.nativeOrder());
+    bb.putLong(value).flip();
+    return bb;
+  }
+
+  static int getNativeInt(final ByteBuffer bb) {
+    final int val = bb.order(ByteOrder.nativeOrder()).getInt();
+    bb.rewind();
+    return val;
+  }
+
+  static long getNativeLong(final ByteBuffer bb) {
+    final long val = bb.order(ByteOrder.nativeOrder()).getLong();
+    bb.rewind();
+    return val;
+  }
+
+  static long getNativeIntOrLong(final ByteBuffer bb) {
+    if (bb.remaining() == Integer.BYTES) {
+      return getNativeInt(bb);
+    } else {
+      return getNativeLong(bb);
+    }
+  }
+
+  static String getString(final ByteBuffer bb) {
+    final String str = StandardCharsets.UTF_8.decode(bb).toString();
+    bb.rewind();
+    return str;
   }
 
   static byte[] getBytes(final ByteBuffer byteBuffer) {
@@ -89,5 +144,37 @@ final class TestUtils {
     final ByteBuf b = DEFAULT.directBuffer(Integer.BYTES);
     b.writeInt(value);
     return b;
+  }
+
+  static <T> void doWithReadTxn(final Env<T> env, final Consumer<Txn<T>> work) {
+    Objects.requireNonNull(env);
+    Objects.requireNonNull(work);
+    try (Txn<T> readTxn = env.txnRead()) {
+      work.accept(readTxn);
+    }
+  }
+
+  static <T, R> R getWithReadTxn(final Env<T> env, final Function<Txn<T>, R> work) {
+    Objects.requireNonNull(env);
+    Objects.requireNonNull(work);
+    try (Txn<T> readTxn = env.txnRead()) {
+      return work.apply(readTxn);
+    }
+  }
+
+  static <T> void doWithWriteTxn(final Env<T> env, final Consumer<Txn<T>> work) {
+    Objects.requireNonNull(env);
+    Objects.requireNonNull(work);
+    try (Txn<T> readTxn = env.txnWrite()) {
+      work.accept(readTxn);
+    }
+  }
+
+  static <T, R> R getWithWriteTxn(final Env<T> env, final Function<Txn<T>, R> work) {
+    Objects.requireNonNull(env);
+    Objects.requireNonNull(work);
+    try (Txn<T> readTxn = env.txnWrite()) {
+      return work.apply(readTxn);
+    }
   }
 }

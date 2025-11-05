@@ -69,7 +69,7 @@ public final class CursorIterableRangeTest {
   void testUnsignedComparator(
       final String keyType, final String startKey, final String stopKey, final String expectedKV) {
     testCSV(
-        AbstractByteBufferProxy::compareBuff,
+        AbstractByteBufferProxy::compareLexicographically,
         false,
         createBasicDBPopulator(),
         EnumSet.of(MDB_CREATE),
@@ -99,7 +99,7 @@ public final class CursorIterableRangeTest {
   void testUnsignedComparatorDupsort(
       final String keyType, final String startKey, final String stopKey, final String expectedKV) {
     testCSV(
-        AbstractByteBufferProxy::compareBuff,
+        AbstractByteBufferProxy::compareLexicographically,
         false,
         createMultiDBPopulator(2),
         EnumSet.of(MDB_CREATE, MDB_DUPSORT),
@@ -114,7 +114,7 @@ public final class CursorIterableRangeTest {
   void testIntegerKey(
       final String keyType, final String startKey, final String stopKey, final String expectedKV) {
     testCSV(
-        AbstractByteBufferProxy::compareBuff,
+        AbstractByteBufferProxy::compareLexicographically,
         false,
         createIntegerDBPopulator(),
         EnumSet.of(MDB_CREATE, MDB_INTEGERKEY),
@@ -131,7 +131,7 @@ public final class CursorIterableRangeTest {
   void testLongKey(
       final String keyType, final String startKey, final String stopKey, final String expectedKV) {
     testCSV(
-        AbstractByteBufferProxy::compareBuff,
+        AbstractByteBufferProxy::compareLexicographically,
         false,
         createLongDBPopulator(),
         EnumSet.of(MDB_CREATE, MDB_INTEGERKEY),

@@ -57,8 +57,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
-import java.util.function.Function;
 import java.util.function.IntFunction;
+import java.util.function.Supplier;
 import java.util.function.ToIntFunction;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -106,7 +106,12 @@ public final class DbiTest {
   void close() {
     assertThatThrownBy(
             () -> {
-              final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
+              final Dbi<ByteBuffer> db =
+                  env.buildDbi()
+                      .setDbName(DB_1)
+                      .withDefaultComparator()
+                      .addDbiFlag(MDB_CREATE)
+                      .open();
               db.put(bb(1), bb(42));
               db.close();
               db.put(bb(2), bb(42)); // error
@@ -187,11 +192,11 @@ public final class DbiTest {
 
   private <T> void doDbiWithComparatorThreadSafety(
       Env<T> env,
-      Function<DbiFlags[], Comparator<T>> comparator,
+      Supplier<Comparator<T>> comparatorSupplier,
       IntFunction<T> serializer,
       ToIntFunction<T> deserializer) {
     final DbiFlags[] flags = new DbiFlags[] {MDB_CREATE, MDB_INTEGERKEY};
-    final Comparator<T> c = comparator.apply(flags);
+    final Comparator<T> c = comparatorSupplier.get();
     final Dbi<T> db = env.openDbi(DB_1, c, true, flags);
 
     final List<Integer> keys = range(0, 1_000).boxed().collect(toList());

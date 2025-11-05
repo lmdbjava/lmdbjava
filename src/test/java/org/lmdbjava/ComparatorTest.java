@@ -150,7 +150,7 @@ public final class ComparatorTest {
 
     @Override
     public int compare(final byte[] o1, final byte[] o2) {
-      final Comparator<byte[]> c = PROXY_BA.getUnsignedComparator();
+      final Comparator<byte[]> c = PROXY_BA.getComparator();
       return c.compare(o1, o2);
     }
   }
@@ -268,6 +268,16 @@ public final class ComparatorTest {
         return EQUAL_TO;
       }
       return comparatorResult < 0 ? LESS_THAN : GREATER_THAN;
+    }
+
+    ComparatorResult opposite() {
+      if (this == LESS_THAN) {
+        return GREATER_THAN;
+      } else if (this == GREATER_THAN) {
+        return LESS_THAN;
+      } else {
+        return EQUAL_TO;
+      }
     }
   }
 
