@@ -51,6 +51,7 @@ public class LmdbStream {
             new LmdbRangeSpliterator<>(
                 cursor,
                 comparator,
+                createEntryComparator(comparator),
                 keyRange.getStart(),
                 keyRange.getStop(),
                 keyRange.isStartKeyInclusive(),
@@ -60,6 +61,7 @@ public class LmdbStream {
             new LmdbRangeReversedSpliterator<>(
                 cursor,
                 comparator,
+                createReversedEntryComparator(comparator),
                 keyRange.getStart(),
                 keyRange.getStop(),
                 keyRange.isStartKeyInclusive(),
@@ -67,9 +69,11 @@ public class LmdbStream {
       }
     } else {
       if (keyRange.directionForward) {
-        spliterator = new LmdbSpliterator<>(cursor, comparator);
+        spliterator = new LmdbSpliterator<>(cursor, comparator, createEntryComparator(comparator));
       } else {
-        spliterator = new LmdbReversedSpliterator<>(cursor, comparator);
+        spliterator =
+            new LmdbReversedSpliterator<>(
+                cursor, comparator, createReversedEntryComparator(comparator));
       }
     }
     return spliterator;
@@ -80,13 +84,19 @@ public class LmdbStream {
     final Cursor<T> cursor;
     Boolean isFound;
     final KeyVal<T> entry = new KeyVal<>();
+    final Comparator<T> comparator;
     final Comparator<KeyVal<T>> entryComparator;
 
-    private LmdbSpliterator(final Cursor<T> cursor, final Comparator<T> comparator) {
+    private LmdbSpliterator(
+        final Cursor<T> cursor,
+        final Comparator<T> comparator,
+        final Comparator<KeyVal<T>> entryComparator) {
       this.cursor = cursor;
-      entryComparator = (o1, o2) -> comparator.compare(o1.key(), o2.key());
+      this.comparator = comparator;
+      this.entryComparator = entryComparator;
     }
 
+    @Override
     public final boolean tryAdvance(final Consumer<? super KeyVal<T>> action) {
       if (hasNext()) {
         action.accept(createEntry());
@@ -95,6 +105,7 @@ public class LmdbStream {
       return false;
     }
 
+    @Override
     public final void forEachRemaining(final Consumer<? super KeyVal<T>> action) {
       while (hasNext()) {
         action.accept(createEntry());
@@ -138,14 +149,22 @@ public class LmdbStream {
     }
   }
 
+  private static <T> Comparator<KeyVal<T>> createEntryComparator(final Comparator<T> comparator) {
+    return (o1, o2) -> comparator.compare(o1.key(), o2.key());
+  }
+
+  private static <T> Comparator<KeyVal<T>> createReversedEntryComparator(
+      final Comparator<T> comparator) {
+    return (o1, o2) -> comparator.compare(o1.key(), o2.key());
+  }
+
   private static class LmdbReversedSpliterator<T> extends LmdbSpliterator<T> {
 
-    final Comparator<KeyVal<T>> entryComparator;
-
-    private LmdbReversedSpliterator(final Cursor<T> cursor, final Comparator<T> comparator) {
-      super(cursor, comparator);
-      // Create a reversed comparator.
-      entryComparator = (o1, o2) -> comparator.compare(o2.key(), o1.key());
+    private LmdbReversedSpliterator(
+        final Cursor<T> cursor,
+        final Comparator<T> comparator,
+        final Comparator<KeyVal<T>> entryComparator) {
+      super(cursor, comparator, entryComparator);
     }
 
     @Override
@@ -175,11 +194,12 @@ public class LmdbStream {
     private LmdbRangeSpliterator(
         final Cursor<T> cursor,
         final Comparator<T> comparator,
+        final Comparator<KeyVal<T>> entryComparator,
         final T start,
         final T stop,
         final boolean startInclusive,
         final boolean stopInclusive) {
-      super(cursor, comparator);
+      super(cursor, comparator, entryComparator);
       this.comparator = comparator;
       this.start = start;
       this.stop = stop;
@@ -227,11 +247,12 @@ public class LmdbStream {
     private LmdbRangeReversedSpliterator(
         final Cursor<T> cursor,
         final Comparator<T> comparator,
+        final Comparator<KeyVal<T>> entryComparator,
         final T start,
         final T stop,
         final boolean startInclusive,
         final boolean stopInclusive) {
-      super(cursor, comparator);
+      super(cursor, comparator, entryComparator);
       this.comparator = comparator;
       this.start = start;
       this.stop = stop;
@@ -298,7 +319,7 @@ public class LmdbStream {
         final Comparator<T> comparator,
         final BufferProxy<T> proxy,
         final T prefix) {
-      super(cursor, comparator);
+      super(cursor, comparator, createEntryComparator(comparator));
       this.proxy = proxy;
       this.prefix = prefix;
     }
@@ -330,7 +351,7 @@ public class LmdbStream {
         final Comparator<T> comparator,
         final BufferProxy<T> proxy,
         final T prefix) {
-      super(cursor, comparator);
+      super(cursor, comparator, createReversedEntryComparator(comparator));
       this.proxy = proxy;
       this.prefix = prefix;
 
