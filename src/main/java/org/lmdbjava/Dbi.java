@@ -15,18 +15,6 @@
  */
 package org.lmdbjava;
 
-import jnr.ffi.Pointer;
-import jnr.ffi.byref.IntByReference;
-import jnr.ffi.byref.PointerByReference;
-import org.lmdbjava.Library.ComparatorCallback;
-import org.lmdbjava.Library.MDB_stat;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.List;
-import java.util.stream.Stream;
-
 import static java.util.Objects.requireNonNull;
 import static jnr.ffi.Memory.allocateDirect;
 import static jnr.ffi.NativeType.ADDRESS;
@@ -40,6 +28,17 @@ import static org.lmdbjava.MaskedFlag.isSet;
 import static org.lmdbjava.MaskedFlag.mask;
 import static org.lmdbjava.PutFlags.*;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
+import java.util.stream.Stream;
+import jnr.ffi.Pointer;
+import jnr.ffi.byref.IntByReference;
+import jnr.ffi.byref.PointerByReference;
+import org.lmdbjava.Library.ComparatorCallback;
+import org.lmdbjava.Library.MDB_stat;
 
 /**
  * LMDB Database.
@@ -56,13 +55,13 @@ public final class Dbi<T> {
   private final Pointer ptr;
 
   Dbi(
-          final Env<T> env,
-          final Txn<T> txn,
-          final byte[] name,
-          final Comparator<T> comparator,
-          final boolean nativeCb,
-          final BufferProxy<T> proxy,
-          final DbiFlags... flags) {
+      final Env<T> env,
+      final Txn<T> txn,
+      final byte[] name,
+      final Comparator<T> comparator,
+      final boolean nativeCb,
+      final BufferProxy<T> proxy,
+      final DbiFlags... flags) {
     if (SHOULD_CHECK) {
       requireNonNull(txn);
       txn.checkReady();
@@ -80,14 +79,14 @@ public final class Dbi<T> {
     ptr = dbiPtr.getPointer(0);
     if (nativeCb) {
       this.ccb =
-              (keyA, keyB) -> {
-                final T compKeyA = proxy.out(proxy.allocate(), keyA);
-                final T compKeyB = proxy.out(proxy.allocate(), keyB);
-                final int result = this.comparator.compare(compKeyA, compKeyB);
-                proxy.deallocate(compKeyA);
-                proxy.deallocate(compKeyB);
-                return result;
-              };
+          (keyA, keyB) -> {
+            final T compKeyA = proxy.out(proxy.allocate(), keyA);
+            final T compKeyB = proxy.out(proxy.allocate(), keyB);
+            final int result = this.comparator.compare(compKeyA, compKeyB);
+            proxy.deallocate(compKeyA);
+            proxy.deallocate(compKeyB);
+            return result;
+          };
       LIB.mdb_set_compare(txn.pointer(), ptr, ccb);
     } else {
       ccb = null;
@@ -196,7 +195,7 @@ public final class Dbi<T> {
    * closed. See {@link #close()} for implication of handle close. Otherwise, only the data in this
    * database will be dropped.
    *
-   * @param txn    transaction handle (not null; not committed; must be R-W)
+   * @param txn transaction handle (not null; not committed; must be R-W)
    * @param delete whether database should be deleted.
    */
   public void drop(final Txn<T> txn, final boolean delete) {
@@ -267,7 +266,7 @@ public final class Dbi<T> {
   /**
    * Iterate the database in accordance with the provided {@link KeyRange}.
    *
-   * @param txn   transaction handle (not null; not committed)
+   * @param txn transaction handle (not null; not committed)
    * @param range range of acceptable keys (not null)
    * @return iterator (never null)
    */
@@ -280,7 +279,6 @@ public final class Dbi<T> {
     }
     return new CursorIterable<>(txn, this, range, comparator);
   }
-
 
   public LmdbIterable<T> newIterate(final Txn<T> txn) {
     if (SHOULD_CHECK) {
@@ -301,8 +299,7 @@ public final class Dbi<T> {
     return LmdbIterable.create(txn, this, comparator, keyRange);
   }
 
-  public void newIterate(final Txn<T> txn,
-                         final EntryConsumer<T> entryConsumer) {
+  public void newIterate(final Txn<T> txn, final EntryConsumer<T> entryConsumer) {
     if (SHOULD_CHECK) {
       requireNonNull(txn);
       env.checkNotClosed();
@@ -311,9 +308,8 @@ public final class Dbi<T> {
     LmdbIterable.iterate(txn, this, entryConsumer);
   }
 
-  public void newIterate(final Txn<T> txn,
-                         final KeyRange<T> keyRange,
-                         final EntryConsumer<T> entryConsumer) {
+  public void newIterate(
+      final Txn<T> txn, final KeyRange<T> keyRange, final EntryConsumer<T> entryConsumer) {
     if (SHOULD_CHECK) {
       requireNonNull(txn);
       requireNonNull(keyRange);
@@ -332,8 +328,7 @@ public final class Dbi<T> {
     return LmdbStream.stream(txn, this, comparator);
   }
 
-  public Stream<CursorIterable.KeyVal<T>> stream(final Txn<T> txn,
-                                                 final KeyRange<T> keyRange) {
+  public Stream<CursorIterable.KeyVal<T>> stream(final Txn<T> txn, final KeyRange<T> keyRange) {
     if (SHOULD_CHECK) {
       requireNonNull(txn);
       requireNonNull(keyRange);
@@ -415,12 +410,12 @@ public final class Dbi<T> {
    * new key/data pair, replacing any previously existing key if duplicates are disallowed, or
    * adding a duplicate data item if duplicates are allowed ({@link DbiFlags#MDB_DUPSORT}).
    *
-   * @param txn   transaction handle (not null; not committed; must be R-W)
-   * @param key   key to store in the database (not null)
-   * @param val   value to store in the database (not null)
+   * @param txn transaction handle (not null; not committed; must be R-W)
+   * @param key key to store in the database (not null)
+   * @param val value to store in the database (not null)
    * @param flags Special options for this operation
    * @return true if the value was put, false if MDB_NOOVERWRITE or MDB_NODUPDATA were set and the
-   * key/value existed already.
+   *     key/value existed already.
    */
   public boolean put(final Txn<T> txn, final T key, final T val, final PutFlags... flags) {
     if (SHOULD_CHECK) {
@@ -435,7 +430,7 @@ public final class Dbi<T> {
     final Pointer transientVal = txn.kv().valIn(val);
     final int mask = mask(true, flags);
     final int rc =
-            LIB.mdb_put(txn.pointer(), ptr, txn.kv().pointerKey(), txn.kv().pointerVal(), mask);
+        LIB.mdb_put(txn.pointer(), ptr, txn.kv().pointerKey(), txn.kv().pointerVal(), mask);
     if (rc == MDB_KEYEXIST) {
       if (isSet(mask, MDB_NOOVERWRITE)) {
         txn.kv().valOut(); // marked as in,out in LMDB C docs
@@ -461,10 +456,10 @@ public final class Dbi<T> {
    *
    * <p>This flag must not be specified if the database was opened with MDB_DUPSORT
    *
-   * @param txn  transaction handle (not null; not committed; must be R-W)
-   * @param key  key to store in the database (not null)
+   * @param txn transaction handle (not null; not committed; must be R-W)
+   * @param key key to store in the database (not null)
    * @param size size of the value to be stored in the database
-   * @param op   options for this operation
+   * @param op options for this operation
    * @return a buffer that can be used to modify the value
    */
   public T reserve(final Txn<T> txn, final T key, final int size, final PutFlags... op) {
@@ -501,12 +496,12 @@ public final class Dbi<T> {
     final MDB_stat stat = new MDB_stat(RUNTIME);
     checkRc(LIB.mdb_stat(txn.pointer(), ptr, stat));
     return new Stat(
-            stat.f0_ms_psize.intValue(),
-            stat.f1_ms_depth.intValue(),
-            stat.f2_ms_branch_pages.longValue(),
-            stat.f3_ms_leaf_pages.longValue(),
-            stat.f4_ms_overflow_pages.longValue(),
-            stat.f5_ms_entries.longValue());
+        stat.f0_ms_psize.intValue(),
+        stat.f1_ms_depth.intValue(),
+        stat.f2_ms_branch_pages.longValue(),
+        stat.f3_ms_leaf_pages.longValue(),
+        stat.f4_ms_overflow_pages.longValue(),
+        stat.f5_ms_entries.longValue());
   }
 
   private void clean() {
@@ -516,9 +511,7 @@ public final class Dbi<T> {
     cleaned = true;
   }
 
-  /**
-   * The specified DBI was changed unexpectedly.
-   */
+  /** The specified DBI was changed unexpectedly. */
   public static final class BadDbiException extends LmdbNativeException {
 
     static final int MDB_BAD_DBI = -30_780;
@@ -529,9 +522,7 @@ public final class Dbi<T> {
     }
   }
 
-  /**
-   * Unsupported size of key/DB name/data, or wrong DUPFIXED size.
-   */
+  /** Unsupported size of key/DB name/data, or wrong DUPFIXED size. */
   public static final class BadValueSizeException extends LmdbNativeException {
 
     static final int MDB_BAD_VALSIZE = -30_781;
@@ -542,9 +533,7 @@ public final class Dbi<T> {
     }
   }
 
-  /**
-   * Environment maxdbs reached.
-   */
+  /** Environment maxdbs reached. */
   public static final class DbFullException extends LmdbNativeException {
 
     static final int MDB_DBS_FULL = -30_791;
@@ -577,9 +566,7 @@ public final class Dbi<T> {
     }
   }
 
-  /**
-   * Key/data pair already exists.
-   */
+  /** Key/data pair already exists. */
   public static final class KeyExistsException extends LmdbNativeException {
 
     static final int MDB_KEYEXIST = -30_799;
@@ -590,9 +577,7 @@ public final class Dbi<T> {
     }
   }
 
-  /**
-   * Key/data pair not found (EOF).
-   */
+  /** Key/data pair not found (EOF). */
   public static final class KeyNotFoundException extends LmdbNativeException {
 
     static final int MDB_NOTFOUND = -30_798;
@@ -603,9 +588,7 @@ public final class Dbi<T> {
     }
   }
 
-  /**
-   * Database contents grew beyond environment mapsize.
-   */
+  /** Database contents grew beyond environment mapsize. */
   public static final class MapResizedException extends LmdbNativeException {
 
     static final int MDB_MAP_RESIZED = -30_785;

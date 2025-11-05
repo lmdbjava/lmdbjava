@@ -15,15 +15,14 @@
  */
 package org.lmdbjava;
 
-import jnr.ffi.Pointer;
-
-import java.util.Comparator;
-
 import static java.lang.Long.BYTES;
 import static org.lmdbjava.DbiFlags.MDB_INTEGERKEY;
 import static org.lmdbjava.DbiFlags.MDB_UNSIGNEDKEY;
 import static org.lmdbjava.MaskedFlag.isSet;
 import static org.lmdbjava.MaskedFlag.mask;
+
+import java.util.Comparator;
+import jnr.ffi.Pointer;
 
 /**
  * The strategy for mapping memory address to a given buffer type.
@@ -36,26 +35,17 @@ import static org.lmdbjava.MaskedFlag.mask;
  */
 public abstract class BufferProxy<T> {
 
-  /**
-   * Size of a <code>MDB_val</code> pointer in bytes.
-   */
+  /** Size of a <code>MDB_val</code> pointer in bytes. */
   protected static final int MDB_VAL_STRUCT_SIZE = BYTES * 2;
 
-  /**
-   * Offset from a pointer of the <code>MDB_val.mv_data</code> field.
-   */
+  /** Offset from a pointer of the <code>MDB_val.mv_data</code> field. */
   protected static final int STRUCT_FIELD_OFFSET_DATA = BYTES;
 
-  /**
-   * Offset from a pointer of the <code>MDB_val.mv_size</code> field.
-   */
+  /** Offset from a pointer of the <code>MDB_val.mv_size</code> field. */
   protected static final int STRUCT_FIELD_OFFSET_SIZE = 0;
 
-  /**
-   * Explicitly-defined default constructor to avoid warnings.
-   */
-  protected BufferProxy() {
-  }
+  /** Explicitly-defined default constructor to avoid warnings. */
+  protected BufferProxy() {}
 
   /**
    * Allocate a new buffer suitable for passing to {@link #out(java.lang.Object, jnr.ffi.Pointer)}.
@@ -92,8 +82,8 @@ public abstract class BufferProxy<T> {
     final int intFlag = mask(flags);
 
     return isSet(intFlag, MDB_INTEGERKEY) || isSet(intFlag, MDB_UNSIGNEDKEY)
-            ? getUnsignedComparator()
-            : getSignedComparator();
+        ? getUnsignedComparator()
+        : getSignedComparator();
   }
 
   /**
@@ -115,7 +105,7 @@ public abstract class BufferProxy<T> {
    * will have been created by end users, not {@link #allocate()}.
    *
    * @param buffer the buffer to write to <code>MDB_val</code>
-   * @param ptr    the pointer to the <code>MDB_val</code>
+   * @param ptr the pointer to the <code>MDB_val</code>
    * @return a transient pointer that must be kept alive, or null if none
    */
   protected abstract Pointer in(T buffer, Pointer ptr);
@@ -124,8 +114,8 @@ public abstract class BufferProxy<T> {
    * Called when the <code>MDB_val</code> should be set to reflect the passed buffer.
    *
    * @param buffer the buffer to write to <code>MDB_val</code>
-   * @param size   the buffer size to write to <code>MDB_val</code>
-   * @param ptr    the pointer to the <code>MDB_val</code>
+   * @param size the buffer size to write to <code>MDB_val</code>
+   * @param ptr the pointer to the <code>MDB_val</code>
    * @return a transient pointer that must be kept alive, or null if none
    */
   protected abstract Pointer in(T buffer, int size, Pointer ptr);
@@ -135,7 +125,7 @@ public abstract class BufferProxy<T> {
    * to reflect the new <code>MDB_val</code>.
    *
    * @param buffer the buffer to write to <code>MDB_val</code>
-   * @param ptr    the pointer to the <code>MDB_val</code>
+   * @param ptr the pointer to the <code>MDB_val</code>
    * @return the buffer for <code>MDB_val</code>
    */
   protected abstract T out(T buffer, Pointer ptr);
@@ -152,15 +142,16 @@ public abstract class BufferProxy<T> {
   /**
    * Test if a supplied buffer contains the supplied prefix buffer.
    *
-   * @param buffer       The buffer to test.
+   * @param buffer The buffer to test.
    * @param prefixBuffer The prefix to find.
    * @return True if the key contains the prefix;
    */
   abstract boolean containsPrefix(T buffer, T prefixBuffer);
 
   /**
-   * Make a buffer that is one bit greater than the supplied buffer by incrementing the least significant byte that is
-   * not already 255. This is useful in situations where we want to move past a key range before iterating backward.
+   * Make a buffer that is one bit greater than the supplied buffer by incrementing the least
+   * significant byte that is not already 255. This is useful in situations where we want to move
+   * past a key range before iterating backward.
    *
    * @param buffer The buffer to increment.
    * @return The incremented buffer or null if the buffer is already at max value.

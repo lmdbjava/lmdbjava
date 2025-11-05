@@ -1,11 +1,10 @@
 package org.lmdbjava;
 
-import org.lmdbjava.CursorIterable.KeyVal;
+import static org.lmdbjava.GetOp.MDB_SET_RANGE;
 
 import java.util.Comparator;
 import java.util.Iterator;
-
-import static org.lmdbjava.GetOp.MDB_SET_RANGE;
+import org.lmdbjava.CursorIterable.KeyVal;
 
 public class LmdbIterable<T> implements Iterable<KeyVal<T>>, AutoCloseable {
 
@@ -17,9 +16,7 @@ public class LmdbIterable<T> implements Iterable<KeyVal<T>>, AutoCloseable {
     this.iterator = iterator;
   }
 
-  static <T> void iterate(final Txn<T> txn,
-                          final Dbi<T> dbi,
-                          final EntryConsumer<T> consumer) {
+  static <T> void iterate(final Txn<T> txn, final Dbi<T> dbi, final EntryConsumer<T> consumer) {
     try (final Cursor<T> cursor = dbi.openCursor(txn)) {
       boolean isFound = cursor.first();
       while (isFound) {
@@ -29,11 +26,12 @@ public class LmdbIterable<T> implements Iterable<KeyVal<T>>, AutoCloseable {
     }
   }
 
-  static <T> void iterate(final Txn<T> txn,
-                          final Dbi<T> dbi,
-                          final Comparator<T> comparator,
-                          final KeyRange<T> keyRange,
-                          final EntryConsumer<T> consumer) {
+  static <T> void iterate(
+      final Txn<T> txn,
+      final Dbi<T> dbi,
+      final Comparator<T> comparator,
+      final KeyRange<T> keyRange,
+      final EntryConsumer<T> consumer) {
     try (final LmdbIterable<T> iterable = create(txn, dbi, comparator, keyRange)) {
       for (final KeyVal<T> entry : iterable) {
         consumer.accept(entry.key(), entry.val());
@@ -41,16 +39,16 @@ public class LmdbIterable<T> implements Iterable<KeyVal<T>>, AutoCloseable {
     }
   }
 
-  static <T> LmdbIterable<T> create(final Txn<T> txn,
-                                    final Dbi<T> dbi,
-                                    final Comparator<T> comparator) {
+  static <T> LmdbIterable<T> create(
+      final Txn<T> txn, final Dbi<T> dbi, final Comparator<T> comparator) {
     return create(txn, dbi, comparator, KeyRange.all());
   }
 
-  static <T> LmdbIterable<T> create(final Txn<T> txn,
-                                    final Dbi<T> dbi,
-                                    final Comparator<T> comparator,
-                                    final KeyRange<T> keyRange) {
+  static <T> LmdbIterable<T> create(
+      final Txn<T> txn,
+      final Dbi<T> dbi,
+      final Comparator<T> comparator,
+      final KeyRange<T> keyRange) {
     final Cursor<T> cursor = dbi.openCursor(txn);
     try {
       final LmdbIterator<T> iterator = createIterator(cursor, txn.proxy, comparator, keyRange);
@@ -61,10 +59,11 @@ public class LmdbIterable<T> implements Iterable<KeyVal<T>>, AutoCloseable {
     }
   }
 
-  private static <T> LmdbIterator<T> createIterator(final Cursor<T> cursor,
-                                                    final BufferProxy<T> proxy,
-                                                    final Comparator<T> comparator,
-                                                    final KeyRange<T> keyRange) {
+  private static <T> LmdbIterator<T> createIterator(
+      final Cursor<T> cursor,
+      final BufferProxy<T> proxy,
+      final Comparator<T> comparator,
+      final KeyRange<T> keyRange) {
     final LmdbIterator<T> iterator;
     if (keyRange.getPrefix() != null) {
       if (keyRange.directionForward) {
@@ -74,14 +73,17 @@ public class LmdbIterable<T> implements Iterable<KeyVal<T>>, AutoCloseable {
       }
     } else if (keyRange.getStart() != null || keyRange.getStop() != null) {
       if (keyRange.directionForward) {
-        iterator = new LmdbRangeIterator<>(cursor,
+        iterator =
+            new LmdbRangeIterator<>(
+                cursor,
                 comparator,
                 keyRange.getStart(),
                 keyRange.getStop(),
                 keyRange.isStartKeyInclusive(),
                 keyRange.isStopKeyInclusive());
       } else {
-        iterator = new LmdbRangeReversedIterator<>(
+        iterator =
+            new LmdbRangeReversedIterator<>(
                 cursor,
                 comparator,
                 keyRange.getStart(),
@@ -167,12 +169,13 @@ public class LmdbIterable<T> implements Iterable<KeyVal<T>>, AutoCloseable {
     private final boolean startInclusive;
     private final boolean stopInclusive;
 
-    private LmdbRangeIterator(final Cursor<T> cursor,
-                              final Comparator<T> comparator,
-                              final T start,
-                              final T stop,
-                              final boolean startInclusive,
-                              final boolean stopInclusive) {
+    private LmdbRangeIterator(
+        final Cursor<T> cursor,
+        final Comparator<T> comparator,
+        final T start,
+        final T stop,
+        final boolean startInclusive,
+        final boolean stopInclusive) {
       super(cursor);
       this.comparator = comparator;
       this.start = start;
@@ -190,7 +193,8 @@ public class LmdbIterable<T> implements Iterable<KeyVal<T>>, AutoCloseable {
           isFound = cursor.get(start, GetOp.MDB_SET_RANGE);
           if (isFound && !startInclusive) {
             while (isFound && start.equals(cursor.key())) {
-              // Loop until we move past the start key. Looping in case of duplicate keys using DUPSORT.
+              // Loop until we move past the start key. Looping in case of duplicate keys using
+              // DUPSORT.
               // TODO: We could use increment LSB instead.
               isFound = cursor.next();
             }
@@ -217,12 +221,13 @@ public class LmdbIterable<T> implements Iterable<KeyVal<T>>, AutoCloseable {
     private final boolean startInclusive;
     private final boolean stopInclusive;
 
-    private LmdbRangeReversedIterator(final Cursor<T> cursor,
-                                      final Comparator<T> comparator,
-                                      final T start,
-                                      final T stop,
-                                      final boolean startInclusive,
-                                      final boolean stopInclusive) {
+    private LmdbRangeReversedIterator(
+        final Cursor<T> cursor,
+        final Comparator<T> comparator,
+        final T start,
+        final T stop,
+        final boolean startInclusive,
+        final boolean stopInclusive) {
       super(cursor);
       this.comparator = comparator;
       this.start = start;
@@ -285,9 +290,7 @@ public class LmdbIterable<T> implements Iterable<KeyVal<T>>, AutoCloseable {
     private final T prefix;
     private final BufferProxy<T> proxy;
 
-    private LmdbPrefixIterator(final Cursor<T> cursor,
-                               final BufferProxy<T> proxy,
-                               final T prefix) {
+    private LmdbPrefixIterator(final Cursor<T> cursor, final BufferProxy<T> proxy, final T prefix) {
       super(cursor);
       this.prefix = prefix;
       this.proxy = proxy;
@@ -315,9 +318,8 @@ public class LmdbIterable<T> implements Iterable<KeyVal<T>>, AutoCloseable {
     private final T prefix;
     private final T oneBigger;
 
-    private LmdbPrefixReversedIterator(final Cursor<T> cursor,
-                                       final BufferProxy<T> proxy,
-                                       final T prefix) {
+    private LmdbPrefixReversedIterator(
+        final Cursor<T> cursor, final BufferProxy<T> proxy, final T prefix) {
       super(cursor);
       this.prefix = prefix;
       this.proxy = proxy;
@@ -329,11 +331,13 @@ public class LmdbIterable<T> implements Iterable<KeyVal<T>>, AutoCloseable {
     @Override
     public boolean hasNext() {
       if (isFound == null) {
-        // If we don't have a byte buffer that is one bigger than the prefix then go to the last row.
+        // If we don't have a byte buffer that is one bigger than the prefix then go to the last
+        // row.
         if (oneBigger == null) {
           isFound = cursor.last();
         } else {
-          // We have a byte buffer that is one bigger than the prefix so navigate to that row or the next
+          // We have a byte buffer that is one bigger than the prefix so navigate to that row or the
+          // next
           // biggest if no exact match.
           isFound = cursor.get(oneBigger, GetOp.MDB_SET_RANGE);
           if (isFound) {

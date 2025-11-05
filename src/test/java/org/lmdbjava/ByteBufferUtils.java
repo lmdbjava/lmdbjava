@@ -26,9 +26,9 @@ public class ByteBufferUtils {
   }
 
   /**
-   * Creates a new direct {@link ByteBuffer} from the input {@link ByteBuffer}.
-   * The bytes from position() to limit() will be copied into a newly allocated
-   * buffer. The new buffer will be flipped to set its position read for get operations
+   * Creates a new direct {@link ByteBuffer} from the input {@link ByteBuffer}. The bytes from
+   * position() to limit() will be copied into a newly allocated buffer. The new buffer will be
+   * flipped to set its position read for get operations
    */
   public static ByteBuffer copyToDirectBuffer(final ByteBuffer input) {
     final ByteBuffer output = ByteBuffer.allocateDirect(input.remaining());

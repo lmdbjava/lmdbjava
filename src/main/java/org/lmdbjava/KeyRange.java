@@ -15,11 +15,11 @@
  */
 package org.lmdbjava;
 
-import java.util.Objects;
-
 import static java.util.Objects.requireNonNull;
 import static org.lmdbjava.KeyRangeType.BACKWARD_ALL;
 import static org.lmdbjava.KeyRangeType.FORWARD_ALL;
+
+import java.util.Objects;
 
 /**
  * Limits the range and direction of keys to iterate.
@@ -46,9 +46,9 @@ public final class KeyRange<T> {
    * <p>End user code may find it more expressive to use one of the static methods provided on this
    * class.
    *
-   * @param type  key type
+   * @param type key type
    * @param start start key (required if applicable for the passed range type)
-   * @param stop  stop key (required if applicable for the passed range type)
+   * @param stop stop key (required if applicable for the passed range type)
    */
   public KeyRange(final KeyRangeType type, final T start, final T stop) {
     requireNonNull(type, "Key range type is required");
@@ -67,11 +67,12 @@ public final class KeyRange<T> {
     this.type = type;
   }
 
-  private KeyRange(final T start,
-                   final T stop,
-                   final boolean startKeyInclusive,
-                   final boolean stopKeyInclusive,
-                   final boolean directionForward) {
+  private KeyRange(
+      final T start,
+      final T stop,
+      final boolean startKeyInclusive,
+      final boolean stopKeyInclusive,
+      final boolean directionForward) {
     this.start = start;
     this.stop = stop;
     this.prefix = null;
@@ -90,8 +91,7 @@ public final class KeyRange<T> {
     this.directionForward = true;
   }
 
-  private KeyRange(final T prefix,
-                   final boolean directionForward) {
+  private KeyRange(final T prefix, final boolean directionForward) {
     Objects.requireNonNull(prefix, "Prefix is required");
     this.start = null;
     this.stop = null;
@@ -126,7 +126,7 @@ public final class KeyRange<T> {
   /**
    * Create a {@link KeyRangeType#FORWARD_AT_LEAST} range.
    *
-   * @param <T>   buffer type
+   * @param <T> buffer type
    * @param start start key (required)
    * @return a key range (never null)
    */
@@ -137,7 +137,7 @@ public final class KeyRange<T> {
   /**
    * Create a {@link KeyRangeType#BACKWARD_AT_LEAST} range.
    *
-   * @param <T>   buffer type
+   * @param <T> buffer type
    * @param start start key (required)
    * @return a key range (never null)
    */
@@ -148,7 +148,7 @@ public final class KeyRange<T> {
   /**
    * Create a {@link KeyRangeType#FORWARD_AT_MOST} range.
    *
-   * @param <T>  buffer type
+   * @param <T> buffer type
    * @param stop stop key (required)
    * @return a key range (never null)
    */
@@ -159,7 +159,7 @@ public final class KeyRange<T> {
   /**
    * Create a {@link KeyRangeType#BACKWARD_AT_MOST} range.
    *
-   * @param <T>  buffer type
+   * @param <T> buffer type
    * @param stop stop key (required)
    * @return a key range (never null)
    */
@@ -170,9 +170,9 @@ public final class KeyRange<T> {
   /**
    * Create a {@link KeyRangeType#FORWARD_CLOSED} range.
    *
-   * @param <T>   buffer type
+   * @param <T> buffer type
    * @param start start key (required)
-   * @param stop  stop key (required)
+   * @param stop stop key (required)
    * @return a key range (never null)
    */
   public static <T> KeyRange<T> closed(final T start, final T stop) {
@@ -182,9 +182,9 @@ public final class KeyRange<T> {
   /**
    * Create a {@link KeyRangeType#BACKWARD_CLOSED} range.
    *
-   * @param <T>   buffer type
+   * @param <T> buffer type
    * @param start start key (required)
-   * @param stop  stop key (required)
+   * @param stop stop key (required)
    * @return a key range (never null)
    */
   public static <T> KeyRange<T> closedBackward(final T start, final T stop) {
@@ -194,9 +194,9 @@ public final class KeyRange<T> {
   /**
    * Create a {@link KeyRangeType#FORWARD_CLOSED_OPEN} range.
    *
-   * @param <T>   buffer type
+   * @param <T> buffer type
    * @param start start key (required)
-   * @param stop  stop key (required)
+   * @param stop stop key (required)
    * @return a key range (never null)
    */
   public static <T> KeyRange<T> closedOpen(final T start, final T stop) {
@@ -206,9 +206,9 @@ public final class KeyRange<T> {
   /**
    * Create a {@link KeyRangeType#BACKWARD_CLOSED_OPEN} range.
    *
-   * @param <T>   buffer type
+   * @param <T> buffer type
    * @param start start key (required)
-   * @param stop  stop key (required)
+   * @param stop stop key (required)
    * @return a key range (never null)
    */
   public static <T> KeyRange<T> closedOpenBackward(final T start, final T stop) {
@@ -218,7 +218,7 @@ public final class KeyRange<T> {
   /**
    * Create a {@link KeyRangeType#FORWARD_GREATER_THAN} range.
    *
-   * @param <T>   buffer type
+   * @param <T> buffer type
    * @param start start key (required)
    * @return a key range (never null)
    */
@@ -229,7 +229,7 @@ public final class KeyRange<T> {
   /**
    * Create a {@link KeyRangeType#BACKWARD_GREATER_THAN} range.
    *
-   * @param <T>   buffer type
+   * @param <T> buffer type
    * @param start start key (required)
    * @return a key range (never null)
    */
@@ -240,7 +240,7 @@ public final class KeyRange<T> {
   /**
    * Create a {@link KeyRangeType#FORWARD_LESS_THAN} range.
    *
-   * @param <T>  buffer type
+   * @param <T> buffer type
    * @param stop stop key (required)
    * @return a key range (never null)
    */
@@ -251,7 +251,7 @@ public final class KeyRange<T> {
   /**
    * Create a {@link KeyRangeType#BACKWARD_LESS_THAN} range.
    *
-   * @param <T>  buffer type
+   * @param <T> buffer type
    * @param stop stop key (required)
    * @return a key range (never null)
    */
@@ -262,9 +262,9 @@ public final class KeyRange<T> {
   /**
    * Create a {@link KeyRangeType#FORWARD_OPEN} range.
    *
-   * @param <T>   buffer type
+   * @param <T> buffer type
    * @param start start key (required)
-   * @param stop  stop key (required)
+   * @param stop stop key (required)
    * @return a key range (never null)
    */
   public static <T> KeyRange<T> open(final T start, final T stop) {
@@ -274,9 +274,9 @@ public final class KeyRange<T> {
   /**
    * Create a {@link KeyRangeType#BACKWARD_OPEN} range.
    *
-   * @param <T>   buffer type
+   * @param <T> buffer type
    * @param start start key (required)
-   * @param stop  stop key (required)
+   * @param stop stop key (required)
    * @return a key range (never null)
    */
   public static <T> KeyRange<T> openBackward(final T start, final T stop) {
@@ -286,9 +286,9 @@ public final class KeyRange<T> {
   /**
    * Create a {@link KeyRangeType#FORWARD_OPEN_CLOSED} range.
    *
-   * @param <T>   buffer type
+   * @param <T> buffer type
    * @param start start key (required)
-   * @param stop  stop key (required)
+   * @param stop stop key (required)
    * @return a key range (never null)
    */
   public static <T> KeyRange<T> openClosed(final T start, final T stop) {
@@ -298,9 +298,9 @@ public final class KeyRange<T> {
   /**
    * Create a {@link KeyRangeType#BACKWARD_OPEN_CLOSED} range.
    *
-   * @param <T>   buffer type
+   * @param <T> buffer type
    * @param start start key (required)
-   * @param stop  stop key (required)
+   * @param stop stop key (required)
    * @return a key range (never null)
    */
   public static <T> KeyRange<T> openClosedBackward(final T start, final T stop) {
@@ -310,7 +310,7 @@ public final class KeyRange<T> {
   /**
    * Create a prefix range.
    *
-   * @param <T>    buffer type
+   * @param <T> buffer type
    * @param prefix key prefix (required)
    * @return a key range (never null)
    */
@@ -321,7 +321,7 @@ public final class KeyRange<T> {
   /**
    * Create a backward prefix range.
    *
-   * @param <T>    buffer type
+   * @param <T> buffer type
    * @param prefix key prefix (required)
    * @return a key range (never null)
    */
@@ -342,7 +342,7 @@ public final class KeyRange<T> {
    * Is the start key to be treated as inclusive in the range.
    *
    * @return true if start key is inclusive. False if not inclusive or no start key is required by
-   * the range type.
+   *     the range type.
    */
   public boolean isStartKeyInclusive() {
     return startKeyInclusive;
@@ -370,7 +370,7 @@ public final class KeyRange<T> {
    * Is the stop key to be treated as inclusive in the range.
    *
    * @return true if stop key is inclusive. False if not inclusive or no stop key is required by the
-   * range type.
+   *     range type.
    */
   public boolean isStopKeyInclusive() {
     return stopKeyInclusive;
@@ -398,19 +398,18 @@ public final class KeyRange<T> {
    * Create a new builder to construct a key range.
    *
    * @param clazz The buffer class type being used.
-   * @param <T>   The buffer type, e.g. ByteBuffer.
+   * @param <T> The buffer type, e.g. ByteBuffer.
    * @return A new key range builder.
    */
   public static <T> Builder<T> builder(final Class<T> clazz) {
     return new Builder<>();
   }
 
-  private static abstract class BaseBuilder<T, B extends BaseBuilder<T, ?>> {
+  private abstract static class BaseBuilder<T, B extends BaseBuilder<T, ?>> {
 
     boolean directionForward = true;
 
-    private BaseBuilder() {
-    }
+    private BaseBuilder() {}
 
     private BaseBuilder(final BaseBuilder<T, ?> builder) {
       this.directionForward = builder.directionForward;
@@ -431,11 +430,9 @@ public final class KeyRange<T> {
     public abstract KeyRange<T> build();
   }
 
-  public static class Builder<T>
-          extends BaseBuilder<T, Builder<T>> {
+  public static class Builder<T> extends BaseBuilder<T, Builder<T>> {
 
-    private Builder() {
-    }
+    private Builder() {}
 
     private Builder(final BaseBuilder<T, ?> builder) {
       super(builder);
@@ -448,23 +445,29 @@ public final class KeyRange<T> {
       return keyRange;
     }
 
-    public RangeBuilder<T> start(final T start) {
+    public RangeBuilder<T> startInclusive(final T start) {
       return start(start, true);
     }
 
-    public RangeBuilder<T> start(final T start,
-                                 final boolean startInclusive) {
+    public RangeBuilder<T> startExclusive(final T start) {
+      return start(start, false);
+    }
+
+    public RangeBuilder<T> start(final T start, final boolean startInclusive) {
       Objects.requireNonNull(start, "Start is required");
       final RangeBuilder<T> range = new RangeBuilder<>(this);
       return range.start(start, startInclusive);
     }
 
-    public RangeBuilder<T> stop(final T stop) {
+    public RangeBuilder<T> stopInclusive(final T stop) {
       return stop(stop, true);
     }
 
-    public RangeBuilder<T> stop(final T stop,
-                                final boolean stopInclusive) {
+    public RangeBuilder<T> stopExclusive(final T stop) {
+      return stop(stop, false);
+    }
+
+    public RangeBuilder<T> stop(final T stop, final boolean stopInclusive) {
       Objects.requireNonNull(stop, "Stop is required");
       final RangeBuilder<T> range = new RangeBuilder<>(this);
       return range.stop(stop, stopInclusive);
@@ -516,24 +519,30 @@ public final class KeyRange<T> {
       super(rootKeyRange);
     }
 
-    public RangeBuilder<T> start(final T start) {
+    public RangeBuilder<T> startInclusive(final T start) {
       return start(start, true);
     }
 
-    public RangeBuilder<T> start(final T start,
-                                 final boolean startKeyInclusive) {
+    public RangeBuilder<T> startExclusive(final T start) {
+      return start(start, false);
+    }
+
+    public RangeBuilder<T> start(final T start, final boolean startKeyInclusive) {
       Objects.requireNonNull(start, "Start is required");
       this.start = start;
       this.startKeyInclusive = startKeyInclusive;
       return self();
     }
 
-    public RangeBuilder<T> stop(final T stop) {
+    public RangeBuilder<T> stopInclusive(final T stop) {
       return stop(stop, true);
     }
 
-    public RangeBuilder<T> stop(final T stop,
-                                final boolean stopKeyInclusive) {
+    public RangeBuilder<T> stopExclusive(final T stop) {
+      return stop(stop, false);
+    }
+
+    public RangeBuilder<T> stop(final T stop, final boolean stopKeyInclusive) {
       Objects.requireNonNull(stop, "Stop is required");
       this.stop = stop;
       this.stopKeyInclusive = stopKeyInclusive;

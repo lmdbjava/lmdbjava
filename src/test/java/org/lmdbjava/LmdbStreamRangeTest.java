@@ -16,10 +16,13 @@
 
 package org.lmdbjava;
 
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvFileSource;
-import org.lmdbjava.ByteBufferProxy.AbstractByteBufferProxy;
-import org.lmdbjava.CursorIterable.KeyVal;
+import static com.jakewharton.byteunits.BinaryByteUnit.KIBIBYTES;
+import static java.nio.ByteBuffer.allocateDirect;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.lmdbjava.DbiFlags.*;
+import static org.lmdbjava.Env.create;
+import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
+import static org.lmdbjava.TestUtils.*;
 
 import java.io.*;
 import java.nio.ByteBuffer;
@@ -29,157 +32,151 @@ import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.function.BiConsumer;
 import java.util.stream.Stream;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvFileSource;
+import org.lmdbjava.ByteBufferProxy.AbstractByteBufferProxy;
+import org.lmdbjava.CursorIterable.KeyVal;
 
-import static com.jakewharton.byteunits.BinaryByteUnit.KIBIBYTES;
-import static java.nio.ByteBuffer.allocateDirect;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.lmdbjava.DbiFlags.*;
-import static org.lmdbjava.Env.create;
-import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
-import static org.lmdbjava.TestUtils.*;
-
-/**
- * Test {@link CursorIterable}.
- */
+/** Test {@link CursorIterable}. */
 public final class LmdbStreamRangeTest {
 
   @ParameterizedTest(name = "{index} => {0}: ({1}, {2})")
   @CsvFileSource(resources = "/CursorIterableRangeTest/testSignedComparator.csv")
   void testSignedComparator(
-          final String keyType, final String startKey, final String stopKey, final String expectedKV) {
+      final String keyType, final String startKey, final String stopKey, final String expectedKV) {
     testCSV(
-            ByteBuffer::compareTo,
-            true,
-            createBasicDBPopulator(),
-            EnumSet.of(MDB_CREATE),
-            keyType,
-            startKey,
-            stopKey,
-            expectedKV);
+        ByteBuffer::compareTo,
+        true,
+        createBasicDBPopulator(),
+        EnumSet.of(MDB_CREATE),
+        keyType,
+        startKey,
+        stopKey,
+        expectedKV);
   }
 
   @ParameterizedTest(name = "{index} => {0}: ({1}, {2})")
   @CsvFileSource(resources = "/CursorIterableRangeTest/testUnsignedComparator.csv")
   void testUnsignedComparator(
-          final String keyType, final String startKey, final String stopKey, final String expectedKV) {
+      final String keyType, final String startKey, final String stopKey, final String expectedKV) {
     testCSV(
-            AbstractByteBufferProxy::compareBuff,
-            false,
-            createBasicDBPopulator(),
-            EnumSet.of(MDB_CREATE),
-            keyType,
-            startKey,
-            stopKey,
-            expectedKV);
+        AbstractByteBufferProxy::compareBuff,
+        false,
+        createBasicDBPopulator(),
+        EnumSet.of(MDB_CREATE),
+        keyType,
+        startKey,
+        stopKey,
+        expectedKV);
   }
 
   @ParameterizedTest(name = "{index} => {0}: ({1}, {2})")
   @CsvFileSource(resources = "/CursorIterableRangeTest/testSignedComparatorDupsort.csv")
   void testSignedComparatorDupsort(
-          final String keyType, final String startKey, final String stopKey, final String expectedKV) {
+      final String keyType, final String startKey, final String stopKey, final String expectedKV) {
     testCSV(
-            ByteBuffer::compareTo,
-            true,
-            createMultiDBPopulator(2),
-            EnumSet.of(MDB_CREATE, MDB_DUPSORT),
-            keyType,
-            startKey,
-            stopKey,
-            expectedKV);
+        ByteBuffer::compareTo,
+        true,
+        createMultiDBPopulator(2),
+        EnumSet.of(MDB_CREATE, MDB_DUPSORT),
+        keyType,
+        startKey,
+        stopKey,
+        expectedKV);
   }
 
   @ParameterizedTest(name = "{index} => {0}: ({1}, {2})")
   @CsvFileSource(resources = "/CursorIterableRangeTest/testUnsignedComparatorDupsort.csv")
   void testUnsignedComparatorDupsort(
-          final String keyType, final String startKey, final String stopKey, final String expectedKV) {
+      final String keyType, final String startKey, final String stopKey, final String expectedKV) {
     testCSV(
-            AbstractByteBufferProxy::compareBuff,
-            false,
-            createMultiDBPopulator(2),
-            EnumSet.of(MDB_CREATE, MDB_DUPSORT),
-            keyType,
-            startKey,
-            stopKey,
-            expectedKV);
+        AbstractByteBufferProxy::compareBuff,
+        false,
+        createMultiDBPopulator(2),
+        EnumSet.of(MDB_CREATE, MDB_DUPSORT),
+        keyType,
+        startKey,
+        stopKey,
+        expectedKV);
   }
 
   @ParameterizedTest(name = "{index} => {0}: ({1}, {2})")
   @CsvFileSource(resources = "/CursorIterableRangeTest/testIntegerKey.csv")
   void testIntegerKey(
-          final String keyType, final String startKey, final String stopKey, final String expectedKV) {
+      final String keyType, final String startKey, final String stopKey, final String expectedKV) {
     testCSV(
-            AbstractByteBufferProxy::compareBuff,
-            false,
-            createIntegerDBPopulator(),
-            EnumSet.of(MDB_CREATE, MDB_INTEGERKEY),
-            keyType,
-            startKey,
-            stopKey,
-            expectedKV,
-            Integer.BYTES,
-            ByteOrder.LITTLE_ENDIAN);
+        AbstractByteBufferProxy::compareBuff,
+        false,
+        createIntegerDBPopulator(),
+        EnumSet.of(MDB_CREATE, MDB_INTEGERKEY),
+        keyType,
+        startKey,
+        stopKey,
+        expectedKV,
+        Integer.BYTES,
+        ByteOrder.LITTLE_ENDIAN);
   }
 
   @ParameterizedTest(name = "{index} => {0}: ({1}, {2})")
   @CsvFileSource(resources = "/CursorIterableRangeTest/testLongKey.csv")
   void testLongKey(
-          final String keyType, final String startKey, final String stopKey, final String expectedKV) {
+      final String keyType, final String startKey, final String stopKey, final String expectedKV) {
     testCSV(
-            AbstractByteBufferProxy::compareBuff,
-            false,
-            createLongDBPopulator(),
-            EnumSet.of(MDB_CREATE, MDB_INTEGERKEY),
-            keyType,
-            startKey,
-            stopKey,
-            expectedKV,
-            Long.BYTES,
-            ByteOrder.LITTLE_ENDIAN);
+        AbstractByteBufferProxy::compareBuff,
+        false,
+        createLongDBPopulator(),
+        EnumSet.of(MDB_CREATE, MDB_INTEGERKEY),
+        keyType,
+        startKey,
+        stopKey,
+        expectedKV,
+        Long.BYTES,
+        ByteOrder.LITTLE_ENDIAN);
   }
 
   private void testCSV(
-          final Comparator<ByteBuffer> comparator,
-          final boolean nativeCb,
-          final BiConsumer<Env<ByteBuffer>, Dbi<ByteBuffer>> dbPopulator,
-          final EnumSet<DbiFlags> flags,
-          final String keyType,
-          final String startKey,
-          final String stopKey,
-          final String expectedKV) {
+      final Comparator<ByteBuffer> comparator,
+      final boolean nativeCb,
+      final BiConsumer<Env<ByteBuffer>, Dbi<ByteBuffer>> dbPopulator,
+      final EnumSet<DbiFlags> flags,
+      final String keyType,
+      final String startKey,
+      final String stopKey,
+      final String expectedKV) {
     testCSV(
-            comparator,
-            nativeCb,
-            dbPopulator,
-            flags,
-            keyType,
-            startKey,
-            stopKey,
-            expectedKV,
-            Integer.BYTES,
-            ByteOrder.BIG_ENDIAN);
+        comparator,
+        nativeCb,
+        dbPopulator,
+        flags,
+        keyType,
+        startKey,
+        stopKey,
+        expectedKV,
+        Integer.BYTES,
+        ByteOrder.BIG_ENDIAN);
   }
 
   private void testCSV(
-          final Comparator<ByteBuffer> comparator,
-          final boolean nativeCb,
-          final BiConsumer<Env<ByteBuffer>, Dbi<ByteBuffer>> dbPopulator,
-          final EnumSet<DbiFlags> flags,
-          final String keyType,
-          final String startKey,
-          final String stopKey,
-          final String expectedKV,
-          final int keyLen,
-          final ByteOrder byteOrder) {
+      final Comparator<ByteBuffer> comparator,
+      final boolean nativeCb,
+      final BiConsumer<Env<ByteBuffer>, Dbi<ByteBuffer>> dbPopulator,
+      final EnumSet<DbiFlags> flags,
+      final String keyType,
+      final String startKey,
+      final String stopKey,
+      final String expectedKV,
+      final int keyLen,
+      final ByteOrder byteOrder) {
     try (final TempDir tempDir = new TempDir()) {
       final Path file = tempDir.createTempFile();
       try (final Env<ByteBuffer> env =
-                   create()
-                           .setMapSize(KIBIBYTES.toBytes(256))
-                           .setMaxReaders(1)
-                           .setMaxDbs(1)
-                           .open(file.toFile(), POSIX_MODE, MDB_NOSUBDIR)) {
+          create()
+              .setMapSize(KIBIBYTES.toBytes(256))
+              .setMaxReaders(1)
+              .setMaxDbs(1)
+              .open(file.toFile(), POSIX_MODE, MDB_NOSUBDIR)) {
         final Dbi<ByteBuffer> dbi =
-                env.openDbi(DB_1, comparator, nativeCb, flags.toArray(new DbiFlags[0]));
+            env.openDbi(DB_1, comparator, nativeCb, flags.toArray(new DbiFlags[0]));
         dbPopulator.accept(env, dbi);
         try (final Writer writer = new StringWriter()) {
           final KeyRangeType keyRangeType = KeyRangeType.valueOf(keyType.trim());
@@ -188,20 +185,21 @@ public final class LmdbStreamRangeTest {
 
           final KeyRange<ByteBuffer> keyRange = new KeyRange<>(keyRangeType, start, stop);
           try (Txn<ByteBuffer> txn = env.txnRead();
-               Stream<KeyVal<ByteBuffer>> stream = dbi.stream(txn, keyRange)) {
-            stream.forEach(kv -> {
-              try {
-                final long key = getLong(kv.key(), byteOrder);
-                final long val = getLong(kv.val(), byteOrder);
-                writer.append("[");
-                writer.append(String.valueOf(key));
-                writer.append(" ");
-                writer.append(String.valueOf(val));
-                writer.append("]");
-              } catch (final IOException e) {
-                throw new UncheckedIOException(e);
-              }
-            });
+              Stream<KeyVal<ByteBuffer>> stream = dbi.stream(txn, keyRange)) {
+            stream.forEach(
+                kv -> {
+                  try {
+                    final long key = getLong(kv.key(), byteOrder);
+                    final long val = getLong(kv.val(), byteOrder);
+                    writer.append("[");
+                    writer.append(String.valueOf(key));
+                    writer.append(" ");
+                    writer.append(String.valueOf(val));
+                    writer.append("]");
+                  } catch (final IOException e) {
+                    throw new UncheckedIOException(e);
+                  }
+                });
           }
           assertThat(writer.toString()).isEqualTo(expectedKV == null ? "" : expectedKV);
         } catch (final IOException e) {
@@ -300,7 +298,7 @@ public final class LmdbStreamRangeTest {
   }
 
   private void populateDatabase(
-          final Env<ByteBuffer> env, final Dbi<ByteBuffer> dbi, final int copies) {
+      final Env<ByteBuffer> env, final Dbi<ByteBuffer> dbi, final int copies) {
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
       final Cursor<ByteBuffer> c = dbi.openCursor(txn);
       for (int i = 0; i < copies; i++) {

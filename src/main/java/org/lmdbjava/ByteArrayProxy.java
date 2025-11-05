@@ -15,15 +15,14 @@
  */
 package org.lmdbjava;
 
-import jnr.ffi.Pointer;
-import jnr.ffi.provider.MemoryManager;
-
-import java.util.Arrays;
-import java.util.Comparator;
-
 import static java.lang.Math.min;
 import static java.util.Objects.requireNonNull;
 import static org.lmdbjava.Library.RUNTIME;
+
+import java.util.Arrays;
+import java.util.Comparator;
+import jnr.ffi.Pointer;
+import jnr.ffi.provider.MemoryManager;
 
 /**
  * Byte array proxy.
@@ -32,9 +31,7 @@ import static org.lmdbjava.Library.RUNTIME;
  */
 public final class ByteArrayProxy extends BufferProxy<byte[]> {
 
-  /**
-   * The byte array proxy. Guaranteed to never be null.
-   */
+  /** The byte array proxy. Guaranteed to never be null. */
   public static final BufferProxy<byte[]> PROXY_BA = new ByteArrayProxy();
 
   private static final MemoryManager MEM_MGR = RUNTIME.getMemoryManager();
@@ -42,8 +39,7 @@ public final class ByteArrayProxy extends BufferProxy<byte[]> {
   private static final Comparator<byte[]> signedComparator = ByteArrayProxy::compareArraysSigned;
   private static final Comparator<byte[]> unsignedComparator = ByteArrayProxy::compareArrays;
 
-  private ByteArrayProxy() {
-  }
+  private ByteArrayProxy() {}
 
   /**
    * Lexicographically compare two byte arrays.
@@ -75,8 +71,8 @@ public final class ByteArrayProxy extends BufferProxy<byte[]> {
   /**
    * Lexicographically compare two byte arrays up to a max length.
    *
-   * @param o1        left operand (required)
-   * @param o2        right operand (required)
+   * @param o1 left operand (required)
+   * @param o2 right operand (required)
    * @param minLength The length to compare (required)
    * @return as specified by {@link Comparable} interface
    */
@@ -167,7 +163,6 @@ public final class ByteArrayProxy extends BufferProxy<byte[]> {
     pointer.get(0, bytes, 0, size);
     return bytes;
   }
-
 
   @Override
   boolean containsPrefix(final byte[] buffer, final byte[] prefixBuffer) {

@@ -196,7 +196,6 @@ public final class DirectBufferProxy extends BufferProxy<DirectBuffer> {
     return buffer;
   }
 
-
   @Override
   boolean containsPrefix(final DirectBuffer buffer, final DirectBuffer prefixBuffer) {
     if (buffer.capacity() < prefixBuffer.capacity()) {

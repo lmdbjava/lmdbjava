@@ -24,7 +24,6 @@ import static org.lmdbjava.UnsafeAccess.UNSAFE;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
 import java.lang.reflect.Field;
-import java.nio.ByteBuffer;
 import java.util.Comparator;
 import jnr.ffi.Pointer;
 
