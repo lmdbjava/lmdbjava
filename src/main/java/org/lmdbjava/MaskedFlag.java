@@ -17,7 +17,6 @@ package org.lmdbjava;
 
 import static java.util.Objects.requireNonNull;
 
-import java.util.Arrays;
 import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
