@@ -8,12 +8,21 @@ import org.lmdbjava.CursorIterable.KeyVal;
 
 public class LmdbIterable<T> implements Iterable<KeyVal<T>>, AutoCloseable {
 
+  private final Txn<T> txn;
   private final Cursor<T> cursor;
-  private final Iterator<KeyVal<T>> iterator;
+  private final Comparator<T> comparator;
+  private final KeyRange<T> keyRange;
+  private boolean iteratorReturned;
 
-  private LmdbIterable(final Cursor<T> cursor, final Iterator<KeyVal<T>> iterator) {
+  private LmdbIterable(
+      final Txn<T> txn,
+      final Cursor<T> cursor,
+      final Comparator<T> comparator,
+      final KeyRange<T> keyRange) {
+    this.txn = txn;
     this.cursor = cursor;
-    this.iterator = iterator;
+    this.comparator = comparator;
+    this.keyRange = keyRange;
   }
 
   static <T> void iterate(final Txn<T> txn, final Dbi<T> dbi, final EntryConsumer<T> consumer) {
@@ -51,8 +60,7 @@ public class LmdbIterable<T> implements Iterable<KeyVal<T>>, AutoCloseable {
       final KeyRange<T> keyRange) {
     final Cursor<T> cursor = dbi.openCursor(txn);
     try {
-      final LmdbIterator<T> iterator = createIterator(cursor, txn.proxy, comparator, keyRange);
-      return new LmdbIterable<>(cursor, iterator);
+      return new LmdbIterable<>(txn, cursor, comparator, keyRange);
     } catch (final Error | RuntimeException e) {
       cursor.close();
       throw e;
@@ -103,7 +111,11 @@ public class LmdbIterable<T> implements Iterable<KeyVal<T>>, AutoCloseable {
 
   @Override
   public Iterator<KeyVal<T>> iterator() {
-    return iterator;
+    if (iteratorReturned) {
+      throw new IllegalStateException("Iterator can only be returned once");
+    }
+    iteratorReturned = true;
+    return createIterator(cursor, txn.proxy, comparator, keyRange);
   }
 
   @Override
