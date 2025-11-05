@@ -123,7 +123,7 @@ public final class CursorIterableRangeTest {
         stopKey,
         expectedKV,
         Integer.BYTES,
-        ByteOrder.LITTLE_ENDIAN);
+        ByteOrder.nativeOrder());
   }
 
   @ParameterizedTest(name = "{index} => {0}: ({1}, {2})")
@@ -140,7 +140,7 @@ public final class CursorIterableRangeTest {
         stopKey,
         expectedKV,
         Long.BYTES,
-        ByteOrder.LITTLE_ENDIAN);
+        ByteOrder.nativeOrder());
   }
 
   private void testCSV(
@@ -197,7 +197,7 @@ public final class CursorIterableRangeTest {
               CursorIterable<ByteBuffer> c = dbi.iterate(txn, keyRange)) {
             for (final KeyVal<ByteBuffer> kv : c) {
               final long key = getLong(kv.key(), byteOrder);
-              final long val = getLong(kv.val(), byteOrder);
+              final long val = getLong(kv.val(), ByteOrder.BIG_ENDIAN);
               writer.append("[");
               writer.append(String.valueOf(key));
               writer.append(" ");
@@ -215,11 +215,11 @@ public final class CursorIterableRangeTest {
 
   private ByteBuffer parseKey(final String key, final int keyLen, final ByteOrder byteOrder) {
     if (key != null) {
-      if (ByteOrder.LITTLE_ENDIAN.equals(byteOrder)) {
+      if (ByteOrder.nativeOrder().equals(byteOrder)) {
         if (keyLen == Integer.BYTES) {
-          return bbLeInt(Integer.parseInt(key.trim()));
+          return bbNativeInt(Integer.parseInt(key.trim()));
         } else {
-          return bbLeLong(Long.parseLong(key.trim()));
+          return bbNativeLong(Long.parseLong(key.trim()));
         }
       } else {
         if (keyLen == Integer.BYTES) {
@@ -277,11 +277,11 @@ public final class CursorIterableRangeTest {
     return (env, dbi) -> {
       try (Txn<ByteBuffer> txn = env.txnWrite()) {
         final Cursor<ByteBuffer> c = dbi.openCursor(txn);
-        c.put(bbLeInt(Integer.MIN_VALUE), bb(1));
-        c.put(bbLeInt(-1000), bb(2));
-        c.put(bbLeInt(0), bb(3));
-        c.put(bbLeInt(1000), bb(4));
-        c.put(bbLeInt(Integer.MAX_VALUE), bb(5));
+        c.put(bbNativeInt(0), bb(1));
+        c.put(bbNativeInt(1000), bb(2));
+        c.put(bbNativeInt(1000000), bb(3));
+        c.put(bbNativeInt(-1000000), bb(4));
+        c.put(bbNativeInt(-1000), bb(5));
         txn.commit();
       }
     };
@@ -291,11 +291,11 @@ public final class CursorIterableRangeTest {
     return (env, dbi) -> {
       try (Txn<ByteBuffer> txn = env.txnWrite()) {
         final Cursor<ByteBuffer> c = dbi.openCursor(txn);
-        c.put(bbLeLong(Long.MIN_VALUE), bb(1));
-        c.put(bbLeLong(-1000), bb(2));
-        c.put(bbLeLong(0), bb(3));
-        c.put(bbLeLong(1000), bb(4));
-        c.put(bbLeLong(Long.MAX_VALUE), bb(5));
+        c.put(bbNativeLong(0), bb(1));
+        c.put(bbNativeLong(1000), bb(2));
+        c.put(bbNativeLong(1000000), bb(3));
+        c.put(bbNativeLong(-1000000), bb(4));
+        c.put(bbNativeLong(-1000), bb(5));
         txn.commit();
       }
     };
@@ -329,14 +329,14 @@ public final class CursorIterableRangeTest {
     return result.toString();
   }
 
-  static ByteBuffer bbLeInt(final int value) {
-    final ByteBuffer bb = allocateDirect(Integer.BYTES).order(ByteOrder.LITTLE_ENDIAN);
+  static ByteBuffer bbNativeInt(final int value) {
+    final ByteBuffer bb = allocateDirect(Integer.BYTES).order(ByteOrder.nativeOrder());
     bb.putInt(value).flip();
     return bb;
   }
 
-  static ByteBuffer bbLeLong(final long value) {
-    final ByteBuffer bb = allocateDirect(Long.BYTES).order(ByteOrder.LITTLE_ENDIAN);
+  static ByteBuffer bbNativeLong(final long value) {
+    final ByteBuffer bb = allocateDirect(Long.BYTES).order(ByteOrder.nativeOrder());
     bb.putLong(value).flip();
     return bb;
   }
