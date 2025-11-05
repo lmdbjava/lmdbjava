@@ -27,7 +27,9 @@ import static org.lmdbjava.DbiFlags.MDB_DUPSORT;
 import static org.lmdbjava.DirectBufferProxy.PROXY_DB;
 import static org.lmdbjava.Env.create;
 import static org.lmdbjava.GetOp.MDB_SET;
-import static org.lmdbjava.SeekOp.*;
+import static org.lmdbjava.SeekOp.MDB_FIRST;
+import static org.lmdbjava.SeekOp.MDB_LAST;
+import static org.lmdbjava.SeekOp.MDB_PREV;
 
 import java.nio.ByteBuffer;
 import java.nio.file.Path;

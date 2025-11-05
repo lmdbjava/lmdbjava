@@ -40,7 +40,11 @@ import java.util.Random;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.lmdbjava.Env.*;
+import org.lmdbjava.Env.AlreadyClosedException;
+import org.lmdbjava.Env.AlreadyOpenException;
+import org.lmdbjava.Env.Builder;
+import org.lmdbjava.Env.InvalidCopyDestination;
+import org.lmdbjava.Env.MapFullException;
 import org.lmdbjava.Txn.BadReaderLockException;
 
 /** Test {@link Env}. */
