@@ -611,18 +611,16 @@ public final class CursorIterableIntegerKeyTest {
               .withNativeComparator()
               .setDbiFlags(DBI_FLAGS)
               .open());
-      final Comparator<ByteBuffer> comparator = buildComparator();
-
       final DbiFactory callbackComparatorDb = new DbiFactory("callbackComparator", env ->
           env.buildDbi()
               .setDbName(DB_3)
-              .withCallbackComparator(comparator)
+              .withCallbackComparator(MyArgumentProvider::buildComparator)
               .setDbiFlags(DBI_FLAGS)
               .open());
       final DbiFactory iteratorComparatorDb = new DbiFactory("iteratorComparator", env ->
           env.buildDbi()
               .setDbName(DB_4)
-              .withIteratorComparator(comparator)
+              .withIteratorComparator(MyArgumentProvider::buildComparator)
               .setDbiFlags(DBI_FLAGS)
               .open());
       return Stream.of(
@@ -633,7 +631,7 @@ public final class CursorIterableIntegerKeyTest {
           .map(Arguments::of);
     }
 
-    private static Comparator<ByteBuffer> buildComparator() {
+    private static Comparator<ByteBuffer> buildComparator(final DbiFlagSet dbiFlagSet) {
       final Comparator<ByteBuffer> baseComparator = BUFFER_PROXY.getComparator(DBI_FLAGS);
       return (o1, o2) -> {
         if (o1.remaining() != o2.remaining()) {

@@ -49,8 +49,9 @@ public class DbiBuilder<T> {
    * <p>
    * The name will be converted into bytes using {@link StandardCharsets#UTF_8}.
    * </p>
+   *
    * @param name The name of the database or null for the unnamed database
-   *            (see also {@link DbiBuilder#withoutDbName()})
+   *             (see also {@link DbiBuilder#withoutDbName()})
    * @return The next builder stage.
    */
   public DbiBuilderStage2<T> setDbName(final String name) {
@@ -63,6 +64,7 @@ public class DbiBuilder<T> {
 
   /**
    * Create the {@link Dbi} with the passed name in byte[] form.
+   *
    * @param name The name of the database in byte form.
    * @return The next builder stage.
    */
@@ -83,6 +85,7 @@ public class DbiBuilder<T> {
    * <p>Note: The 'unnamed database' is used by LMDB to store the names of named databases, with
    * the database name being the key. Use of the unnamed database is intended for simple applications
    * with only one database.</p>
+   *
    * @return The next builder stage.
    */
   public DbiBuilderStage2<T> withoutDbName() {
@@ -102,7 +105,7 @@ public class DbiBuilder<T> {
 
     private final DbiBuilder<T> dbiBuilder;
 
-    private java.util.Comparator<T> customComparator;
+    private ComparatorFactory<T> comparatorFactory;
     private ComparatorType comparatorType;
 
     private DbiBuilderStage2(final DbiBuilder<T> dbiBuilder) {
@@ -130,7 +133,7 @@ public class DbiBuilder<T> {
      * If you do not intend to use {@link CursorIterable} then it doesn't matter whether
      * you choose {@link DbiBuilderStage2#withNativeComparator()},
      * {@link DbiBuilderStage2#withDefaultComparator()} or
-     * {@link DbiBuilderStage2#withIteratorComparator(Comparator)} as these comparators will
+     * {@link DbiBuilderStage2#withIteratorComparator(ComparatorFactory)} as these comparators will
      * never be used.
      * </p>
      *
@@ -157,7 +160,7 @@ public class DbiBuilder<T> {
      * If you do not intend to use {@link CursorIterable} then it doesn't matter whether
      * you choose {@link DbiBuilderStage2#withNativeComparator()},
      * {@link DbiBuilderStage2#withDefaultComparator()} or
-     * {@link DbiBuilderStage2#withIteratorComparator(Comparator)} as these comparators will
+     * {@link DbiBuilderStage2#withIteratorComparator(ComparatorFactory)} as these comparators will
      * never be used.
      * </p>
      *
@@ -186,11 +189,13 @@ public class DbiBuilder<T> {
      * are stored in the database.
      * </p>
      *
-     * @param comparator for all key comparison operations.
+     * @param comparatorFactory A factory to create a comparator. {@link ComparatorFactory#create(DbiFlagSet)}
+     *                          will be called once during the initialisation of the {@link Dbi}. It must
+     *                          not return null.
      * @return The next builder stage.
      */
-    public DbiBuilderStage3<T> withCallbackComparator(final Comparator<T> comparator) {
-      this.customComparator = Objects.requireNonNull(comparator);
+    public DbiBuilderStage3<T> withCallbackComparator(final ComparatorFactory<T> comparatorFactory) {
+      this.comparatorFactory = Objects.requireNonNull(comparatorFactory);
       this.comparatorType = ComparatorType.CALLBACK;
       return new DbiBuilderStage3<>(this);
     }
@@ -215,15 +220,17 @@ public class DbiBuilder<T> {
      * If you do not intend to use {@link CursorIterable} then it doesn't matter whether
      * you choose {@link DbiBuilderStage2#withNativeComparator()},
      * {@link DbiBuilderStage2#withDefaultComparator()} or
-     * {@link DbiBuilderStage2#withIteratorComparator(Comparator)} as these comparators will
+     * {@link DbiBuilderStage2#withIteratorComparator(ComparatorFactory)} as these comparators will
      * never be used.
      * </p>
      *
-     * @param comparator The comparator to use with {@link CursorIterable}.
+     * @param comparatorFactory The comparator to use with {@link CursorIterable}.
+     *                          {@link ComparatorFactory#create(DbiFlagSet)} will be called once during the
+     *                          initialisation of the {@link Dbi}. It must not return null.
      * @return The next builder stage.
      */
-    public DbiBuilderStage3<T> withIteratorComparator(final Comparator<T> comparator) {
-      this.customComparator = Objects.requireNonNull(comparator);
+    public DbiBuilderStage3<T> withIteratorComparator(final ComparatorFactory<T> comparatorFactory) {
+      this.comparatorFactory = Objects.requireNonNull(comparatorFactory);
       this.comparatorType = ComparatorType.ITERATOR;
       return new DbiBuilderStage3<>(this);
     }
@@ -267,8 +274,8 @@ public class DbiBuilder<T> {
       flagSetBuilder.clear();
       if (dbiFlags != null) {
         dbiFlags.stream()
-                .filter(Objects::nonNull)
-                .forEach(dbiFlags::add);
+            .filter(Objects::nonNull)
+            .forEach(dbiFlags::add);
       }
       return this;
     }
@@ -310,7 +317,7 @@ public class DbiBuilder<T> {
      * </p>
      *
      * @param dbiFlagSet to open the database with.
-     *                 A null value will just clear all set flags.
+     *                   A null value will just clear all set flags.
      */
     public DbiBuilderStage3<T> setDbiFlags(final DbiFlagSet dbiFlagSet) {
       flagSetBuilder.clear();
@@ -413,7 +420,9 @@ public class DbiBuilder<T> {
           break;
         case CALLBACK:
         case ITERATOR:
-          comparator = dbiBuilderStage2.customComparator;
+          comparator = Objects.requireNonNull(
+              dbiBuilderStage2.comparatorFactory.create(dbiFlagSet),
+              () -> "comparatorFactory returned null");
           break;
         case NATIVE:
           break;
@@ -464,5 +473,16 @@ public class DbiBuilder<T> {
      */
     ITERATOR,
     ;
+  }
+
+
+  // --------------------------------------------------------------------------------
+
+
+  @FunctionalInterface
+  public interface ComparatorFactory<T> {
+
+    Comparator<T> create(final DbiFlagSet dbiFlagSet);
+
   }
 }

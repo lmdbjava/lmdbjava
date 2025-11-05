@@ -83,7 +83,6 @@ public final class CursorIterableTest {
   private static final BufferProxy<ByteBuffer> BUFFER_PROXY = ByteBufferProxy.PROXY_OPTIMAL;
 
   private Path file;
-  private Dbi<ByteBuffer> db;
   private Env<ByteBuffer> env;
   private Deque<Integer> list;
 
@@ -309,7 +308,11 @@ public final class CursorIterableTest {
           bb2.reset();
           return guava.compare(array1, array2);
         };
-    final Dbi<ByteBuffer> guavaDbi = env.openDbi(DB_1, comparator, MDB_CREATE);
+    final Dbi<ByteBuffer> guavaDbi = env.buildDbi()
+        .setDbName(DB_1)
+        .withDefaultComparator()
+        .setDbiFlags(MDB_CREATE)
+        .open();
     populateDatabase(guavaDbi);
     verify(openClosedBackward(bb(7), bb(2)), guavaDbi, 6, 4, 2);
     verify(openClosedBackward(bb(8), bb(4)), guavaDbi, 6, 4);
@@ -548,13 +551,13 @@ public final class CursorIterableTest {
       final DbiFactory callbackComparatorDb = new DbiFactory("callbackComparator", env ->
           env.buildDbi()
               .setDbName(DB_3)
-              .withCallbackComparator(BUFFER_PROXY.getComparator(DBI_FLAGS))
+              .withCallbackComparator(BUFFER_PROXY::getComparator)
               .setDbiFlags(DBI_FLAGS)
               .open());
       final DbiFactory iteratorComparatorDb = new DbiFactory("iteratorComparator", env ->
           env.buildDbi()
               .setDbName(DB_4)
-              .withIteratorComparator(BUFFER_PROXY.getComparator(DBI_FLAGS))
+              .withIteratorComparator(BUFFER_PROXY::getComparator)
               .setDbiFlags(DBI_FLAGS)
               .open());
       return Stream.of(

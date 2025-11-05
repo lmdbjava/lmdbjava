@@ -30,13 +30,10 @@ import io.netty.buffer.ByteBuf;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Comparator;
-import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.Random;
 import java.util.stream.Stream;
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -98,13 +95,10 @@ public final class ComparatorIntegerKeyTest {
     assertThat(get(comparator.compare(Integer.MAX_VALUE, 0))).isEqualTo(GREATER_THAN);
   }
 
-  @Test
-  void testRandomLong() {
+  @ParameterizedTest
+  @MethodSource("comparatorProvider")
+  void testRandomLong(final ComparatorRunner runner) {
     final Random random = new Random(3239480);
-    final Map<String, ComparatorRunner> nameToRunnerMap = new LinkedHashMap<>();
-    nameToRunnerMap.put("DirectBufferRunner", new DirectBufferRunner());
-    nameToRunnerMap.put("ByteBufferRunner", new ByteBufferRunner());
-    nameToRunnerMap.put("NettyRunner", new NettyRunner());
 
     // 5mil random longs to compare
     final long[] values = random.longs()
@@ -115,40 +109,33 @@ public final class ComparatorIntegerKeyTest {
     for (int i = 1; i < values.length; i++) {
       final long long1 = values[i - 1];
       final long long2 = values[i];
-      for (Map.Entry<String, ComparatorRunner> entry : nameToRunnerMap.entrySet()) {
-        final String name = entry.getKey();
-        final ComparatorRunner runner = entry.getValue();
-        // Make sure the comparator under test gives the same outcome as just comparing two longs
-        final ComparatorTest.ComparatorResult result = get(runner.compare(long1, long2));
-        final ComparatorTest.ComparatorResult expectedResult = get(Long.compare(long1, long2));
+      // Make sure the comparator under test gives the same outcome as just comparing two longs
+      final ComparatorTest.ComparatorResult result = get(runner.compare(long1, long2));
+      final ComparatorTest.ComparatorResult expectedResult = get(Long.compare(long1, long2));
 
-        assertThat(result)
-            .withFailMessage(() -> "Compare mismatch for " + name + " - long1: " + long1
-                + ", long2: " + long2
-                + ", expected: " + expectedResult
-                + ", actual: " + result)
-            .isEqualTo(expectedResult);
+      assertThat(result)
+          .withFailMessage(() -> "Compare mismatch - long1: " + long1
+              + ", long2: " + long2
+              + ", expected: " + expectedResult
+              + ", actual: " + result)
+          .isEqualTo(expectedResult);
 
-        final ComparatorTest.ComparatorResult result2 = get(runner.compare(long2, long1));
-        final ComparatorTest.ComparatorResult expectedResult2 = expectedResult.opposite();
+      final ComparatorTest.ComparatorResult result2 = get(runner.compare(long2, long1));
+      final ComparatorTest.ComparatorResult expectedResult2 = expectedResult.opposite();
 
-        assertThat(result)
-            .withFailMessage(() -> "Compare mismatch for " + name + " - long2: " + long2
-                + ", long1: " + long1
-                + ", expected2: " + expectedResult2
-                + ", actual2: " + result2)
-            .isEqualTo(expectedResult);
-      }
+      assertThat(result)
+          .withFailMessage(() -> "Compare mismatch for - long2: " + long2
+              + ", long1: " + long1
+              + ", expected2: " + expectedResult2
+              + ", actual2: " + result2)
+          .isEqualTo(expectedResult);
     }
   }
 
-  @Test
-  void testRandomInt() {
+  @ParameterizedTest
+  @MethodSource("comparatorProvider")
+  void testRandomInt(final ComparatorRunner runner) {
     final Random random = new Random(3239480);
-    final Map<String, ComparatorRunner> nameToRunnerMap = new LinkedHashMap<>();
-    nameToRunnerMap.put("DirectBufferRunner", new DirectBufferRunner());
-    nameToRunnerMap.put("ByteBufferRunner", new ByteBufferRunner());
-    nameToRunnerMap.put("NettyRunner", new NettyRunner());
 
     // 5mil random ints to compare
     final int[] values = random.ints()
@@ -159,30 +146,26 @@ public final class ComparatorIntegerKeyTest {
     for (int i = 1; i < values.length; i++) {
       final int int1 = values[i - 1];
       final int int2 = values[i];
-      for (Map.Entry<String, ComparatorRunner> entry : nameToRunnerMap.entrySet()) {
-        final String name = entry.getKey();
-        final ComparatorRunner runner = entry.getValue();
-        // Make sure the comparator under test gives the same outcome as just comparing two ints
-        final ComparatorTest.ComparatorResult result = get(runner.compare(int1, int2));
-        final ComparatorTest.ComparatorResult expectedResult = get(Integer.compare(int1, int2));
+      // Make sure the comparator under test gives the same outcome as just comparing two ints
+      final ComparatorTest.ComparatorResult result = get(runner.compare(int1, int2));
+      final ComparatorTest.ComparatorResult expectedResult = get(Integer.compare(int1, int2));
 
-        assertThat(result)
-            .withFailMessage(() -> "Compare mismatch for " + name + " - int1: " + int1
-                + ", int2: " + int2
-                + ", expected: " + expectedResult
-                + ", actual: " + result)
-            .isEqualTo(expectedResult);
+      assertThat(result)
+          .withFailMessage(() -> "Compare mismatch for - int1: " + int1
+              + ", int2: " + int2
+              + ", expected: " + expectedResult
+              + ", actual: " + result)
+          .isEqualTo(expectedResult);
 
-        final ComparatorTest.ComparatorResult result2 = get(runner.compare(int2, int1));
-        final ComparatorTest.ComparatorResult expectedResult2 = expectedResult.opposite();
+      final ComparatorTest.ComparatorResult result2 = get(runner.compare(int2, int1));
+      final ComparatorTest.ComparatorResult expectedResult2 = expectedResult.opposite();
 
-        assertThat(result)
-            .withFailMessage(() -> "Compare mismatch for " + name + " - int2: " + int2
-                + ", int1: " + int1
-                + ", expected2: " + expectedResult2
-                + ", actual2: " + result2)
-            .isEqualTo(expectedResult);
-      }
+      assertThat(result)
+          .withFailMessage(() -> "Compare mismatch for - int2: " + int2
+              + ", int1: " + int1
+              + ", expected2: " + expectedResult2
+              + ", actual2: " + result2)
+          .isEqualTo(expectedResult);
     }
   }
 

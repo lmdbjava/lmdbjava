@@ -557,13 +557,13 @@ public final class CursorIterableIntegerDupTest {
       final DbiFactory callbackComparatorDb = new DbiFactory("callbackComparator", env ->
           env.buildDbi()
               .setDbName(DB_3)
-              .withCallbackComparator(buildComparator())
+              .withCallbackComparator(MyArgumentProvider::buildComparator)
               .setDbiFlags(DBI_FLAGS)
               .open());
       final DbiFactory iteratorComparatorDb = new DbiFactory("iteratorComparator", env ->
           env.buildDbi()
               .setDbName(DB_4)
-              .withIteratorComparator(buildComparator())
+              .withIteratorComparator(MyArgumentProvider::buildComparator)
               .setDbiFlags(DBI_FLAGS)
               .open());
       return Stream.of(
@@ -574,7 +574,7 @@ public final class CursorIterableIntegerDupTest {
           .map(Arguments::of);
     }
 
-    private static Comparator<ByteBuffer> buildComparator() {
+    private static Comparator<ByteBuffer> buildComparator(final DbiFlagSet dbiFlagSet) {
       final Comparator<ByteBuffer> baseComparator = BUFFER_PROXY.getComparator(DBI_FLAGS);
       return (o1, o2) -> {
         if (o1.remaining() != o2.remaining()) {

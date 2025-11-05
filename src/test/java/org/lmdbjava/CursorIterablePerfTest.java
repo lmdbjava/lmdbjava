@@ -79,7 +79,7 @@ public class CursorIterablePerfTest {
     // Use a java comparator for start/stop keys and as a callback comparator
     dbCallbackComparator = env.buildDbi()
         .setDbName("CallBackComparator")
-        .withCallbackComparator(bufferProxy.getComparator(dbiFlagSet))
+        .withCallbackComparator(bufferProxy::getComparator)
         .setDbiFlags(dbiFlagSet)
         .open();
 

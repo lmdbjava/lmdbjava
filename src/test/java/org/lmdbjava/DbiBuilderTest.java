@@ -133,7 +133,7 @@ public class DbiBuilderTest {
 
     final Dbi<ByteBuffer> dbi = env.buildDbi()
         .setDbName("foo")
-        .withCallbackComparator(comparator)
+        .withCallbackComparator(ignored -> comparator)
         .addDbiFlags(DbiFlags.MDB_CREATE)
         .open();
 
