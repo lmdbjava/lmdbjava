@@ -420,9 +420,8 @@ public class DbiBuilder<T> {
           break;
         case CALLBACK:
         case ITERATOR:
-          comparator = Objects.requireNonNull(
-              dbiBuilderStage2.comparatorFactory.create(dbiFlagSet),
-              () -> "comparatorFactory returned null");
+          comparator = dbiBuilderStage2.comparatorFactory.create(dbiFlagSet);
+          Objects.requireNonNull(comparator, "comparatorFactory returned null");
           break;
         case NATIVE:
           break;

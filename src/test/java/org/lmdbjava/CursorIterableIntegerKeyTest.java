@@ -234,18 +234,16 @@ public final class CursorIterableIntegerKeyTest {
       db.put(txn, bbNative(Long.MAX_VALUE), bb("val_" + ++val));
       txn.commit();
     }
-
-    try (Txn<ByteBuffer> txn = env.txnRead()) {
-      try (CursorIterable<ByteBuffer> iterable = db.iterate(txn)) {
-        for (KeyVal<ByteBuffer> keyVal : iterable) {
-          final String val = getString(keyVal.val());
-          final long key = getNativeLong(keyVal.key());
-          final int remaining = keyVal.key().remaining();
+//    try (Txn<ByteBuffer> txn = env.txnRead()) {
+//      try (CursorIterable<ByteBuffer> iterable = db.iterate(txn)) {
+//        for (KeyVal<ByteBuffer> keyVal : iterable) {
+//          final String val = getString(keyVal.val());
+//          final long key = getNativeLong(keyVal.key());
+//          final int remaining = keyVal.key().remaining();
 //          System.out.println("key: " + key + ", val: " + val + ", remaining: " + remaining);
-        }
-      }
-    }
-
+//        }
+//      }
+//    }
   }
 
   @Test

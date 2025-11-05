@@ -110,8 +110,6 @@ public final class Cursor<T> implements AutoCloseable {
   }
 
   /**
-   * @deprecated Instead use {@link Cursor#delete(PutFlagSet)}.
-   * <hr>
    * Delete current key/data pair.
    *
    * <p>This function deletes the key/data pair to which the cursor refers.

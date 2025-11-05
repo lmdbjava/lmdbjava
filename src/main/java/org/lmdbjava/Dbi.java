@@ -49,6 +49,8 @@ import org.lmdbjava.Library.MDB_stat;
  */
 public final class Dbi<T> {
 
+  @SuppressWarnings("FieldCanBeLocal") // Needs to be instance variable for FFI
+  private final ComparatorCallback callbackComparator;
   private boolean cleaned;
   // Used for CursorIterable KeyRange testing and/or native callbacks
   private final Comparator<T> comparator;
@@ -90,26 +92,24 @@ public final class Dbi<T> {
     final Pointer dbiPtr = allocateDirect(RUNTIME, ADDRESS);
     checkRc(LIB.mdb_dbi_open(txn.pointer(), name, this.dbiFlagSet.getMask(), dbiPtr));
     ptr = dbiPtr.getPointer(0);
-    ComparatorCallback callbackComparator;
     if (nativeCb) {
       // LMDB will call back to this comparator for insertion/iteration order
-      callbackComparator = createCallbackComparator(proxy);
+      this.callbackComparator = createCallbackComparator(proxy);
       LIB.mdb_set_compare(txn.pointer(), ptr, callbackComparator);
+    } else {
+      callbackComparator = null;
     }
   }
 
-  private ComparatorCallback createCallbackComparator(BufferProxy<T> proxy) {
-    ComparatorCallback callbackComparator;
-    callbackComparator =
-        (keyA, keyB) -> {
-          final T compKeyA = proxy.out(proxy.allocate(), keyA);
-          final T compKeyB = proxy.out(proxy.allocate(), keyB);
-          final int result = this.comparator.compare(compKeyA, compKeyB);
-          proxy.deallocate(compKeyA);
-          proxy.deallocate(compKeyB);
-          return result;
-        };
-    return callbackComparator;
+  private ComparatorCallback createCallbackComparator(final BufferProxy<T> proxy) {
+    return (keyA, keyB) -> {
+      final T compKeyA = proxy.out(proxy.allocate(), keyA);
+      final T compKeyB = proxy.out(proxy.allocate(), keyB);
+      final int result = this.comparator.compare(compKeyA, compKeyB);
+      proxy.deallocate(compKeyA);
+      proxy.deallocate(compKeyB);
+      return result;
+    };
   }
 
   Pointer pointer() {
