@@ -53,12 +53,12 @@ public class DbiBuilder<T> {
    *            (see also {@link DbiBuilder#withoutDbName()})
    * @return The next builder stage.
    */
-  public DbiBuilderStage2<T> withDbName(final String name) {
+  public DbiBuilderStage2<T> setDbName(final String name) {
     // Null name is allowed so no null check
     final byte[] nameBytes = name == null
         ? null
         : name.getBytes(Env.DEFAULT_NAME_CHARSET);
-    return withDbName(nameBytes);
+    return setDbName(nameBytes);
   }
 
   /**
@@ -66,7 +66,7 @@ public class DbiBuilder<T> {
    * @param name The name of the database in byte form.
    * @return The next builder stage.
    */
-  public DbiBuilderStage2<T> withDbName(final byte[] name) {
+  public DbiBuilderStage2<T> setDbName(final byte[] name) {
     // Null name is allowed so no null check
     this.name = name;
     return new DbiBuilderStage2<>(this);
@@ -78,7 +78,7 @@ public class DbiBuilder<T> {
    * </p>
    * <p>
    * Equivalent to passing null to
-   * {@link DbiBuilder#withDbName(String)} or {@link DbiBuilder#withDbName(byte[])}.
+   * {@link DbiBuilder#setDbName(String)} or {@link DbiBuilder#setDbName(byte[])}.
    * </p>
    * <p>Note: The 'unnamed database' is used by LMDB to store the names of named databases, with
    * the database name being the key. Use of the unnamed database is intended for simple applications
@@ -86,7 +86,7 @@ public class DbiBuilder<T> {
    * @return The next builder stage.
    */
   public DbiBuilderStage2<T> withoutDbName() {
-    return withDbName((byte[]) null);
+    return setDbName((byte[]) null);
   }
 
 
@@ -254,8 +254,8 @@ public class DbiBuilder<T> {
      * </p>
      * <p>
      * Clears all flags currently set by previous calls to
-     * {@link DbiBuilderStage3#withDbiFlags(Collection)},
-     * {@link DbiBuilderStage3#withDbiFlags(DbiFlags...)}
+     * {@link DbiBuilderStage3#setDbiFlags(Collection)},
+     * {@link DbiBuilderStage3#setDbiFlags(DbiFlags...)}
      * or {@link DbiBuilderStage3#addDbiFlag(DbiFlags)}.
      * </p>
      *
@@ -263,7 +263,7 @@ public class DbiBuilder<T> {
      *                 A null {@link Collection} will just clear all set flags.
      *                 Null items are ignored.
      */
-    public DbiBuilderStage3<T> withDbiFlags(final Collection<DbiFlags> dbiFlags) {
+    public DbiBuilderStage3<T> setDbiFlags(final Collection<DbiFlags> dbiFlags) {
       flagSetBuilder.clear();
       if (dbiFlags != null) {
         dbiFlags.stream()
@@ -279,8 +279,8 @@ public class DbiBuilder<T> {
      * </p>
      * <p>
      * Clears all flags currently set by previous calls to
-     * {@link DbiBuilderStage3#withDbiFlags(Collection)},
-     * {@link DbiBuilderStage3#withDbiFlags(DbiFlags...)}
+     * {@link DbiBuilderStage3#setDbiFlags(Collection)},
+     * {@link DbiBuilderStage3#setDbiFlags(DbiFlags...)}
      * or {@link DbiBuilderStage3#addDbiFlag(DbiFlags)}.
      * </p>
      *
@@ -288,7 +288,7 @@ public class DbiBuilder<T> {
      *                 A null array will just clear all set flags.
      *                 Null items are ignored.
      */
-    public DbiBuilderStage3<T> withDbiFlags(final DbiFlags... dbiFlags) {
+    public DbiBuilderStage3<T> setDbiFlags(final DbiFlags... dbiFlags) {
       flagSetBuilder.clear();
       if (dbiFlags != null) {
         Arrays.stream(dbiFlags)
@@ -304,15 +304,15 @@ public class DbiBuilder<T> {
      * </p>
      * <p>
      * Clears all flags currently set by previous calls to
-     * {@link DbiBuilderStage3#withDbiFlags(Collection)},
-     * {@link DbiBuilderStage3#withDbiFlags(DbiFlags...)}
+     * {@link DbiBuilderStage3#setDbiFlags(Collection)},
+     * {@link DbiBuilderStage3#setDbiFlags(DbiFlags...)}
      * or {@link DbiBuilderStage3#addDbiFlag(DbiFlags)}.
      * </p>
      *
      * @param dbiFlagSet to open the database with.
      *                 A null value will just clear all set flags.
      */
-    public DbiBuilderStage3<T> withDbiFlags(final DbiFlagSet dbiFlagSet) {
+    public DbiBuilderStage3<T> setDbiFlags(final DbiFlagSet dbiFlagSet) {
       flagSetBuilder.clear();
       if (dbiFlagSet != null) {
         this.flagSetBuilder.withFlags(dbiFlagSet.getFlags());
@@ -322,8 +322,8 @@ public class DbiBuilder<T> {
 
     /**
      * Adds a dbiFlag to those flags already added to this builder by
-     * {@link DbiBuilderStage3#withDbiFlags(DbiFlags...)},
-     * {@link DbiBuilderStage3#withDbiFlags(Collection)}
+     * {@link DbiBuilderStage3#setDbiFlags(DbiFlags...)},
+     * {@link DbiBuilderStage3#setDbiFlags(Collection)}
      * or {@link DbiBuilderStage3#addDbiFlag(DbiFlags)}.
      *
      * @param dbiFlag to add to any existing flags. A null value is a no-op.
@@ -336,8 +336,8 @@ public class DbiBuilder<T> {
 
     /**
      * Adds a dbiFlag to those flags already added to this builder by
-     * {@link DbiBuilderStage3#withDbiFlags(DbiFlags...)},
-     * {@link DbiBuilderStage3#withDbiFlags(Collection)}
+     * {@link DbiBuilderStage3#setDbiFlags(DbiFlags...)},
+     * {@link DbiBuilderStage3#setDbiFlags(Collection)}
      * or {@link DbiBuilderStage3#addDbiFlag(DbiFlags)}.
      *
      * @param dbiFlagSet to add to any existing flags. A null value is a no-op.
@@ -367,7 +367,7 @@ public class DbiBuilder<T> {
      *            else it needs to be a read/write {@link Txn}.
      * @return this builder instance.
      */
-    public DbiBuilderStage3<T> withTxn(final Txn<T> txn) {
+    public DbiBuilderStage3<T> setTxn(final Txn<T> txn) {
       this.txn = Objects.requireNonNull(txn);
       return this;
     }

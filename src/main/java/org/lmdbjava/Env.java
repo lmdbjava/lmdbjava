@@ -23,18 +23,20 @@ import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.EnvFlags.MDB_RDONLY_ENV;
 import static org.lmdbjava.Library.LIB;
 import static org.lmdbjava.Library.RUNTIME;
-import static org.lmdbjava.MaskedFlag.isSet;
-import static org.lmdbjava.MaskedFlag.mask;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
 
 import java.io.File;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import jnr.ffi.Pointer;
 import jnr.ffi.byref.IntByReference;
 import jnr.ffi.byref.PointerByReference;
@@ -102,6 +104,8 @@ public final class Env<T> implements AutoCloseable {
   }
 
   /**
+   * @deprecated Instead use {@link Env#create()} or {@link Env#create(BufferProxy)}
+   * <p>
    * Opens an environment with a single default database in 0664 mode using the {@link
    * ByteBufferProxy#PROXY_OPTIMAL}.
    *
@@ -110,6 +114,7 @@ public final class Env<T> implements AutoCloseable {
    * @param flags the flags for this new environment
    * @return env the environment (never null)
    */
+  @Deprecated
   public static Env<ByteBuffer> open(final File path, final int size, final EnvFlags... flags) {
     return new Builder<>(PROXY_OPTIMAL)
         .setMapSize(size * 1_024L * 1_024L)
@@ -500,18 +505,6 @@ public final class Env<T> implements AutoCloseable {
    * Obtain a transaction with the requested parent and flags.
    *
    * @param parent parent transaction (may be null if no parent)
-   * @param flag   applicable flag (eg for a reusable, read-only transaction)
-   * @return a transaction (never null)
-   */
-  public Txn<T> txn(final Txn<T> parent, final TxnFlags flag) {
-    checkNotClosed();
-    return new Txn<>(this, parent, proxy, flag);
-  }
-
-  /**
-   * Obtain a transaction with the requested parent and flags.
-   *
-   * @param parent parent transaction (may be null if no parent)
    * @param flags  applicable flags (e.g. for a reusable, read-only transaction).
    *               If the set of flags is used frequently it is recommended to hold
    *               a static instance of the {@link TxnFlagSet} for re-use.
@@ -616,6 +609,10 @@ public final class Env<T> implements AutoCloseable {
     }
   }
 
+
+  // --------------------------------------------------------------------------------
+
+
   /**
    * Builder for configuring and opening Env.
    *
@@ -629,6 +626,8 @@ public final class Env<T> implements AutoCloseable {
     private int maxReaders = MAX_READERS_DEFAULT;
     private boolean opened;
     private final BufferProxy<T> proxy;
+    private int mode = 0664;
+    private AbstractFlagSet.Builder<EnvFlags, EnvFlagSet> flagSetBuilder = EnvFlagSet.builder();
 
     Builder(final BufferProxy<T> proxy) {
       requireNonNull(proxy);
@@ -642,10 +641,49 @@ public final class Env<T> implements AutoCloseable {
      * @param mode  Unix permissions to set on created files and semaphores
      * @param flags the flags for this new environment
      * @return an environment ready for use
+     * @deprecated Instead use {@link Builder#open(Path)}, {@link Builder#setFilePermissions(int)}
+     * and {@link Builder#setEnvFlags(EnvFlags...)}.
      */
+    @Deprecated
     public Env<T> open(final File path, final int mode, final EnvFlags... flags) {
-      // TODO Use EnvFlagSet and deprecate
-      // TODO Make setUnixPermissions(int) method on builder.
+      setFilePermissions(mode);
+      setEnvFlags(flags);
+      return open(requireNonNull(path).toPath());
+    }
+
+    /**
+     * Opens the environment.
+     *
+     * @param path file system destination
+     * @return an environment ready for use
+     * @deprecated Instead use {@link Builder#open(Path)}
+     */
+    @Deprecated
+    public Env<T> open(final File path) {
+      return open(requireNonNull(path).toPath());
+    }
+
+    /**
+     * Opens the environment with 0664 mode.
+     *
+     * @param path  file system destination
+     * @param flags the flags for this new environment
+     * @return an environment ready for use
+     * @deprecated Instead use {@link Builder#open(Path)} and {@link Builder#setEnvFlags(EnvFlags...)}.
+     */
+    @Deprecated
+    public Env<T> open(final File path, final EnvFlags... flags) {
+      setEnvFlags(flags);
+      return open(requireNonNull(path).toPath());
+    }
+
+    /**
+     * Opens the environment.
+     *
+     * @param path file system destination
+     * @return an environment ready for use
+     */
+    public Env<T> open(final Path path) {
       requireNonNull(path);
       if (opened) {
         throw new AlreadyOpenException();
@@ -658,10 +696,10 @@ public final class Env<T> implements AutoCloseable {
         checkRc(LIB.mdb_env_set_mapsize(ptr, mapSize));
         checkRc(LIB.mdb_env_set_maxdbs(ptr, maxDbs));
         checkRc(LIB.mdb_env_set_maxreaders(ptr, maxReaders));
-        final int flagsMask = mask(flags);
-        final boolean readOnly = isSet(flagsMask, MDB_RDONLY_ENV);
-        final boolean noSubDir = isSet(flagsMask, MDB_NOSUBDIR);
-        checkRc(LIB.mdb_env_open(ptr, path.getAbsolutePath(), flagsMask, mode));
+        final EnvFlagSet flags = flagSetBuilder.build();
+        final boolean readOnly = flags.isSet(MDB_RDONLY_ENV);
+        final boolean noSubDir = flags.isSet(MDB_NOSUBDIR);
+        checkRc(LIB.mdb_env_open(ptr, path.toAbsolutePath().toString(), flags.getMask(), mode));
         return new Env<>(proxy, ptr, readOnly, noSubDir);
       } catch (final LmdbNativeException e) {
         LIB.mdb_env_close(ptr);
@@ -670,19 +708,7 @@ public final class Env<T> implements AutoCloseable {
     }
 
     /**
-     * Opens the environment with 0664 mode.
-     *
-     * @param path  file system destination
-     * @param flags the flags for this new environment
-     * @return an environment ready for use
-     */
-    public Env<T> open(final File path, final EnvFlags... flags) {
-      // TODO make constant
-      return open(path, 0664, flags);
-    }
-
-    /**
-     * Sets the map size.
+     * Sets the map size in bytes.
      *
      * @param mapSize new limit in bytes
      * @return the builder
@@ -723,6 +749,99 @@ public final class Env<T> implements AutoCloseable {
         throw new AlreadyOpenException();
       }
       this.maxReaders = readers;
+      return this;
+    }
+
+    /**
+     * Sets the Unix file permissions to use on created files and semaphores, e.g. {@code 0664}.
+     * If this method is not called, the default of {@code 0664} will be used.
+     *
+     * @param mode Unix permissions to set on created files and semaphores
+     * @return the builder
+     */
+    public Builder<T> setFilePermissions(final int mode) {
+      if (opened) {
+        throw new AlreadyOpenException();
+      }
+      this.mode = mode;
+      return this;
+    }
+
+    /**
+     * Sets all the flags used to open this {@link Env}.
+     *
+     * @param envFlags The flags to use.
+     *                 Clears any existing flags.
+     *                 A null value results in no flags being set.
+     * @return this builder instance.
+     */
+    public Builder<T> setEnvFlags(final Collection<EnvFlags> envFlags) {
+      flagSetBuilder.clear();
+      if (envFlags != null) {
+        envFlags.stream()
+            .filter(Objects::nonNull)
+            .forEach(envFlags::add);
+      }
+      return this;
+    }
+
+    /**
+     * Sets all the flags used to open this {@link Env}.
+     *
+     * @param envFlags The flags to use.
+     *                 Clears any existing flags.
+     *                 A null value results in no flags being set.
+     * @return this builder instance.
+     */
+    public Builder<T> setEnvFlags(final EnvFlags... envFlags) {
+      flagSetBuilder.clear();
+      if (envFlags != null) {
+        Arrays.stream(envFlags)
+            .filter(Objects::nonNull)
+            .forEach(this.flagSetBuilder::setFlag);
+      }
+      return this;
+    }
+
+    /**
+     * Sets all the flags used to open this {@link Env}.
+     *
+     * @param envFlagSet The flags to use.
+     *                   Clears any existing flags.
+     *                   A null value results in no flags being set.
+     * @return this builder instance.
+     */
+    public Builder<T> setEnvFlags(final EnvFlagSet envFlagSet) {
+      flagSetBuilder.clear();
+      if (envFlagSet != null) {
+        this.flagSetBuilder.withFlags(envFlagSet.getFlags());
+      }
+      return this;
+    }
+
+    /**
+     * Adds a single {@link EnvFlags} to any existing flags.
+     *
+     * @param dbiFlag The flag to add to any existing flags.
+     *                A null value is a no-op.
+     * @return this builder instance.
+     */
+    public Builder<T> addEnvFlag(final EnvFlags dbiFlag) {
+      this.flagSetBuilder.setFlag(dbiFlag);
+      return this;
+    }
+
+    /**
+     * Adds a set of {@link EnvFlags} to any existing flags.
+     *
+     * @param dbiFlagSet The set of flags to add to any existing flags.
+     *                   A null value is a no-op.
+     * @return this builder instance.
+     */
+    public Builder<T> addEnvFlags(final EnvFlagSet dbiFlagSet) {
+      if (dbiFlagSet != null) {
+        flagSetBuilder.setFlags(dbiFlagSet.getFlags());
+      }
       return this;
     }
   }

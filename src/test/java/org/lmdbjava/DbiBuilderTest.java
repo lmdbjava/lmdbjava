@@ -20,11 +20,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.lmdbjava.Env.create;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.TestUtils.bb;
+import static org.lmdbjava.TestUtils.getString;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,18 +39,20 @@ public class DbiBuilderTest {
   private Env<ByteBuffer> env;
 
   @BeforeEach
-  public void before() throws IOException {
+  public void before() {
     file = FileUtil.createTempFile();
     env = create()
         .setMapSize(MEBIBYTES.toBytes(64))
         .setMaxReaders(2)
         .setMaxDbs(2)
-        .open(file.toFile(), MDB_NOSUBDIR);
+        .setEnvFlags(MDB_NOSUBDIR)
+        .open(file);
   }
 
   @AfterEach
   public void after() {
     env.close();
+    FileUtil.delete(file);
   }
 
   @Test
@@ -54,7 +60,7 @@ public class DbiBuilderTest {
     final Dbi<ByteBuffer> dbi = env.buildDbi()
         .withoutDbName()
         .withDefaultComparator()
-        .withDbiFlags(DbiFlags.MDB_CREATE)
+        .setDbiFlags(DbiFlags.MDB_CREATE)
         .open();
     assertThat(dbi.getName()).isNull();
     assertThat(dbi.getNameAsString()).isEmpty();
@@ -65,15 +71,120 @@ public class DbiBuilderTest {
   @Test
   public void named() {
     final Dbi<ByteBuffer> dbi = env.buildDbi()
-        .withDbName("foo")
+        .setDbName("foo")
         .withDefaultComparator()
-        .withDbiFlags(DbiFlags.MDB_CREATE)
+        .setDbiFlags(DbiFlags.MDB_CREATE)
         .open();
 
     assertPutAndGet(dbi);
 
     assertThat(env.getDbiNames()).hasSize(1);
-    assertThat(new String(env.getDbiNames().get(0), StandardCharsets.UTF_8)).isEqualTo("foo");
+    assertThat(new String(env.getDbiNames().get(0), StandardCharsets.UTF_8))
+        .isEqualTo("foo");
+    assertThat(dbi.getNameAsString())
+        .isEqualTo("foo");
+    assertThat(dbi.getNameAsString(StandardCharsets.UTF_8))
+        .isEqualTo("foo");
+  }
+
+  @Test
+  public void named2() {
+    final Dbi<ByteBuffer> dbi = env.buildDbi()
+        .setDbName("foo".getBytes(StandardCharsets.US_ASCII))
+        .withDefaultComparator()
+        .setDbiFlags(DbiFlags.MDB_CREATE)
+        .open();
+
+    assertPutAndGet(dbi);
+
+    assertThat(env.getDbiNames()).hasSize(1);
+    assertThat(new String(env.getDbiNames().get(0), StandardCharsets.US_ASCII))
+        .isEqualTo("foo");
+    assertThat(dbi.getNameAsString())
+        .isEqualTo("foo");
+    assertThat(dbi.getNameAsString(StandardCharsets.US_ASCII))
+        .isEqualTo("foo");
+  }
+
+  @Test
+  public void nativeComparator() {
+    final Dbi<ByteBuffer> dbi = env.buildDbi()
+        .setDbName("foo")
+        .withNativeComparator()
+        .addDbiFlags(DbiFlags.MDB_CREATE)
+        .open();
+
+    assertPutAndGet(dbi);
+    assertThat(env.getDbiNames()).hasSize(1);
+  }
+
+  @Test
+  public void callback() {
+    final Comparator<ByteBuffer> proxyOptimal = ByteBufferProxy.PROXY_OPTIMAL.getComparator();
+    // Compare on key length, falling back to default
+    final Comparator<ByteBuffer> comparator = (o1, o2) -> {
+      final int res = Integer.compare(o1.remaining(), o2.remaining());
+      if (res == 0) {
+        return proxyOptimal.compare(o1, o2);
+      } else {
+        return res;
+      }
+    };
+
+    final Dbi<ByteBuffer> dbi = env.buildDbi()
+        .setDbName("foo")
+        .withCallbackComparator(comparator)
+        .addDbiFlags(DbiFlags.MDB_CREATE)
+        .open();
+
+    TestUtils.doWithWriteTxn(env, txn -> {
+      dbi.put(txn, bb("fox"), bb("val_1"));
+      dbi.put(txn, bb("rabbit"), bb("val_2"));
+      dbi.put(txn, bb("deer"), bb("val_3"));
+      dbi.put(txn, bb("badger"), bb("val_4"));
+      txn.commit();
+    });
+
+    final List<String> keys = new ArrayList<>();
+    TestUtils.doWithReadTxn(env, txn -> {
+      try (CursorIterable<ByteBuffer> cursorIterable = dbi.iterate(txn)) {
+        final Iterator<CursorIterable.KeyVal<ByteBuffer>> iterator = cursorIterable.iterator();
+        iterator.forEachRemaining(keyVal -> {
+          keys.add(getString(keyVal.key()));
+        });
+      }
+    });
+    assertThat(keys).containsExactly(
+        "fox",
+        "deer",
+        "badger",
+        "rabbit");
+  }
+
+  @Test
+  public void flags() {
+    final Dbi<ByteBuffer> dbi = env.buildDbi()
+        .setDbName("foo")
+        .withDefaultComparator()
+        .setDbiFlags(DbiFlags.MDB_DUPSORT, DbiFlags.MDB_DUPFIXED) // Will get overwritten
+        .setDbiFlags() // clear them
+        .addDbiFlags(DbiFlags.MDB_CREATE) // Not a dbi flag as far as lmdb is concerned.
+        .addDbiFlags(DbiFlags.MDB_INTEGERKEY)
+        .addDbiFlags(DbiFlags.MDB_REVERSEKEY)
+        .open();
+
+    assertPutAndGet(dbi);
+
+    assertThat(env.getDbiNames()).hasSize(1);
+    assertThat(new String(env.getDbiNames().get(0), StandardCharsets.UTF_8))
+        .isEqualTo("foo");
+
+    TestUtils.doWithReadTxn(env, readTxn -> {
+      assertThat(dbi.listFlags(readTxn))
+          .containsExactlyInAnyOrder(
+              DbiFlags.MDB_INTEGERKEY,
+              DbiFlags.MDB_REVERSEKEY);
+    });
   }
 
   private void assertPutAndGet(Dbi<ByteBuffer> dbi) {

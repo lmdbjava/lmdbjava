@@ -60,6 +60,7 @@ public final class ByteBufferProxy {
    */
   public static final BufferProxy<ByteBuffer> PROXY_SAFE;
 
+  private static final ByteOrder NATIVE_ORDER = ByteOrder.nativeOrder();
 
   static {
     PROXY_SAFE = new ReflectiveProxy();
@@ -172,8 +173,8 @@ public final class ByteBufferProxy {
             + ". Lengths must be identical and either 4 or 8 bytes.");
       }
       // Keys for MDB_INTEGER_KEY are written in native order so ensure we read them in that order
-      o1.order(ByteOrder.nativeOrder());
-      o2.order(ByteOrder.nativeOrder());
+      o1.order(NATIVE_ORDER);
+      o2.order(NATIVE_ORDER);
       // TODO it might be worth the DbiBuilder having a method to capture fixedKeyLength() or -1
       //  for variable length keys. This can be passed to getComparator(..) so it can return a
       //  comparator that doesn't need to test the length every time. There may be other benefits

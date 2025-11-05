@@ -191,11 +191,11 @@ public final class CursorIterableIntegerDupTest {
     try (Txn<ByteBuffer> txn = env.txnRead();
          CursorIterable<ByteBuffer> c = dbi.iterate(txn)) {
 
-      for (final KeyVal<ByteBuffer> kv : c) {
-        System.out.print(getNativeInt(kv.key()) + " => " + kv.val().getInt());
-        System.out.print(", ");
-      }
-      System.out.println();
+//      for (final KeyVal<ByteBuffer> kv : c) {
+//        System.out.print(getNativeInt(kv.key()) + " => " + kv.val().getInt());
+//        System.out.print(", ");
+//      }
+//      System.out.println();
     }
   }
 
@@ -480,14 +480,14 @@ public final class CursorIterableIntegerDupTest {
         .collect(Collectors.toList());
 
     final List<Integer> results = new ArrayList<>();
-    System.out.println(rangeToString(range) + ", expected: " + expectedValues);
+//    System.out.println(rangeToString(range) + ", expected: " + expectedValues);
 
     try (Txn<ByteBuffer> txn = env.txnRead();
          CursorIterable<ByteBuffer> c = dbi.iterate(txn, range)) {
       for (final KeyVal<ByteBuffer> kv : c) {
         final int key = getNativeInt(kv.key());
         final int val = kv.val().getInt();
-        System.out.println(key + " => " + val);
+//        System.out.println(key + " => " + val);
         results.add(val);
         assertThat(val).satisfiesAnyOf(
             v -> assertThat(v).isEqualTo((key * 10) + 1),
@@ -544,27 +544,27 @@ public final class CursorIterableIntegerDupTest {
                                                         ExtensionContext context) throws Exception {
       final DbiFactory defaultComparatorDb = new DbiFactory("defaultComparator", env ->
           env.buildDbi()
-              .withDbName(DB_1)
+              .setDbName(DB_1)
               .withDefaultComparator()
-              .withDbiFlags(DBI_FLAGS)
+              .setDbiFlags(DBI_FLAGS)
               .open());
       final DbiFactory nativeComparatorDb = new DbiFactory("nativeComparator", env ->
           env.buildDbi()
-              .withDbName(DB_2)
+              .setDbName(DB_2)
               .withNativeComparator()
-              .withDbiFlags(DBI_FLAGS)
+              .setDbiFlags(DBI_FLAGS)
               .open());
       final DbiFactory callbackComparatorDb = new DbiFactory("callbackComparator", env ->
           env.buildDbi()
-              .withDbName(DB_3)
+              .setDbName(DB_3)
               .withCallbackComparator(buildComparator())
-              .withDbiFlags(DBI_FLAGS)
+              .setDbiFlags(DBI_FLAGS)
               .open());
       final DbiFactory iteratorComparatorDb = new DbiFactory("iteratorComparator", env ->
           env.buildDbi()
-              .withDbName(DB_4)
+              .setDbName(DB_4)
               .withIteratorComparator(buildComparator())
-              .withDbiFlags(DBI_FLAGS)
+              .setDbiFlags(DBI_FLAGS)
               .open());
       return Stream.of(
               defaultComparatorDb,

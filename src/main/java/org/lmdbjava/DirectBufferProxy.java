@@ -22,6 +22,7 @@ import static java.util.Objects.requireNonNull;
 import static org.lmdbjava.UnsafeAccess.UNSAFE;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.ArrayDeque;
 import java.util.Comparator;
 import jnr.ffi.Pointer;
@@ -49,6 +50,8 @@ public final class DirectBufferProxy extends BufferProxy<DirectBuffer> {
    */
   private static final ThreadLocal<ArrayDeque<DirectBuffer>> BUFFERS =
       withInitial(() -> new ArrayDeque<>(16));
+
+  private static final ByteOrder NATIVE_ORDER = ByteOrder.nativeOrder();
 
   private DirectBufferProxy() {}
 
@@ -110,16 +113,19 @@ public final class DirectBufferProxy extends BufferProxy<DirectBuffer> {
           + ". Lengths must be identical and either 4 or 8 bytes.");
     }
     if (len1 == 8) {
-      final long lw = o1.getLong(0, BIG_ENDIAN);
-      final long rw = o2.getLong(0, BIG_ENDIAN);
+      final long lw = o1.getLong(0, NATIVE_ORDER);
+      final long rw = o2.getLong(0, NATIVE_ORDER);
       return Long.compareUnsigned(lw, rw);
     } else if (len1 == 4) {
-      final int lw = o1.getInt(0, BIG_ENDIAN);
-      final int rw = o2.getInt(0, BIG_ENDIAN);
+      final int lw = o1.getInt(0, NATIVE_ORDER);
+      final int rw = o2.getInt(0, NATIVE_ORDER);
       return Integer.compareUnsigned(lw, rw);
     } else {
-      throw new RuntimeException("Unexpected length len1: " + len1 + ", len2: " + len2
-          + ". Lengths must be identical and either 4 or 8 bytes.");
+      // size_t and int are likely to be 8bytes and 4bytes respectively on 64bit.
+      // If 32bit then would be 4/2 respectively.
+      // Short.compareUnsigned is not available in Java8.
+      // For now just fall back to our standard comparator
+      return compareLexicographically(o1, o2);
     }
   }
 

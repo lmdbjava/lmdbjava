@@ -259,6 +259,16 @@ public final class ComparatorTest {
       }
       return comparatorResult < 0 ? LESS_THAN : GREATER_THAN;
     }
+
+    ComparatorResult opposite() {
+      if (this == LESS_THAN) {
+        return GREATER_THAN;
+      } else if (this == GREATER_THAN) {
+        return LESS_THAN;
+      } else {
+        return EQUAL_TO;
+      }
+    }
   }
 
   /** Interface that can test a {@link BufferProxy} <code>compare</code> method. */

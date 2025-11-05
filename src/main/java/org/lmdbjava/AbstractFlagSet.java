@@ -26,8 +26,6 @@ import java.util.function.Supplier;
 
 /**
  * Encapsulates an immutable set of flags and the associated bit mask for the flags in the set.
- *
- * @param <T>
  */
 public abstract class AbstractFlagSet<T extends Enum<T> & MaskedFlag> implements FlagSet<T> {
 

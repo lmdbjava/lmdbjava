@@ -65,22 +65,22 @@ public class CursorIterablePerfTest {
     final DbiFlagSet dbiFlagSet = MDB_CREATE;
     // Use a java comparator for start/stop keys only
     dbJavaComparator = env.buildDbi()
-        .withDbName("JavaComparator")
+        .setDbName("JavaComparator")
         .withDefaultComparator()
-        .withDbiFlags(dbiFlagSet)
+        .setDbiFlags(dbiFlagSet)
         .open();
     // Use LMDB comparator for start/stop keys
     dbLmdbComparator = env.buildDbi()
-        .withDbName("LmdbComparator")
+        .setDbName("LmdbComparator")
         .withNativeComparator()
-        .withDbiFlags(dbiFlagSet)
+        .setDbiFlags(dbiFlagSet)
         .open();
 
     // Use a java comparator for start/stop keys and as a callback comparator
     dbCallbackComparator = env.buildDbi()
-        .withDbName("CallBackComparator")
+        .setDbName("CallBackComparator")
         .withCallbackComparator(bufferProxy.getComparator(dbiFlagSet))
-        .withDbiFlags(dbiFlagSet)
+        .setDbiFlags(dbiFlagSet)
         .open();
 
     dbs.add(dbJavaComparator);

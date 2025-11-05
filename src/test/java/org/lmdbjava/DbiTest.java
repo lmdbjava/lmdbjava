@@ -110,7 +110,7 @@ public final class DbiTest {
     assertThatThrownBy(
             () -> {
               final Dbi<ByteBuffer> db = env.buildDbi()
-                  .withDbName(DB_1)
+                  .setDbName(DB_1)
                   .withDefaultComparator()
                   .addDbiFlag(MDB_CREATE)
                   .open();

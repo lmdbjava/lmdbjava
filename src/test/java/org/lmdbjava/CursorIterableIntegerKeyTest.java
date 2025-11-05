@@ -20,7 +20,6 @@ import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import static org.lmdbjava.DbiFlags.MDB_INTEGERKEY;
-import static org.lmdbjava.Env.create;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.KeyRange.all;
 import static org.lmdbjava.KeyRange.allBackward;
@@ -45,7 +44,6 @@ import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.DB_2;
 import static org.lmdbjava.TestUtils.DB_3;
 import static org.lmdbjava.TestUtils.DB_4;
-import static org.lmdbjava.TestUtils.POSIX_MODE;
 import static org.lmdbjava.TestUtils.bb;
 import static org.lmdbjava.TestUtils.bbNative;
 import static org.lmdbjava.TestUtils.getNativeInt;
@@ -101,16 +99,16 @@ public final class CursorIterableIntegerKeyTest {
   @Parameter
   public DbiFactory dbiFactory;
 
-
   @BeforeEach
   public void before() throws IOException {
     file = FileUtil.createTempFile();
     final BufferProxy<ByteBuffer> bufferProxy = ByteBufferProxy.PROXY_OPTIMAL;
-    env = create(bufferProxy)
+    env = Env.create(bufferProxy)
         .setMapSize(KIBIBYTES.toBytes(256))
         .setMaxReaders(1)
         .setMaxDbs(3)
-        .open(file.toFile(), POSIX_MODE, MDB_NOSUBDIR);
+        .setEnvFlags(MDB_NOSUBDIR)
+        .open(file);
 
     populateTestDataList();
   }
@@ -129,7 +127,7 @@ public final class CursorIterableIntegerKeyTest {
       final Cursor<ByteBuffer> c = dbi.openCursor(txn);
       long i = 1;
       while (true) {
-        System.out.println("putting " + i);
+//        System.out.println("putting " + i);
         c.put(bbNative(i), bb(i + "-long"));
         final long i2 = i * 10;
         if (i2 < i) {
@@ -176,7 +174,7 @@ public final class CursorIterableIntegerKeyTest {
       final Cursor<ByteBuffer> c = dbi.openCursor(txn);
       int i = 1;
       while (true) {
-        System.out.println("putting " + i);
+//        System.out.println("putting " + i);
         c.put(bbNative(i), bb(i + "-int"));
         final int i2 = i * 10;
         if (i2 < i) {
@@ -221,7 +219,7 @@ public final class CursorIterableIntegerKeyTest {
     long maxIntAsLong = Integer.MAX_VALUE;
 
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
-      System.out.println("Flags: " + db.listFlags(txn));
+//      System.out.println("Flags: " + db.listFlags(txn));
       int val = 0;
       db.put(txn, bbNative(0L), bb("val_" + ++val));
       db.put(txn, bbNative(10L), bb("val_" + ++val));
@@ -243,7 +241,7 @@ public final class CursorIterableIntegerKeyTest {
           final String val = getString(keyVal.val());
           final long key = getNativeLong(keyVal.key());
           final int remaining = keyVal.key().remaining();
-          System.out.println("key: " + key + ", val: " + val + ", remaining: " + remaining);
+//          System.out.println("key: " + key + ", val: " + val + ", remaining: " + remaining);
         }
       }
     }
@@ -603,29 +601,29 @@ public final class CursorIterableIntegerKeyTest {
                                                         ExtensionContext context) throws Exception {
       final DbiFactory defaultComparatorDb = new DbiFactory("defaultComparator", env ->
           env.buildDbi()
-              .withDbName(DB_1)
+              .setDbName(DB_1)
               .withDefaultComparator()
-              .withDbiFlags(DBI_FLAGS)
+              .setDbiFlags(DBI_FLAGS)
               .open());
       final DbiFactory nativeComparatorDb = new DbiFactory("nativeComparator", env ->
           env.buildDbi()
-              .withDbName(DB_2)
+              .setDbName(DB_2)
               .withNativeComparator()
-              .withDbiFlags(DBI_FLAGS)
+              .setDbiFlags(DBI_FLAGS)
               .open());
       final Comparator<ByteBuffer> comparator = buildComparator();
 
       final DbiFactory callbackComparatorDb = new DbiFactory("callbackComparator", env ->
           env.buildDbi()
-              .withDbName(DB_3)
+              .setDbName(DB_3)
               .withCallbackComparator(comparator)
-              .withDbiFlags(DBI_FLAGS)
+              .setDbiFlags(DBI_FLAGS)
               .open());
       final DbiFactory iteratorComparatorDb = new DbiFactory("iteratorComparator", env ->
           env.buildDbi()
-              .withDbName(DB_4)
+              .setDbName(DB_4)
               .withIteratorComparator(comparator)
-              .withDbiFlags(DBI_FLAGS)
+              .setDbiFlags(DBI_FLAGS)
               .open());
       return Stream.of(
               defaultComparatorDb,

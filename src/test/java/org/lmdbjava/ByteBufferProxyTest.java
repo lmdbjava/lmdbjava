@@ -39,7 +39,6 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -65,8 +64,14 @@ public final class ByteBufferProxyTest {
         () -> {
           FileUtil.useTempDir(
               dir -> {
-                try (Env<ByteBuffer> env = create().setMaxReaders(1).open(dir.toFile())) {
-                  final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
+                try (Env<ByteBuffer> env = create()
+                    .setMaxReaders(1)
+                    .open(dir)) {
+                  final Dbi<ByteBuffer> db = env.buildDbi()
+                      .setDbName(DB_1)
+                      .withDefaultComparator()
+                      .setDbiFlags(MDB_CREATE)
+                      .open();
                   final ByteBuffer key = allocate(100);
                   key.putInt(1).flip();
                   final ByteBuffer val = allocate(100);
@@ -201,9 +206,9 @@ public final class ByteBufferProxyTest {
         .filter(i -> i >= 0)
         .limit(5_000_000)
         .toArray();
-    System.out.println("stats: " + Arrays.stream(values)
-        .summaryStatistics()
-        .toString());
+//    System.out.println("stats: " + Arrays.stream(values)
+//        .summaryStatistics()
+//        .toString());
 
     final LinkedHashMap<String, Comparator<ByteBuffer>> comparators = new LinkedHashMap<>();
     comparators.put("compareAsIntegerKeys", ByteBufferProxy.AbstractByteBufferProxy::compareAsIntegerKeys);

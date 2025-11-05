@@ -25,6 +25,9 @@ import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
+import java.util.Objects;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
@@ -132,5 +135,37 @@ final class TestUtils {
     final ByteBuf b = DEFAULT.directBuffer(BYTES);
     b.writeInt(value);
     return b;
+  }
+
+  static <T> void doWithReadTxn(final Env<T> env, final Consumer<Txn<T>> work) {
+    Objects.requireNonNull(env);
+    Objects.requireNonNull(work);
+    try (Txn<T> readTxn = env.txnRead()) {
+      work.accept(readTxn);
+    }
+  }
+
+  static <T, R> R getWithReadTxn(final Env<T> env, final Function<Txn<T>, R> work) {
+    Objects.requireNonNull(env);
+    Objects.requireNonNull(work);
+    try (Txn<T> readTxn = env.txnRead()) {
+      return work.apply(readTxn);
+    }
+  }
+
+  static <T> void doWithWriteTxn(final Env<T> env, final Consumer<Txn<T>> work) {
+    Objects.requireNonNull(env);
+    Objects.requireNonNull(work);
+    try (Txn<T> readTxn = env.txnWrite()) {
+      work.accept(readTxn);
+    }
+  }
+
+  static <T, R> R getWithWriteTxn(final Env<T> env, final Function<Txn<T>, R> work) {
+    Objects.requireNonNull(env);
+    Objects.requireNonNull(work);
+    try (Txn<T> readTxn = env.txnWrite()) {
+      return work.apply(readTxn);
+    }
   }
 }

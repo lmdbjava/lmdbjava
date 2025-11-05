@@ -46,7 +46,6 @@ import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.DB_2;
 import static org.lmdbjava.TestUtils.DB_3;
 import static org.lmdbjava.TestUtils.DB_4;
-import static org.lmdbjava.TestUtils.POSIX_MODE;
 import static org.lmdbjava.TestUtils.bb;
 
 import com.google.common.primitives.UnsignedBytes;
@@ -95,42 +94,6 @@ public final class CursorIterableTest {
   @Parameter
   public DbiFactory dbiFactory;
 
-//  ArgumentsSource
-
-//  @Parameterized.Parameters(name = "{index}: dbi: {0}")
-
-//  public static Object[] data() {
-//    final DbiFactory defaultComparatorDb = new DbiFactory("defaultComparator", env ->
-//        env.buildDbi()
-//            .withDbName(DB_1)
-//            .withDefaultComparator()
-//            .withDbiFlags(DBI_FLAGS)
-//            .open());
-//    final DbiFactory nativeComparatorDb = new DbiFactory("nativeComparator", env ->
-//        env.buildDbi()
-//            .withDbName(DB_2)
-//            .withNativeComparator()
-//            .withDbiFlags(DBI_FLAGS)
-//            .open());
-//    final DbiFactory callbackComparatorDb = new DbiFactory("callbackComparator", env ->
-//        env.buildDbi()
-//            .withDbName(DB_3)
-//            .withCallbackComparator(BUFFER_PROXY.getComparator(DBI_FLAGS))
-//            .withDbiFlags(DBI_FLAGS)
-//            .open());
-//    final DbiFactory iteratorComparatorDb = new DbiFactory("iteratorComparator", env ->
-//        env.buildDbi()
-//            .withDbName(DB_4)
-//            .withIteratorComparator(BUFFER_PROXY.getComparator(DBI_FLAGS))
-//            .withDbiFlags(DBI_FLAGS)
-//            .open());
-//    return new Object[]{
-//        defaultComparatorDb,
-//        nativeComparatorDb,
-//        callbackComparatorDb,
-//        iteratorComparatorDb};
-//  }
-
   @BeforeEach
   void beforeEach() {
     file = FileUtil.createTempFile();
@@ -139,7 +102,8 @@ public final class CursorIterableTest {
         .setMapSize(KIBIBYTES.toBytes(256))
         .setMaxReaders(1)
         .setMaxDbs(3)
-        .open(file.toFile(), POSIX_MODE, MDB_NOSUBDIR);
+        .setEnvFlags(MDB_NOSUBDIR)
+        .open(file);
 
     populateTestDataList();
   }
@@ -571,27 +535,27 @@ public final class CursorIterableTest {
                                                         ExtensionContext context) throws Exception {
       final DbiFactory defaultComparatorDb = new DbiFactory("defaultComparator", env ->
           env.buildDbi()
-              .withDbName(DB_1)
+              .setDbName(DB_1)
               .withDefaultComparator()
-              .withDbiFlags(DBI_FLAGS)
+              .setDbiFlags(DBI_FLAGS)
               .open());
       final DbiFactory nativeComparatorDb = new DbiFactory("nativeComparator", env ->
           env.buildDbi()
-              .withDbName(DB_2)
+              .setDbName(DB_2)
               .withNativeComparator()
-              .withDbiFlags(DBI_FLAGS)
+              .setDbiFlags(DBI_FLAGS)
               .open());
       final DbiFactory callbackComparatorDb = new DbiFactory("callbackComparator", env ->
           env.buildDbi()
-              .withDbName(DB_3)
+              .setDbName(DB_3)
               .withCallbackComparator(BUFFER_PROXY.getComparator(DBI_FLAGS))
-              .withDbiFlags(DBI_FLAGS)
+              .setDbiFlags(DBI_FLAGS)
               .open());
       final DbiFactory iteratorComparatorDb = new DbiFactory("iteratorComparator", env ->
           env.buildDbi()
-              .withDbName(DB_4)
+              .setDbName(DB_4)
               .withIteratorComparator(BUFFER_PROXY.getComparator(DBI_FLAGS))
-              .withDbiFlags(DBI_FLAGS)
+              .setDbiFlags(DBI_FLAGS)
               .open());
       return Stream.of(
               defaultComparatorDb,
