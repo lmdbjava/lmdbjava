@@ -114,7 +114,7 @@ public final class CursorIterableRangeTest {
   void testIntegerKey(
       final String keyType, final String startKey, final String stopKey, final String expectedKV) {
     testCSV(
-        AbstractByteBufferProxy::compareLexicographically,
+        AbstractByteBufferProxy::compareAsIntegerKeys,
         false,
         createIntegerDBPopulator(),
         EnumSet.of(MDB_CREATE, MDB_INTEGERKEY),
@@ -131,7 +131,7 @@ public final class CursorIterableRangeTest {
   void testLongKey(
       final String keyType, final String startKey, final String stopKey, final String expectedKV) {
     testCSV(
-        AbstractByteBufferProxy::compareLexicographically,
+        AbstractByteBufferProxy::compareAsIntegerKeys,
         false,
         createLongDBPopulator(),
         EnumSet.of(MDB_CREATE, MDB_INTEGERKEY),
@@ -183,7 +183,9 @@ public final class CursorIterableRangeTest {
               .setMapSize(KIBIBYTES.toBytes(256))
               .setMaxReaders(1)
               .setMaxDbs(1)
-              .open(file.toFile(), POSIX_MODE, MDB_NOSUBDIR)) {
+              .setFilePermissions(POSIX_MODE)
+              .setEnvFlags(MDB_NOSUBDIR)
+              .open(file)) {
         final Dbi<ByteBuffer> dbi =
             env.openDbi(DB_1, comparator, nativeCb, flags.toArray(new DbiFlags[0]));
         dbPopulator.accept(env, dbi);
