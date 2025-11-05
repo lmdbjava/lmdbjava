@@ -115,7 +115,7 @@ public final class CursorIterable<T> implements Iterable<CursorIterable.KeyVal<T
 
       @Override
       public void remove() {
-        cursor.delete();
+        cursor.delete(PutFlags.EMPTY);
       }
     };
   }

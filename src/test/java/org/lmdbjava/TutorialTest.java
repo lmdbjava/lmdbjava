@@ -345,7 +345,7 @@ public final class TutorialTest {
 
           // This time we're going to tell the Dbi it can store > 1 value per key.
           // There are other flags available if we're storing integers etc.
-          final Dbi<ByteBuffer> db = env.openDbi(DB_NAME, MDB_CREATE, MDB_DUPSORT);
+          final Dbi<ByteBuffer> db = env.openDbi(DB_NAME, DbiFlagSet.of(MDB_CREATE, MDB_DUPSORT));
 
           // Duplicate support requires both keys and values to be <= max key size.
           final ByteBuffer key = allocateDirect(env.getMaxKeySize());

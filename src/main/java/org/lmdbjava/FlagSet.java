@@ -88,6 +88,7 @@ public interface FlagSet<T extends MaskedFlag> extends Iterable<T> {
   /**
    * @return The {@link Iterator} (in no particular order) for the flags in this {@link FlagSet}.
    */
+  @Override
   default Iterator<T> iterator() {
     return getFlags().iterator();
   }

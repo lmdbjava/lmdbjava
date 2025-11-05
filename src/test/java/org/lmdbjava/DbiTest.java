@@ -264,7 +264,7 @@ public final class DbiTest {
   @Test
   void dropAndDelete() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
-    final Dbi<ByteBuffer> nameDb = env.openDbi((byte[]) null);
+    final Dbi<ByteBuffer> nameDb = env.openDbi((byte[]) null, DbiFlagSet.EMPTY);
     final byte[] dbNameBytes = DB_1.getBytes(UTF_8);
     final ByteBuffer dbNameBuffer = allocateDirect(dbNameBytes.length);
     dbNameBuffer.put(dbNameBytes).flip();
@@ -321,7 +321,7 @@ public final class DbiTest {
 
   @Test
   void listsFlags() {
-    final Dbi<ByteBuffer> dbi = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT, MDB_REVERSEKEY);
+    final Dbi<ByteBuffer> dbi = env.openDbi(DB_1, DbiFlagSet.of(MDB_CREATE, MDB_DUPSORT, MDB_REVERSEKEY));
 
     try (Txn<ByteBuffer> txn = env.txnRead()) {
       final List<DbiFlags> flags = dbi.listFlags(txn);
@@ -415,7 +415,7 @@ public final class DbiTest {
 
   @Test
   void putDuplicateDelete() {
-    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
+    final Dbi<ByteBuffer> db = env.openDbi(DB_1, DbiFlagSet.of(MDB_CREATE, MDB_DUPSORT));
 
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
       db.put(txn, bb(5), bb(5));
@@ -474,7 +474,7 @@ public final class DbiTest {
 
   @Test
   void returnValueForNoDupData() {
-    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
+    final Dbi<ByteBuffer> db = env.openDbi(DB_1, DbiFlagSet.of(MDB_CREATE, MDB_DUPSORT));
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
       // ok
       assertThat(db.put(txn, bb(5), bb(6), MDB_NODUPDATA)).isTrue();

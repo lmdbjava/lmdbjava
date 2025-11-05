@@ -63,6 +63,11 @@ public final class Env<T> implements AutoCloseable {
    */
   public static final boolean SHOULD_CHECK = !getBoolean(DISABLE_CHECKS_PROP);
 
+  private static final long KIBIBYTES = 1_024;
+  private static final long MEBIBYTES = KIBIBYTES * 1_024;
+  private static final long GIBIBYTES = MEBIBYTES * 1_024;
+  private static final long TEBIBYTES = GIBIBYTES * 1_024;
+
   private boolean closed;
   private final int maxKeySize;
   private final boolean noSubDir;
@@ -104,20 +109,19 @@ public final class Env<T> implements AutoCloseable {
   }
 
   /**
-   * @deprecated Instead use {@link Env#create()} or {@link Env#create(BufferProxy)}
-   * <p>
-   * Opens an environment with a single default database in 0664 mode using the {@link
-   * ByteBufferProxy#PROXY_OPTIMAL}.
-   *
    * @param path  file system destination
    * @param size  size in megabytes
    * @param flags the flags for this new environment
    * @return env the environment (never null)
+   * @deprecated Instead use {@link Env#create()} or {@link Env#create(BufferProxy)}
+   * <p>
+   * Opens an environment with a single default database in 0664 mode using the {@link
+   * ByteBufferProxy#PROXY_OPTIMAL}.
    */
   @Deprecated
   public static Env<ByteBuffer> open(final File path, final int size, final EnvFlags... flags) {
     return new Builder<>(PROXY_OPTIMAL)
-        .setMapSize(size * 1_024L * 1_024L)
+        .setMapSize(size * MEBIBYTES)
         .open(path, flags);
   }
 
@@ -193,9 +197,10 @@ public final class Env<T> implements AutoCloseable {
    */
   public List<byte[]> getDbiNames() {
     final List<byte[]> result = new ArrayList<>();
-    final Dbi<T> names = openDbi((byte[]) null);
-    try (Txn<T> txn = txnRead();
-         Cursor<T> cursor = names.openCursor(txn)) {
+    // The unnamed DB is special so the names of the named DBs are held as keys in it.
+    final Dbi<T> unnamedDb = openDbi((byte[]) null, DbiFlagSet.EMPTY);
+    try (final Txn<T> txn = txnRead();
+         final Cursor<T> cursor = unnamedDb.openCursor(txn)) {
       if (!cursor.first()) {
         return Collections.emptyList();
       }
@@ -204,7 +209,6 @@ public final class Env<T> implements AutoCloseable {
         result.add(name);
       } while (cursor.next());
     }
-
     return result;
   }
 
@@ -283,10 +287,48 @@ public final class Env<T> implements AutoCloseable {
   }
 
   /**
+   * Convenience method that opens a {@link Dbi} with a UTF-8 database name and default
+   * {@link Comparator} that is not invoked from native code.
+   * <p>
+   * For more options when opening a {@link Dbi} see {@link Env#buildDbi()}.
+   * </p>
+   * @param name       name of the database (or null if no name is required)
+   * @param dbiFlagSet Flags to open the database with
+   * @return a database that is ready to use
+   */
+  public Dbi<T> openDbi(final String name, final DbiFlagSet dbiFlagSet) {
+    final byte[] nameBytes = name == null ? null : name.getBytes(UTF_8);
+    try (Txn<T> txn = readOnly ? txnRead() : txnWrite()) {
+      final Dbi<T> dbi = new Dbi<>(this, txn, nameBytes, proxy, dbiFlagSet);
+      txn.commit(); // even RO Txns require a commit to retain Dbi in Env
+      return dbi;
+    }
+  }
+
+  /**
+   * Convenience method that opens a {@link Dbi} with a default
+   * {@link Comparator} that is not invoked from native code.
+   * <p>
+   * For more options when opening a {@link Dbi} see {@link Env#buildDbi()}.
+   * </p>
+   * @param name       name of the database (or null if no name is required)
+   * @param dbiFlagSet Flags to open the database with
+   * @return a database that is ready to use
+   */
+  public Dbi<T> openDbi(final byte[] name,
+                        final DbiFlagSet dbiFlagSet) {
+    try (Txn<T> txn = readOnly ? txnRead() : txnWrite()) {
+      final Dbi<T> dbi = new Dbi<>(this, txn, name, proxy, dbiFlagSet);
+      txn.commit(); // even RO Txns require a commit to retain Dbi in Env
+      return dbi;
+    }
+  }
+
+  /**
    * @param name  name of the database (or null if no name is required)
    * @param flags to open the database with
    * @return a database that is ready to use
-   * @deprecated Instead use {@link Env#buildDbi()}
+   * @deprecated Instead use {@link Env#buildDbi()} or {@link Env#openDbi(String, DbiFlagSet)}
    * Convenience method that opens a {@link Dbi} with a UTF-8 database name and default {@link
    * Comparator} that is not invoked from native code.
    */
@@ -315,7 +357,7 @@ public final class Env<T> implements AutoCloseable {
   public Dbi<T> openDbi(final String name,
                         final Comparator<T> comparator,
                         final DbiFlags... flags) {
-    final byte[] nameBytes = name == null ? null : name.getBytes(UTF_8);
+    final byte[] nameBytes = name == null ? null : name.getBytes(DEFAULT_NAME_CHARSET);
     return openDbi(nameBytes, comparator, false, flags);
   }
 
@@ -338,7 +380,7 @@ public final class Env<T> implements AutoCloseable {
                         final Comparator<T> comparator,
                         final boolean nativeCb,
                         final DbiFlags... flags) {
-    final byte[] nameBytes = name == null ? null : name.getBytes(UTF_8);
+    final byte[] nameBytes = name == null ? null : name.getBytes(DEFAULT_NAME_CHARSET);
     return openDbi(nameBytes, comparator, nativeCb, flags);
   }
 
@@ -354,7 +396,11 @@ public final class Env<T> implements AutoCloseable {
   @Deprecated()
   public Dbi<T> openDbi(final byte[] name,
                         final DbiFlags... flags) {
-    return openDbi(name, null, false, flags);
+    return buildDbi()
+        .setDbName(name)
+        .withDefaultComparator()
+        .setDbiFlags(flags)
+        .open();
   }
 
   /**
@@ -371,7 +417,12 @@ public final class Env<T> implements AutoCloseable {
   public Dbi<T> openDbi(final byte[] name,
                         final Comparator<T> comparator,
                         final DbiFlags... flags) {
-    return openDbi(name, comparator, false, flags);
+    requireNonNull(comparator);
+    return buildDbi()
+        .setDbName(name)
+        .withIteratorComparator(ignored -> comparator)
+        .setDbiFlags(flags)
+        .open();
   }
 
   /**
@@ -435,10 +486,6 @@ public final class Env<T> implements AutoCloseable {
       final Comparator<T> comparator,
       final boolean nativeCb,
       final DbiFlags... flags) {
-
-    if (nativeCb && comparator == null) {
-      throw new IllegalArgumentException("Is nativeCb is true, you must supply a comparator");
-    }
     return new Dbi<>(this, txn, name, comparator, nativeCb, proxy, DbiFlagSet.of(flags));
   }
 
@@ -722,6 +769,46 @@ public final class Env<T> implements AutoCloseable {
       }
       this.mapSize = mapSize;
       return this;
+    }
+
+    /**
+     * Sets the map size in kibibytes
+     *
+     * @param mapSizeKb new limit in kibibytes
+     * @return the builder
+     */
+    public Builder<T> setMapSizeKb(final long mapSizeKb) {
+      return setMapSize(mapSizeKb * KIBIBYTES);
+    }
+
+    /**
+     * Sets the map size in mebibytes.
+     *
+     * @param mapSizeMb new limit in mebibytes.
+     * @return the builder
+     */
+    public Builder<T> setMapSizeMb(final long mapSizeMb) {
+      return setMapSize(mapSizeMb * MEBIBYTES);
+    }
+
+    /**
+     * Sets the map size in gibibytes
+     *
+     * @param mapSizeGb new limit in gibibytes
+     * @return the builder
+     */
+    public Builder<T> setMapSizeGb(final long mapSizeGb) {
+      return setMapSize(mapSizeGb * GIBIBYTES);
+    }
+
+    /**
+     * Sets the map size in tebibytes.
+     *
+     * @param mapSizeTb new limit in tebibytes.
+     * @return the builder
+     */
+    public Builder<T> setMapSizeTb(final long mapSizeTb) {
+      return setMapSize(mapSizeTb * TEBIBYTES);
     }
 
     /**

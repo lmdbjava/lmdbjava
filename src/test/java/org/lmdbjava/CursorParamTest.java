@@ -88,7 +88,7 @@ public final class CursorParamTest {
     public final void execute(final Path tmp) {
       try (Env<T> env = env(tmp)) {
         assertThat(env.getDbiNames()).isEmpty();
-        final Dbi<T> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
+        final Dbi<T> db = env.openDbi(DB_1, DbiFlagSet.of(MDB_CREATE, MDB_DUPSORT));
         assertThat(env.getDbiNames().get(0)).isEqualTo(DB_1.getBytes(UTF_8));
         try (Txn<T> txn = env.txnWrite();
             Cursor<T> c = db.openCursor(txn)) {

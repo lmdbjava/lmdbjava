@@ -155,29 +155,32 @@ public final class ByteBufferProxyTest {
    */
   @Test
   public void comparatorPerformance() {
-    final Random random = new Random();
+    final Random random = new Random(345098);
     final ByteBuffer buffer1 = ByteBuffer.allocateDirect(Long.BYTES);
     final ByteBuffer buffer2 = ByteBuffer.allocateDirect(Long.BYTES);
     buffer1.limit(Long.BYTES);
     buffer2.limit(Long.BYTES);
-    final long[] values = random.longs(5_000_000).toArray();
+    final long[] values = random.longs(20_000_000).toArray();
 
     Instant time = Instant.now();
+    // x is to ensure result is used by the jvm
     int x = 0;
     for (int rounds = 0; rounds < 100; rounds++) {
       for (int i = 1; i < values.length; i++) {
-        buffer1.order(ByteOrder.nativeOrder())
+//        buffer1.order(ByteOrder.nativeOrder())
+        buffer1
             .putLong(0, values[i - 1]);
-        buffer2.order(ByteOrder.nativeOrder())
+//        buffer2.order(ByteOrder.nativeOrder())
+        buffer2
             .putLong(0, values[i]);
         final int result = ByteBufferProxy.AbstractByteBufferProxy.compareAsIntegerKeys(buffer1, buffer2);
         x += result;
       }
     }
-    System.out.println("compareAsIntegerKeys: " + Duration.between(time, Instant.now()));
+    System.out.println("compareAsIntegerKeys: " + Duration.between(time, Instant.now()) + ", x: " + x);
 
     time = Instant.now();
-    x = 0;
+    int y = 0;
     for (int rounds = 0; rounds < 100; rounds++) {
       for (int i = 1; i < values.length; i++) {
         buffer1.order(BIG_ENDIAN)
@@ -185,10 +188,12 @@ public final class ByteBufferProxyTest {
         buffer2.order(BIG_ENDIAN)
             .putLong(0, values[i]);
         final int result = ByteBufferProxy.AbstractByteBufferProxy.compareLexicographically(buffer1, buffer2);
-        x += result;
+        y += result;
       }
     }
-    System.out.println("compareLexicographically: " + Duration.between(time, Instant.now()));
+    System.out.println("compareLexicographically: " + Duration.between(time, Instant.now()) + ", y: " + y);
+
+    assertThat(y).isEqualTo(x);
   }
 
   @Test

@@ -391,10 +391,10 @@ public class DbiBuilder<T> {
     public Dbi<T> open() {
       final DbiBuilder<T> dbiBuilder = dbiBuilderStage2.dbiBuilder;
       if (txn != null) {
-        return open(txn, dbiBuilder);
+        return openDbi(txn, dbiBuilder);
       } else {
         try (final Txn<T> txn = getTxn(dbiBuilder)) {
-          final Dbi<T> dbi = open(txn, dbiBuilder);
+          final Dbi<T> dbi = openDbi(txn, dbiBuilder);
           // even RO Txns require a commit to retain Dbi in Env
           txn.commit();
           return dbi;
@@ -432,8 +432,8 @@ public class DbiBuilder<T> {
       return comparator;
     }
 
-    private Dbi<T> open(final Txn<T> txn,
-                        final DbiBuilder<T> dbiBuilder) {
+    private Dbi<T> openDbi(final Txn<T> txn,
+                           final DbiBuilder<T> dbiBuilder) {
       final DbiFlagSet dbiFlagSet = flagSetBuilder.build();
       final ComparatorType comparatorType = dbiBuilderStage2.comparatorType;
       final Comparator<T> comparator = getComparator(dbiBuilder, comparatorType, dbiFlagSet);
