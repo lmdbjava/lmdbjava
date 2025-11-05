@@ -37,9 +37,7 @@ class TestLmdbStream {
   void testStreamRangeStartInclusive() {
     final ByteBuffer start = createTestBuffer(42, 42);
     final Result result =
-        run(
-            (txn, dbi) ->
-                dbi.stream(txn, KeyRange.builder(ByteBuffer.class).startInclusive(start).build()));
+        run((txn, dbi) -> dbi.stream(txn, KeyRange.builder().startInclusive(start).build()));
     assertThat(result.count).isEqualTo(5758);
     assertThat(result.first).isEqualTo(createTestBuffer(42, 42));
     assertThat(result.last).isEqualTo(createTestBuffer(99, 99));
@@ -49,9 +47,7 @@ class TestLmdbStream {
   void testStreamRangeStartExclusive() {
     final ByteBuffer start = createTestBuffer(42, 42);
     final Result result =
-        run(
-            (txn, dbi) ->
-                dbi.stream(txn, KeyRange.builder(ByteBuffer.class).startExclusive(start).build()));
+        run((txn, dbi) -> dbi.stream(txn, KeyRange.builder().startExclusive(start).build()));
     assertThat(result.count).isEqualTo(5757);
     assertThat(result.first).isEqualTo(createTestBuffer(42, 43));
     assertThat(result.last).isEqualTo(createTestBuffer(99, 99));
@@ -61,9 +57,7 @@ class TestLmdbStream {
   void testStreamRangeStopInclusive() {
     final ByteBuffer stop = createTestBuffer(42, 42);
     final Result result =
-        run(
-            (txn, dbi) ->
-                dbi.stream(txn, KeyRange.builder(ByteBuffer.class).stopInclusive(stop).build()));
+        run((txn, dbi) -> dbi.stream(txn, KeyRange.builder().stopInclusive(stop).build()));
     assertThat(result.count).isEqualTo(4243);
     assertThat(result.first).isEqualTo(createTestBuffer(0, 0));
     assertThat(result.last).isEqualTo(createTestBuffer(42, 42));
@@ -73,9 +67,7 @@ class TestLmdbStream {
   void testStreamRangeStopExclusive() {
     final ByteBuffer stop = createTestBuffer(42, 42);
     final Result result =
-        run(
-            (txn, dbi) ->
-                dbi.stream(txn, KeyRange.builder(ByteBuffer.class).stopExclusive(stop).build()));
+        run((txn, dbi) -> dbi.stream(txn, KeyRange.builder().stopExclusive(stop).build()));
     assertThat(result.count).isEqualTo(4242);
     assertThat(result.first).isEqualTo(createTestBuffer(0, 0));
     assertThat(result.last).isEqualTo(createTestBuffer(42, 41));
@@ -89,11 +81,7 @@ class TestLmdbStream {
         run(
             (txn, dbi) ->
                 dbi.stream(
-                    txn,
-                    KeyRange.builder(ByteBuffer.class)
-                        .startInclusive(start)
-                        .stopInclusive(stop)
-                        .build()));
+                    txn, KeyRange.builder().startInclusive(start).stopInclusive(stop).build()));
     assertThat(result.count).isEqualTo(203);
     assertThat(result.first).isEqualTo(createTestBuffer(40, 40));
     assertThat(result.last).isEqualTo(createTestBuffer(42, 42));
@@ -107,11 +95,7 @@ class TestLmdbStream {
         run(
             (txn, dbi) ->
                 dbi.stream(
-                    txn,
-                    KeyRange.builder(ByteBuffer.class)
-                        .startInclusive(start)
-                        .stopExclusive(stop)
-                        .build()));
+                    txn, KeyRange.builder().startInclusive(start).stopExclusive(stop).build()));
     assertThat(result.count).isEqualTo(202);
     assertThat(result.first).isEqualTo(createTestBuffer(40, 40));
     assertThat(result.last).isEqualTo(createTestBuffer(42, 41));
@@ -125,11 +109,7 @@ class TestLmdbStream {
         run(
             (txn, dbi) ->
                 dbi.stream(
-                    txn,
-                    KeyRange.builder(ByteBuffer.class)
-                        .startExclusive(start)
-                        .stopInclusive(stop)
-                        .build()));
+                    txn, KeyRange.builder().startExclusive(start).stopInclusive(stop).build()));
     assertThat(result.count).isEqualTo(202);
     assertThat(result.first).isEqualTo(createTestBuffer(40, 41));
     assertThat(result.last).isEqualTo(createTestBuffer(42, 42));
@@ -143,11 +123,7 @@ class TestLmdbStream {
         run(
             (txn, dbi) ->
                 dbi.stream(
-                    txn,
-                    KeyRange.builder(ByteBuffer.class)
-                        .startExclusive(start)
-                        .stopExclusive(stop)
-                        .build()));
+                    txn, KeyRange.builder().startExclusive(start).stopExclusive(stop).build()));
     assertThat(result.count).isEqualTo(201);
     assertThat(result.first).isEqualTo(createTestBuffer(40, 41));
     assertThat(result.last).isEqualTo(createTestBuffer(42, 41));
@@ -159,9 +135,7 @@ class TestLmdbStream {
     final Result result =
         run(
             (txn, dbi) ->
-                dbi.stream(
-                    txn,
-                    KeyRange.builder(ByteBuffer.class).startInclusive(start).reverse().build()));
+                dbi.stream(txn, KeyRange.builder().startInclusive(start).reverse().build()));
     assertThat(result.count).isEqualTo(4243);
     assertThat(result.first).isEqualTo(createTestBuffer(42, 42));
     assertThat(result.last).isEqualTo(createTestBuffer(0, 0));
@@ -173,9 +147,7 @@ class TestLmdbStream {
     final Result result =
         run(
             (txn, dbi) ->
-                dbi.stream(
-                    txn,
-                    KeyRange.builder(ByteBuffer.class).startExclusive(start).reverse().build()));
+                dbi.stream(txn, KeyRange.builder().startExclusive(start).reverse().build()));
     assertThat(result.count).isEqualTo(4242);
     assertThat(result.first).isEqualTo(createTestBuffer(42, 41));
     assertThat(result.last).isEqualTo(createTestBuffer(0, 0));
@@ -187,8 +159,7 @@ class TestLmdbStream {
     final Result result =
         run(
             (txn, dbi) ->
-                dbi.stream(
-                    txn, KeyRange.builder(ByteBuffer.class).stopInclusive(stop).reverse().build()));
+                dbi.stream(txn, KeyRange.builder().stopInclusive(stop).reverse().build()));
     assertThat(result.count).isEqualTo(5758);
     assertThat(result.first).isEqualTo(createTestBuffer(99, 99));
     assertThat(result.last).isEqualTo(createTestBuffer(42, 42));
@@ -200,8 +171,7 @@ class TestLmdbStream {
     final Result result =
         run(
             (txn, dbi) ->
-                dbi.stream(
-                    txn, KeyRange.builder(ByteBuffer.class).stopExclusive(stop).reverse().build()));
+                dbi.stream(txn, KeyRange.builder().stopExclusive(stop).reverse().build()));
     assertThat(result.count).isEqualTo(5757);
     assertThat(result.first).isEqualTo(createTestBuffer(99, 99));
     assertThat(result.last).isEqualTo(createTestBuffer(42, 43));
@@ -216,7 +186,7 @@ class TestLmdbStream {
             (txn, dbi) ->
                 dbi.stream(
                     txn,
-                    KeyRange.builder(ByteBuffer.class)
+                    KeyRange.builder()
                         .startInclusive(start)
                         .stopInclusive(stop)
                         .reverse()
@@ -235,7 +205,7 @@ class TestLmdbStream {
             (txn, dbi) ->
                 dbi.stream(
                     txn,
-                    KeyRange.builder(ByteBuffer.class)
+                    KeyRange.builder()
                         .startInclusive(start)
                         .stopExclusive(stop)
                         .reverse()
@@ -254,7 +224,7 @@ class TestLmdbStream {
             (txn, dbi) ->
                 dbi.stream(
                     txn,
-                    KeyRange.builder(ByteBuffer.class)
+                    KeyRange.builder()
                         .startExclusive(start)
                         .stopInclusive(stop)
                         .reverse()
@@ -273,7 +243,7 @@ class TestLmdbStream {
             (txn, dbi) ->
                 dbi.stream(
                     txn,
-                    KeyRange.builder(ByteBuffer.class)
+                    KeyRange.builder()
                         .startExclusive(start)
                         .stopExclusive(stop)
                         .reverse()
@@ -287,9 +257,7 @@ class TestLmdbStream {
   void testStreamPrefix() {
     final ByteBuffer prefix = createTestBuffer(42);
     final Result result =
-        run(
-            (txn, dbi) ->
-                dbi.stream(txn, KeyRange.builder(ByteBuffer.class).prefix(prefix).build()));
+        run((txn, dbi) -> dbi.stream(txn, KeyRange.builder().prefix(prefix).build()));
     assertThat(result.count).isEqualTo(100);
     assertThat(result.first).isEqualTo(createTestBuffer(42, 0));
     assertThat(result.last).isEqualTo(createTestBuffer(42, 99));
@@ -299,10 +267,7 @@ class TestLmdbStream {
   void testStreamPrefixReversed() {
     final ByteBuffer prefix = createTestBuffer(42);
     final Result result =
-        run(
-            (txn, dbi) ->
-                dbi.stream(
-                    txn, KeyRange.builder(ByteBuffer.class).prefix(prefix).reverse().build()));
+        run((txn, dbi) -> dbi.stream(txn, KeyRange.builder().prefix(prefix).reverse().build()));
     assertThat(result.count).isEqualTo(100);
     assertThat(result.first).isEqualTo(createTestBuffer(42, 99));
     assertThat(result.last).isEqualTo(createTestBuffer(42, 0));

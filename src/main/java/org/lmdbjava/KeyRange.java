@@ -397,12 +397,10 @@ public final class KeyRange<T> {
   /**
    * Create a new builder to construct a key range.
    *
-   * @param clazz The buffer class type being used.
-   * @param <T> The buffer type, e.g. ByteBuffer.
    * @return A new key range builder.
    */
-  public static <T> Builder<T> builder(final Class<T> clazz) {
-    return new Builder<>();
+  public static Builder builder() {
+    return new Builder();
   }
 
   private abstract static class BaseBuilder<T, B extends BaseBuilder<T, ?>> {
@@ -430,55 +428,48 @@ public final class KeyRange<T> {
     public abstract KeyRange<T> build();
   }
 
-  public static class Builder<T> extends BaseBuilder<T, Builder<T>> {
+  public static class Builder {
+
+    boolean directionForward = true;
 
     private Builder() {}
 
-    private Builder(final BaseBuilder<T, ?> builder) {
-      super(builder);
-    }
-
-    public PrefixBuilder<T> prefix(final T prefix) {
+    public <T> PrefixBuilder<T> prefix(final T prefix) {
       Objects.requireNonNull(prefix, "Prefix is required");
-      final PrefixBuilder<T> keyRange = new PrefixBuilder<>(this);
+      final PrefixBuilder<T> keyRange = new PrefixBuilder<>(directionForward);
       keyRange.prefix(prefix);
       return keyRange;
     }
 
-    public RangeBuilder<T> startInclusive(final T start) {
+    public <T> RangeBuilder<T> startInclusive(final T start) {
       return start(start, true);
     }
 
-    public RangeBuilder<T> startExclusive(final T start) {
+    public <T> RangeBuilder<T> startExclusive(final T start) {
       return start(start, false);
     }
 
-    public RangeBuilder<T> start(final T start, final boolean startInclusive) {
+    public <T> RangeBuilder<T> start(final T start, final boolean startInclusive) {
       Objects.requireNonNull(start, "Start is required");
-      final RangeBuilder<T> range = new RangeBuilder<>(this);
+      final RangeBuilder<T> range = new RangeBuilder<>(directionForward);
       return range.start(start, startInclusive);
     }
 
-    public RangeBuilder<T> stopInclusive(final T stop) {
+    public <T> RangeBuilder<T> stopInclusive(final T stop) {
       return stop(stop, true);
     }
 
-    public RangeBuilder<T> stopExclusive(final T stop) {
+    public <T> RangeBuilder<T> stopExclusive(final T stop) {
       return stop(stop, false);
     }
 
-    public RangeBuilder<T> stop(final T stop, final boolean stopInclusive) {
+    public <T> RangeBuilder<T> stop(final T stop, final boolean stopInclusive) {
       Objects.requireNonNull(stop, "Stop is required");
-      final RangeBuilder<T> range = new RangeBuilder<>(this);
+      final RangeBuilder<T> range = new RangeBuilder<>(directionForward);
       return range.stop(stop, stopInclusive);
     }
 
-    Builder<T> self() {
-      return this;
-    }
-
-    @Override
-    public KeyRange<T> build() {
+    public <T> KeyRange<T> build() {
       return new KeyRange<>(null, null, false, false, directionForward);
     }
   }
@@ -487,8 +478,13 @@ public final class KeyRange<T> {
 
     T prefix;
 
-    private PrefixBuilder(final Builder<T> rootKeyRange) {
-      super(rootKeyRange);
+    private PrefixBuilder(final boolean directionForward) {
+      this.directionForward = directionForward;
+    }
+
+    private PrefixBuilder(final KeyRange<T> keyRange) {
+      this.directionForward = keyRange.directionForward;
+      this.prefix = keyRange.prefix;
     }
 
     public PrefixBuilder<T> prefix(final T prefix) {
@@ -515,8 +511,16 @@ public final class KeyRange<T> {
     boolean startKeyInclusive;
     boolean stopKeyInclusive;
 
-    private RangeBuilder(final Builder<T> rootKeyRange) {
-      super(rootKeyRange);
+    private RangeBuilder(final boolean directionForward) {
+      this.directionForward = directionForward;
+    }
+
+    private RangeBuilder(final KeyRange<T> keyRange) {
+      this.directionForward = keyRange.directionForward;
+      this.start = keyRange.start;
+      this.stop = keyRange.stop;
+      this.startKeyInclusive = keyRange.startKeyInclusive;
+      this.stopKeyInclusive = keyRange.stopKeyInclusive;
     }
 
     public RangeBuilder<T> startInclusive(final T start) {

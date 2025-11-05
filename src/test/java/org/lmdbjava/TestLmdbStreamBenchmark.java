@@ -79,7 +79,7 @@ public class TestLmdbStreamBenchmark {
           Column.NEW_STREAM,
           () -> {
             testNewStream(
-                KeyRange.builder(ByteBuffer.class)
+                KeyRange.builder()
                     .startInclusive(lowPoint.toBuffer())
                     .stopInclusive(highPoint.toBuffer())
                     .build(),
@@ -326,7 +326,7 @@ public class TestLmdbStreamBenchmark {
           () -> {
             final ByteBuffer prefix = createTestBuffer(high1);
             testNewStream(
-                KeyRange.builder(ByteBuffer.class).prefix(prefix).build(),
+                KeyRange.builder().prefix(prefix).build(),
                 (max2 + 1) - min2,
                 createTestBuffer(high1, min2),
                 createTestBuffer(high1, max2));
@@ -338,7 +338,7 @@ public class TestLmdbStreamBenchmark {
           () -> {
             final ByteBuffer prefix = createTestBuffer(high1);
             testNewIterator(
-                KeyRange.builder(ByteBuffer.class).prefix(prefix).build(),
+                KeyRange.builder().prefix(prefix).build(),
                 (max2 + 1) - min2,
                 createTestBuffer(high1, min2),
                 createTestBuffer(high1, max2));
@@ -351,7 +351,7 @@ public class TestLmdbStreamBenchmark {
           () -> {
             final ByteBuffer prefix = createTestBuffer(high1);
             testNewStream(
-                KeyRange.builder(ByteBuffer.class).prefix(prefix).reverse().build(),
+                KeyRange.builder().prefix(prefix).reverse().build(),
                 (max2 + 1) - min2,
                 createTestBuffer(high1, max2),
                 createTestBuffer(high1, min2));
@@ -363,7 +363,7 @@ public class TestLmdbStreamBenchmark {
           () -> {
             final ByteBuffer prefix = createTestBuffer(high1);
             testNewIterator(
-                KeyRange.builder(ByteBuffer.class).prefix(prefix).reverse().build(),
+                KeyRange.builder().prefix(prefix).reverse().build(),
                 (max2 + 1) - min2,
                 createTestBuffer(high1, max2),
                 createTestBuffer(high1, min2));

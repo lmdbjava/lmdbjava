@@ -17,7 +17,6 @@ package org.lmdbjava;
 
 import static io.netty.buffer.PooledByteBufAllocator.DEFAULT;
 import static java.lang.Class.forName;
-import static java.nio.ByteOrder.LITTLE_ENDIAN;
 import static java.util.Objects.requireNonNull;
 import static org.lmdbjava.UnsafeAccess.UNSAFE;
 
@@ -179,31 +178,17 @@ public final class ByteBufProxy extends BufferProxy<ByteBuf> {
       return null;
     }
 
-    // TODO : Since endianness isn't a state for Netty ByteBuf we might not be able to do this.
-    if (LITTLE_ENDIAN.equals(buffer.order())) {
-      // Start from the least significant byte (closest to start)
-      for (int i = 0; i < buffer.capacity(); i++) {
-        final byte b = buffer.getByte(i);
+    // TODO : Endianness isn't known so we will need a different way to do this for LE systems,
+    //  e.g. when using MDB_INTEGERKEY.
+    // Start from the least significant byte (closest to limit)
+    for (int i = buffer.capacity() - 1; i >= 0; i--) {
+      final byte b = buffer.getByte(i);
 
-        // Check if byte is not at max unsigned value (0xFF = 255 = -1 in signed)
-        if (b != (byte) 0xFF) {
-          final ByteBuf oneBigger = buffer.copy();
-          oneBigger.setByte(i, (byte) (b + 1));
-          return oneBigger;
-        }
-      }
-
-    } else {
-      // Start from the least significant byte (closest to limit)
-      for (int i = buffer.capacity() - 1; i >= 0; i--) {
-        final byte b = buffer.getByte(i);
-
-        // Check if byte is not at max unsigned value (0xFF = 255 = -1 in signed)
-        if (b != (byte) 0xFF) {
-          final ByteBuf oneBigger = buffer.copy();
-          oneBigger.setByte(i, (byte) (b + 1));
-          return oneBigger;
-        }
+      // Check if byte is not at max unsigned value (0xFF = 255 = -1 in signed)
+      if (b != (byte) 0xFF) {
+        final ByteBuf oneBigger = buffer.copy();
+        oneBigger.setByte(i, (byte) (b + 1));
+        return oneBigger;
       }
     }
 
