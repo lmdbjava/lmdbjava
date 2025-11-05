@@ -77,13 +77,11 @@ public class TestLmdbStreamBenchmark {
       runTimedTest(results,
               "Test forward range", Column.NEW_STREAM,
               () -> {
-                final ByteBuffer start = createTestBuffer(low1, low2);
-                final ByteBuffer stop = createTestBuffer(high1, low2);
                 testNewStream(KeyRange.builder(ByteBuffer.class)
-                                .start(start)
-                                .stop(stop)
+                                .start(lowPoint.toBuffer())
+                                .stop(highPoint.toBuffer())
                                 .build(),
-                        8995801L,
+                        diff(lowPoint, highPoint) + 1,
                         createTestBuffer(low1, low2),
                         createTestBuffer(high1, low2));
               });
@@ -133,7 +131,7 @@ public class TestLmdbStreamBenchmark {
     final Map<String, Map<Column, List<Double>>> results = new HashMap<>();
 
     for (int i = 0; i < rounds; i++) {
-      runTimedTest(results, "iterator", Column.NEW_ITERATOR, () -> {
+      runTimedTest(results, "Raw iterator", Column.NEW_ITERATOR, () -> {
         final AtomicInteger count = new AtomicInteger();
         try (final Txn<ByteBuffer> txn = env.txnRead()) {
           LmdbIterable.iterate(txn, dbi, (key, val) -> count.incrementAndGet());
@@ -141,7 +139,7 @@ public class TestLmdbStreamBenchmark {
         assertThat(count.get()).isEqualTo(totalRows);
       });
 
-      runTimedTest(results, "iterator", Column.EXTANT,
+      runTimedTest(results, "Raw iterator", Column.EXTANT,
               () -> {
                 long count = 0;
                 try (final Txn<ByteBuffer> txn = env.txnRead()) {
