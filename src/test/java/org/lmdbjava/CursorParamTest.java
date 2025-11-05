@@ -32,8 +32,15 @@ import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.GetOp.MDB_SET_KEY;
 import static org.lmdbjava.GetOp.MDB_SET_RANGE;
 import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
-import static org.lmdbjava.SeekOp.*;
-import static org.lmdbjava.TestUtils.*;
+import static org.lmdbjava.SeekOp.MDB_FIRST;
+import static org.lmdbjava.SeekOp.MDB_LAST;
+import static org.lmdbjava.SeekOp.MDB_NEXT;
+import static org.lmdbjava.SeekOp.MDB_PREV;
+import static org.lmdbjava.TestUtils.DB_1;
+import static org.lmdbjava.TestUtils.POSIX_MODE;
+import static org.lmdbjava.TestUtils.bb;
+import static org.lmdbjava.TestUtils.mdb;
+import static org.lmdbjava.TestUtils.nb;
 
 import io.netty.buffer.ByteBuf;
 import java.nio.ByteBuffer;

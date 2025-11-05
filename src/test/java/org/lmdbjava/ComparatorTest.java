@@ -22,7 +22,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.lmdbjava.ByteArrayProxy.PROXY_BA;
 import static org.lmdbjava.ByteBufProxy.PROXY_NETTY;
 import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
-import static org.lmdbjava.ComparatorTest.ComparatorResult.*;
+import static org.lmdbjava.ComparatorTest.ComparatorResult.EQUAL_TO;
+import static org.lmdbjava.ComparatorTest.ComparatorResult.GREATER_THAN;
+import static org.lmdbjava.ComparatorTest.ComparatorResult.LESS_THAN;
+import static org.lmdbjava.ComparatorTest.ComparatorResult.get;
 import static org.lmdbjava.DirectBufferProxy.PROXY_DB;
 
 import com.google.common.primitives.SignedBytes;

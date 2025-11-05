@@ -19,12 +19,22 @@ package org.lmdbjava;
 import static com.jakewharton.byteunits.BinaryByteUnit.KIBIBYTES;
 import static java.nio.ByteBuffer.allocateDirect;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.lmdbjava.DbiFlags.*;
+import static org.lmdbjava.DbiFlags.MDB_CREATE;
+import static org.lmdbjava.DbiFlags.MDB_DUPSORT;
+import static org.lmdbjava.DbiFlags.MDB_INTEGERKEY;
 import static org.lmdbjava.Env.create;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
-import static org.lmdbjava.TestUtils.*;
+import static org.lmdbjava.TestUtils.DB_1;
+import static org.lmdbjava.TestUtils.POSIX_MODE;
+import static org.lmdbjava.TestUtils.bb;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.Reader;
+import java.io.StringWriter;
+import java.io.UncheckedIOException;
+import java.io.Writer;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.file.Path;
@@ -230,96 +240,6 @@ public final class CursorIterableRangeTest {
       return byteBuffer.getLong();
     }
   }
-
-  //
-  //  @Test
-  //  void testSignedComparator() throws IOException {
-  //    test(ByteBuffer::compareTo, true, "testSignedComparator", 1, MDB_CREATE);
-  //  }
-  //
-  //  @Test
-  //  void testUnsignedComparator() throws IOException {
-  //    test(AbstractByteBufferProxy::compareBuff, false, "testUnsignedComparator", 1, MDB_CREATE);
-  //  }
-  //
-  //  @Test
-  //  void testSignedComparatorDupsort() throws IOException {
-  //    test(ByteBuffer::compareTo, true, "testSignedComparatorDupsort", 2, MDB_CREATE,
-  // MDB_DUPSORT);
-  //  }
-  //
-  //  @Test
-  //  void testUnsignedComparatorDupsort() throws IOException {
-  //    test(AbstractByteBufferProxy::compareBuff, false, "testUnsignedComparatorDupsort", 2,
-  // MDB_CREATE, MDB_DUPSORT);
-  //  }
-  //
-  //  private void test(final Comparator<ByteBuffer> comparator,
-  //                    final boolean nativeCb,
-  //                    final String testName,
-  //                    final BiConsumer<Env<ByteBuffer>, Dbi<ByteBuffer>> dbPopulator,
-  //                    final DbiFlags... flags) throws IOException {
-  //    final Path dbPath = Files.createTempFile("test", "db");
-  //    try (final Env<ByteBuffer> env =
-  //                 create()
-  //                         .setMapSize(KIBIBYTES.toBytes(256))
-  //                         .setMaxReaders(1)
-  //                         .setMaxDbs(1)
-  //                         .open(dbPath.toFile(), POSIX_MODE, MDB_NOSUBDIR)) {
-  //      final Dbi<ByteBuffer> dbi = env.openDbi(DB_1, comparator, nativeCb, flags);
-  //      dbPopulator.accept(env, dbi);
-  //
-  //      final File tests = new File("src/test/resources/CursorIterableRangeTest/tests.csv");
-  //      final File actual = tests.getParentFile().toPath().resolve(testName + ".actual").toFile();
-  //      final File expected = tests.getParentFile().toPath().resolve(testName +
-  // ".expected").toFile();
-  //      final String csv = readFile(tests);
-  //      final String[] parts = csv.split("\n");
-  //      try (final Writer writer = new FileWriter(actual)) {
-  //        for (final String part : parts) {
-  //          final String[] params = part.split(",");
-  //          final KeyRangeType keyRangeType = KeyRangeType.valueOf(params[0].trim());
-  //          ByteBuffer start = null;
-  //          ByteBuffer stop = null;
-  //          if (params.length > 1 && params[1].trim().length() > 0) {
-  //            start = bb(Integer.parseInt(params[1].trim()));
-  //          }
-  //          if (params.length > 2 && params[2].trim().length() > 0) {
-  //            stop = bb(Integer.parseInt(params[2].trim()));
-  //          }
-  //
-  //          for (int i = 0; i < 3; i++) {
-  //            if (params.length > i) {
-  //              writer.append(params[i].trim());
-  //            }
-  //            writer.append(",");
-  //          }
-  //
-  //          final KeyRange<ByteBuffer> keyRange = new KeyRange<>(keyRangeType, start, stop);
-  //          try (Txn<ByteBuffer> txn = env.txnRead();
-  //               CursorIterable<ByteBuffer> c = dbi.iterate(txn, keyRange)) {
-  //            for (final KeyVal<ByteBuffer> kv : c) {
-  //              final int key = kv.key().getInt();
-  //              final int val = kv.val().getInt();
-  //              writer.append("[");
-  //              writer.append(String.valueOf(key));
-  //              writer.append(" ");
-  //              writer.append(String.valueOf(val));
-  //              writer.append("]");
-  //            }
-  //          }
-  //          writer.append("\n");
-  //        }
-  //      }
-  //
-  //      // Compare files.
-  //      final String act = readFile(actual);
-  //      final String exp = readFile(expected);
-  //      assertThat(act).withFailMessage("Files are not equal").isEqualTo(exp);
-  //    } finally {
-  //      FileUtil.deleteFile(dbPath);
-  //    }
-  //  }
 
   private BiConsumer<Env<ByteBuffer>, Dbi<ByteBuffer>> createBasicDBPopulator() {
     return (env, dbi) -> {
