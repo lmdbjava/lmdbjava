@@ -23,7 +23,7 @@
 
 **LmdbJava** adds Java-specific features to LMDB:
 
-* [Extremely fast](https://github.com/lmdbjava/benchmarks/blob/master/results/20160710/README.md) across a broad range of benchmarks, data sizes and access patterns
+* [Extremely fast](https://github.com/lmdbjava/benchmarks) across a broad range of benchmarks, data sizes and access patterns
 * Modern, idiomatic Java API (including iterators, key ranges, enums, exceptions etc)
 * Nothing to install (the JAR embeds the latest LMDB libraries for Linux, OS X and Windows)
 * Buffer agnostic (Java `ByteBuffer`, Agrona `DirectBuffer`, Netty `ByteBuf`, your own buffer)
