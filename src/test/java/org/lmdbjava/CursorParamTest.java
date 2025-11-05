@@ -32,15 +32,8 @@ import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.GetOp.MDB_SET_KEY;
 import static org.lmdbjava.GetOp.MDB_SET_RANGE;
 import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
-import static org.lmdbjava.SeekOp.MDB_FIRST;
-import static org.lmdbjava.SeekOp.MDB_LAST;
-import static org.lmdbjava.SeekOp.MDB_NEXT;
-import static org.lmdbjava.SeekOp.MDB_PREV;
-import static org.lmdbjava.TestUtils.DB_1;
-import static org.lmdbjava.TestUtils.POSIX_MODE;
-import static org.lmdbjava.TestUtils.bb;
-import static org.lmdbjava.TestUtils.mdb;
-import static org.lmdbjava.TestUtils.nb;
+import static org.lmdbjava.SeekOp.*;
+import static org.lmdbjava.TestUtils.*;
 
 import io.netty.buffer.ByteBuf;
 import java.nio.ByteBuffer;
@@ -48,26 +41,33 @@ import java.nio.file.Path;
 import java.util.stream.Stream;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
+import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ArgumentsProvider;
+import org.junit.jupiter.params.provider.ArgumentsSource;
+import org.junit.jupiter.params.support.ParameterDeclarations;
 
 /** Test {@link Cursor} with different buffer implementations. */
 public final class CursorParamTest {
 
-  static Stream<Arguments> data() {
-    return Stream.of(
-        Arguments.argumentSet(
-            "ByteBufferRunner(PROXY_OPTIMAL)", new ByteBufferRunner(PROXY_OPTIMAL)),
-        Arguments.argumentSet("ByteBufferRunner(PROXY_SAFE)", new ByteBufferRunner(PROXY_SAFE)),
-        Arguments.argumentSet("ByteArrayRunner(PROXY_BA)", new ByteArrayRunner(PROXY_BA)),
-        Arguments.argumentSet("DirectBufferRunner", new DirectBufferRunner()),
-        Arguments.argumentSet("NettyBufferRunner", new NettyBufferRunner()));
+  static class MyArgumentProvider implements ArgumentsProvider {
+    @Override
+    public Stream<? extends Arguments> provideArguments(
+        ParameterDeclarations parameters, ExtensionContext context) {
+      return Stream.of(
+          Arguments.argumentSet(
+              "ByteBufferRunner(PROXY_OPTIMAL)", new ByteBufferRunner(PROXY_OPTIMAL)),
+          Arguments.argumentSet("ByteBufferRunner(PROXY_SAFE)", new ByteBufferRunner(PROXY_SAFE)),
+          Arguments.argumentSet("ByteArrayRunner(PROXY_BA)", new ByteArrayRunner(PROXY_BA)),
+          Arguments.argumentSet("DirectBufferRunner", new DirectBufferRunner()),
+          Arguments.argumentSet("NettyBufferRunner", new NettyBufferRunner()));
+    }
   }
 
   @ParameterizedTest
-  @MethodSource("data")
+  @ArgumentsSource(MyArgumentProvider.class)
   void execute(final BufferRunner<?> runner, @TempDir final Path tmp) {
     runner.execute(tmp);
   }

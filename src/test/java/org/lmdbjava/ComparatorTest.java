@@ -34,9 +34,12 @@ import java.util.Comparator;
 import java.util.stream.Stream;
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
+import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ArgumentsProvider;
+import org.junit.jupiter.params.provider.ArgumentsSource;
+import org.junit.jupiter.params.support.ParameterDeclarations;
 
 /** Tests comparator functions are consistent across buffers. */
 public final class ComparatorTest {
@@ -54,16 +57,20 @@ public final class ComparatorTest {
   private static final byte[] LX = buffer(0);
   private static final byte[] XX = buffer();
 
-  static Stream<Arguments> comparatorProvider() {
-    return Stream.of(
-        Arguments.argumentSet("StringRunner", new StringRunner()),
-        Arguments.argumentSet("DirectBufferRunner", new DirectBufferRunner()),
-        Arguments.argumentSet("ByteArrayRunner", new ByteArrayRunner()),
-        Arguments.argumentSet("UnsignedByteArrayRunner", new UnsignedByteArrayRunner()),
-        Arguments.argumentSet("ByteBufferRunner", new ByteBufferRunner()),
-        Arguments.argumentSet("NettyRunner", new NettyRunner()),
-        Arguments.argumentSet("GuavaUnsignedBytes", new GuavaUnsignedBytes()),
-        Arguments.argumentSet("GuavaSignedBytes", new GuavaSignedBytes()));
+  static class MyArgumentProvider implements ArgumentsProvider {
+    @Override
+    public Stream<? extends Arguments> provideArguments(
+        ParameterDeclarations parameters, ExtensionContext context) {
+      return Stream.of(
+          Arguments.argumentSet("StringRunner", new StringRunner()),
+          Arguments.argumentSet("DirectBufferRunner", new DirectBufferRunner()),
+          Arguments.argumentSet("ByteArrayRunner", new ByteArrayRunner()),
+          Arguments.argumentSet("UnsignedByteArrayRunner", new UnsignedByteArrayRunner()),
+          Arguments.argumentSet("ByteBufferRunner", new ByteBufferRunner()),
+          Arguments.argumentSet("NettyRunner", new NettyRunner()),
+          Arguments.argumentSet("GuavaUnsignedBytes", new GuavaUnsignedBytes()),
+          Arguments.argumentSet("GuavaSignedBytes", new GuavaSignedBytes()));
+    }
   }
 
   private static byte[] buffer(final int... bytes) {
@@ -75,7 +82,7 @@ public final class ComparatorTest {
   }
 
   @ParameterizedTest
-  @MethodSource("comparatorProvider")
+  @ArgumentsSource(MyArgumentProvider.class)
   void atLeastOneBufferHasEightBytes(final ComparatorRunner comparator) {
     assertThat(get(comparator.compare(HLLLLLLL, LLLLLLLL))).isEqualTo(GREATER_THAN);
     assertThat(get(comparator.compare(LLLLLLLL, HLLLLLLL))).isEqualTo(LESS_THAN);
@@ -94,7 +101,7 @@ public final class ComparatorTest {
   }
 
   @ParameterizedTest
-  @MethodSource("comparatorProvider")
+  @ArgumentsSource(MyArgumentProvider.class)
   void buffersOfTwoBytes(final ComparatorRunner comparator) {
     assertThat(get(comparator.compare(LL, XX))).isEqualTo(GREATER_THAN);
     assertThat(get(comparator.compare(XX, LL))).isEqualTo(LESS_THAN);
@@ -110,7 +117,7 @@ public final class ComparatorTest {
   }
 
   @ParameterizedTest
-  @MethodSource("comparatorProvider")
+  @ArgumentsSource(MyArgumentProvider.class)
   void equalBuffers(final ComparatorRunner comparator) {
     assertThat(get(comparator.compare(LL, LL))).isEqualTo(EQUAL_TO);
     assertThat(get(comparator.compare(HX, HX))).isEqualTo(EQUAL_TO);
