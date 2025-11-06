@@ -213,44 +213,45 @@ public final class DbiTest {
         .boxed()
         .collect(toList());
 
-    try (ExecutorService pool = Executors.newCachedThreadPool()) {
-      final AtomicBoolean proceed = new AtomicBoolean(true);
-      final Future<?> reader =
-          pool.submit(
-              () -> {
-                while (proceed.get()) {
-                  try (Txn<T> txn = env.txnRead()) {
-                    db.get(txn, serializer.apply(50));
-                  }
+    // TODO surround with try-with-resources in J19+
+    //noinspection resource // Not in J8
+    ExecutorService pool = Executors.newCachedThreadPool();
+    final AtomicBoolean proceed = new AtomicBoolean(true);
+    final Future<?> reader =
+        pool.submit(
+            () -> {
+              while (proceed.get()) {
+                try (Txn<T> txn = env.txnRead()) {
+                  db.get(txn, serializer.apply(50));
                 }
-              });
+              }
+            });
 
-      for (final Integer key : keys) {
-        try (Txn<T> txn = env.txnWrite()) {
-          db.put(txn, serializer.apply(key), serializer.apply(3));
-          txn.commit();
-        }
+    for (final Integer key : keys) {
+      try (Txn<T> txn = env.txnWrite()) {
+        db.put(txn, serializer.apply(key), serializer.apply(3));
+        txn.commit();
+      }
+    }
+
+    try (Txn<T> txn = env.txnRead();
+         CursorIterable<T> ci = db.iterate(txn)) {
+      final Iterator<KeyVal<T>> iter = ci.iterator();
+      final List<Integer> result = new ArrayList<>();
+      while (iter.hasNext()) {
+        result.add(deserializer.applyAsInt(iter.next().key()));
       }
 
-      try (Txn<T> txn = env.txnRead();
-           CursorIterable<T> ci = db.iterate(txn)) {
-        final Iterator<KeyVal<T>> iter = ci.iterator();
-        final List<Integer> result = new ArrayList<>();
-        while (iter.hasNext()) {
-          result.add(deserializer.applyAsInt(iter.next().key()));
-        }
+      assertThat(result).contains(keys.toArray(new Integer[0]));
+    }
 
-        assertThat(result).contains(keys.toArray(new Integer[0]));
-      }
-
-      proceed.set(false);
-      try {
-        reader.get(1, SECONDS);
-        pool.shutdown();
-        pool.awaitTermination(1, SECONDS);
-      } catch (ExecutionException | InterruptedException | TimeoutException e) {
-        throw new IllegalStateException(e);
-      }
+    proceed.set(false);
+    try {
+      reader.get(1, SECONDS);
+      pool.shutdown();
+      pool.awaitTermination(1, SECONDS);
+    } catch (ExecutionException | InterruptedException | TimeoutException e) {
+      throw new IllegalStateException(e);
     }
   }
 
@@ -392,11 +393,11 @@ public final class DbiTest {
     FileUtil.useTempFile(
         file -> {
           try (Env<byte[]> envBa = create(PROXY_BA)
-                       .setMapSize(MEBIBYTES.toBytes(64))
-                       .setMaxReaders(1)
-                       .setMaxDbs(2)
-                       .setEnvFlags(MDB_NOSUBDIR)
-                       .open(file)) {
+              .setMapSize(MEBIBYTES.toBytes(64))
+              .setMaxReaders(1)
+              .setMaxDbs(2)
+              .setEnvFlags(MDB_NOSUBDIR)
+              .open(file)) {
             final Dbi<byte[]> db = envBa.openDbi(DB_1, MDB_CREATE);
             try (Txn<byte[]> txn = envBa.txnWrite()) {
               db.put(txn, ba(5), ba(5));
