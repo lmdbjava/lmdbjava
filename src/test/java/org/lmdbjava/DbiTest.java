@@ -109,7 +109,7 @@ public final class DbiTest {
   void close() {
     assertThatThrownBy(
         () -> {
-          final Dbi<ByteBuffer> db = env.buildDbi()
+          final Dbi<ByteBuffer> db = env.createDbi()
               .setDbName(DB_1)
               .withDefaultComparator()
               .addDbiFlag(MDB_CREATE)
@@ -152,7 +152,7 @@ public final class DbiTest {
       Comparator<T> comparator,
       IntFunction<T> serializer,
       ToIntFunction<T> deserializer) {
-    final Dbi<T> db = env.buildDbi()
+    final Dbi<T> db = env.createDbi()
         .setDbName(DB_1)
         .withCallbackComparator(ignored -> comparator)
         .setDbiFlags(MDB_CREATE)
@@ -203,7 +203,7 @@ public final class DbiTest {
       ToIntFunction<T> deserializer) {
     final DbiFlagSet flags = DbiFlagSet.of(MDB_CREATE, MDB_INTEGERKEY);
     final Comparator<T> comparator = comparatorSupplier.get();
-    final Dbi<T> db = env.buildDbi()
+    final Dbi<T> db = env.createDbi()
         .setDbName(DB_1)
         .withCallbackComparator(ignored -> comparator)
         .setDbiFlags(flags)

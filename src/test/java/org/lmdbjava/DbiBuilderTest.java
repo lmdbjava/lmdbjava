@@ -57,7 +57,7 @@ public class DbiBuilderTest {
 
   @Test
   public void unnamed() {
-    final Dbi<ByteBuffer> dbi = env.buildDbi()
+    final Dbi<ByteBuffer> dbi = env.createDbi()
         .withoutDbName()
         .withDefaultComparator()
         .setDbiFlags(DbiFlags.MDB_CREATE)
@@ -70,7 +70,7 @@ public class DbiBuilderTest {
 
   @Test
   public void named() {
-    final Dbi<ByteBuffer> dbi = env.buildDbi()
+    final Dbi<ByteBuffer> dbi = env.createDbi()
         .setDbName("foo")
         .withDefaultComparator()
         .setDbiFlags(DbiFlags.MDB_CREATE)
@@ -89,7 +89,7 @@ public class DbiBuilderTest {
 
   @Test
   public void named2() {
-    final Dbi<ByteBuffer> dbi = env.buildDbi()
+    final Dbi<ByteBuffer> dbi = env.createDbi()
         .setDbName("foo".getBytes(StandardCharsets.US_ASCII))
         .withDefaultComparator()
         .setDbiFlags(DbiFlags.MDB_CREATE)
@@ -108,7 +108,7 @@ public class DbiBuilderTest {
 
   @Test
   public void nativeComparator() {
-    final Dbi<ByteBuffer> dbi = env.buildDbi()
+    final Dbi<ByteBuffer> dbi = env.createDbi()
         .setDbName("foo")
         .withNativeComparator()
         .addDbiFlags(DbiFlags.MDB_CREATE)
@@ -131,7 +131,7 @@ public class DbiBuilderTest {
       }
     };
 
-    final Dbi<ByteBuffer> dbi = env.buildDbi()
+    final Dbi<ByteBuffer> dbi = env.createDbi()
         .setDbName("foo")
         .withCallbackComparator(ignored -> comparator)
         .addDbiFlags(DbiFlags.MDB_CREATE)
@@ -163,7 +163,7 @@ public class DbiBuilderTest {
 
   @Test
   public void flags() {
-    final Dbi<ByteBuffer> dbi = env.buildDbi()
+    final Dbi<ByteBuffer> dbi = env.createDbi()
         .setDbName("foo")
         .withDefaultComparator()
         .setDbiFlags(DbiFlags.MDB_DUPSORT, DbiFlags.MDB_DUPFIXED) // Will get overwritten

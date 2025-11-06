@@ -282,7 +282,7 @@ public final class Env<T> implements AutoCloseable {
    *
    * @return A new builder instance for creating/opening a {@link Dbi}.
    */
-  public DbiBuilder<T> buildDbi() {
+  public DbiBuilder<T> createDbi() {
     return new DbiBuilder<>(this, proxy, readOnly);
   }
 
@@ -290,7 +290,7 @@ public final class Env<T> implements AutoCloseable {
    * Convenience method that opens a {@link Dbi} with a UTF-8 database name and default
    * {@link Comparator} that is not invoked from native code.
    * <p>
-   * For more options when opening a {@link Dbi} see {@link Env#buildDbi()}.
+   * For more options when opening a {@link Dbi} see {@link Env#createDbi()}.
    * </p>
    * @param name       name of the database (or null if no name is required)
    * @param dbiFlagSet Flags to open the database with
@@ -309,7 +309,7 @@ public final class Env<T> implements AutoCloseable {
    * Convenience method that opens a {@link Dbi} with a default
    * {@link Comparator} that is not invoked from native code.
    * <p>
-   * For more options when opening a {@link Dbi} see {@link Env#buildDbi()}.
+   * For more options when opening a {@link Dbi} see {@link Env#createDbi()}.
    * </p>
    * @param name       name of the database (or null if no name is required)
    * @param dbiFlagSet Flags to open the database with
@@ -328,7 +328,7 @@ public final class Env<T> implements AutoCloseable {
    * @param name  name of the database (or null if no name is required)
    * @param flags to open the database with
    * @return a database that is ready to use
-   * @deprecated Instead use {@link Env#buildDbi()} or {@link Env#openDbi(String, DbiFlagSet)}
+   * @deprecated Instead use {@link Env#createDbi()} or {@link Env#openDbi(String, DbiFlagSet)}
    * Convenience method that opens a {@link Dbi} with a UTF-8 database name and default {@link
    * Comparator} that is not invoked from native code.
    */
@@ -344,7 +344,7 @@ public final class Env<T> implements AutoCloseable {
    *                   comparator will be used.
    * @param flags      to open the database with
    * @return a database that is ready to use
-   * @deprecated Instead use {@link Env#buildDbi()}
+   * @deprecated Instead use {@link Env#createDbi()}
    * Convenience method that opens a {@link Dbi} with a UTF-8 database name and associated {@link
    * Comparator} for use by {@link CursorIterable} when comparing start/stop keys.
    *
@@ -368,7 +368,7 @@ public final class Env<T> implements AutoCloseable {
    * @param nativeCb   whether LMDB native code calls back to the Java comparator
    * @param flags      to open the database with
    * @return a database that is ready to use
-   * @deprecated Instead use {@link Env#buildDbi()}
+   * @deprecated Instead use {@link Env#createDbi()}
    * Convenience method that opens a {@link Dbi} with a UTF-8 database name and associated {@link
    * Comparator}. The comparator will be used by {@link CursorIterable} when comparing start/stop
    * keys as a minimum. If nativeCb is {@code true}, this comparator will also be called by LMDB to
@@ -388,7 +388,7 @@ public final class Env<T> implements AutoCloseable {
    * @param name  name of the database (or null if no name is required)
    * @param flags to open the database with
    * @return a database that is ready to use
-   * @deprecated Instead use {@link Env#buildDbi()}
+   * @deprecated Instead use {@link Env#createDbi()}
    * <hr>
    * Convenience method that opens a {@link Dbi} with a default {@link Comparator} that is not
    * invoked from native code.
@@ -396,7 +396,7 @@ public final class Env<T> implements AutoCloseable {
   @Deprecated()
   public Dbi<T> openDbi(final byte[] name,
                         final DbiFlags... flags) {
-    return buildDbi()
+    return createDbi()
         .setDbName(name)
         .withDefaultComparator()
         .setDbiFlags(flags)
@@ -408,7 +408,7 @@ public final class Env<T> implements AutoCloseable {
    * @param comparator custom comparator callback (or null to use LMDB default)
    * @param flags      to open the database with
    * @return a database that is ready to use
-   * @deprecated Instead use {@link Env#buildDbi()}
+   * @deprecated Instead use {@link Env#createDbi()}
    * <hr>
    * Convenience method that opens a {@link Dbi} with an associated {@link Comparator} that is not
    * invoked from native code.
@@ -418,7 +418,7 @@ public final class Env<T> implements AutoCloseable {
                         final Comparator<T> comparator,
                         final DbiFlags... flags) {
     requireNonNull(comparator);
-    return buildDbi()
+    return createDbi()
         .setDbName(name)
         .withIteratorComparator(ignored -> comparator)
         .setDbiFlags(flags)
@@ -431,7 +431,7 @@ public final class Env<T> implements AutoCloseable {
    * @param nativeCb   whether native code calls back to the Java comparator
    * @param flags      to open the database with
    * @return a database that is ready to use
-   * @deprecated Instead use {@link Env#buildDbi()}
+   * @deprecated Instead use {@link Env#createDbi()}
    * <hr>
    * Convenience method that opens a {@link Dbi} with an associated {@link Comparator} that may be
    * invoked from native code if specified.
@@ -459,7 +459,7 @@ public final class Env<T> implements AutoCloseable {
    * @param nativeCb   whether native LMDB code should call back to the Java comparator
    * @param flags      to open the database with
    * @return a database that is ready to use
-   * @deprecated Instead use {@link Env#buildDbi()}
+   * @deprecated Instead use {@link Env#createDbi()}
    * Open the {@link Dbi} using the passed {@link Txn}.
    *
    * <p>The caller must commit the transaction after this method returns in order to retain the

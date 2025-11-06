@@ -337,7 +337,7 @@ public final class CursorIterableIntegerDupTest {
           return guava.compare(array1, array2);
         };
 
-    final Dbi<ByteBuffer> guavaDbi = env.buildDbi()
+    final Dbi<ByteBuffer> guavaDbi = env.createDbi()
         .setDbName(DB_1).withIteratorComparator(ignored -> comparator)
         .setDbiFlags(MDB_CREATE)
         .open();
@@ -529,25 +529,25 @@ public final class CursorIterableIntegerDupTest {
     public Stream<? extends Arguments> provideArguments(ParameterDeclarations parameters,
                                                         ExtensionContext context) throws Exception {
       final DbiFactory defaultComparatorDb = new DbiFactory("defaultComparator", env ->
-          env.buildDbi()
+          env.createDbi()
               .setDbName(DB_1)
               .withDefaultComparator()
               .setDbiFlags(DBI_FLAGS)
               .open());
       final DbiFactory nativeComparatorDb = new DbiFactory("nativeComparator", env ->
-          env.buildDbi()
+          env.createDbi()
               .setDbName(DB_2)
               .withNativeComparator()
               .setDbiFlags(DBI_FLAGS)
               .open());
       final DbiFactory callbackComparatorDb = new DbiFactory("callbackComparator", env ->
-          env.buildDbi()
+          env.createDbi()
               .setDbName(DB_3)
               .withCallbackComparator(MyArgumentProvider::buildComparator)
               .setDbiFlags(DBI_FLAGS)
               .open());
       final DbiFactory iteratorComparatorDb = new DbiFactory("iteratorComparator", env ->
-          env.buildDbi()
+          env.createDbi()
               .setDbName(DB_4)
               .withIteratorComparator(MyArgumentProvider::buildComparator)
               .setDbiFlags(DBI_FLAGS)

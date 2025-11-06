@@ -67,7 +67,7 @@ public final class ByteBufferProxyTest {
                 try (Env<ByteBuffer> env = create()
                     .setMaxReaders(1)
                     .open(dir)) {
-                  final Dbi<ByteBuffer> db = env.buildDbi()
+                  final Dbi<ByteBuffer> db = env.createDbi()
                       .setDbName(DB_1)
                       .withDefaultComparator()
                       .setDbiFlags(MDB_CREATE)
