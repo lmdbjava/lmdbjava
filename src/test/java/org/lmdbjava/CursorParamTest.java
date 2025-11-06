@@ -16,7 +16,6 @@
 
 package org.lmdbjava;
 
-import static com.jakewharton.byteunits.BinaryByteUnit.MEBIBYTES;
 import static java.lang.Long.BYTES;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -158,7 +157,7 @@ public final class CursorParamTest {
 
     private Env<T> env(final Path tmp) {
       return create(proxy)
-          .setMapSize(MEBIBYTES.toBytes(1))
+          .setMapSize(1, ByteUnit.MEBIBYTES)
           .setMaxReaders(1)
           .setMaxDbs(1)
           .setEnvFlags(MDB_NOSUBDIR)

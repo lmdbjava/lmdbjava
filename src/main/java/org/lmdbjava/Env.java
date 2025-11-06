@@ -63,11 +63,6 @@ public final class Env<T> implements AutoCloseable {
    */
   public static final boolean SHOULD_CHECK = !getBoolean(DISABLE_CHECKS_PROP);
 
-  private static final long KIBIBYTES = 1_024L;
-  private static final long MEBIBYTES = KIBIBYTES * 1_024L;
-  private static final long GIBIBYTES = MEBIBYTES * 1_024L;
-  private static final long TEBIBYTES = GIBIBYTES * 1_024L;
-
   private boolean closed;
   private final int maxKeySize;
   private final boolean noSubDir;
@@ -120,8 +115,9 @@ public final class Env<T> implements AutoCloseable {
    */
   @Deprecated
   public static Env<ByteBuffer> open(final File path, final int size, final EnvFlags... flags) {
+
     return new Builder<>(PROXY_OPTIMAL)
-        .setMapSize(size * MEBIBYTES)
+        .setMapSize(size, ByteUnit.MEBIBYTES)
         .open(path, flags);
   }
 
@@ -218,7 +214,20 @@ public final class Env<T> implements AutoCloseable {
    * @param mapSize the new size, in bytes
    */
   public void setMapSize(final long mapSize) {
+    if (mapSize < 0) {
+      throw new IllegalArgumentException("Negative value; overflow?");
+    }
     checkRc(LIB.mdb_env_set_mapsize(ptr, mapSize));
+  }
+
+  /**
+   * Set the size of the data memory map.
+   *
+   * @param mapSize the new size, in bytes
+   */
+  public void setMapSize(final long mapSize, final ByteUnit byteUnit) {
+    requireNonNull(byteUnit);
+    setMapSize(byteUnit.toBytes(mapSize));
   }
 
   /**
@@ -668,7 +677,8 @@ public final class Env<T> implements AutoCloseable {
   public static final class Builder<T> {
 
     static final int MAX_READERS_DEFAULT = 126;
-    private long mapSize = 1_024 * 1_024;
+    static final long MAP_SIZE_DEFAULT = ByteUnit.MEBIBYTES.toBytes(1);
+    private long mapSize = MAP_SIZE_DEFAULT;
     private int maxDbs = 1;
     private int maxReaders = MAX_READERS_DEFAULT;
     private boolean opened;
@@ -772,43 +782,17 @@ public final class Env<T> implements AutoCloseable {
     }
 
     /**
-     * Sets the map size in kibibytes
+     * Sets the map size in the supplied unit.
      *
-     * @param mapSizeKb new limit in kibibytes
+     * @param mapSize new limit in
      * @return the builder
      */
-    public Builder<T> setMapSizeKb(final long mapSizeKb) {
-      return setMapSize(mapSizeKb * KIBIBYTES);
-    }
-
-    /**
-     * Sets the map size in mebibytes.
-     *
-     * @param mapSizeMb new limit in mebibytes.
-     * @return the builder
-     */
-    public Builder<T> setMapSizeMb(final long mapSizeMb) {
-      return setMapSize(mapSizeMb * MEBIBYTES);
-    }
-
-    /**
-     * Sets the map size in gibibytes
-     *
-     * @param mapSizeGb new limit in gibibytes
-     * @return the builder
-     */
-    public Builder<T> setMapSizeGb(final long mapSizeGb) {
-      return setMapSize(mapSizeGb * GIBIBYTES);
-    }
-
-    /**
-     * Sets the map size in tebibytes.
-     *
-     * @param mapSizeTb new limit in tebibytes.
-     * @return the builder
-     */
-    public Builder<T> setMapSizeTb(final long mapSizeTb) {
-      return setMapSize(mapSizeTb * TEBIBYTES);
+    public Builder<T> setMapSize(final long mapSize, final ByteUnit byteUnit) {
+      requireNonNull(byteUnit);
+      if (mapSize < 0) {
+        throw new IllegalArgumentException("Negative value; overflow?");
+      }
+      return setMapSize(byteUnit.toBytes(mapSize));
     }
 
     /**

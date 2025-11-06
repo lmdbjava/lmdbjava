@@ -15,7 +15,6 @@
  */
 package org.lmdbjava;
 
-import static com.jakewharton.byteunits.BinaryByteUnit.KIBIBYTES;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import static org.lmdbjava.DbiFlags.MDB_DUPSORT;
@@ -123,7 +122,7 @@ public final class CursorIterableIntegerDupTest {
     final BufferProxy<ByteBuffer> bufferProxy = ByteBufferProxy.PROXY_OPTIMAL;
     env =
         create(bufferProxy)
-            .setMapSize(KIBIBYTES.toBytes(256))
+            .setMapSize(256, ByteUnit.KIBIBYTES)
             .setMaxReaders(1)
             .setMaxDbs(3)
             .setEnvFlags(MDB_NOSUBDIR)

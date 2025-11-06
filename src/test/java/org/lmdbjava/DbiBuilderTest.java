@@ -15,7 +15,6 @@
  */
 package org.lmdbjava;
 
-import static com.jakewharton.byteunits.BinaryByteUnit.MEBIBYTES;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.lmdbjava.Env.create;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
@@ -42,7 +41,7 @@ public class DbiBuilderTest {
   public void before() {
     file = FileUtil.createTempFile();
     env = create()
-        .setMapSize(MEBIBYTES.toBytes(64))
+        .setMapSize(64, ByteUnit.MEBIBYTES)
         .setMaxReaders(2)
         .setMaxDbs(2)
         .setEnvFlags(MDB_NOSUBDIR)

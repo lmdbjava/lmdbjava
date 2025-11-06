@@ -29,7 +29,6 @@
     <agrona.version>1.22.0</agrona.version>
     <assertj.version>3.27.6</assertj.version>
     <buildnumber-maven-plugin.version>3.2.1</buildnumber-maven-plugin.version>
-    <byteunits.version>0.9.1</byteunits.version>
     <central-publishing-maven-plugin.version>0.9.0</central-publishing-maven-plugin.version>
     <fmt-maven-plugin.version>2.29</fmt-maven-plugin.version>
     <google-java-format.version>1.28.0</google-java-format.version>
@@ -83,12 +82,6 @@
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
       <version>${guava.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.jakewharton.byteunits</groupId>
-      <artifactId>byteunits</artifactId>
-      <version>${byteunits.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>

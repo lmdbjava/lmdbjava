@@ -16,7 +16,6 @@
 
 package org.lmdbjava;
 
-import static com.jakewharton.byteunits.BinaryByteUnit.MEBIBYTES;
 import static java.lang.Long.MAX_VALUE;
 import static java.lang.System.getProperty;
 import static java.nio.ByteBuffer.allocateDirect;
@@ -82,19 +81,19 @@ public final class DbiTest {
   @BeforeEach
   void beforeEach() {
     file = FileUtil.createTempFile();
-    env =
-        create()
-            .setMapSize(MEBIBYTES.toBytes(64))
-            .setMaxReaders(2)
-            .setMaxDbs(2)
-            .open(file.toFile(), MDB_NOSUBDIR);
+    env = create()
+        .setMapSize(64, ByteUnit.MEBIBYTES)
+        .setMaxReaders(2)
+        .setMaxDbs(2)
+        .setEnvFlags(MDB_NOSUBDIR)
+        .open(file);
     fileBa = FileUtil.createTempFile();
-    envBa =
-        create(PROXY_BA)
-            .setMapSize(MEBIBYTES.toBytes(64))
-            .setMaxReaders(2)
-            .setMaxDbs(2)
-            .open(fileBa.toFile(), MDB_NOSUBDIR);
+    envBa = create(PROXY_BA)
+        .setMapSize(64, ByteUnit.MEBIBYTES)
+        .setMaxReaders(2)
+        .setMaxDbs(2)
+        .setEnvFlags(MDB_NOSUBDIR)
+        .open(fileBa);
   }
 
   @AfterEach
@@ -393,7 +392,7 @@ public final class DbiTest {
     FileUtil.useTempFile(
         file -> {
           try (Env<byte[]> envBa = create(PROXY_BA)
-              .setMapSize(MEBIBYTES.toBytes(64))
+              .setMapSize(64, ByteUnit.MEBIBYTES)
               .setMaxReaders(1)
               .setMaxDbs(2)
               .setEnvFlags(MDB_NOSUBDIR)

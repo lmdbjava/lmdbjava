@@ -16,7 +16,6 @@
 
 package org.lmdbjava;
 
-import static com.jakewharton.byteunits.BinaryByteUnit.MEBIBYTES;
 import static java.lang.Long.BYTES;
 import static java.lang.Long.MIN_VALUE;
 import static java.nio.ByteBuffer.allocateDirect;
@@ -61,7 +60,7 @@ public final class CursorTest {
     file = FileUtil.createTempFile();
     env =
         create(PROXY_OPTIMAL)
-            .setMapSize(MEBIBYTES.toBytes(1))
+            .setMapSize(1, ByteUnit.MEBIBYTES)
             .setMaxReaders(1)
             .setMaxDbs(1)
             .setEnvFlags(MDB_NOSUBDIR)

@@ -16,7 +16,6 @@
 
 package org.lmdbjava;
 
-import static com.jakewharton.byteunits.BinaryByteUnit.KIBIBYTES;
 import static java.nio.ByteBuffer.allocateDirect;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -64,7 +63,7 @@ public final class TxnTest {
     file = FileUtil.createTempFile();
     env =
         create()
-            .setMapSize(KIBIBYTES.toBytes(256))
+            .setMapSize(256, ByteUnit.KIBIBYTES)
             .setMaxReaders(1)
             .setMaxDbs(2)
             .setEnvFlags(MDB_NOSUBDIR)

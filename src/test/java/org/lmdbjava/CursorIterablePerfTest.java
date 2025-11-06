@@ -15,7 +15,6 @@
  */
 package org.lmdbjava;
 
-import static com.jakewharton.byteunits.BinaryByteUnit.GIBIBYTES;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import static org.lmdbjava.Env.create;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
@@ -51,7 +50,7 @@ public class CursorIterablePerfTest {
     final BufferProxy<ByteBuffer> bufferProxy = ByteBufferProxy.PROXY_OPTIMAL;
     env =
         create(bufferProxy)
-            .setMapSize(GIBIBYTES.toBytes(1))
+            .setMapSize(1, ByteUnit.GIBIBYTES)
             .setMaxReaders(1)
             .setMaxDbs(3)
             .setEnvFlags(MDB_NOSUBDIR)

@@ -16,7 +16,6 @@
 
 package org.lmdbjava;
 
-import static com.jakewharton.byteunits.BinaryByteUnit.KIBIBYTES;
 import static com.jakewharton.byteunits.BinaryByteUnit.MEBIBYTES;
 import static java.nio.ByteBuffer.allocateDirect;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -52,12 +51,11 @@ public final class EnvTest {
   void byteUnit() {
     FileUtil.useTempFile(
         file -> {
-          try (Env<ByteBuffer> env =
-                   Env.create()
-                       .setMaxReaders(1)
-                       .setMapSize(MEBIBYTES.toBytes(1))
-                       .setEnvFlags(MDB_NOSUBDIR)
-                       .open(file)) {
+          try (Env<ByteBuffer> env = Env.create()
+              .setMaxReaders(1)
+              .setMapSize(1, ByteUnit.MEBIBYTES)
+              .setEnvFlags(MDB_NOSUBDIR)
+              .open(file)) {
             final EnvInfo info = env.info();
             assertThat(info.mapSize).isEqualTo(MEBIBYTES.toBytes(1));
           }
@@ -342,13 +340,12 @@ public final class EnvTest {
   void createAsFile() {
     FileUtil.useTempFile(
         file -> {
-          try (Env<ByteBuffer> env =
-                   Env.create()
-                       .setMapSize(MEBIBYTES.toBytes(1))
-                       .setMaxDbs(1)
-                       .setMaxReaders(1)
-                       .setEnvFlags(MDB_NOSUBDIR)
-                       .open(file)) {
+          try (Env<ByteBuffer> env = Env.create()
+              .setMapSize(1, ByteUnit.MEBIBYTES)
+              .setMaxDbs(1)
+              .setMaxReaders(1)
+              .setEnvFlags(MDB_NOSUBDIR)
+              .open(file)) {
             env.sync(true);
             assertThat(Files.isRegularFile(file)).isTrue();
           }
@@ -404,7 +401,7 @@ public final class EnvTest {
                 try (Env<ByteBuffer> env =
                          Env.create()
                              .setMaxReaders(1)
-                             .setMapSize(MEBIBYTES.toBytes(8))
+                             .setMapSize(8, ByteUnit.MEBIBYTES)
                              .setMaxDbs(1)
                              .open(dir)) {
                   final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
@@ -452,12 +449,11 @@ public final class EnvTest {
           final ByteBuffer key = allocateDirect(500);
           final ByteBuffer val = allocateDirect(1_024);
           final Random rnd = new Random();
-          try (Env<ByteBuffer> env =
-                   Env.create()
-                       .setMaxReaders(1)
-                       .setMapSize(KIBIBYTES.toBytes(256))
-                       .setMaxDbs(1)
-                       .open(dir)) {
+          try (Env<ByteBuffer> env = Env.create()
+              .setMaxReaders(1)
+              .setMapSize(256, ByteUnit.KIBIBYTES)
+              .setMaxDbs(1)
+              .open(dir)) {
             final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
 
             db.put(bb(1), bb(42));
@@ -475,7 +471,7 @@ public final class EnvTest {
             }
             assertThat(mapFullExThrown).isTrue();
 
-            env.setMapSize(KIBIBYTES.toBytes(1024));
+            env.setMapSize(1024, ByteUnit.KIBIBYTES);
 
             try (Txn<ByteBuffer> roTxn = env.txnRead()) {
               final ByteBuffer byteBuffer = db.get(roTxn, bb(1));
@@ -525,7 +521,7 @@ public final class EnvTest {
   void testDefaultOpen() {
     FileUtil.useTempDir(
         dir -> {
-          try (Env<ByteBuffer> env = Env.create().setMapSizeMb(10).open(dir)) {
+          try (Env<ByteBuffer> env = Env.create().setMapSize(10, ByteUnit.MEBIBYTES).open(dir)) {
             final EnvInfo info = env.info();
             assertThat(info.maxReaders).isEqualTo(MAX_READERS_DEFAULT);
             final Dbi<ByteBuffer> db = env.openDbi("test", MDB_CREATE);
