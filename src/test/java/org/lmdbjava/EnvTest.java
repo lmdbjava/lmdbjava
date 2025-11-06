@@ -32,6 +32,7 @@ import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Random;
 import org.junit.jupiter.api.Test;
 import org.lmdbjava.Env.AlreadyClosedException;
@@ -371,8 +372,11 @@ public final class EnvTest {
   void info() {
     FileUtil.useTempFile(
         file -> {
-          try (Env<ByteBuffer> env =
-                   Env.create().setMaxReaders(4).setMapSize(123_456).setEnvFlags(MDB_NOSUBDIR).open(file)) {
+          try (Env<ByteBuffer> env = Env.create()
+              .setMaxReaders(4)
+              .setMapSize(123_456)
+              .setEnvFlags(MDB_NOSUBDIR)
+              .open(file)) {
             final EnvInfo info = env.info();
             assertThat(info).isNotNull();
             assertThat(info.lastPageNumber).isEqualTo(1L);
@@ -470,6 +474,10 @@ public final class EnvTest {
             }
             assertThat(mapFullExThrown).isTrue();
 
+            assertThatThrownBy(() -> {
+              env.setMapSize(-1, ByteUnit.KIBIBYTES);
+            }).isInstanceOf(IllegalArgumentException.class);
+
             env.setMapSize(1024, ByteUnit.KIBIBYTES);
 
             try (Txn<ByteBuffer> roTxn = env.txnRead()) {
@@ -525,6 +533,46 @@ public final class EnvTest {
             assertThat(info.maxReaders).isEqualTo(MAX_READERS_DEFAULT);
             final Dbi<ByteBuffer> db = env.openDbi("test", MDB_CREATE);
             db.put(allocateDirect(1), allocateDirect(1));
+          }
+        });
+  }
+
+  @Test
+  void testDefaultOpenNoName1() {
+    FileUtil.useTempDir(
+        dir -> {
+          try (Env<ByteBuffer> env = Env.create().setMapSize(10, ByteUnit.MEBIBYTES).open(dir)) {
+            final EnvInfo info = env.info();
+            assertThat(info.maxReaders).isEqualTo(MAX_READERS_DEFAULT);
+            final Dbi<ByteBuffer> db = env.openDbi((String) null, MDB_CREATE);
+            db.put(bb("abc"), allocateDirect(1));
+            db.put(bb("def"), allocateDirect(1));
+
+            // As this is the unnamed database it returns all keys in the unnamed db
+            final List<byte[]> dbiNames = env.getDbiNames();
+            assertThat(dbiNames)
+                .hasSize(2);
+            assertThat(dbiNames.get(0))
+                .isEqualTo("abc".getBytes(Env.DEFAULT_NAME_CHARSET));
+          }
+        });
+  }
+
+  @Test
+  void testDefaultOpenNoName2() {
+    FileUtil.useTempDir(
+        dir -> {
+          try (Env<ByteBuffer> env = Env.create().setMapSize(10, ByteUnit.MEBIBYTES).open(dir)) {
+            final EnvInfo info = env.info();
+            assertThat(info.maxReaders).isEqualTo(MAX_READERS_DEFAULT);
+            final Dbi<ByteBuffer> db = env.openDbi((byte[]) null, MDB_CREATE);
+
+            // As this is the unnamed database it returns all keys in the unnamed db
+            final List<byte[]> dbiNames = env.getDbiNames();
+            assertThat(dbiNames)
+                .hasSize(1);
+            assertThat(dbiNames.get(0))
+                .isEqualTo(new byte[0]);
           }
         });
   }
