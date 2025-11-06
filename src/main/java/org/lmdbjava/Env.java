@@ -115,7 +115,6 @@ public final class Env<T> implements AutoCloseable {
    */
   @Deprecated
   public static Env<ByteBuffer> open(final File path, final int size, final EnvFlags... flags) {
-
     return new Builder<>(PROXY_OPTIMAL)
         .setMapSize(size, ByteUnit.MEBIBYTES)
         .open(path, flags);
@@ -678,13 +677,15 @@ public final class Env<T> implements AutoCloseable {
 
     static final int MAX_READERS_DEFAULT = 126;
     static final long MAP_SIZE_DEFAULT = ByteUnit.MEBIBYTES.toBytes(1);
+    static final int POSIX_MODE_DEFAULT = 0664;
+
     private long mapSize = MAP_SIZE_DEFAULT;
     private int maxDbs = 1;
     private int maxReaders = MAX_READERS_DEFAULT;
     private boolean opened;
     private final BufferProxy<T> proxy;
-    private int mode = 0664;
-    private AbstractFlagSet.Builder<EnvFlags, EnvFlagSet> flagSetBuilder = EnvFlagSet.builder();
+    private int mode = POSIX_MODE_DEFAULT;
+    private final AbstractFlagSet.Builder<EnvFlags, EnvFlagSet> flagSetBuilder = EnvFlagSet.builder();
 
     Builder(final BufferProxy<T> proxy) {
       requireNonNull(proxy);

@@ -56,6 +56,11 @@ public interface FlagSet<T extends MaskedFlag> extends Iterable<T> {
   boolean isSet(T flag);
 
   /**
+   * @return The number of flags in this set.
+   */
+  int size();
+
+  /**
    * @return True if at least one of flags are included in thie {@link FlagSet}
    */
   default boolean areAnySet(final FlagSet<T> flags) {
@@ -71,19 +76,11 @@ public interface FlagSet<T extends MaskedFlag> extends Iterable<T> {
     return false;
   }
 
-  /**
-   * @return The size of this {@link FlagSet}
-   */
-  default int size() {
-    return getFlags().size();
-  }
 
   /**
    * @return True if this {@link FlagSet} is empty.
    */
-  default boolean isEmpty() {
-    return getFlags().isEmpty();
-  }
+  boolean isEmpty();
 
   /**
    * @return The {@link Iterator} (in no particular order) for the flags in this {@link FlagSet}.

@@ -45,10 +45,6 @@ public abstract class AbstractFlagSetTest<T extends Enum<T> & MaskedFlag & FlagS
     return getAllFlags().get(0);
   }
 
-  int getFlagCount() {
-    return getAllFlags().size();
-  }
-
   @Test
   void testEmpty() {
     final F emptyFlagSet = getEmptyFlagSet();
@@ -81,6 +77,12 @@ public abstract class AbstractFlagSetTest<T extends Enum<T> & MaskedFlag & FlagS
           .containsExactly(flag);
       assertThat(flagSet.size())
           .isEqualTo(1);
+      assertThat(FlagSet.equals(flagSet, new Object()))
+          .isFalse();
+      assertThat(FlagSet.equals(flagSet, null))
+          .isFalse();
+      assertThat(FlagSet.equals(flag, flag))
+          .isTrue();
       assertThat(FlagSet.equals(flagSet, flag))
           .isTrue();
       assertThat(FlagSet.equals(flagSet, getFlagSet(flag)))
@@ -89,6 +91,10 @@ public abstract class AbstractFlagSetTest<T extends Enum<T> & MaskedFlag & FlagS
           .isTrue();
       assertThat(flagSet.areAnySet(flag))
           .isTrue();
+      assertThat(flagSet.areAnySet(null))
+          .isFalse();
+      assertThat(flagSet.areAnySet(getEmptyFlagSet()))
+          .isFalse();
       assertThat(flagSet.isSet(getFirst()))
           .isEqualTo(getFirst() == flag);
       if (getFirst() == flag) {
@@ -97,11 +103,15 @@ public abstract class AbstractFlagSetTest<T extends Enum<T> & MaskedFlag & FlagS
       } else {
         assertThat(flagSet.getMask())
             .isNotEqualTo(MaskedFlag.mask(getFirst()));
+        assertThat(flagSet.getMaskWith(getFirst()))
+            .isEqualTo(MaskedFlag.mask(flag, getFirst()));
       }
       assertThat(flagSet.toString())
           .isNotNull();
       assertThat(flag.name())
           .isNotNull();
+      assertThat(flagSet.getMaskWith(null))
+          .isEqualTo(flagSet.getMask());
     }
   }
 
