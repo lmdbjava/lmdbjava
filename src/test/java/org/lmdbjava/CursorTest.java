@@ -37,7 +37,6 @@ import static org.lmdbjava.SeekOp.MDB_GET_BOTH;
 import static org.lmdbjava.SeekOp.MDB_LAST;
 import static org.lmdbjava.SeekOp.MDB_NEXT;
 import static org.lmdbjava.TestUtils.DB_1;
-import static org.lmdbjava.TestUtils.POSIX_MODE;
 import static org.lmdbjava.TestUtils.bb;
 
 import java.nio.ByteBuffer;
@@ -65,7 +64,8 @@ public final class CursorTest {
             .setMapSize(MEBIBYTES.toBytes(1))
             .setMaxReaders(1)
             .setMaxDbs(1)
-            .open(file.toFile(), POSIX_MODE, MDB_NOSUBDIR);
+            .setEnvFlags(MDB_NOSUBDIR)
+            .open(file);
   }
 
   @AfterEach

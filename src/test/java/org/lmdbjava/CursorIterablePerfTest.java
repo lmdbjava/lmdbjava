@@ -21,7 +21,6 @@ import static org.lmdbjava.Env.create;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.PutFlags.MDB_APPEND;
 import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
-import static org.lmdbjava.TestUtils.POSIX_MODE;
 import static org.lmdbjava.TestUtils.bb;
 
 import java.io.IOException;
@@ -39,17 +38,12 @@ import org.junit.jupiter.api.Test;
 
 public class CursorIterablePerfTest {
 
-  //    private static final int ITERATIONS = 5_000_000;
   private static final int ITERATIONS = 100_000;
-  //    private static final int ITERATIONS = 10;
 
-  private Path file;
-  private Dbi<ByteBuffer> dbJavaComparator;
-  private Dbi<ByteBuffer> dbLmdbComparator;
-  private Dbi<ByteBuffer> dbCallbackComparator;
-  private List<Dbi<ByteBuffer>> dbs = new ArrayList<>();
+  private final List<Dbi<ByteBuffer>> dbs = new ArrayList<>();
+  private final List<Integer> data = new ArrayList<>(ITERATIONS);
   private Env<ByteBuffer> env;
-  private List<Integer> data = new ArrayList<>(ITERATIONS);
+  private Path file;
 
   @BeforeEach
   public void before() throws IOException {
@@ -60,24 +54,25 @@ public class CursorIterablePerfTest {
             .setMapSize(GIBIBYTES.toBytes(1))
             .setMaxReaders(1)
             .setMaxDbs(3)
-            .open(file.toFile(), POSIX_MODE, MDB_NOSUBDIR);
+            .setEnvFlags(MDB_NOSUBDIR)
+            .open(file);
 
     final DbiFlagSet dbiFlagSet = MDB_CREATE;
     // Use a java comparator for start/stop keys only
-    dbJavaComparator = env.buildDbi()
+    Dbi<ByteBuffer> dbJavaComparator = env.buildDbi()
         .setDbName("JavaComparator")
         .withDefaultComparator()
         .setDbiFlags(dbiFlagSet)
         .open();
     // Use LMDB comparator for start/stop keys
-    dbLmdbComparator = env.buildDbi()
+    Dbi<ByteBuffer> dbLmdbComparator = env.buildDbi()
         .setDbName("LmdbComparator")
         .withNativeComparator()
         .setDbiFlags(dbiFlagSet)
         .open();
 
     // Use a java comparator for start/stop keys and as a callback comparator
-    dbCallbackComparator = env.buildDbi()
+    Dbi<ByteBuffer> dbCallbackComparator = env.buildDbi()
         .setDbName("CallBackComparator")
         .withCallbackComparator(bufferProxy::getComparator)
         .setDbiFlags(dbiFlagSet)
@@ -171,14 +166,14 @@ public class CursorIterablePerfTest {
     for (int round = 0; round < 3; round++) {
       System.out.println("round: " + round + " -----------------------------------------");
       for (final Dbi<ByteBuffer> db : dbs) {
-        final String dbName = new String(db.getName(), StandardCharsets.UTF_8);
+        final String dbName = db.getNameAsString();
 
         final Instant start = Instant.now();
         int cnt = 0;
         // Exercise the stop key comparator on every entry
         try (Txn<ByteBuffer> txn = env.txnRead();
-            CursorIterable<ByteBuffer> c = db.iterate(txn, keyRange)) {
-          for (final CursorIterable.KeyVal<ByteBuffer> kv : c) {
+            CursorIterable<ByteBuffer> cursorIterable = db.iterate(txn, keyRange)) {
+          for (final CursorIterable.KeyVal<ByteBuffer> ignored : cursorIterable) {
             cnt++;
           }
         }

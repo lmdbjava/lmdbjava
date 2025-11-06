@@ -27,7 +27,6 @@ import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.EnvFlags.MDB_RDONLY_ENV;
 import static org.lmdbjava.KeyRange.closed;
 import static org.lmdbjava.TestUtils.DB_1;
-import static org.lmdbjava.TestUtils.POSIX_MODE;
 import static org.lmdbjava.TestUtils.bb;
 import static org.lmdbjava.Txn.State.DONE;
 import static org.lmdbjava.Txn.State.READY;
@@ -68,7 +67,8 @@ public final class TxnTest {
             .setMapSize(KIBIBYTES.toBytes(256))
             .setMaxReaders(1)
             .setMaxDbs(2)
-            .open(file.toFile(), POSIX_MODE, MDB_NOSUBDIR);
+            .setEnvFlags(MDB_NOSUBDIR)
+            .open(file);
   }
 
   @AfterEach
@@ -126,8 +126,10 @@ public final class TxnTest {
   @Test
   void readOnlyTxnAllowedInReadOnlyEnv() {
     env.openDbi(DB_1, MDB_CREATE);
-    try (Env<ByteBuffer> roEnv =
-        create().setMaxReaders(1).open(file.toFile(), MDB_NOSUBDIR, MDB_RDONLY_ENV)) {
+    try (Env<ByteBuffer> roEnv = create()
+        .setMaxReaders(1)
+        .setEnvFlags(MDB_NOSUBDIR, MDB_RDONLY_ENV)
+        .open(file)) {
       assertThat(roEnv.txnRead()).isNotNull();
     }
   }

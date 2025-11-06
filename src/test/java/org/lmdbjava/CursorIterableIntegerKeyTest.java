@@ -432,7 +432,11 @@ public final class CursorIterableIntegerKeyTest {
           bb2.reset();
           return guava.compare(array1, array2);
         };
-    final Dbi<ByteBuffer> guavaDbi = env.openDbi(DB_1, comparator, MDB_CREATE);
+    final Dbi<ByteBuffer> guavaDbi = env.buildDbi()
+        .setDbName(DB_1)
+        .withIteratorComparator(ignored -> comparator)
+        .setDbiFlags(MDB_CREATE)
+        .open();
     populateDatabase(guavaDbi);
     verify(openClosedBackward(bbNative(7), bbNative(2)), guavaDbi, 6, 4, 2);
     verify(openClosedBackward(bbNative(8), bbNative(4)), guavaDbi, 6, 4);

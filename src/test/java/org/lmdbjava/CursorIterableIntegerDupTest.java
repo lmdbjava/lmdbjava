@@ -44,7 +44,6 @@ import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.DB_2;
 import static org.lmdbjava.TestUtils.DB_3;
 import static org.lmdbjava.TestUtils.DB_4;
-import static org.lmdbjava.TestUtils.POSIX_MODE;
 import static org.lmdbjava.TestUtils.bb;
 import static org.lmdbjava.TestUtils.bbNative;
 import static org.lmdbjava.TestUtils.getNativeInt;
@@ -63,7 +62,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -87,7 +85,7 @@ import org.lmdbjava.CursorIterable.KeyVal;
  */
 @Disabled // Waiting for the merge of stroomdev66's cursor tests
 @ParameterizedClass(name = "{index}: dbi: {0}")
-@ArgumentsSource(CursorIterableTest.MyArgumentProvider.class)
+@ArgumentsSource(CursorIterableIntegerDupTest.MyArgumentProvider.class)
 public final class CursorIterableIntegerDupTest {
 
   private static final DbiFlagSet DBI_FLAGS = DbiFlagSet.of(
@@ -128,7 +126,8 @@ public final class CursorIterableIntegerDupTest {
             .setMapSize(KIBIBYTES.toBytes(256))
             .setMaxReaders(1)
             .setMaxDbs(3)
-            .open(file.toFile(), POSIX_MODE, MDB_NOSUBDIR);
+            .setEnvFlags(MDB_NOSUBDIR)
+            .open(file);
 
     populateExpectedEntriesDeque();
   }
@@ -187,16 +186,15 @@ public final class CursorIterableIntegerDupTest {
       }
       txn.commit();
     }
-
-    try (Txn<ByteBuffer> txn = env.txnRead();
-         CursorIterable<ByteBuffer> c = dbi.iterate(txn)) {
-
+//    try (Txn<ByteBuffer> txn = env.txnRead();
+//         CursorIterable<ByteBuffer> c = dbi.iterate(txn)) {
+//
 //      for (final KeyVal<ByteBuffer> kv : c) {
 //        System.out.print(getNativeInt(kv.key()) + " => " + kv.val().getInt());
 //        System.out.print(", ");
 //      }
 //      System.out.println();
-    }
+//    }
   }
 
   private int[] rangeInc(final int fromInc, final int toInc) {
@@ -278,6 +276,7 @@ public final class CursorIterableIntegerDupTest {
 
       for (final KeyVal<ByteBuffer> kv : c) {
         final Map.Entry<Integer, Integer> entry = expectedEntriesDeque.pollFirst();
+        assertThat(entry).isNotNull();
 //        System.out.println(entry.getKey() + " => " + entry.getValue());
         assertThat(getNativeInt(kv.key())).isEqualTo(entry.getKey());
         assertThat(kv.val().getInt()).isEqualTo(entry.getValue());
@@ -306,24 +305,6 @@ public final class CursorIterableIntegerDupTest {
   public void lessThanTest() {
     verify(lessThan(bbNative(5)), 2, 4);
     verify(lessThan(bbNative(8)), 2, 4, 6);
-  }
-
-  public void nextThrowsNoSuchElementExceptionIfNoMoreElements() {
-    Assertions.assertThatThrownBy(() -> {
-      populateExpectedEntriesDeque();
-      final Dbi<ByteBuffer> db = getDb();
-      try (Txn<ByteBuffer> txn = env.txnRead();
-           CursorIterable<ByteBuffer> c = db.iterate(txn)) {
-        final Iterator<KeyVal<ByteBuffer>> i = c.iterator();
-        while (i.hasNext()) {
-          final KeyVal<ByteBuffer> kv = i.next();
-          assertThat(getNativeInt(kv.key())).isEqualTo(expectedEntriesDeque.pollFirst().getKey());
-          assertThat(kv.val().getInt()).isEqualTo(expectedEntriesDeque.pollFirst().getValue());
-        }
-        assertThat(i.hasNext()).isEqualTo(false);
-        i.next();
-      }
-    }).isInstanceOf(NoSuchElementException.class);
   }
 
   @Test
@@ -355,7 +336,12 @@ public final class CursorIterableIntegerDupTest {
           bb2.reset();
           return guava.compare(array1, array2);
         };
-    final Dbi<ByteBuffer> guavaDbi = env.openDbi(DB_1, comparator, MDB_CREATE);
+
+    final Dbi<ByteBuffer> guavaDbi = env.buildDbi()
+        .setDbName(DB_1).withIteratorComparator(ignored -> comparator)
+        .setDbiFlags(MDB_CREATE)
+        .open();
+
     populateDatabase(guavaDbi);
     verify(openClosedBackward(bbNative(7), bbNative(2)), guavaDbi, 6, 4, 2);
     verify(openClosedBackward(bbNative(8), bbNative(4)), guavaDbi, 6, 4);

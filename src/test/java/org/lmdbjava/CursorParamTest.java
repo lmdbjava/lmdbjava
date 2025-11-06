@@ -37,7 +37,6 @@ import static org.lmdbjava.SeekOp.MDB_LAST;
 import static org.lmdbjava.SeekOp.MDB_NEXT;
 import static org.lmdbjava.SeekOp.MDB_PREV;
 import static org.lmdbjava.TestUtils.DB_1;
-import static org.lmdbjava.TestUtils.POSIX_MODE;
 import static org.lmdbjava.TestUtils.bb;
 import static org.lmdbjava.TestUtils.mdb;
 import static org.lmdbjava.TestUtils.nb;
@@ -162,7 +161,8 @@ public final class CursorParamTest {
           .setMapSize(MEBIBYTES.toBytes(1))
           .setMaxReaders(1)
           .setMaxDbs(1)
-          .open(tmp.resolve("db").toFile(), POSIX_MODE, MDB_NOSUBDIR);
+          .setEnvFlags(MDB_NOSUBDIR)
+          .open(tmp.resolve("db"));
     }
   }
 

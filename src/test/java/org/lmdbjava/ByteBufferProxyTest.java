@@ -148,11 +148,6 @@ public final class ByteBufferProxyTest {
     assertThat(v.getClass().getSimpleName()).startsWith("Unsafe");
   }
 
-  /**
-   * For 100 rounds of 5,000,000 comparisons
-   * compareAsIntegerKeys: PT1.600525631S
-   * compareLexicographically: PT3.381935001S
-   */
   @Test
   public void comparatorPerformance() {
     final Random random = new Random(345098);
@@ -160,40 +155,41 @@ public final class ByteBufferProxyTest {
     final ByteBuffer buffer2 = ByteBuffer.allocateDirect(Long.BYTES);
     buffer1.limit(Long.BYTES);
     buffer2.limit(Long.BYTES);
-    final long[] values = random.longs(20_000_000).toArray();
+    final long[] values = random.longs(10_000_000).toArray();
+    final int rounds = 100;
 
-    Instant time = Instant.now();
-    // x is to ensure result is used by the jvm
-    int x = 0;
-    for (int rounds = 0; rounds < 100; rounds++) {
-      for (int i = 1; i < values.length; i++) {
-//        buffer1.order(ByteOrder.nativeOrder())
-        buffer1
-            .putLong(0, values[i - 1]);
-//        buffer2.order(ByteOrder.nativeOrder())
-        buffer2
-            .putLong(0, values[i]);
-        final int result = ByteBufferProxy.AbstractByteBufferProxy.compareAsIntegerKeys(buffer1, buffer2);
-        x += result;
+    for (int run = 0; run < 3; run++) {
+      Instant time = Instant.now();
+      // x is to ensure result is used by the jvm
+      int x = 0;
+      for (int round = 0; round < rounds; round++) {
+        for (int i = 1; i < values.length; i++) {
+          buffer1.order(ByteOrder.nativeOrder())
+              .putLong(0, values[i - 1]);
+          buffer2.order(ByteOrder.nativeOrder())
+              .putLong(0, values[i]);
+          final int result = ByteBufferProxy.AbstractByteBufferProxy.compareAsIntegerKeys(buffer1, buffer2);
+          x += result;
+        }
       }
-    }
-    System.out.println("compareAsIntegerKeys: " + Duration.between(time, Instant.now()) + ", x: " + x);
+      System.out.println("compareAsIntegerKeys: " + Duration.between(time, Instant.now()) + ", x: " + x);
 
-    time = Instant.now();
-    int y = 0;
-    for (int rounds = 0; rounds < 100; rounds++) {
-      for (int i = 1; i < values.length; i++) {
-        buffer1.order(BIG_ENDIAN)
-            .putLong(0, values[i - 1]);
-        buffer2.order(BIG_ENDIAN)
-            .putLong(0, values[i]);
-        final int result = ByteBufferProxy.AbstractByteBufferProxy.compareLexicographically(buffer1, buffer2);
-        y += result;
+      time = Instant.now();
+      int y = 0;
+      for (int round = 0; round < rounds; round++) {
+        for (int i = 1; i < values.length; i++) {
+          buffer1.order(BIG_ENDIAN)
+              .putLong(0, values[i - 1]);
+          buffer2.order(BIG_ENDIAN)
+              .putLong(0, values[i]);
+          final int result = ByteBufferProxy.AbstractByteBufferProxy.compareLexicographically(buffer1, buffer2);
+          y += result;
+        }
       }
-    }
-    System.out.println("compareLexicographically: " + Duration.between(time, Instant.now()) + ", y: " + y);
+      System.out.println("compareLexicographically: " + Duration.between(time, Instant.now()) + ", y: " + y);
 
-    assertThat(y).isEqualTo(x);
+      assertThat(y).isEqualTo(x);
+    }
   }
 
   @Test

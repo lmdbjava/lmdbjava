@@ -63,10 +63,10 @@ public final class Env<T> implements AutoCloseable {
    */
   public static final boolean SHOULD_CHECK = !getBoolean(DISABLE_CHECKS_PROP);
 
-  private static final long KIBIBYTES = 1_024;
-  private static final long MEBIBYTES = KIBIBYTES * 1_024;
-  private static final long GIBIBYTES = MEBIBYTES * 1_024;
-  private static final long TEBIBYTES = GIBIBYTES * 1_024;
+  private static final long KIBIBYTES = 1_024L;
+  private static final long MEBIBYTES = KIBIBYTES * 1_024L;
+  private static final long GIBIBYTES = MEBIBYTES * 1_024L;
+  private static final long TEBIBYTES = GIBIBYTES * 1_024L;
 
   private boolean closed;
   private final int maxKeySize;

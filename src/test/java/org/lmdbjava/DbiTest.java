@@ -108,16 +108,16 @@ public final class DbiTest {
   @Test
   void close() {
     assertThatThrownBy(
-            () -> {
-              final Dbi<ByteBuffer> db = env.buildDbi()
-                  .setDbName(DB_1)
-                  .withDefaultComparator()
-                  .addDbiFlag(MDB_CREATE)
-                  .open();
-              db.put(bb(1), bb(42));
-              db.close();
-              db.put(bb(2), bb(42)); // error
-            })
+        () -> {
+          final Dbi<ByteBuffer> db = env.buildDbi()
+              .setDbName(DB_1)
+              .withDefaultComparator()
+              .addDbiFlag(MDB_CREATE)
+              .open();
+          db.put(bb(1), bb(42));
+          db.close();
+          db.put(bb(2), bb(42)); // error
+        })
         .isInstanceOf(ConstantDerivedException.class);
   }
 
@@ -152,7 +152,11 @@ public final class DbiTest {
       Comparator<T> comparator,
       IntFunction<T> serializer,
       ToIntFunction<T> deserializer) {
-    final Dbi<T> db = env.openDbi(DB_1, comparator, true, MDB_CREATE);
+    final Dbi<T> db = env.buildDbi()
+        .setDbName(DB_1)
+        .withCallbackComparator(ignored -> comparator)
+        .setDbiFlags(MDB_CREATE)
+        .open();
     try (Txn<T> txn = env.txnWrite()) {
       assertThat(db.put(txn, serializer.apply(2), serializer.apply(3))).isTrue();
       assertThat(db.put(txn, serializer.apply(4), serializer.apply(6))).isTrue();
@@ -172,11 +176,11 @@ public final class DbiTest {
   @Test
   void dbOpenMaxDatabases() {
     assertThatThrownBy(
-            () -> {
-              env.openDbi("db1 is OK", MDB_CREATE);
-              env.openDbi("db2 is OK", MDB_CREATE);
-              env.openDbi("db3 fails", MDB_CREATE);
-            })
+        () -> {
+          env.openDbi("db1 is OK", MDB_CREATE);
+          env.openDbi("db2 is OK", MDB_CREATE);
+          env.openDbi("db3 fails", MDB_CREATE);
+        })
         .isInstanceOf(DbFullException.class);
   }
 
@@ -197,49 +201,56 @@ public final class DbiTest {
       Supplier<Comparator<T>> comparatorSupplier,
       IntFunction<T> serializer,
       ToIntFunction<T> deserializer) {
-    final DbiFlags[] flags = new DbiFlags[]{MDB_CREATE, MDB_INTEGERKEY};
-    final Comparator<T> c = comparatorSupplier.get();
-    final Dbi<T> db = env.openDbi(DB_1, c, true, flags);
+    final DbiFlagSet flags = DbiFlagSet.of(MDB_CREATE, MDB_INTEGERKEY);
+    final Comparator<T> comparator = comparatorSupplier.get();
+    final Dbi<T> db = env.buildDbi()
+        .setDbName(DB_1)
+        .withCallbackComparator(ignored -> comparator)
+        .setDbiFlags(flags)
+        .open();
 
-    final List<Integer> keys = range(0, 1_000).boxed().collect(toList());
+    final List<Integer> keys = range(0, 1_000)
+        .boxed()
+        .collect(toList());
 
-    final ExecutorService pool = Executors.newCachedThreadPool();
-    final AtomicBoolean proceed = new AtomicBoolean(true);
-    final Future<?> reader =
-        pool.submit(
-            () -> {
-              while (proceed.get()) {
-                try (Txn<T> txn = env.txnRead()) {
-                  db.get(txn, serializer.apply(50));
+    try (ExecutorService pool = Executors.newCachedThreadPool()) {
+      final AtomicBoolean proceed = new AtomicBoolean(true);
+      final Future<?> reader =
+          pool.submit(
+              () -> {
+                while (proceed.get()) {
+                  try (Txn<T> txn = env.txnRead()) {
+                    db.get(txn, serializer.apply(50));
+                  }
                 }
-              }
-            });
+              });
 
-    for (final Integer key : keys) {
-      try (Txn<T> txn = env.txnWrite()) {
-        db.put(txn, serializer.apply(key), serializer.apply(3));
-        txn.commit();
-      }
-    }
-
-    try (Txn<T> txn = env.txnRead();
-         CursorIterable<T> ci = db.iterate(txn)) {
-      final Iterator<KeyVal<T>> iter = ci.iterator();
-      final List<Integer> result = new ArrayList<>();
-      while (iter.hasNext()) {
-        result.add(deserializer.applyAsInt(iter.next().key()));
+      for (final Integer key : keys) {
+        try (Txn<T> txn = env.txnWrite()) {
+          db.put(txn, serializer.apply(key), serializer.apply(3));
+          txn.commit();
+        }
       }
 
-      assertThat(result).contains(keys.toArray(new Integer[0]));
-    }
+      try (Txn<T> txn = env.txnRead();
+           CursorIterable<T> ci = db.iterate(txn)) {
+        final Iterator<KeyVal<T>> iter = ci.iterator();
+        final List<Integer> result = new ArrayList<>();
+        while (iter.hasNext()) {
+          result.add(deserializer.applyAsInt(iter.next().key()));
+        }
 
-    proceed.set(false);
-    try {
-      reader.get(1, SECONDS);
-      pool.shutdown();
-      pool.awaitTermination(1, SECONDS);
-    } catch (ExecutionException | InterruptedException | TimeoutException e) {
-      throw new IllegalStateException(e);
+        assertThat(result).contains(keys.toArray(new Integer[0]));
+      }
+
+      proceed.set(false);
+      try {
+        reader.get(1, SECONDS);
+        pool.shutdown();
+        pool.awaitTermination(1, SECONDS);
+      } catch (ExecutionException | InterruptedException | TimeoutException e) {
+        throw new IllegalStateException(e);
+      }
     }
   }
 
@@ -280,7 +291,7 @@ public final class DbiTest {
   @Test
   void dropAndDeleteAnonymousDb() {
     env.openDbi(DB_1, MDB_CREATE);
-    final Dbi<ByteBuffer> nameDb = env.openDbi((byte[]) null);
+    final Dbi<ByteBuffer> nameDb = env.openDbi((byte[]) null, DbiFlagSet.EMPTY);
     final byte[] dbNameBytes = DB_1.getBytes(UTF_8);
     final ByteBuffer dbNameBuffer = allocateDirect(dbNameBytes.length);
     dbNameBuffer.put(dbNameBytes).flip();
@@ -380,12 +391,12 @@ public final class DbiTest {
   void putCommitGetByteArray() {
     FileUtil.useTempFile(
         file -> {
-    try (Env<byte[]> envBa =
-             create(PROXY_BA)
-                 .setMapSize(MEBIBYTES.toBytes(64))
-                 .setMaxReaders(1)
-                 .setMaxDbs(2)
-                  .open(file.toFile(), MDB_NOSUBDIR)) {
+          try (Env<byte[]> envBa = create(PROXY_BA)
+                       .setMapSize(MEBIBYTES.toBytes(64))
+                       .setMaxReaders(1)
+                       .setMaxDbs(2)
+                       .setEnvFlags(MDB_NOSUBDIR)
+                       .open(file)) {
             final Dbi<byte[]> db = envBa.openDbi(DB_1, MDB_CREATE);
             try (Txn<byte[]> txn = envBa.txnWrite()) {
               db.put(txn, ba(5), ba(5));
@@ -517,19 +528,19 @@ public final class DbiTest {
   @Test
   void testMapFullException() {
     assertThatThrownBy(
-            () -> {
-              final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
-              try (Txn<ByteBuffer> txn = env.txnWrite()) {
-                final ByteBuffer v;
-                try {
-                  v = allocateDirect(1_024 * 1_024 * 1_024);
-                } catch (final OutOfMemoryError e) {
-                  // Travis CI OS X build cannot allocate this much memory, so assume OK
-                  throw new MapFullException();
-                }
-                db.put(txn, bb(1), v);
-              }
-            })
+        () -> {
+          final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
+          try (Txn<ByteBuffer> txn = env.txnWrite()) {
+            final ByteBuffer v;
+            try {
+              v = allocateDirect(1_024 * 1_024 * 1_024);
+            } catch (final OutOfMemoryError e) {
+              // Travis CI OS X build cannot allocate this much memory, so assume OK
+              throw new MapFullException();
+            }
+            db.put(txn, bb(1), v);
+          }
+        })
         .isInstanceOf(MapFullException.class);
   }
 
@@ -554,109 +565,110 @@ public final class DbiTest {
   @Test
   void closedEnvRejectsOpenCall() {
     assertThatThrownBy(
-            () -> {
-              env.close();
-              env.openDbi(DB_1, MDB_CREATE);
-            })
+        () -> {
+          env.close();
+          env.openDbi(DB_1, MDB_CREATE);
+        })
         .isInstanceOf(AlreadyClosedException.class);
   }
 
   @Test
   void closedEnvRejectsCloseCall() {
     assertThatThrownBy(
-            () -> {
-              doEnvClosedTest(null, (db, txn) -> db.close());
-            })
+        () -> {
+          doEnvClosedTest(null, (db, txn) -> db.close());
+        })
         .isInstanceOf(AlreadyClosedException.class);
   }
 
   @Test
   void closedEnvRejectsGetCall() {
     assertThatThrownBy(
-            () -> {
-              doEnvClosedTest(
-                  (db, txn) -> {
-                    final ByteBuffer valBuf = db.get(txn, bb(1));
-                    assertThat(valBuf.getInt()).isEqualTo(10);
-                  },
-                  (db, txn) -> db.get(txn, bb(2)));
-            })
+        () -> {
+          doEnvClosedTest(
+              (db, txn) -> {
+                final ByteBuffer valBuf = db.get(txn, bb(1));
+                assertThat(valBuf).isNotNull();
+                assertThat(valBuf.getInt()).isEqualTo(10);
+              },
+              (db, txn) -> db.get(txn, bb(2)));
+        })
         .isInstanceOf(AlreadyClosedException.class);
   }
 
   @Test
   void closedEnvRejectsPutCall() {
     assertThatThrownBy(
-            () -> {
-              doEnvClosedTest(null, (db, txn) -> db.put(bb(5), bb(50)));
-            })
+        () -> {
+          doEnvClosedTest(null, (db, txn) -> db.put(bb(5), bb(50)));
+        })
         .isInstanceOf(AlreadyClosedException.class);
   }
 
   @Test
   void closedEnvRejectsPutWithTxnCall() {
     assertThatThrownBy(
-            () -> {
-              doEnvClosedTest(
-                  null,
-                  (db, txn) -> {
-                    db.put(txn, bb(5), bb(50));
-                  });
-            })
+        () -> {
+          doEnvClosedTest(
+              null,
+              (db, txn) -> {
+                db.put(txn, bb(5), bb(50));
+              });
+        })
         .isInstanceOf(AlreadyClosedException.class);
   }
 
   @Test
   void closedEnvRejectsIterateCall() {
     assertThatThrownBy(
-            () -> {
-              doEnvClosedTest(null, Dbi::iterate);
-            })
+        () -> {
+          doEnvClosedTest(null, Dbi::iterate);
+        })
         .isInstanceOf(AlreadyClosedException.class);
   }
 
   @Test
   void closedEnvRejectsDropCall() {
     assertThatThrownBy(
-            () -> {
-              doEnvClosedTest(null, Dbi::drop);
-            })
+        () -> {
+          doEnvClosedTest(null, Dbi::drop);
+        })
         .isInstanceOf(AlreadyClosedException.class);
   }
 
   @Test
   void closedEnvRejectsDropAndDeleteCall() {
     assertThatThrownBy(
-            () -> {
-              doEnvClosedTest(null, (db, txn) -> db.drop(txn, true));
-            })
+        () -> {
+          doEnvClosedTest(null, (db, txn) -> db.drop(txn, true));
+        })
         .isInstanceOf(AlreadyClosedException.class);
   }
 
   @Test
   void closedEnvRejectsOpenCursorCall() {
     assertThatThrownBy(
-            () -> {
-              doEnvClosedTest(null, Dbi::openCursor);
-            })
+        () -> {
+          doEnvClosedTest(null, Dbi::openCursor);
+        })
         .isInstanceOf(AlreadyClosedException.class);
   }
 
   @Test
   void closedEnvRejectsReserveCall() {
     assertThatThrownBy(
-            () -> {
-              doEnvClosedTest(null, (db, txn) -> db.reserve(txn, bb(1), 32, MDB_NOOVERWRITE));
-            })
+        () -> {
+          doEnvClosedTest(null, (db, txn) -> db.reserve(txn, bb(1), 32, MDB_NOOVERWRITE));
+        })
         .isInstanceOf(AlreadyClosedException.class);
   }
 
   @Test
   void closedEnvRejectsStatCall() {
     assertThatThrownBy(
-            () -> {
-              doEnvClosedTest(null, Dbi::stat);
-            })
+        () -> {
+          doEnvClosedTest(null, Dbi::stat);
+        })
         .isInstanceOf(AlreadyClosedException.class);
   }
 
