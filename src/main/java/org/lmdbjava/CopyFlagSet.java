@@ -21,7 +21,7 @@ import java.util.Objects;
 
 public interface CopyFlagSet extends FlagSet<CopyFlags> {
 
-  static CopyFlagSet EMPTY = CopyFlagSetImpl.EMPTY;
+  CopyFlagSet EMPTY = CopyFlagSetImpl.EMPTY;
 
   static CopyFlagSet empty() {
     return CopyFlagSetImpl.EMPTY;

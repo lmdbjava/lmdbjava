@@ -159,6 +159,39 @@ public abstract class AbstractFlagSetTest<T extends Enum<T> & MaskedFlag & FlagS
     }
   }
 
+  /**
+   * Test as an enum instance rather than a {@link FlagSet}
+   */
+  @Test
+  void testAsFlag() {
+    final T flag = getFirst();
+    assertThat(flag.size())
+        .isEqualTo(1);
+    assertThat(flag.getFlags())
+        .hasSize(1);
+    final T flag2 = flag.getFlags().iterator().next();
+    assertThat(flag2 == flag)
+        .isTrue();
+    assertThat(flag.getMask())
+        .isEqualTo(MaskedFlag.mask(flag));
+    assertThat(flag.isEmpty())
+        .isFalse();
+    assertThat(flag.toString())
+        .isNotNull();
+    assertThat(flag.isSet(flag))
+        .isTrue();
+    assertThat(flag.isSet(flag2))
+        .isTrue();
+    assertThat(flag.isSet(null))
+        .isFalse();
+    final List<T> allFlags = getAllFlags();
+    if (allFlags.size() > 1) {
+      T secondFlag = allFlags.get(1);
+      assertThat(flag.isSet(secondFlag))
+          .isFalse();
+    }
+  }
+
   private T[] toArray(final int cnt) {
     //noinspection unchecked
     return (T[]) Array.newInstance(getFlagType(), cnt);
