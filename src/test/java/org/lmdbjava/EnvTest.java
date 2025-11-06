@@ -16,7 +16,6 @@
 
 package org.lmdbjava;
 
-import static com.jakewharton.byteunits.BinaryByteUnit.MEBIBYTES;
 import static java.nio.ByteBuffer.allocateDirect;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -57,7 +56,7 @@ public final class EnvTest {
               .setEnvFlags(MDB_NOSUBDIR)
               .open(file)) {
             final EnvInfo info = env.info();
-            assertThat(info.mapSize).isEqualTo(MEBIBYTES.toBytes(1));
+            assertThat(info.mapSize).isEqualTo(ByteUnit.MEBIBYTES.toBytes(1));
           }
         });
   }
