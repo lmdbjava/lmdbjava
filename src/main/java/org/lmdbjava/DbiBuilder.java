@@ -393,10 +393,10 @@ public class DbiBuilder<T> {
       if (txn != null) {
         return openDbi(txn, dbiBuilder);
       } else {
-        try (final Txn<T> txn = getTxn(dbiBuilder)) {
-          final Dbi<T> dbi = openDbi(txn, dbiBuilder);
+        try (final Txn<T> localTxn = getTxn(dbiBuilder)) {
+          final Dbi<T> dbi = openDbi(localTxn, dbiBuilder);
           // even RO Txns require a commit to retain Dbi in Env
-          txn.commit();
+          localTxn.commit();
           return dbi;
         }
       }
