@@ -40,13 +40,13 @@ public interface DbiFlagSet extends FlagSet<DbiFlags> {
 
   static DbiFlagSet of(final DbiFlags... DbiFlags) {
     return builder()
-        .withFlags(DbiFlags)
+        .setFlags(DbiFlags)
         .build();
   }
 
   static DbiFlagSet of(final Collection<DbiFlags> DbiFlags) {
     return builder()
-        .withFlags(DbiFlags)
+        .setFlags(DbiFlags)
         .build();
   }
 

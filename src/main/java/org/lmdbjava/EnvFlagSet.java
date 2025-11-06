@@ -34,13 +34,13 @@ public interface EnvFlagSet extends FlagSet<EnvFlags> {
 
   static EnvFlagSet of(final EnvFlags... EnvFlags) {
     return builder()
-        .withFlags(EnvFlags)
+        .setFlags(EnvFlags)
         .build();
   }
 
   static EnvFlagSet of(final Collection<EnvFlags> EnvFlags) {
     return builder()
-        .withFlags(EnvFlags)
+        .setFlags(EnvFlags)
         .build();
   }
 

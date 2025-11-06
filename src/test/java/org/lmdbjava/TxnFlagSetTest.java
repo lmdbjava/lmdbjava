@@ -15,82 +15,46 @@
  */
 package org.lmdbjava;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.stream.Collectors;
 
-import java.util.Collections;
-import java.util.HashSet;
-import org.junit.jupiter.api.Test;
+public class TxnFlagSetTest extends AbstractFlagSetTest<TxnFlags, TxnFlagSet> {
 
-public class TxnFlagSetTest {
-
-  @Test
-  void testSingleEnum() {
-    final TxnFlagSet txnFlagSet = TxnFlags.MDB_RDONLY_TXN;
-    assertThat(txnFlagSet.getMask()).isEqualTo(MaskedFlag.mask(TxnFlags.MDB_RDONLY_TXN));
-    assertThat(txnFlagSet.size()).isEqualTo(1);
-    for (TxnFlags flag : txnFlagSet) {
-      assertThat(txnFlagSet.isSet(flag)).isEqualTo(true);
-    }
-
-    final TxnFlagSet txnFlagSet2 = TxnFlagSet.builder()
-        .setFlag(TxnFlags.MDB_RDONLY_TXN)
-        .build();
-    assertThat(txnFlagSet2.getFlags()).containsExactlyElementsOf(txnFlagSet.getFlags());
-    assertThat(txnFlagSet.areAnySet(TxnFlags.MDB_RDONLY_TXN)).isTrue();
-    assertThat(txnFlagSet.areAnySet(TxnFlagSet.empty())).isFalse();
+  @Override
+  List<TxnFlags> getAllFlags() {
+    return Arrays.stream(TxnFlags.values())
+        .collect(Collectors.toList());
   }
 
-  @Test
-  public void testEmpty() {
-    final TxnFlagSet txnFlagSet = TxnFlagSet.empty();
-    assertThat(txnFlagSet.getMask()).isEqualTo(0);
-    assertThat(txnFlagSet.size()).isEqualTo(0);
-    assertThat(txnFlagSet.isEmpty()).isEqualTo(true);
-    assertThat(txnFlagSet.isSet(TxnFlags.MDB_RDONLY_TXN)).isEqualTo(false);
-    final TxnFlagSet txnFlagSet2 = TxnFlagSet.builder()
-        .build();
-    assertThat(txnFlagSet).isEqualTo(txnFlagSet2);
-    assertThat(txnFlagSet).isNotEqualTo(TxnFlagSet.of(TxnFlags.MDB_RDONLY_TXN));
-    assertThat(txnFlagSet).isNotEqualTo(TxnFlagSet.builder()
-        .setFlag(TxnFlags.MDB_RDONLY_TXN)
-        .build());
+  @Override
+  TxnFlagSet getEmptyFlagSet() {
+    return TxnFlagSet.empty();
   }
 
-  @Test
-  public void testOf() {
-    final TxnFlags txnFlag = TxnFlags.MDB_RDONLY_TXN;
-    final TxnFlagSet txnFlagSet = TxnFlagSet.of(txnFlag);
-    assertThat(txnFlagSet.getMask()).isEqualTo(MaskedFlag.mask(txnFlag));
-    assertThat(txnFlagSet.size()).isEqualTo(1);
-    for (TxnFlags flag : txnFlagSet) {
-      assertThat(txnFlagSet.isSet(flag)).isEqualTo(true);
-    }
-
-    final TxnFlagSet txnFlagSet2 = TxnFlagSet.builder()
-        .setFlag(txnFlag)
-        .build();
-    assertThat(txnFlagSet).isEqualTo(txnFlagSet2);
+  @Override
+  AbstractFlagSet.Builder<TxnFlags, TxnFlagSet> getBuilder() {
+    return TxnFlagSet.builder();
   }
 
-  @Test
-  public void testBuilder() {
-    final TxnFlags txnFlag1 = TxnFlags.MDB_RDONLY_TXN;
-    final TxnFlagSet txnFlagSet = TxnFlagSet.builder()
-        .setFlag(txnFlag1)
-        .build();
-    assertThat(txnFlagSet.getMask()).isEqualTo(MaskedFlag.mask(txnFlag1));
-    assertThat(txnFlagSet.size()).isEqualTo(1);
-    assertThat(txnFlagSet.isSet(TxnFlags.MDB_RDONLY_TXN)).isEqualTo(true);
-    for (TxnFlags flag : txnFlagSet) {
-      assertThat(txnFlagSet.isSet(flag)).isEqualTo(true);
-    }
-    final TxnFlagSet txnFlagSet2 = TxnFlagSet.builder()
-        .withFlags(txnFlag1)
-        .build();
-    final TxnFlagSet txnFlagSet3 = TxnFlagSet.builder()
-        .withFlags(new HashSet<>(Collections.singletonList(txnFlag1)))
-        .build();
-    assertThat(txnFlagSet).isEqualTo(txnFlagSet2);
-    assertThat(txnFlagSet).isEqualTo(txnFlagSet3);
+  @Override
+  TxnFlagSet getFlagSet(Collection<TxnFlags> flags) {
+    return TxnFlagSet.of(flags);
+  }
+
+  @Override
+  TxnFlagSet getFlagSet(TxnFlags[] flags) {
+    return TxnFlagSet.of(flags);
+  }
+
+  @Override
+  TxnFlagSet getFlagSet(TxnFlags flag) {
+    return TxnFlagSet.of(flag);
+  }
+
+  @Override
+  Class<TxnFlags> getFlagType() {
+    return TxnFlags.class;
   }
 }

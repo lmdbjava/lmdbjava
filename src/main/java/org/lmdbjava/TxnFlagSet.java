@@ -15,6 +15,7 @@
  */
 package org.lmdbjava;
 
+import java.util.Collection;
 import java.util.EnumSet;
 import java.util.Objects;
 
@@ -26,14 +27,20 @@ public interface TxnFlagSet extends FlagSet<TxnFlags> {
     return TxnFlagSetImpl.EMPTY;
   }
 
-  static TxnFlagSet of(final TxnFlags putFlag) {
-    Objects.requireNonNull(putFlag);
-    return new SingleTxnFlagSet(putFlag);
+  static TxnFlagSet of(final TxnFlags putflag) {
+    Objects.requireNonNull(putflag);
+    return new SingleTxnFlagSet(putflag);
   }
 
   static TxnFlagSet of(final TxnFlags... TxnFlags) {
     return builder()
-        .withFlags(TxnFlags)
+        .setFlags(TxnFlags)
+        .build();
+  }
+
+  static TxnFlagSet of(final Collection<TxnFlags> txnFlags) {
+    return builder()
+        .setFlags(txnFlags)
         .build();
   }
 

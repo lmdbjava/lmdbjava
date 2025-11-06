@@ -278,7 +278,7 @@ public abstract class AbstractFlagSet<T extends Enum<T> & MaskedFlag> implements
      * @param flags The flags to set in the builder.
      * @return this builder instance.
      */
-    public Builder<E, S> withFlags(final Collection<E> flags) {
+    public Builder<E, S> setFlags(final Collection<E> flags) {
       clear();
       if (flags != null) {
         for (E flag : flags) {
@@ -295,7 +295,7 @@ public abstract class AbstractFlagSet<T extends Enum<T> & MaskedFlag> implements
      * @return this builder instance.
      */
     @SafeVarargs
-    public final Builder<E, S> withFlags(final E... flags) {
+    public final Builder<E, S> setFlags(final E... flags) {
       clear();
       if (flags != null) {
         for (E flag : flags) {
@@ -311,12 +311,12 @@ public abstract class AbstractFlagSet<T extends Enum<T> & MaskedFlag> implements
     }
 
     /**
-     * Sets a single flag in the builder.
+     * Adds a single flag in the builder.
      *
      * @param flag The flag to set in the builder.
      * @return this builder instance.
      */
-    public Builder<E, S> setFlag(final E flag) {
+    public Builder<E, S> addFlag(final E flag) {
       if (flag != null) {
         enumSet.add(flag);
       }
@@ -324,12 +324,12 @@ public abstract class AbstractFlagSet<T extends Enum<T> & MaskedFlag> implements
     }
 
     /**
-     * Sets multiple flag in the builder.
+     * Adds multiple flag in the builder.
      *
      * @param flags The flags to set in the builder.
      * @return this builder instance.
      */
-    public Builder<E, S> setFlags(final Collection<E> flags) {
+    public Builder<E, S> addFlags(final Collection<E> flags) {
       if (flags != null) {
         enumSet.addAll(flags);
       }

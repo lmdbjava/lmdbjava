@@ -15,83 +15,46 @@
  */
 package org.lmdbjava;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import java.util.Arrays;
-import java.util.HashSet;
-import org.junit.jupiter.api.Test;
+import java.util.Collection;
+import java.util.List;
+import java.util.stream.Collectors;
 
-public class EnvFlagSetTest {
+public class EnvFlagSetTest extends AbstractFlagSetTest<EnvFlags, EnvFlagSet> {
 
-    @Test
-    public void testEmpty() {
-        final EnvFlagSet envFlagSet = EnvFlagSet.empty();
-        assertThat(envFlagSet.getMask()).isEqualTo(0);
-        assertThat(envFlagSet.size()).isEqualTo(0);
-        assertThat(envFlagSet.isEmpty()).isEqualTo(true);
-        assertThat(envFlagSet.isSet(EnvFlags.MDB_NOSUBDIR)).isEqualTo(false);
-        final EnvFlagSet envFlagSet2 = EnvFlagSet.builder()
-            .build();
-        assertThat(envFlagSet).isEqualTo(envFlagSet2);
-        assertThat(envFlagSet).isNotEqualTo(EnvFlagSet.of(EnvFlags.MDB_FIXEDMAP));
-        assertThat(envFlagSet).isNotEqualTo(EnvFlagSet.of(EnvFlags.MDB_FIXEDMAP, EnvFlags.MDB_NORDAHEAD));
-        assertThat(envFlagSet).isNotEqualTo(EnvFlagSet.builder()
-            .setFlag(EnvFlags.MDB_FIXEDMAP)
-            .setFlag(EnvFlags.MDB_NORDAHEAD)
-            .build());
+    @Override
+    List<EnvFlags> getAllFlags() {
+        return Arrays.stream(EnvFlags.values())
+            .collect(Collectors.toList());
     }
 
-    @Test
-    public void testOf() {
-        final EnvFlags envFlag = EnvFlags.MDB_FIXEDMAP;
-        final EnvFlagSet envFlagSet = EnvFlagSet.of(envFlag);
-        assertThat(envFlagSet.getMask()).isEqualTo(MaskedFlag.mask(envFlag));
-        assertThat(envFlagSet.size()).isEqualTo(1);
-        assertThat(envFlagSet.isSet(EnvFlags.MDB_NOSUBDIR)).isEqualTo(false);
-        for (EnvFlags flag : envFlagSet) {
-            assertThat(envFlagSet.isSet(flag)).isEqualTo(true);
-        }
-
-        final EnvFlagSet envFlagSet2 = EnvFlagSet.builder()
-            .setFlag(envFlag)
-            .build();
-        assertThat(envFlagSet).isEqualTo(envFlagSet2);
+    @Override
+    EnvFlagSet getEmptyFlagSet() {
+        return EnvFlagSet.empty();
     }
 
-    @Test
-    public void testOf2() {
-        final EnvFlags envFlag1 = EnvFlags.MDB_FIXEDMAP;
-        final EnvFlags envFlag2 = EnvFlags.MDB_NORDAHEAD;
-        final EnvFlagSet envFlagSet = EnvFlagSet.of(envFlag1, envFlag2);
-        assertThat(envFlagSet.getMask()).isEqualTo(MaskedFlag.mask(envFlag1, envFlag2));
-        assertThat(envFlagSet.size()).isEqualTo(2);
-        assertThat(envFlagSet.isSet(EnvFlags.MDB_WRITEMAP)).isEqualTo(false);
-        for (EnvFlags flag : envFlagSet) {
-            assertThat(envFlagSet.isSet(flag)).isEqualTo(true);
-        }
+    @Override
+    AbstractFlagSet.Builder<EnvFlags, EnvFlagSet> getBuilder() {
+        return EnvFlagSet.builder();
     }
 
-    @Test
-    public void testBuilder() {
-        final EnvFlags envFlag1 = EnvFlags.MDB_FIXEDMAP;
-        final EnvFlags envFlag2 = EnvFlags.MDB_NORDAHEAD;
-        final EnvFlagSet envFlagSet = EnvFlagSet.builder()
-                .setFlag(envFlag1)
-                .setFlag(envFlag2)
-                .build();
-        assertThat(envFlagSet.getMask()).isEqualTo(MaskedFlag.mask(envFlag1, envFlag2));
-        assertThat(envFlagSet.size()).isEqualTo(2);
-        assertThat(envFlagSet.isSet(EnvFlags.MDB_NOTLS)).isEqualTo(false);
-        for (EnvFlags flag : envFlagSet) {
-            assertThat(envFlagSet.isSet(flag)).isEqualTo(true);
-        }
-        final EnvFlagSet envFlagSet2 = EnvFlagSet.builder()
-                .withFlags(envFlag1, envFlag2)
-                .build();
-        final EnvFlagSet envFlagSet3 = EnvFlagSet.builder()
-                .withFlags(new HashSet<>(Arrays.asList(envFlag1, envFlag2)))
-                .build();
-        assertThat(envFlagSet).isEqualTo(envFlagSet2);
-        assertThat(envFlagSet).isEqualTo(envFlagSet3);
+    @Override
+    EnvFlagSet getFlagSet(Collection<EnvFlags> flags) {
+        return EnvFlagSet.of(flags);
+    }
+
+    @Override
+    EnvFlagSet getFlagSet(EnvFlags[] flags) {
+        return EnvFlagSet.of(flags);
+    }
+
+    @Override
+    EnvFlagSet getFlagSet(EnvFlags flag) {
+        return EnvFlagSet.of(flag);
+    }
+
+    @Override
+    Class<EnvFlags> getFlagType() {
+        return EnvFlags.class;
     }
 }

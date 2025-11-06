@@ -15,65 +15,46 @@
  */
 package org.lmdbjava;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.stream.Collectors;
 
-import java.util.Collections;
-import java.util.HashSet;
-import org.junit.jupiter.api.Test;
+public class CopyFlagSetTest extends AbstractFlagSetTest<CopyFlags, CopyFlagSet> {
 
-public class CopyFlagSetTest {
-
-    @Test
-    public void testEmpty() {
-        final CopyFlagSet copyFlagSet = CopyFlagSet.empty();
-        assertThat(copyFlagSet.getMask()).isEqualTo(0);
-        assertThat(copyFlagSet.size()).isEqualTo(0);
-        assertThat(copyFlagSet.isEmpty()).isEqualTo(true);
-        assertThat(copyFlagSet.isSet(CopyFlags.MDB_CP_COMPACT)).isEqualTo(false);
-        final CopyFlagSet copyFlagSet2 = CopyFlagSet.builder()
-            .build();
-        assertThat(copyFlagSet).isEqualTo(copyFlagSet2);
-        assertThat(copyFlagSet).isNotEqualTo(CopyFlagSet.of(CopyFlags.MDB_CP_COMPACT));
-        assertThat(copyFlagSet).isNotEqualTo(CopyFlagSet.builder()
-            .setFlag(CopyFlags.MDB_CP_COMPACT)
-            .build());
+    @Override
+    List<CopyFlags> getAllFlags() {
+        return Arrays.stream(CopyFlags.values())
+            .collect(Collectors.toList());
     }
 
-    @Test
-    public void testOf() {
-        final CopyFlags copyFlag = CopyFlags.MDB_CP_COMPACT;
-        final CopyFlagSet copyFlagSet = CopyFlagSet.of(copyFlag);
-        assertThat(copyFlagSet.getMask()).isEqualTo(MaskedFlag.mask(copyFlag));
-        assertThat(copyFlagSet.size()).isEqualTo(1);
-        for (CopyFlags flag : copyFlagSet) {
-            assertThat(copyFlagSet.isSet(flag)).isEqualTo(true);
-        }
-
-        final CopyFlagSet copyFlagSet2 = CopyFlagSet.builder()
-            .setFlag(copyFlag)
-            .build();
-        assertThat(copyFlagSet).isEqualTo(copyFlagSet2);
+    @Override
+    CopyFlagSet getEmptyFlagSet() {
+        return CopyFlagSet.empty();
     }
 
-    @Test
-    public void testBuilder() {
-        final CopyFlags copyFlag1 = CopyFlags.MDB_CP_COMPACT;
-        final CopyFlagSet copyFlagSet = CopyFlagSet.builder()
-                .setFlag(copyFlag1)
-                .build();
-        assertThat(copyFlagSet.getMask()).isEqualTo(MaskedFlag.mask(copyFlag1));
-        assertThat(copyFlagSet.size()).isEqualTo(1);
-        assertThat(copyFlagSet.isSet(CopyFlags.MDB_CP_COMPACT)).isEqualTo(true);
-        for (CopyFlags flag : copyFlagSet) {
-            assertThat(copyFlagSet.isSet(flag)).isEqualTo(true);
-        }
-        final CopyFlagSet copyFlagSet2 = CopyFlagSet.builder()
-                .withFlags(copyFlag1)
-                .build();
-        final CopyFlagSet copyFlagSet3 = CopyFlagSet.builder()
-                .withFlags(new HashSet<>(Collections.singletonList(copyFlag1)))
-                .build();
-        assertThat(copyFlagSet).isEqualTo(copyFlagSet2);
-        assertThat(copyFlagSet).isEqualTo(copyFlagSet3);
+    @Override
+    AbstractFlagSet.Builder<CopyFlags, CopyFlagSet> getBuilder() {
+        return CopyFlagSet.builder();
+    }
+
+    @Override
+    CopyFlagSet getFlagSet(Collection<CopyFlags> flags) {
+        return CopyFlagSet.of(flags);
+    }
+
+    @Override
+    CopyFlagSet getFlagSet(CopyFlags[] flags) {
+        return CopyFlagSet.of(flags);
+    }
+
+    @Override
+    CopyFlagSet getFlagSet(CopyFlags flag) {
+        return CopyFlagSet.of(flag);
+    }
+
+    @Override
+    Class<CopyFlags> getFlagType() {
+        return CopyFlags.class;
     }
 }

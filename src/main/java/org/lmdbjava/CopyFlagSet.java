@@ -34,13 +34,13 @@ public interface CopyFlagSet extends FlagSet<CopyFlags> {
 
   static CopyFlagSet of(final CopyFlags... CopyFlags) {
     return builder()
-        .withFlags(CopyFlags)
+        .setFlags(CopyFlags)
         .build();
   }
 
   static CopyFlagSet of(final Collection<CopyFlags> CopyFlags) {
     return builder()
-        .withFlags(CopyFlags)
+        .setFlags(CopyFlags)
         .build();
   }
 

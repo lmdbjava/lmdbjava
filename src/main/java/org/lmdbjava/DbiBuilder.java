@@ -300,7 +300,7 @@ public class DbiBuilder<T> {
       if (dbiFlags != null) {
         Arrays.stream(dbiFlags)
             .filter(Objects::nonNull)
-            .forEach(this.flagSetBuilder::setFlag);
+            .forEach(this.flagSetBuilder::addFlag);
       }
       return this;
     }
@@ -322,7 +322,7 @@ public class DbiBuilder<T> {
     public DbiBuilderStage3<T> setDbiFlags(final DbiFlagSet dbiFlagSet) {
       flagSetBuilder.clear();
       if (dbiFlagSet != null) {
-        this.flagSetBuilder.withFlags(dbiFlagSet.getFlags());
+        this.flagSetBuilder.setFlags(dbiFlagSet.getFlags());
       }
       return this;
     }
@@ -337,7 +337,7 @@ public class DbiBuilder<T> {
      * @return this builder instance.
      */
     public DbiBuilderStage3<T> addDbiFlag(final DbiFlags dbiFlag) {
-      this.flagSetBuilder.setFlag(dbiFlag);
+      this.flagSetBuilder.addFlag(dbiFlag);
       return this;
     }
 
@@ -352,7 +352,7 @@ public class DbiBuilder<T> {
      */
     public DbiBuilderStage3<T> addDbiFlags(final DbiFlagSet dbiFlagSet) {
       if (dbiFlagSet != null) {
-        flagSetBuilder.setFlags(dbiFlagSet.getFlags());
+        flagSetBuilder.addFlags(dbiFlagSet.getFlags());
       }
       return this;
     }

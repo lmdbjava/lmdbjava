@@ -885,7 +885,7 @@ public final class Env<T> implements AutoCloseable {
       if (envFlags != null) {
         Arrays.stream(envFlags)
             .filter(Objects::nonNull)
-            .forEach(this.flagSetBuilder::setFlag);
+            .forEach(this.flagSetBuilder::addFlag);
       }
       return this;
     }
@@ -901,7 +901,7 @@ public final class Env<T> implements AutoCloseable {
     public Builder<T> setEnvFlags(final EnvFlagSet envFlagSet) {
       flagSetBuilder.clear();
       if (envFlagSet != null) {
-        this.flagSetBuilder.withFlags(envFlagSet.getFlags());
+        this.flagSetBuilder.setFlags(envFlagSet.getFlags());
       }
       return this;
     }
@@ -914,7 +914,7 @@ public final class Env<T> implements AutoCloseable {
      * @return this builder instance.
      */
     public Builder<T> addEnvFlag(final EnvFlags dbiFlag) {
-      this.flagSetBuilder.setFlag(dbiFlag);
+      this.flagSetBuilder.addFlag(dbiFlag);
       return this;
     }
 
@@ -927,7 +927,7 @@ public final class Env<T> implements AutoCloseable {
      */
     public Builder<T> addEnvFlags(final EnvFlagSet dbiFlagSet) {
       if (dbiFlagSet != null) {
-        flagSetBuilder.setFlags(dbiFlagSet.getFlags());
+        flagSetBuilder.addFlags(dbiFlagSet.getFlags());
       }
       return this;
     }

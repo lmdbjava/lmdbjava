@@ -15,89 +15,51 @@
  */
 package org.lmdbjava;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
-import java.util.HashSet;
+import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 
-public class PutFlagSetTest {
+public class PutFlagSetTest extends AbstractFlagSetTest<PutFlags, PutFlagSet> {
 
-  @Test
-  public void testEmpty() {
-    final PutFlagSet putFlagSet = PutFlagSet.empty();
-    assertThat(putFlagSet.getMask()).isEqualTo(0);
-    assertThat(putFlagSet.size()).isEqualTo(0);
-    assertThat(putFlagSet.isEmpty()).isEqualTo(true);
-    assertThat(putFlagSet.isSet(PutFlags.MDB_MULTIPLE)).isEqualTo(false);
-    final PutFlagSet putFlagSet2 = PutFlagSet.builder()
-        .build();
-    assertThat(putFlagSet).isEqualTo(putFlagSet2);
-    assertThat(putFlagSet).isNotEqualTo(PutFlagSet.of(PutFlags.MDB_APPEND));
-    assertThat(putFlagSet).isNotEqualTo(PutFlagSet.of(PutFlags.MDB_APPEND, PutFlags.MDB_RESERVE));
-    assertThat(putFlagSet).isNotEqualTo(PutFlagSet.builder()
-        .setFlag(PutFlags.MDB_CURRENT)
-        .setFlag(PutFlags.MDB_MULTIPLE)
-        .build());
+  @Override
+  List<PutFlags> getAllFlags() {
+    return Arrays.stream(PutFlags.values())
+        .collect(Collectors.toList());
   }
 
-  @Test
-  public void testOf() {
-    final PutFlags putFlag = PutFlags.MDB_APPEND;
-    final PutFlagSet putFlagSet = PutFlagSet.of(putFlag);
-    assertThat(putFlagSet.getMask()).isEqualTo(MaskedFlag.mask(putFlag));
-    assertThat(putFlagSet.size()).isEqualTo(1);
-    assertThat(putFlagSet.isSet(PutFlags.MDB_MULTIPLE)).isEqualTo(false);
-    for (PutFlags flag : putFlagSet) {
-      assertThat(putFlagSet.isSet(flag)).isEqualTo(true);
-    }
-
-    final PutFlagSet putFlagSet2 = PutFlagSet.builder()
-        .setFlag(putFlag)
-        .build();
-    assertThat(putFlagSet).isEqualTo(putFlagSet2);
+  @Override
+  PutFlagSet getEmptyFlagSet() {
+    return PutFlagSet.empty();
   }
 
-  @Test
-  public void testOf2() {
-    final PutFlags putFlag1 = PutFlags.MDB_APPEND;
-    final PutFlags putFlag2 = PutFlags.MDB_NOOVERWRITE;
-    final PutFlagSet putFlagSet = PutFlagSet.of(putFlag1, putFlag2);
-    assertThat(putFlagSet.getMask()).isEqualTo(MaskedFlag.mask(putFlag1, putFlag2));
-    assertThat(putFlagSet.size()).isEqualTo(2);
-    assertThat(putFlagSet.isSet(PutFlags.MDB_MULTIPLE)).isEqualTo(false);
-    for (PutFlags flag : putFlagSet) {
-      assertThat(putFlagSet.isSet(flag)).isEqualTo(true);
-    }
+  @Override
+  AbstractFlagSet.Builder<PutFlags, PutFlagSet> getBuilder() {
+    return PutFlagSet.builder();
   }
 
-  @Test
-  public void testBuilder() {
-    final PutFlags putFlag1 = PutFlags.MDB_APPEND;
-    final PutFlags putFlag2 = PutFlags.MDB_NOOVERWRITE;
-    final PutFlagSet putFlagSet = PutFlagSet.builder()
-        .setFlag(putFlag1)
-        .setFlag(putFlag2)
-        .build();
-    assertThat(putFlagSet.getMask()).isEqualTo(MaskedFlag.mask(putFlag1, putFlag2));
-    assertThat(putFlagSet.size()).isEqualTo(2);
-    assertThat(putFlagSet.isSet(PutFlags.MDB_MULTIPLE)).isEqualTo(false);
-    for (PutFlags flag : putFlagSet) {
-      assertThat(putFlagSet.isSet(flag)).isEqualTo(true);
-    }
-    final PutFlagSet putFlagSet2 = PutFlagSet.builder()
-        .withFlags(putFlag1, putFlag2)
-        .build();
-    final PutFlagSet putFlagSet3 = PutFlagSet.builder()
-        .withFlags(new HashSet<>(Arrays.asList(putFlag1, putFlag2)))
-        .build();
-    assertThat(putFlagSet).isEqualTo(putFlagSet2);
-    assertThat(putFlagSet).isEqualTo(putFlagSet3);
+  @Override
+  PutFlagSet getFlagSet(Collection<PutFlags> flags) {
+    return PutFlagSet.of(flags);
+  }
+
+  @Override
+  PutFlagSet getFlagSet(PutFlags[] flags) {
+    return PutFlagSet.of(flags);
+  }
+
+  @Override
+  PutFlagSet getFlagSet(PutFlags flag) {
+    return PutFlagSet.of(flag);
+  }
+
+  @Override
+  Class<PutFlags> getFlagType() {
+    return PutFlags.class;
   }
 
   @Test

@@ -34,13 +34,13 @@ public interface PutFlagSet extends FlagSet<PutFlags> {
 
     static PutFlagSet of(final PutFlags... putFlags) {
         return builder()
-                .withFlags(putFlags)
+                .setFlags(putFlags)
                 .build();
     }
 
     static PutFlagSet of(final Collection<PutFlags> putFlags) {
         return builder()
-            .withFlags(putFlags)
+            .setFlags(putFlags)
             .build();
     }
 
