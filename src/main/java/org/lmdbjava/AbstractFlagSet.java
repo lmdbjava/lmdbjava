@@ -81,11 +81,6 @@ abstract class AbstractFlagSet<T extends Enum<T> & MaskedFlag> implements FlagSe
   }
 
   @Override
-  public int hashCode() {
-    return Objects.hash(flags, mask);
-  }
-
-  @Override
   public String toString() {
     return FlagSet.asString(this);
   }
@@ -130,11 +125,6 @@ abstract class AbstractFlagSet<T extends Enum<T> & MaskedFlag> implements FlagSe
     @Override
     public String toString() {
       return FlagSet.asString(this);
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(getMask(), getFlags());
     }
   }
 
