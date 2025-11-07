@@ -81,11 +81,6 @@ abstract class AbstractFlagSet<T extends Enum<T> & MaskedFlag> implements FlagSe
   }
 
   @Override
-  public boolean equals(Object object) {
-    return FlagSet.equals(this, object);
-  }
-
-  @Override
   public int hashCode() {
     return Objects.hash(flags, mask);
   }
@@ -93,81 +88,6 @@ abstract class AbstractFlagSet<T extends Enum<T> & MaskedFlag> implements FlagSe
   @Override
   public String toString() {
     return FlagSet.asString(this);
-  }
-
-  abstract static class AbstractSingleFlagSet<T extends Enum<T> & MaskedFlag>
-      implements FlagSet<T> {
-
-    private final T flag;
-    // Only holding this for iterator() and getFlags() so make it lazy.
-    private EnumSet<T> enumSet;
-
-    public AbstractSingleFlagSet(final T flag) {
-      this.flag = Objects.requireNonNull(flag);
-    }
-
-    @Override
-    public int getMask() {
-      return flag.getMask();
-    }
-
-    @Override
-    public Set<T> getFlags() {
-      if (enumSet == null) {
-        return initSet();
-      } else {
-        return this.enumSet;
-      }
-    }
-
-    @Override
-    public boolean isSet(final T flag) {
-      return this.flag == flag;
-    }
-
-    @Override
-    public boolean areAnySet(FlagSet<T> flags) {
-      if (flags == null) {
-        return false;
-      } else {
-        return flags.isSet(this.flag);
-      }
-    }
-
-    @Override
-    public int size() {
-      return 1;
-    }
-
-    @Override
-    public boolean isEmpty() {
-      return false;
-    }
-
-    @Override
-    public Iterator<T> iterator() {
-      if (enumSet == null) {
-        return initSet().iterator();
-      } else {
-        return this.enumSet.iterator();
-      }
-    }
-
-    @Override
-    public String toString() {
-      return FlagSet.asString(this);
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(flag, getFlags());
-    }
-
-    private Set<T> initSet() {
-      final EnumSet<T> set = EnumSet.of(this.flag);
-      this.enumSet = set;
-      return set;
-    }
   }
 
   static class AbstractEmptyFlagSet<T extends MaskedFlag> implements FlagSet<T> {
@@ -210,11 +130,6 @@ abstract class AbstractFlagSet<T extends Enum<T> & MaskedFlag> implements FlagSe
     @Override
     public String toString() {
       return FlagSet.asString(this);
-    }
-
-    @Override
-    public boolean equals(Object object) {
-      return FlagSet.equals(this, object);
     }
 
     @Override
