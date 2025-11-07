@@ -119,6 +119,7 @@ public final class ByteBufferProxy {
     public static int compareBuff(final ByteBuffer o1, final ByteBuffer o2) {
       requireNonNull(o1);
       requireNonNull(o2);
+
       final int minLength = Math.min(o1.limit(), o2.limit());
       final int minWords = minLength / Long.BYTES;
 
