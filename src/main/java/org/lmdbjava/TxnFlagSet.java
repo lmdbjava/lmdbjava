@@ -45,7 +45,6 @@ public interface TxnFlagSet extends FlagSet<TxnFlags> {
         TxnFlags.class, TxnFlagSetImpl::new, SingleTxnFlagSet::new, () -> TxnFlagSetImpl.EMPTY);
   }
 
-  
   class TxnFlagSetImpl extends AbstractFlagSet<TxnFlags> implements TxnFlagSet {
 
     static final TxnFlagSet EMPTY = new EmptyTxnFlagSet();
@@ -55,7 +54,6 @@ public interface TxnFlagSet extends FlagSet<TxnFlags> {
     }
   }
 
-  
   class SingleTxnFlagSet extends AbstractFlagSet.AbstractSingleFlagSet<TxnFlags>
       implements TxnFlagSet {
 
@@ -64,7 +62,6 @@ public interface TxnFlagSet extends FlagSet<TxnFlags> {
     }
   }
 
-  
   class EmptyTxnFlagSet extends AbstractFlagSet.AbstractEmptyFlagSet<TxnFlags>
       implements TxnFlagSet {}
 }

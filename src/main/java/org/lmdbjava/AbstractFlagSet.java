@@ -100,7 +100,6 @@ public abstract class AbstractFlagSet<T extends Enum<T> & MaskedFlag> implements
     return FlagSet.asString(this);
   }
 
-  
   abstract static class AbstractSingleFlagSet<T extends Enum<T> & MaskedFlag>
       implements FlagSet<T> {
 
@@ -181,7 +180,6 @@ public abstract class AbstractFlagSet<T extends Enum<T> & MaskedFlag> implements
     }
   }
 
-  
   static class AbstractEmptyFlagSet<T extends MaskedFlag> implements FlagSet<T> {
 
     @Override
@@ -235,7 +233,6 @@ public abstract class AbstractFlagSet<T extends Enum<T> & MaskedFlag> implements
     }
   }
 
-  
   /**
    * A builder for creating a {@link AbstractFlagSet}.
    *

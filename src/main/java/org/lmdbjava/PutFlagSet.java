@@ -45,7 +45,6 @@ public interface PutFlagSet extends FlagSet<PutFlags> {
         PutFlags.class, PutFlagSetImpl::new, putFlag -> putFlag, EmptyPutFlagSet::new);
   }
 
-  
   class PutFlagSetImpl extends AbstractFlagSet<PutFlags> implements PutFlagSet {
 
     public static final PutFlagSet EMPTY = new EmptyPutFlagSet();
@@ -55,7 +54,6 @@ public interface PutFlagSet extends FlagSet<PutFlags> {
     }
   }
 
-  
   class EmptyPutFlagSet extends AbstractFlagSet.AbstractEmptyFlagSet<PutFlags>
       implements PutFlagSet {}
 }

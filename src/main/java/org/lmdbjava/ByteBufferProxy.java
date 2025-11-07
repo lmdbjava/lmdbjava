@@ -86,7 +86,6 @@ public final class ByteBufferProxy {
     }
   }
 
-  
   /**
    * Provides {@link ByteBuffer} pooling and address resolution for concrete {@link BufferProxy}
    * implementations.
@@ -245,7 +244,6 @@ public final class ByteBufferProxy {
     }
   }
 
-  
   /**
    * A proxy that uses Java reflection to modify byte buffer fields, and official JNR-FFF methods to
    * manipulate native pointers.
@@ -290,7 +288,6 @@ public final class ByteBufferProxy {
     }
   }
 
-  
   /**
    * A proxy that uses Java's "unsafe" class to directly manipulate byte buffer fields and JNR-FFF
    * allocated memory pointers.

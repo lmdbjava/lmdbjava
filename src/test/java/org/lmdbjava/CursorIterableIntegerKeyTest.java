@@ -579,7 +579,6 @@ public final class CursorIterableIntegerKeyTest {
     return dbi;
   }
 
-  
   private static class DbiFactory {
     private final String name;
     private final Function<Env<ByteBuffer>, Dbi<ByteBuffer>> factory;
@@ -595,7 +594,6 @@ public final class CursorIterableIntegerKeyTest {
     }
   }
 
-  
   static class MyArgumentProvider implements ArgumentsProvider {
 
     @Override
