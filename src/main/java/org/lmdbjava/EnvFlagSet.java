@@ -45,8 +45,7 @@ public interface EnvFlagSet extends FlagSet<EnvFlags> {
         EnvFlags.class, EnvFlagSetImpl::new, envFlag -> envFlag, () -> EnvFlagSetImpl.EMPTY);
   }
 
-  // --------------------------------------------------------------------------------
-
+  
   class EnvFlagSetImpl extends AbstractFlagSet<EnvFlags> implements EnvFlagSet {
 
     static final EnvFlagSet EMPTY = new EmptyEnvFlagSet();
@@ -56,8 +55,7 @@ public interface EnvFlagSet extends FlagSet<EnvFlags> {
     }
   }
 
-  // --------------------------------------------------------------------------------
-
+  
   class EmptyEnvFlagSet extends AbstractFlagSet.AbstractEmptyFlagSet<EnvFlags>
       implements EnvFlagSet {}
 }

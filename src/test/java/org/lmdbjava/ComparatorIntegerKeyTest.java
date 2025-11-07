@@ -185,8 +185,7 @@ public final class ComparatorIntegerKeyTest {
     }
   }
 
-  // --------------------------------------------------------------------------------
-
+  
   /** Tests {@link ByteBufferProxy}. */
   private static final class ByteBufferRunner implements ComparatorRunner {
 
@@ -260,8 +259,7 @@ public final class ComparatorIntegerKeyTest {
     }
   }
 
-  // --------------------------------------------------------------------------------
-
+  
   /** Tests {@link DirectBufferProxy}. */
   private static final class DirectBufferRunner implements ComparatorRunner {
     private static final Comparator<DirectBuffer> COMPARATOR =
@@ -331,8 +329,7 @@ public final class ComparatorIntegerKeyTest {
     }
   }
 
-  // --------------------------------------------------------------------------------
-
+  
   /** Interface that can test a {@link BufferProxy} <code>compare</code> method. */
   private interface ComparatorRunner {
 

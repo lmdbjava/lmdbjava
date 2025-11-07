@@ -45,8 +45,7 @@ public interface CopyFlagSet extends FlagSet<CopyFlags> {
         CopyFlags.class, CopyFlagSetImpl::new, copyFlag -> copyFlag, () -> CopyFlagSetImpl.EMPTY);
   }
 
-  // --------------------------------------------------------------------------------
-
+  
   class CopyFlagSetImpl extends AbstractFlagSet<CopyFlags> implements CopyFlagSet {
 
     static final CopyFlagSet EMPTY = new EmptyCopyFlagSet();
@@ -56,8 +55,7 @@ public interface CopyFlagSet extends FlagSet<CopyFlags> {
     }
   }
 
-  // --------------------------------------------------------------------------------
-
+  
   class EmptyCopyFlagSet extends AbstractFlagSet.AbstractEmptyFlagSet<CopyFlags>
       implements CopyFlagSet {}
 }

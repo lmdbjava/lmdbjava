@@ -49,8 +49,7 @@ public interface DbiFlagSet extends FlagSet<DbiFlags> {
         DbiFlags.class, DbiFlagSetImpl::new, dbiFlag -> dbiFlag, () -> DbiFlagSetImpl.EMPTY);
   }
 
-  // --------------------------------------------------------------------------------
-
+  
   class DbiFlagSetImpl extends AbstractFlagSet<DbiFlags> implements DbiFlagSet {
 
     static final DbiFlagSet EMPTY = new EmptyDbiFlagSet();
@@ -60,8 +59,7 @@ public interface DbiFlagSet extends FlagSet<DbiFlags> {
     }
   }
 
-  // --------------------------------------------------------------------------------
-
+  
   class EmptyDbiFlagSet extends AbstractFlagSet.AbstractEmptyFlagSet<DbiFlags>
       implements DbiFlagSet {}
 }

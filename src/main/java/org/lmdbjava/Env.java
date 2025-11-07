@@ -633,8 +633,7 @@ public final class Env<T> implements AutoCloseable {
     }
   }
 
-  // --------------------------------------------------------------------------------
-
+  
   /**
    * Builder for configuring and opening Env.
    *

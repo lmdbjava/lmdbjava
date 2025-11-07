@@ -82,8 +82,6 @@ public class DbiBuilder<T> {
     return setDbName((byte[]) null);
   }
 
-  // --------------------------------------------------------------------------------
-
   /**
    * Intermediate builder stage for constructing a {@link Dbi}.
    *
@@ -209,8 +207,7 @@ public class DbiBuilder<T> {
     }
   }
 
-  // --------------------------------------------------------------------------------
-
+  
   /**
    * Final stage builder for constructing a {@link Dbi}.
    *
@@ -394,8 +391,7 @@ public class DbiBuilder<T> {
     }
   }
 
-  // --------------------------------------------------------------------------------
-
+  
   private enum ComparatorType {
     /**
      * Default Java comparator for {@link CursorIterable} KeyRange testing, LMDB comparator for
@@ -414,8 +410,7 @@ public class DbiBuilder<T> {
     ;
   }
 
-  // --------------------------------------------------------------------------------
-
+  
   @FunctionalInterface
   public interface ComparatorFactory<T> {
 

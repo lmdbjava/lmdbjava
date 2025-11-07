@@ -239,8 +239,7 @@ public final class CursorIterable<T> implements Iterable<CursorIterable.KeyVal<T
     TERMINATED
   }
 
-  // --------------------------------------------------------------------------------
-
+  
   static class JavaRangeComparator<T> implements RangeComparator {
 
     private final Comparator<T> comparator;
@@ -274,8 +273,7 @@ public final class CursorIterable<T> implements Iterable<CursorIterable.KeyVal<T
     }
   }
 
-  // --------------------------------------------------------------------------------
-
+  
   /**
    * Calls down to mdb_cmp to make use of the comparator that LMDB uses for insertion order. Has a
    * very slight overhead as compared to {@link JavaRangeComparator}.
