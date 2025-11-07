@@ -20,7 +20,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class EnvFlagSetTest extends AbstractFlagSetTest<EnvFlags, EnvFlagSet> {
+class EnvFlagSetTest extends AbstractFlagSetTest<EnvFlags, EnvFlagSet> {
 
   @Override
   List<EnvFlags> getAllFlags() {

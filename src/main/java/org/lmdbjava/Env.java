@@ -54,6 +54,10 @@ public final class Env<T> implements AutoCloseable {
   /** Java system property name that can be set to disable optional checks. */
   public static final String DISABLE_CHECKS_PROP = "lmdbjava.disable.checks";
 
+  /**
+   * The default {@link Charset} used to convert DB names from a byte[] to a String or
+   * to encode a String as a byte[]. Only used if not explicit {@link Charset} is provided.
+   */
   public static final Charset DEFAULT_NAME_CHARSET = StandardCharsets.UTF_8;
 
   /**
@@ -196,9 +200,9 @@ public final class Env<T> implements AutoCloseable {
    * @deprecated Use {@link Env#copy(Path, CopyFlagSet)}
    */
   @Deprecated
-  public void copy(final File path, final CopyFlagSet flags) {
+  public void copy(final File path, final CopyFlags... flags) {
     requireNonNull(path);
-    copy(path.toPath(), flags);
+    copy(path.toPath(), CopyFlagSet.of(flags));
   }
 
   /**
@@ -268,7 +272,8 @@ public final class Env<T> implements AutoCloseable {
   /**
    * Set the size of the data memory map.
    *
-   * @param mapSize the new size, in bytes
+   * @param mapSize new map size in the units of byteUnit.
+   * @param byteUnit The unit that mapSize is in.
    */
   public void setMapSize(final long mapSize, final ByteUnit byteUnit) {
     requireNonNull(byteUnit);
@@ -804,7 +809,8 @@ public final class Env<T> implements AutoCloseable {
     /**
      * Sets the map size in the supplied unit.
      *
-     * @param mapSize new limit in
+     * @param mapSize new map size in the units of byteUnit.
+     * @param byteUnit The unit that mapSize is in.
      * @return the builder
      */
     public Builder<T> setMapSize(final long mapSize, final ByteUnit byteUnit) {

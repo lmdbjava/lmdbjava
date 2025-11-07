@@ -140,6 +140,27 @@ public abstract class AbstractFlagSetTest<
     }
   }
 
+  @Test
+  void testAddCollection() {
+    final F flagSet = getBuilder()
+        .addFlags(getAllFlags())
+        .build();
+
+    assertThat(flagSet.getFlags())
+        .containsExactlyElementsOf(getAllFlags());
+  }
+
+  @Test
+  void testClearBuilder() {
+    final F flagSet = getBuilder()
+        .addFlag(getFirst())
+        .clear()
+        .build();
+
+    assertThat(flagSet.isEmpty())
+        .isTrue();
+  }
+
   private T[] toArray(final int cnt) {
     //noinspection unchecked
     return (T[]) Array.newInstance(getFlagType(), cnt);

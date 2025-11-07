@@ -20,7 +20,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class CopyFlagSetTest extends AbstractFlagSetTest<CopyFlags, CopyFlagSet> {
+class CopyFlagSetTest extends AbstractFlagSetTest<CopyFlags, CopyFlagSet> {
 
   @Override
   List<CopyFlags> getAllFlags() {

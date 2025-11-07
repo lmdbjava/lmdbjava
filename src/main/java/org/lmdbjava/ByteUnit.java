@@ -17,12 +17,14 @@ package org.lmdbjava;
 
 /** Simple {@link Enum} for converting various IEC and SI byte units down a number of bytes. */
 public enum ByteUnit {
+
+  /** IEC/SI byte unit for bytes. */
   BYTES(1L),
 
   /** IEC byte unit for 1024 bytes. */
-  KIBIBYTES(1024L),
+  KIBIBYTES(1_024L),
   /** IEC byte unit for 1024^2 bytes. */
-  MEBIBYTES(1_0485_76L),
+  MEBIBYTES(1_048_576L),
   /** IEC byte unit for 1024^3 bytes. */
   GIBIBYTES(1_073_741_824L),
   /** IEC byte unit for 1024^4 bytes. */
@@ -59,6 +61,7 @@ public enum ByteUnit {
   }
 
   /**
+   * Gets factor to apply when converting this unit into bytes.
    * @return The factor to apply when converting this unit into bytes.
    */
   public long getFactor() {

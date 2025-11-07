@@ -139,6 +139,7 @@
               <excludes>
                 <exclude>LICENSE.txt</exclude>
                 <exclude>**/*.md</exclude>
+                <exclude>**/*.csv</exclude>
                 <exclude>lmdb/**</exclude>
                 <exclude>licenses/**</exclude>
               </excludes>

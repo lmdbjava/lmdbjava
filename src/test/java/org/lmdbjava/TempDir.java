@@ -21,7 +21,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.UUID;
 
-public class TempDir implements AutoCloseable {
+class TempDir implements AutoCloseable {
   private final Path root;
 
   public TempDir() {

@@ -26,7 +26,7 @@ import java.util.Objects;
  *
  * @param <T> buffer type
  */
-public class DbiBuilder<T> {
+public final class DbiBuilder<T> {
 
   private final Env<T> env;
   private final BufferProxy<T> proxy;
@@ -48,7 +48,7 @@ public class DbiBuilder<T> {
    *     DbiBuilder#withoutDbName()})
    * @return The next builder stage.
    */
-  public DbiBuilderStage2<T> setDbName(final String name) {
+  public Stage2<T> setDbName(final String name) {
     // Null name is allowed so no null check
     final byte[] nameBytes = name == null ? null : name.getBytes(Env.DEFAULT_NAME_CHARSET);
     return setDbName(nameBytes);
@@ -60,10 +60,10 @@ public class DbiBuilder<T> {
    * @param name The name of the database in byte form.
    * @return The next builder stage.
    */
-  public DbiBuilderStage2<T> setDbName(final byte[] name) {
+  public Stage2<T> setDbName(final byte[] name) {
     // Null name is allowed so no null check
     this.name = name;
-    return new DbiBuilderStage2<>(this);
+    return new Stage2<>(this);
   }
 
   /**
@@ -78,7 +78,7 @@ public class DbiBuilder<T> {
    *
    * @return The next builder stage.
    */
-  public DbiBuilderStage2<T> withoutDbName() {
+  public Stage2<T> withoutDbName() {
     return setDbName((byte[]) null);
   }
 
@@ -87,14 +87,14 @@ public class DbiBuilder<T> {
    *
    * @param <T> buffer type
    */
-  public static class DbiBuilderStage2<T> {
+  public static final class Stage2<T> {
 
     private final DbiBuilder<T> dbiBuilder;
 
     private ComparatorFactory<T> comparatorFactory;
     private ComparatorType comparatorType;
 
-    private DbiBuilderStage2(final DbiBuilder<T> dbiBuilder) {
+    private Stage2(final DbiBuilder<T> dbiBuilder) {
       this.dbiBuilder = dbiBuilder;
     }
 
@@ -109,20 +109,20 @@ public class DbiBuilder<T> {
      * functionally identical.
      *
      * <p>This option may be slightly more performant than when using {@link
-     * DbiBuilderStage2#withNativeComparator()} which calls down to LMDB for ALL comparison
+     * Stage2#withNativeComparator()} which calls down to LMDB for ALL comparison
      * operations.
      *
      * <p>If you do not intend to use {@link CursorIterable} then it doesn't matter whether you
-     * choose {@link DbiBuilderStage2#withNativeComparator()}, {@link
-     * DbiBuilderStage2#withDefaultComparator()} or {@link
-     * DbiBuilderStage2#withIteratorComparator(ComparatorFactory)} as these comparators will never
+     * choose {@link Stage2#withNativeComparator()}, {@link
+     * Stage2#withDefaultComparator()} or {@link
+     * Stage2#withIteratorComparator(ComparatorFactory)} as these comparators will never
      * be used.
      *
      * @return The next builder stage.
      */
-    public DbiBuilderStage3<T> withDefaultComparator() {
+    public Stage3<T> withDefaultComparator() {
       this.comparatorType = ComparatorType.DEFAULT;
-      return new DbiBuilderStage3<>(this);
+      return new Stage3<>(this);
     }
 
     /**
@@ -131,21 +131,21 @@ public class DbiBuilder<T> {
      * keys using the same comparator that is used for insertion order into the db.
      *
      * <p>This option may be slightly less performant than when using {@link
-     * DbiBuilderStage2#withDefaultComparator()} as it needs to call down to LMDB to perform the
+     * Stage2#withDefaultComparator()} as it needs to call down to LMDB to perform the
      * comparisons, however it guarantees that {@link CursorIterable} key comparison matches LMDB
      * key comparison.
      *
      * <p>If you do not intend to use {@link CursorIterable} then it doesn't matter whether you
-     * choose {@link DbiBuilderStage2#withNativeComparator()}, {@link
-     * DbiBuilderStage2#withDefaultComparator()} or {@link
-     * DbiBuilderStage2#withIteratorComparator(ComparatorFactory)} as these comparators will never
+     * choose {@link Stage2#withNativeComparator()}, {@link
+     * Stage2#withDefaultComparator()} or {@link
+     * Stage2#withIteratorComparator(ComparatorFactory)} as these comparators will never
      * be used.
      *
      * @return The next builder stage.
      */
-    public DbiBuilderStage3<T> withNativeComparator() {
+    public Stage3<T> withNativeComparator() {
       this.comparatorType = ComparatorType.NATIVE;
-      return new DbiBuilderStage3<>(this);
+      return new Stage3<>(this);
     }
 
     /**
@@ -167,11 +167,11 @@ public class DbiBuilder<T> {
      *     the {@link Dbi}. It must not return null.
      * @return The next builder stage.
      */
-    public DbiBuilderStage3<T> withCallbackComparator(
+    public Stage3<T> withCallbackComparator(
         final ComparatorFactory<T> comparatorFactory) {
       this.comparatorFactory = Objects.requireNonNull(comparatorFactory);
       this.comparatorType = ComparatorType.CALLBACK;
-      return new DbiBuilderStage3<>(this);
+      return new Stage3<>(this);
     }
 
     /**
@@ -189,9 +189,9 @@ public class DbiBuilder<T> {
      * when using {@link CursorIterable}.
      *
      * <p>If you do not intend to use {@link CursorIterable} then it doesn't matter whether you
-     * choose {@link DbiBuilderStage2#withNativeComparator()}, {@link
-     * DbiBuilderStage2#withDefaultComparator()} or {@link
-     * DbiBuilderStage2#withIteratorComparator(ComparatorFactory)} as these comparators will never
+     * choose {@link Stage2#withNativeComparator()}, {@link
+     * Stage2#withDefaultComparator()} or {@link
+     * Stage2#withIteratorComparator(ComparatorFactory)} as these comparators will never
      * be used.
      *
      * @param comparatorFactory The comparator to use with {@link CursorIterable}. {@link
@@ -199,11 +199,11 @@ public class DbiBuilder<T> {
      *     the {@link Dbi}. It must not return null.
      * @return The next builder stage.
      */
-    public DbiBuilderStage3<T> withIteratorComparator(
+    public Stage3<T> withIteratorComparator(
         final ComparatorFactory<T> comparatorFactory) {
       this.comparatorFactory = Objects.requireNonNull(comparatorFactory);
       this.comparatorType = ComparatorType.ITERATOR;
-      return new DbiBuilderStage3<>(this);
+      return new Stage3<>(this);
     }
   }
 
@@ -212,31 +212,32 @@ public class DbiBuilder<T> {
    *
    * @param <T> buffer type
    */
-  public static class DbiBuilderStage3<T> {
+  public static final class Stage3<T> {
 
-    private final DbiBuilderStage2<T> dbiBuilderStage2;
+    private final Stage2<T> stage2;
     private final AbstractFlagSet.Builder<DbiFlags, DbiFlagSet> flagSetBuilder =
         DbiFlagSet.builder();
     private Txn<T> txn = null;
 
-    private DbiBuilderStage3(DbiBuilderStage2<T> dbiBuilderStage2) {
-      this.dbiBuilderStage2 = dbiBuilderStage2;
+    private Stage3(Stage2<T> stage2) {
+      this.stage2 = stage2;
     }
 
     /**
      * Apply all the dbi flags supplied in dbiFlags.
      *
      * <p>Clears all flags currently set by previous calls to {@link
-     * DbiBuilderStage3#setDbiFlags(Collection)}, {@link DbiBuilderStage3#setDbiFlags(DbiFlags...)}
-     * or {@link DbiBuilderStage3#addDbiFlag(DbiFlags)}.
+     * Stage3#setDbiFlags(Collection)}, {@link Stage3#setDbiFlags(DbiFlags...)}
+     * or {@link Stage3#addDbiFlag(DbiFlags)}.
      *
      * @param dbiFlags to open the database with. A null {@link Collection} will just clear all set
      *     flags. Null items are ignored.
+     * @return This builder instance.
      */
-    public DbiBuilderStage3<T> setDbiFlags(final Collection<DbiFlags> dbiFlags) {
+    public Stage3<T> setDbiFlags(final Collection<DbiFlags> dbiFlags) {
       flagSetBuilder.clear();
       if (dbiFlags != null) {
-        dbiFlags.stream().filter(Objects::nonNull).forEach(dbiFlags::add);
+        dbiFlags.stream().filter(Objects::nonNull).forEach(this.flagSetBuilder::addFlag);
       }
       return this;
     }
@@ -245,13 +246,14 @@ public class DbiBuilder<T> {
      * Apply all the dbi flags supplied in dbiFlags.
      *
      * <p>Clears all flags currently set by previous calls to {@link
-     * DbiBuilderStage3#setDbiFlags(Collection)}, {@link DbiBuilderStage3#setDbiFlags(DbiFlags...)}
-     * or {@link DbiBuilderStage3#addDbiFlag(DbiFlags)}.
+     * Stage3#setDbiFlags(Collection)}, {@link Stage3#setDbiFlags(DbiFlags...)}
+     * or {@link Stage3#addDbiFlag(DbiFlags)}.
      *
      * @param dbiFlags to open the database with. A null array will just clear all set flags. Null
      *     items are ignored.
+     * @return This builder instance.
      */
-    public DbiBuilderStage3<T> setDbiFlags(final DbiFlags... dbiFlags) {
+    public Stage3<T> setDbiFlags(final DbiFlags... dbiFlags) {
       flagSetBuilder.clear();
       if (dbiFlags != null) {
         Arrays.stream(dbiFlags).filter(Objects::nonNull).forEach(this.flagSetBuilder::addFlag);
@@ -263,12 +265,13 @@ public class DbiBuilder<T> {
      * Apply all the dbi flags supplied in dbiFlags.
      *
      * <p>Clears all flags currently set by previous calls to {@link
-     * DbiBuilderStage3#setDbiFlags(Collection)}, {@link DbiBuilderStage3#setDbiFlags(DbiFlags...)}
-     * or {@link DbiBuilderStage3#addDbiFlag(DbiFlags)}.
+     * Stage3#setDbiFlags(Collection)}, {@link Stage3#setDbiFlags(DbiFlags...)}
+     * or {@link Stage3#addDbiFlag(DbiFlags)}.
      *
      * @param dbiFlagSet to open the database with. A null value will just clear all set flags.
+     * @return This builder instance.
      */
-    public DbiBuilderStage3<T> setDbiFlags(final DbiFlagSet dbiFlagSet) {
+    public Stage3<T> setDbiFlags(final DbiFlagSet dbiFlagSet) {
       flagSetBuilder.clear();
       if (dbiFlagSet != null) {
         this.flagSetBuilder.setFlags(dbiFlagSet.getFlags());
@@ -278,28 +281,28 @@ public class DbiBuilder<T> {
 
     /**
      * Adds a dbiFlag to those flags already added to this builder by {@link
-     * DbiBuilderStage3#setDbiFlags(DbiFlags...)}, {@link DbiBuilderStage3#setDbiFlags(Collection)}
-     * or {@link DbiBuilderStage3#addDbiFlag(DbiFlags)}.
+     * Stage3#setDbiFlags(DbiFlags...)}, {@link Stage3#setDbiFlags(Collection)}
+     * or {@link Stage3#addDbiFlag(DbiFlags)}.
      *
      * @param dbiFlag to add to any existing flags. A null value is a no-op.
      * @return this builder instance.
      */
-    public DbiBuilderStage3<T> addDbiFlag(final DbiFlags dbiFlag) {
+    public Stage3<T> addDbiFlag(final DbiFlags dbiFlag) {
       this.flagSetBuilder.addFlag(dbiFlag);
       return this;
     }
 
     /**
      * Adds a dbiFlag to those flags already added to this builder by {@link
-     * DbiBuilderStage3#setDbiFlags(DbiFlags...)}, {@link DbiBuilderStage3#setDbiFlags(Collection)}
-     * or {@link DbiBuilderStage3#addDbiFlag(DbiFlags)}.
+     * Stage3#setDbiFlags(DbiFlags...)}, {@link Stage3#setDbiFlags(Collection)}
+     * or {@link Stage3#addDbiFlag(DbiFlags)}.
      *
      * @param dbiFlagSet to add to any existing flags. A null value is a no-op.
      * @return this builder instance.
      */
-    public DbiBuilderStage3<T> addDbiFlags(final DbiFlagSet dbiFlagSet) {
+    public Stage3<T> addDbiFlags(final DbiFlagSet dbiFlagSet) {
       if (dbiFlagSet != null) {
-        flagSetBuilder.addFlags(dbiFlagSet.getFlags());
+        this.flagSetBuilder.addFlags(dbiFlagSet.getFlags());
       }
       return this;
     }
@@ -307,7 +310,7 @@ public class DbiBuilder<T> {
     /**
      * Use the supplied transaction to open the {@link Dbi}.
      *
-     * <p>The caller MUST commit the transaction after calling {@link DbiBuilderStage3#open()}, in
+     * <p>The caller MUST commit the transaction after calling {@link Stage3#open()}, in
      * order to retain the <code>Dbi</code> in the <code>Env</code>.
      *
      * <p>If you don't call this method to supply a {@link Txn}, a {@link Txn} will be opened for
@@ -319,7 +322,7 @@ public class DbiBuilder<T> {
      *     be a read/write {@link Txn}.
      * @return this builder instance.
      */
-    public DbiBuilderStage3<T> setTxn(final Txn<T> txn) {
+    public Stage3<T> setTxn(final Txn<T> txn) {
       this.txn = Objects.requireNonNull(txn);
       return this;
     }
@@ -333,7 +336,7 @@ public class DbiBuilder<T> {
      * @return A newly constructed and opened {@link Dbi}.
      */
     public Dbi<T> open() {
-      final DbiBuilder<T> dbiBuilder = dbiBuilderStage2.dbiBuilder;
+      final DbiBuilder<T> dbiBuilder = stage2.dbiBuilder;
       if (txn != null) {
         return openDbi(txn, dbiBuilder);
       } else {
@@ -363,7 +366,7 @@ public class DbiBuilder<T> {
           break;
         case CALLBACK:
         case ITERATOR:
-          comparator = dbiBuilderStage2.comparatorFactory.create(dbiFlagSet);
+          comparator = stage2.comparatorFactory.create(dbiFlagSet);
           Objects.requireNonNull(comparator, "comparatorFactory returned null");
           break;
         case NATIVE:
@@ -376,7 +379,7 @@ public class DbiBuilder<T> {
 
     private Dbi<T> openDbi(final Txn<T> txn, final DbiBuilder<T> dbiBuilder) {
       final DbiFlagSet dbiFlagSet = flagSetBuilder.build();
-      final ComparatorType comparatorType = dbiBuilderStage2.comparatorType;
+      final ComparatorType comparatorType = stage2.comparatorType;
       final Comparator<T> comparator = getComparator(dbiBuilder, comparatorType, dbiFlagSet);
       final boolean useNativeCallback = comparatorType == ComparatorType.CALLBACK;
       return new Dbi<>(
@@ -408,9 +411,21 @@ public class DbiBuilder<T> {
     ;
   }
 
+  /**
+   * A factory for creating a {@link Comparator} from a {@link DbiFlagSet}
+   * @param <T> The type of buffer that will be compared by the created {@link Comparator}.
+   */
   @FunctionalInterface
   public interface ComparatorFactory<T> {
 
+    /**
+     * Creates a comparator for the supplied {@link DbiFlagSet}. This will only be called once
+     * during the initialisation of the {@link Dbi}.
+     *
+     * @param dbiFlagSet The flags set on the DB that the returned {@link Comparator} will be used by.
+     *                   The flags in the set may impact how the returned {@link Comparator} should behave.
+     * @return A {@link Comparator} applicable to the passed DB flags.
+     */
     Comparator<T> create(final DbiFlagSet dbiFlagSet);
   }
 }

@@ -15,45 +15,60 @@
  */
 package org.lmdbjava;
 
+import java.nio.file.Path;
 import java.util.Collection;
-import java.util.EnumSet;
 import java.util.Objects;
 
+/** An immutable set of flags for use when performing a {@link Env#copy(Path, CopyFlagSet)}. */
 public interface CopyFlagSet extends FlagSet<CopyFlags> {
 
+  /**
+   * An immutable empty {@link CopyFlagSet}.
+   */
   CopyFlagSet EMPTY = CopyFlagSetImpl.EMPTY;
 
+  /**
+   * Gets the immutable empty {@link CopyFlagSet} instance.
+   * @return The immutable empty {@link CopyFlagSet} instance.
+   */
   static CopyFlagSet empty() {
     return CopyFlagSetImpl.EMPTY;
   }
 
-  static CopyFlagSet of(final CopyFlags dbiFlag) {
-    Objects.requireNonNull(dbiFlag);
-    return dbiFlag;
+  /**
+   * Creates an immutable {@link CopyFlagSet} containing copyFlag.
+   * @param copyFlag The flag to include in the {@link CopyFlagSet}
+   * @return An immutable {@link CopyFlagSet} containing just copyFlag.
+   */
+  static CopyFlagSet of(final CopyFlags copyFlag) {
+    Objects.requireNonNull(copyFlag);
+    return copyFlag;
   }
 
-  static CopyFlagSet of(final CopyFlags... CopyFlags) {
-    return builder().setFlags(CopyFlags).build();
+  /**
+   * Creates an immutable {@link CopyFlagSet} containing copyFlags.
+   * @param copyFlags The flags to include in the {@link CopyFlagSet}.
+   * @return An immutable {@link CopyFlagSet} containing copyFlags.
+   */
+  static CopyFlagSet of(final CopyFlags... copyFlags) {
+    return builder().setFlags(copyFlags).build();
   }
 
-  static CopyFlagSet of(final Collection<CopyFlags> CopyFlags) {
-    return builder().setFlags(CopyFlags).build();
+  /**
+   * Creates an immutable {@link CopyFlagSet} containing copyFlags.
+   * @param copyFlags The flags to include in the {@link CopyFlagSet}.
+   * @return An immutable {@link CopyFlagSet} containing copyFlags.
+   */
+  static CopyFlagSet of(final Collection<CopyFlags> copyFlags) {
+    return builder().setFlags(copyFlags).build();
   }
 
+  /**
+   * Create a builder for building an {@link CopyFlagSet}.
+   * @return A builder instance for building an {@link CopyFlagSet}.
+   */
   static AbstractFlagSet.Builder<CopyFlags, CopyFlagSet> builder() {
     return new AbstractFlagSet.Builder<>(
         CopyFlags.class, CopyFlagSetImpl::new, copyFlag -> copyFlag, () -> CopyFlagSetImpl.EMPTY);
   }
-
-  class CopyFlagSetImpl extends AbstractFlagSet<CopyFlags> implements CopyFlagSet {
-
-    static final CopyFlagSet EMPTY = new EmptyCopyFlagSet();
-
-    private CopyFlagSetImpl(final EnumSet<CopyFlags> flags) {
-      super(flags);
-    }
-  }
-
-  class EmptyCopyFlagSet extends AbstractFlagSet.AbstractEmptyFlagSet<CopyFlags>
-      implements CopyFlagSet {}
 }

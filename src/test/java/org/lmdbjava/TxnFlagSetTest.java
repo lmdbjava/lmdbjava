@@ -20,7 +20,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class TxnFlagSetTest extends AbstractFlagSetTest<TxnFlags, TxnFlagSet> {
+class TxnFlagSetTest extends AbstractFlagSetTest<TxnFlags, TxnFlagSet> {
 
   @Override
   List<TxnFlags> getAllFlags() {

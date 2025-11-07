@@ -24,6 +24,7 @@ import static org.lmdbjava.TestUtils.getString;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
@@ -31,7 +32,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public class DbiBuilderTest {
+class DbiBuilderTest {
 
   private TempDir tempDir;
   private Env<ByteBuffer> env;
@@ -168,6 +169,8 @@ public class DbiBuilderTest {
             .setDbName("foo")
             .withDefaultComparator()
             .setDbiFlags(DbiFlags.MDB_DUPSORT, DbiFlags.MDB_DUPFIXED) // Will get overwritten
+            .setDbiFlags() // clear them
+            .setDbiFlags(Collections.singletonList(DbiFlags.MDB_INTEGERDUP))
             .setDbiFlags() // clear them
             .addDbiFlags(DbiFlags.MDB_CREATE) // Not a dbi flag as far as lmdb is concerned.
             .addDbiFlags(DbiFlags.MDB_INTEGERKEY)

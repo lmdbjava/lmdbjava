@@ -16,44 +16,58 @@
 package org.lmdbjava;
 
 import java.util.Collection;
-import java.util.EnumSet;
 import java.util.Objects;
 
+/** An immutable set of flags for use when opening the {@link Env}. */
 public interface EnvFlagSet extends FlagSet<EnvFlags> {
 
+  /**
+   * An immutable empty {@link EnvFlagSet}.
+   */
   EnvFlagSet EMPTY = EnvFlagSetImpl.EMPTY;
 
+  /**
+   * Gets the immutable empty {@link EnvFlagSet} instance.
+   * @return The immutable empty {@link EnvFlagSet} instance.
+   */
   static EnvFlagSet empty() {
     return EnvFlagSetImpl.EMPTY;
   }
 
+  /**
+   * Creates an immutable {@link EnvFlagSet} containing envFlag.
+   * @param envFlag The flag to include in the {@link EnvFlagSet}
+   * @return An immutable {@link EnvFlagSet} containing just envFlag.
+   */
   static EnvFlagSet of(final EnvFlags envFlag) {
     Objects.requireNonNull(envFlag);
     return envFlag;
   }
 
-  static EnvFlagSet of(final EnvFlags... EnvFlags) {
-    return builder().setFlags(EnvFlags).build();
+  /**
+   * Creates an immutable {@link EnvFlagSet} containing envFlags.
+   * @param envFlags The flags to include in the {@link EnvFlagSet}.
+   * @return An immutable {@link EnvFlagSet} containing envFlags.
+   */
+  static EnvFlagSet of(final EnvFlags... envFlags) {
+    return builder().setFlags(envFlags).build();
   }
 
-  static EnvFlagSet of(final Collection<EnvFlags> EnvFlags) {
-    return builder().setFlags(EnvFlags).build();
+  /**
+   * Creates an immutable {@link EnvFlagSet} containing envFlags.
+   * @param envFlags The flags to include in the {@link EnvFlagSet}.
+   * @return An immutable {@link EnvFlagSet} containing envFlags.
+   */
+  static EnvFlagSet of(final Collection<EnvFlags> envFlags) {
+    return builder().setFlags(envFlags).build();
   }
 
+  /**
+   * Create a builder for building an {@link EnvFlagSet}.
+   * @return A builder instance for building an {@link EnvFlagSet}.
+   */
   static AbstractFlagSet.Builder<EnvFlags, EnvFlagSet> builder() {
     return new AbstractFlagSet.Builder<>(
         EnvFlags.class, EnvFlagSetImpl::new, envFlag -> envFlag, () -> EnvFlagSetImpl.EMPTY);
   }
-
-  class EnvFlagSetImpl extends AbstractFlagSet<EnvFlags> implements EnvFlagSet {
-
-    static final EnvFlagSet EMPTY = new EmptyEnvFlagSet();
-
-    private EnvFlagSetImpl(final EnumSet<EnvFlags> flags) {
-      super(flags);
-    }
-  }
-
-  class EmptyEnvFlagSet extends AbstractFlagSet.AbstractEmptyFlagSet<EnvFlags>
-      implements EnvFlagSet {}
 }

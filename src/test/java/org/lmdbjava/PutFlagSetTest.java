@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 
-public class PutFlagSetTest extends AbstractFlagSetTest<PutFlags, PutFlagSet> {
+class PutFlagSetTest extends AbstractFlagSetTest<PutFlags, PutFlagSet> {
 
   @Override
   List<PutFlags> getAllFlags() {

@@ -271,12 +271,16 @@ public final class Dbi<T> {
   /**
    * Obtains the name of this database.
    *
-   * @return the name (may be null)
+   * @return The name (it maybe null)
    */
   public byte[] getName() {
     return name == null ? null : Arrays.copyOf(name, name.length);
   }
 
+  /**
+   * Obtains the name of this database, using the {@link Env#DEFAULT_NAME_CHARSET} {@link Charset}.
+   * @return The name of this database, using the {@link Env#DEFAULT_NAME_CHARSET} {@link Charset}.
+   */
   public String getNameAsString() {
     return getNameAsString(Env.DEFAULT_NAME_CHARSET);
   }
@@ -284,6 +288,7 @@ public final class Dbi<T> {
   /**
    * Obtains the name of this database, using the supplied {@link Charset}.
    *
+   * @param charset The {@link Charset} to use when converting the DB from a byte[] to a {@link String}.
    * @return The name of the database. If this is the unnamed database an empty string will be
    *     returned.
    * @throws RuntimeException if the name can't be decoded.

@@ -27,7 +27,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
-public class GarbageCollectionTest {
+class GarbageCollectionTest {
 
   private static final String DB_NAME = "my DB";
   private static final String KEY_PREFIX = "Uncorruptedkey";

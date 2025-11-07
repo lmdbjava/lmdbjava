@@ -148,7 +148,7 @@ public final class CursorIterableRangeTest {
 
   private void testCSV(
       final Function<
-              DbiBuilder.DbiBuilderStage2<ByteBuffer>, DbiBuilder.DbiBuilderStage3<ByteBuffer>>
+          DbiBuilder.Stage2<ByteBuffer>, DbiBuilder.Stage3<ByteBuffer>>
           comparatorFunc,
       final BiConsumer<Env<ByteBuffer>, Dbi<ByteBuffer>> dbPopulator,
       final DbiFlagSet dbiFlags,
@@ -170,7 +170,7 @@ public final class CursorIterableRangeTest {
 
   private void testCSV(
       final Function<
-              DbiBuilder.DbiBuilderStage2<ByteBuffer>, DbiBuilder.DbiBuilderStage3<ByteBuffer>>
+          DbiBuilder.Stage2<ByteBuffer>, DbiBuilder.Stage3<ByteBuffer>>
           comparatorFunc,
       final BiConsumer<Env<ByteBuffer>, Dbi<ByteBuffer>> dbPopulator,
       final DbiFlagSet dbiFlags,
@@ -191,9 +191,9 @@ public final class CursorIterableRangeTest {
               .setEnvFlags(MDB_NOSUBDIR)
               .open(file)) {
 
-        final DbiBuilder.DbiBuilderStage2<ByteBuffer> builderStage2 =
+        final DbiBuilder.Stage2<ByteBuffer> builderStage2 =
             env.createDbi().setDbName(DB_1);
-        final DbiBuilder.DbiBuilderStage3<ByteBuffer> builderStage3 =
+        final DbiBuilder.Stage3<ByteBuffer> builderStage3 =
             comparatorFunc.apply(builderStage2);
         final Dbi<ByteBuffer> dbi = builderStage3.setDbiFlags(dbiFlags).open();
 

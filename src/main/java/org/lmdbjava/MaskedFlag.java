@@ -22,6 +22,9 @@ import java.util.Collection;
 /** Indicates an enum that can provide integers for each of its values. */
 public interface MaskedFlag {
 
+  /**
+   * The mask value for an empty mask, i.e. no flags set.
+   */
   int EMPTY_MASK = 0;
 
   /**
@@ -32,6 +35,7 @@ public interface MaskedFlag {
   int getMask();
 
   /**
+   * The name of the flag.
    * @return The name of the flag.
    */
   String name();
@@ -59,8 +63,12 @@ public interface MaskedFlag {
     }
   }
 
-  /** Combine the two masks into a single mask value, i.e. when combining two {@link FlagSet}s. */
-  static <M extends MaskedFlag> int mask(final int mask1, final int mask2) {
+  /** Combine the two masks into a single mask value, i.e. when combining two {@link FlagSet}s.
+   * @param mask1 The mask to combine with mask2.
+   * @param mask2 The mask to combine with mask1.
+   * @return The combined mask value for the two passed masks.
+   * */
+  static int mask(final int mask1, final int mask2) {
     return mask1 | mask2;
   }
 

@@ -16,52 +16,58 @@
 package org.lmdbjava;
 
 import java.util.Collection;
-import java.util.EnumSet;
 import java.util.Objects;
 
+/** An immutable set of flags for use when creating a {@link Txn}. */
 public interface TxnFlagSet extends FlagSet<TxnFlags> {
 
+  /**
+   * An immutable empty {@link TxnFlagSet}.
+   */
   TxnFlagSet EMPTY = TxnFlagSetImpl.EMPTY;
 
+  /**
+   * Gets the immutable empty {@link TxnFlagSet} instance.
+   * @return The immutable empty {@link TxnFlagSet} instance.
+   */
   static TxnFlagSet empty() {
     return TxnFlagSetImpl.EMPTY;
   }
 
-  static TxnFlagSet of(final TxnFlags putflag) {
-    Objects.requireNonNull(putflag);
-    return new SingleTxnFlagSet(putflag);
+  /**
+   * Creates an immutable {@link TxnFlagSet} containing txnFlag.
+   * @param txnFlag The flag to include in the {@link TxnFlagSet}
+   * @return An immutable {@link TxnFlagSet} containing just txnFlag.
+   */
+  static TxnFlagSet of(final TxnFlags txnFlag) {
+    Objects.requireNonNull(txnFlag);
+    return txnFlag;
   }
 
-  static TxnFlagSet of(final TxnFlags... TxnFlags) {
-    return builder().setFlags(TxnFlags).build();
+  /**
+   * Creates an immutable {@link TxnFlagSet} containing txnFlags.
+   * @param txnFlags The flags to include in the {@link TxnFlagSet}.
+   * @return An immutable {@link TxnFlagSet} containing txnFlags.
+   */
+  static TxnFlagSet of(final TxnFlags... txnFlags) {
+    return builder().setFlags(txnFlags).build();
   }
 
+  /**
+   * Creates an immutable {@link TxnFlagSet} containing txnFlags.
+   * @param txnFlags The flags to include in the {@link TxnFlagSet}.
+   * @return An immutable {@link TxnFlagSet} containing txnFlags.
+   */
   static TxnFlagSet of(final Collection<TxnFlags> txnFlags) {
     return builder().setFlags(txnFlags).build();
   }
 
+  /**
+   * Create a builder for building an {@link TxnFlagSet}.
+   * @return A builder instance for building an {@link TxnFlagSet}.
+   */
   static AbstractFlagSet.Builder<TxnFlags, TxnFlagSet> builder() {
     return new AbstractFlagSet.Builder<>(
-        TxnFlags.class, TxnFlagSetImpl::new, SingleTxnFlagSet::new, () -> TxnFlagSetImpl.EMPTY);
+        TxnFlags.class, TxnFlagSetImpl::new, txnFlag -> txnFlag, () -> TxnFlagSetImpl.EMPTY);
   }
-
-  class TxnFlagSetImpl extends AbstractFlagSet<TxnFlags> implements TxnFlagSet {
-
-    static final TxnFlagSet EMPTY = new EmptyTxnFlagSet();
-
-    private TxnFlagSetImpl(final EnumSet<TxnFlags> flags) {
-      super(flags);
-    }
-  }
-
-  class SingleTxnFlagSet extends AbstractFlagSet.AbstractSingleFlagSet<TxnFlags>
-      implements TxnFlagSet {
-
-    SingleTxnFlagSet(final TxnFlags flag) {
-      super(flag);
-    }
-  }
-
-  class EmptyTxnFlagSet extends AbstractFlagSet.AbstractEmptyFlagSet<TxnFlags>
-      implements TxnFlagSet {}
 }
