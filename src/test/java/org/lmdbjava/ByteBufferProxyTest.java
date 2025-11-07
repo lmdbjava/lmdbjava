@@ -37,6 +37,7 @@ import static org.lmdbjava.UnsafeAccess.ALLOW_UNSAFE;
 import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Comparator;
@@ -60,22 +61,22 @@ public final class ByteBufferProxyTest {
   void buffersMustBeDirect() {
     assertThatThrownBy(
             () -> {
-              FileUtil.useTempDir(
-                  dir -> {
-                    try (Env<ByteBuffer> env = create().setMaxReaders(1).open(dir)) {
-                      final Dbi<ByteBuffer> db =
-                          env.createDbi()
-                              .setDbName(DB_1)
-                              .withDefaultComparator()
-                              .setDbiFlags(MDB_CREATE)
-                              .open();
-                      final ByteBuffer key = allocate(100);
-                      key.putInt(1).flip();
-                      final ByteBuffer val = allocate(100);
-                      val.putInt(1).flip();
-                      db.put(key, val); // error
-                    }
-                  });
+              try (final TempDir tempDir = new TempDir()) {
+                final Path dir = tempDir.createTempDir();
+                try (Env<ByteBuffer> env = create().setMaxReaders(1).open(dir)) {
+                  final Dbi<ByteBuffer> db =
+                      env.createDbi()
+                          .setDbName(DB_1)
+                          .withDefaultComparator()
+                          .setDbiFlags(MDB_CREATE)
+                          .open();
+                  final ByteBuffer key = allocate(100);
+                  key.putInt(1).flip();
+                  final ByteBuffer val = allocate(100);
+                  val.putInt(1).flip();
+                  db.put(key, val); // error
+                }
+              }
             })
         .isInstanceOf(BufferMustBeDirectException.class);
   }

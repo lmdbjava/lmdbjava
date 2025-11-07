@@ -23,7 +23,6 @@ import static org.lmdbjava.TestUtils.getString;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
@@ -34,25 +33,25 @@ import org.junit.jupiter.api.Test;
 
 public class DbiBuilderTest {
 
-  private Path file;
+  private TempDir tempDir;
   private Env<ByteBuffer> env;
 
   @BeforeEach
   public void before() {
-    file = FileUtil.createTempFile();
+    tempDir = new TempDir();
     env =
         create()
             .setMapSize(64, ByteUnit.MEBIBYTES)
             .setMaxReaders(2)
             .setMaxDbs(2)
             .setEnvFlags(MDB_NOSUBDIR)
-            .open(file);
+            .open(tempDir.createTempFile());
   }
 
   @AfterEach
   public void after() {
     env.close();
-    FileUtil.delete(file);
+    tempDir.cleanup();
   }
 
   @Test

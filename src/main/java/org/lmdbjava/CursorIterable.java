@@ -61,7 +61,7 @@ public final class CursorIterable<T> implements Iterable<CursorIterable.KeyVal<T
 
     if (comparator != null) {
       // User supplied Java-side comparator so use that
-      this.rangeComparator = new JavaRangeComparator<>(range, comparator, entry::key);
+      this.rangeComparator = new JavaRangeComparator<>(range, comparator, cursor::key);
     } else {
       // No Java-side comparator, so call down to LMDB to do the comparison
       this.rangeComparator = new LmdbRangeComparator<>(txn, dbi, cursor, range, proxy);
@@ -121,7 +121,7 @@ public final class CursorIterable<T> implements Iterable<CursorIterable.KeyVal<T
   }
 
   private void executeCursorOp(final CursorOp op) {
-    final boolean found;
+    boolean found;
     switch (op) {
       case FIRST:
         found = cursor.first();
@@ -139,7 +139,31 @@ public final class CursorIterable<T> implements Iterable<CursorIterable.KeyVal<T
         found = cursor.get(range.getStart(), MDB_SET_RANGE);
         break;
       case GET_START_KEY_BACKWARD:
-        found = cursor.get(range.getStart(), MDB_SET_RANGE) || cursor.last();
+        found = cursor.get(range.getStart(), MDB_SET_RANGE);
+        if (found) {
+          if (!range.getType().isDirectionForward()
+              && range.getType().isStartKeyRequired()
+              && range.getType().isStartKeyInclusive()) {
+            // We need to ensure we move to the last matching key if using DUPSORT, see issue 267
+            boolean loop = true;
+            while (loop) {
+              if (rangeComparator.compareToStartKey() <= 0) {
+                found = cursor.next();
+                if (!found) {
+                  // We got to the end so move last.
+                  found = cursor.last();
+                  loop = false;
+                }
+              } else {
+                // We have moved past so go back one.
+                found = cursor.prev();
+                loop = false;
+              }
+            }
+          }
+        } else {
+          found = cursor.last();
+        }
         break;
       default:
         throw new IllegalStateException("Unknown cursor operation");

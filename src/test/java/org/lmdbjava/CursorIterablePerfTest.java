@@ -25,7 +25,6 @@ import static org.lmdbjava.TestUtils.bb;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -39,14 +38,14 @@ public class CursorIterablePerfTest {
 
   private static final int ITERATIONS = 100_000;
 
+  private TempDir tempDir;
   private final List<Dbi<ByteBuffer>> dbs = new ArrayList<>();
   private final List<Integer> data = new ArrayList<>(ITERATIONS);
   private Env<ByteBuffer> env;
-  private Path file;
 
   @BeforeEach
   public void before() throws IOException {
-    file = FileUtil.createTempFile();
+    tempDir = new TempDir();
     final BufferProxy<ByteBuffer> bufferProxy = ByteBufferProxy.PROXY_OPTIMAL;
     env =
         create(bufferProxy)
@@ -54,7 +53,7 @@ public class CursorIterablePerfTest {
             .setMaxReaders(1)
             .setMaxDbs(3)
             .setEnvFlags(MDB_NOSUBDIR)
-            .open(file);
+            .open(tempDir.createTempFile());
 
     final DbiFlagSet dbiFlagSet = MDB_CREATE;
     // Use a java comparator for start/stop keys only
@@ -90,7 +89,7 @@ public class CursorIterablePerfTest {
   @AfterEach
   public void after() {
     env.close();
-    FileUtil.delete(file);
+    tempDir.cleanup();
   }
 
   private void populateList() {

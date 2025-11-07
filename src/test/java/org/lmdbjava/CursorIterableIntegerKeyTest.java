@@ -54,7 +54,6 @@ import com.google.common.primitives.UnsignedBytes;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.nio.file.Path;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -91,7 +90,7 @@ public final class CursorIterableIntegerKeyTest {
   private static final DbiFlagSet DBI_FLAGS = DbiFlagSet.of(MDB_CREATE, MDB_INTEGERKEY);
   private static final BufferProxy<ByteBuffer> BUFFER_PROXY = ByteBufferProxy.PROXY_OPTIMAL;
 
-  private Path file;
+  private TempDir tempDir;
   private Env<ByteBuffer> env;
   private Deque<Integer> list;
 
@@ -99,7 +98,7 @@ public final class CursorIterableIntegerKeyTest {
 
   @BeforeEach
   public void before() throws IOException {
-    file = FileUtil.createTempFile();
+    tempDir = new TempDir();
     final BufferProxy<ByteBuffer> bufferProxy = ByteBufferProxy.PROXY_OPTIMAL;
     env =
         Env.create(bufferProxy)
@@ -107,7 +106,7 @@ public final class CursorIterableIntegerKeyTest {
             .setMaxReaders(1)
             .setMaxDbs(3)
             .setEnvFlags(MDB_NOSUBDIR)
-            .open(file);
+            .open(tempDir.createTempFile());
 
     populateTestDataList();
   }
@@ -115,7 +114,7 @@ public final class CursorIterableIntegerKeyTest {
   @AfterEach
   public void after() {
     env.close();
-    FileUtil.delete(file);
+    tempDir.cleanup();
   }
 
   @Test

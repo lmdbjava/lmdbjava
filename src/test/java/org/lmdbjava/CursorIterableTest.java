@@ -49,7 +49,6 @@ import static org.lmdbjava.TestUtils.bb;
 
 import com.google.common.primitives.UnsignedBytes;
 import java.nio.ByteBuffer;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Deque;
@@ -79,7 +78,7 @@ public final class CursorIterableTest {
   private static final DbiFlagSet DBI_FLAGS = MDB_CREATE;
   private static final BufferProxy<ByteBuffer> BUFFER_PROXY = ByteBufferProxy.PROXY_OPTIMAL;
 
-  private Path file;
+  private TempDir tempDir;
   private Env<ByteBuffer> env;
   private Deque<Integer> list;
 
@@ -91,7 +90,7 @@ public final class CursorIterableTest {
 
   @BeforeEach
   void beforeEach() {
-    file = FileUtil.createTempFile();
+    tempDir = new TempDir();
     final BufferProxy<ByteBuffer> bufferProxy = ByteBufferProxy.PROXY_OPTIMAL;
     env =
         create(bufferProxy)
@@ -99,7 +98,7 @@ public final class CursorIterableTest {
             .setMaxReaders(1)
             .setMaxDbs(3)
             .setEnvFlags(MDB_NOSUBDIR)
-            .open(file);
+            .open(tempDir.createTempFile());
 
     populateTestDataList();
   }
@@ -107,7 +106,7 @@ public final class CursorIterableTest {
   @AfterEach
   void afterEach() {
     env.close();
-    FileUtil.delete(file);
+    tempDir.cleanup();
   }
 
   private void populateTestDataList() {
@@ -305,7 +304,11 @@ public final class CursorIterableTest {
           return guava.compare(array1, array2);
         };
     final Dbi<ByteBuffer> guavaDbi =
-        env.createDbi().setDbName(DB_1).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
+        env.createDbi()
+            .setDbName(DB_1)
+            .withCallbackComparator(ignored -> comparator)
+            .setDbiFlags(MDB_CREATE)
+            .open();
     populateDatabase(guavaDbi);
     verify(openClosedBackward(bb(7), bb(2)), guavaDbi, 6, 4, 2);
     verify(openClosedBackward(bb(8), bb(4)), guavaDbi, 6, 4);

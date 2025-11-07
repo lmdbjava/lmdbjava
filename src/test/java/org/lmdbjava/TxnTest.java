@@ -33,7 +33,6 @@ import static org.lmdbjava.Txn.State.RELEASED;
 import static org.lmdbjava.Txn.State.RESET;
 import static org.lmdbjava.TxnFlags.MDB_RDONLY_TXN;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -58,9 +57,12 @@ public final class TxnTest {
   private Path file;
   private Env<ByteBuffer> env;
 
+  private TempDir tempDir;
+
   @BeforeEach
   void beforeEach() {
-    file = FileUtil.createTempFile();
+    tempDir = new TempDir();
+    file = tempDir.createTempFile();
     env =
         create()
             .setMapSize(256, ByteUnit.KIBIBYTES)
@@ -73,11 +75,11 @@ public final class TxnTest {
   @AfterEach
   void afterEach() {
     env.close();
-    FileUtil.delete(file);
+    tempDir.cleanup();
   }
 
   @Test
-  void largeKeysRejected() throws IOException {
+  void largeKeysRejected() {
     assertThatThrownBy(
             () -> {
               final Dbi<ByteBuffer> dbi = env.openDbi(DB_1, MDB_CREATE);
@@ -138,7 +140,7 @@ public final class TxnTest {
               env.openDbi(DB_1, MDB_CREATE);
               env.close();
               try (Env<ByteBuffer> roEnv =
-                  create().setMaxReaders(1).open(file.toFile(), MDB_NOSUBDIR, MDB_RDONLY_ENV)) {
+                  create().setMaxReaders(1).setEnvFlags(MDB_NOSUBDIR, MDB_RDONLY_ENV).open(file)) {
                 roEnv.txnWrite(); // error
               }
             })

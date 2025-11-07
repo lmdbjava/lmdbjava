@@ -78,7 +78,6 @@ public final class Dbi<T> {
       final boolean nativeCb,
       final BufferProxy<T> proxy,
       final DbiFlagSet dbiFlagSet) {
-
     if (SHOULD_CHECK) {
       if (nativeCb && comparator == null) {
         throw new IllegalArgumentException("Is nativeCb is true, you must supply a comparator");

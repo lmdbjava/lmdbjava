@@ -51,7 +51,6 @@ import static org.lmdbjava.TestUtils.getNativeIntOrLong;
 import com.google.common.primitives.UnsignedBytes;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.file.Path;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -107,7 +106,7 @@ public final class CursorIterableIntegerDupTest {
     }
   }
 
-  private Path file;
+  private TempDir tempDir;
   private Env<ByteBuffer> env;
   private Deque<Map.Entry<Integer, Integer>> expectedEntriesDeque;
 
@@ -115,7 +114,7 @@ public final class CursorIterableIntegerDupTest {
 
   @BeforeEach
   public void before() throws IOException {
-    file = FileUtil.createTempFile();
+    tempDir = new TempDir();
     final BufferProxy<ByteBuffer> bufferProxy = ByteBufferProxy.PROXY_OPTIMAL;
     env =
         create(bufferProxy)
@@ -123,7 +122,7 @@ public final class CursorIterableIntegerDupTest {
             .setMaxReaders(1)
             .setMaxDbs(3)
             .setEnvFlags(MDB_NOSUBDIR)
-            .open(file);
+            .open(tempDir.createTempFile());
 
     populateExpectedEntriesDeque();
   }
@@ -131,7 +130,7 @@ public final class CursorIterableIntegerDupTest {
   @AfterEach
   public void after() {
     env.close();
-    FileUtil.delete(file);
+    tempDir.cleanup();
   }
 
   @Test
