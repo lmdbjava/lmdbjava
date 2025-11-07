@@ -538,6 +538,7 @@ public final class EnvTest {
             final List<byte[]> dbiNames = env.getDbiNames();
             assertThat(dbiNames).hasSize(2);
             assertThat(dbiNames.get(0)).isEqualTo("abc".getBytes(Env.DEFAULT_NAME_CHARSET));
+            assertThat(dbiNames.get(1)).isEqualTo("def".getBytes(Env.DEFAULT_NAME_CHARSET));
           }
         });
   }
@@ -550,11 +551,14 @@ public final class EnvTest {
             final EnvInfo info = env.info();
             assertThat(info.maxReaders).isEqualTo(MAX_READERS_DEFAULT);
             final Dbi<ByteBuffer> db = env.openDbi((byte[]) null, MDB_CREATE);
+            db.put(bb("abc"), allocateDirect(1));
+            db.put(bb("def"), allocateDirect(1));
 
             // As this is the unnamed database it returns all keys in the unnamed db
             final List<byte[]> dbiNames = env.getDbiNames();
-            assertThat(dbiNames).hasSize(1);
-            assertThat(dbiNames.get(0)).isEqualTo(new byte[0]);
+            assertThat(dbiNames).hasSize(2);
+            assertThat(dbiNames.get(0)).isEqualTo("abc".getBytes(Env.DEFAULT_NAME_CHARSET));
+            assertThat(dbiNames.get(1)).isEqualTo("def".getBytes(Env.DEFAULT_NAME_CHARSET));
           }
         });
   }
