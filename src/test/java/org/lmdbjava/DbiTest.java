@@ -85,14 +85,16 @@ public final class DbiTest {
             .setMapSize(MEBIBYTES.toBytes(64))
             .setMaxReaders(2)
             .setMaxDbs(2)
-            .open(file.toFile(), MDB_NOSUBDIR);
+            .setEnvFlags(MDB_NOSUBDIR)
+            .open(file);
     final Path fileBa = tempDir.createTempFile();
     envBa =
         create(PROXY_BA)
             .setMapSize(MEBIBYTES.toBytes(64))
             .setMaxReaders(2)
             .setMaxDbs(2)
-            .open(fileBa.toFile(), MDB_NOSUBDIR);
+            .setEnvFlags(MDB_NOSUBDIR)
+            .open(fileBa);
   }
 
   @AfterEach
@@ -382,7 +384,8 @@ public final class DbiTest {
             .setMapSize(MEBIBYTES.toBytes(64))
             .setMaxReaders(1)
             .setMaxDbs(2)
-            .open(file.toFile(), MDB_NOSUBDIR)) {
+            .setEnvFlags(MDB_NOSUBDIR)
+            .open(file)) {
       final Dbi<byte[]> db = envBa.openDbi(DB_1, MDB_CREATE);
       try (Txn<byte[]> txn = envBa.txnWrite()) {
         db.put(txn, ba(5), ba(5));

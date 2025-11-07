@@ -170,7 +170,9 @@ public final class CursorParamTest {
           .setMapSize(MEBIBYTES.toBytes(1))
           .setMaxReaders(1)
           .setMaxDbs(1)
-          .open(tmp.resolve("db").toFile(), POSIX_MODE, MDB_NOSUBDIR);
+          .setFilePermissions(POSIX_MODE)
+          .setEnvFlags(MDB_NOSUBDIR)
+          .open(tmp.resolve("db"));
     }
   }
 

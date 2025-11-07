@@ -70,7 +70,9 @@ public final class TxnTest {
             .setMapSize(KIBIBYTES.toBytes(256))
             .setMaxReaders(1)
             .setMaxDbs(2)
-            .open(file.toFile(), POSIX_MODE, MDB_NOSUBDIR);
+            .setFilePermissions(POSIX_MODE)
+            .setEnvFlags(MDB_NOSUBDIR)
+            .open(file);
   }
 
   @AfterEach
@@ -129,7 +131,7 @@ public final class TxnTest {
   void readOnlyTxnAllowedInReadOnlyEnv() {
     env.openDbi(DB_1, MDB_CREATE);
     try (Env<ByteBuffer> roEnv =
-        create().setMaxReaders(1).open(file.toFile(), MDB_NOSUBDIR, MDB_RDONLY_ENV)) {
+        create().setMaxReaders(1).setEnvFlags(MDB_NOSUBDIR, MDB_RDONLY_ENV).open(file)) {
       assertThat(roEnv.txnRead()).isNotNull();
     }
   }
@@ -141,7 +143,7 @@ public final class TxnTest {
               env.openDbi(DB_1, MDB_CREATE);
               env.close();
               try (Env<ByteBuffer> roEnv =
-                  create().setMaxReaders(1).open(file.toFile(), MDB_NOSUBDIR, MDB_RDONLY_ENV)) {
+                  create().setMaxReaders(1).setEnvFlags(MDB_NOSUBDIR, MDB_RDONLY_ENV).open(file)) {
                 roEnv.txnWrite(); // error
               }
             })

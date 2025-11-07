@@ -38,7 +38,8 @@ public final class VerifierTest {
               .setMaxReaders(1)
               .setMaxDbs(Verifier.DBI_COUNT)
               .setMapSize(MEBIBYTES.toBytes(10))
-              .open(file.toFile(), MDB_NOSUBDIR)) {
+              .setEnvFlags(MDB_NOSUBDIR)
+              .open(file)) {
         final Verifier v = new Verifier(env);
         final int seconds = Integer.getInteger("verificationSeconds", 2);
         assertThat(v.runFor(seconds, TimeUnit.SECONDS)).isGreaterThan(1L);

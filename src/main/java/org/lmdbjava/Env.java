@@ -29,6 +29,7 @@ import java.io.File;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -147,7 +148,30 @@ public final class Env<T> implements AutoCloseable {
    *
    * @param path writable destination path as described above
    */
+  @Deprecated // Use java.nio.Path
   public void copy(final File path) {
+    requireNonNull(path);
+    copy(path.toPath(), CopyFlagSet.EMPTY);
+  }
+
+  /**
+   * Copies an LMDB environment to the specified destination path.
+   *
+   * <p>This function may be used to make a backup of an existing environment. No lockfile is
+   * created, since it gets recreated at need.
+   *
+   * <p>If this environment was created using {@link EnvFlags#MDB_NOSUBDIR}, the destination path
+   * must be a directory that exists but contains no files. If {@link EnvFlags#MDB_NOSUBDIR} was
+   * used, the destination path must not exist, but it must be possible to create a file at the
+   * provided path.
+   *
+   * <p>Note: This call can trigger significant file size growth if run in parallel with write
+   * transactions, because it employs a read-only transaction. See long-lived transactions under
+   * "Caveats" in the LMDB native documentation.
+   *
+   * @param path writable destination path as described above
+   */
+  public void copy(final Path path) {
     copy(path, CopyFlagSet.EMPTY);
   }
 
@@ -169,10 +193,34 @@ public final class Env<T> implements AutoCloseable {
    * @param path writable destination path as described above
    * @param flags special options for this copy
    */
+  @Deprecated // Use java.nio.Path
   public void copy(final File path, final CopyFlagSet flags) {
     requireNonNull(path);
+    copy(path.toPath(), flags);
+  }
+
+  /**
+   * Copies an LMDB environment to the specified destination path.
+   *
+   * <p>This function may be used to make a backup of an existing environment. No lockfile is
+   * created, since it gets recreated at need.
+   *
+   * <p>If this environment was created using {@link EnvFlags#MDB_NOSUBDIR}, the destination path
+   * must be a directory that exists but contains no files. If {@link EnvFlags#MDB_NOSUBDIR} was
+   * used, the destination path must not exist, but it must be possible to create a file at the
+   * provided path.
+   *
+   * <p>Note: This call can trigger significant file size growth if run in parallel with write
+   * transactions, because it employs a read-only transaction. See long-lived transactions under
+   * "Caveats" in the LMDB native documentation.
+   *
+   * @param path writable destination path as described above
+   * @param flags special options for this copy
+   */
+  public void copy(final Path path, final CopyFlagSet flags) {
+    requireNonNull(path);
     validatePath(path);
-    checkRc(LIB.mdb_env_copy2(ptr, path.getAbsolutePath(), flags.getMask()));
+    checkRc(LIB.mdb_env_copy2(ptr, path.toAbsolutePath().toString(), flags.getMask()));
   }
 
   /**
@@ -524,22 +572,22 @@ public final class Env<T> implements AutoCloseable {
     }
   }
 
-  private void validateDirectoryEmpty(final File path) {
-    if (!path.exists()) {
+  private void validateDirectoryEmpty(final Path path) {
+    if (!Files.exists(path)) {
       throw new InvalidCopyDestination("Path does not exist");
     }
-    if (!path.isDirectory()) {
+    if (!Files.isDirectory(path)) {
       throw new InvalidCopyDestination("Path must be a directory");
     }
-    final String[] files = path.list();
-    if (files != null && files.length > 0) {
+    final long fileCount = FileUtil.count(path);
+    if (fileCount > 0) {
       throw new InvalidCopyDestination("Path must contain no files");
     }
   }
 
-  private void validatePath(final File path) {
+  private void validatePath(final Path path) {
     if (noSubDir) {
-      if (path.exists()) {
+      if (Files.exists(path)) {
         throw new InvalidCopyDestination("Path must not exist for MDB_NOSUBDIR");
       }
       return;

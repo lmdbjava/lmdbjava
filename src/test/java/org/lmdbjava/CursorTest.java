@@ -66,7 +66,9 @@ public final class CursorTest {
             .setMapSize(MEBIBYTES.toBytes(1))
             .setMaxReaders(1)
             .setMaxDbs(1)
-            .open(file.toFile(), POSIX_MODE, MDB_NOSUBDIR);
+            .setFilePermissions(POSIX_MODE)
+            .setEnvFlags(MDB_NOSUBDIR)
+            .open(file);
   }
 
   @AfterEach

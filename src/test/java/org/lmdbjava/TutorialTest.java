@@ -89,7 +89,7 @@ public final class TutorialTest {
             // Now let's open the Env. The same path can be concurrently opened and
             // used in different processes, but do not open the same path twice in
             // the same process at the same time.
-            .open(dir.toFile());
+            .open(dir);
 
     // We need a Dbi for each DB. A Dbi roughly equates to a sorted map. The
     // MDB_CREATE flag causes the DB to be created if it doesn't already exist.
@@ -400,10 +400,7 @@ public final class TutorialTest {
     final Path dir = tempDir.createTempDir();
     // Note we need to specify the Verifier's DBI_COUNT for the Env.
     final Env<ByteBuffer> env =
-        create(PROXY_OPTIMAL)
-            .setMapSize(10_485_760)
-            .setMaxDbs(Verifier.DBI_COUNT)
-            .open(dir.toFile());
+        create(PROXY_OPTIMAL).setMapSize(10_485_760).setMaxDbs(Verifier.DBI_COUNT).open(dir);
 
     // Create a Verifier (it's a Callable<Long> for those needing full control).
     final Verifier v = new Verifier(env);
@@ -422,8 +419,7 @@ public final class TutorialTest {
     // The critical difference is we pass the PROXY_DB field to Env.create().
     // There's also a PROXY_SAFE if you want to stop ByteBuffer's Unsafe use.
     // Aside from that and a different type argument, it's the same as usual...
-    final Env<DirectBuffer> env =
-        create(PROXY_DB).setMapSize(10_485_760).setMaxDbs(1).open(dir.toFile());
+    final Env<DirectBuffer> env = create(PROXY_DB).setMapSize(10_485_760).setMaxDbs(1).open(dir);
 
     final Dbi<DirectBuffer> db = env.openDbi(DB_NAME, MDB_CREATE);
 
@@ -477,6 +473,6 @@ public final class TutorialTest {
   // or reverse ordered keys, using Env.DISABLE_CHECKS_PROP etc), but you now
   // know enough to tackle the JavaDocs with confidence. Have fun!
   private Env<ByteBuffer> createSimpleEnv(final Path path) {
-    return create().setMapSize(10_485_760).setMaxDbs(1).setMaxReaders(1).open(path.toFile());
+    return create().setMapSize(10_485_760).setMaxDbs(1).setMaxReaders(1).open(path);
   }
 }
