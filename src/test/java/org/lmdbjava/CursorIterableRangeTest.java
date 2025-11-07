@@ -222,15 +222,15 @@ public final class CursorIterableRangeTest {
     if (key != null) {
       if (ByteOrder.nativeOrder().equals(byteOrder)) {
         if (keyLen == Integer.BYTES) {
-          return bbNativeInt(Integer.parseInt(key.trim()));
+          return bbNativeInt(TestUtils.parseInt(key));
         } else {
-          return bbNativeLong(Long.parseLong(key.trim()));
+          return bbNativeLong(TestUtils.parseLong(key));
         }
       } else {
         if (keyLen == Integer.BYTES) {
-          return bb(Integer.parseInt(key.trim()));
+          return bb(TestUtils.parseInt(key));
         } else {
-          return bb(Long.parseLong(key.trim()));
+          return bb(TestUtils.parseLong(key));
         }
       }
     }
