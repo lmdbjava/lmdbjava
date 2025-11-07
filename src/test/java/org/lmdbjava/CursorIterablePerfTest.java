@@ -58,24 +58,27 @@ public class CursorIterablePerfTest {
 
     final DbiFlagSet dbiFlagSet = MDB_CREATE;
     // Use a java comparator for start/stop keys only
-    Dbi<ByteBuffer> dbJavaComparator = env.createDbi()
-        .setDbName("JavaComparator")
-        .withDefaultComparator()
-        .setDbiFlags(dbiFlagSet)
-        .open();
+    Dbi<ByteBuffer> dbJavaComparator =
+        env.createDbi()
+            .setDbName("JavaComparator")
+            .withDefaultComparator()
+            .setDbiFlags(dbiFlagSet)
+            .open();
     // Use LMDB comparator for start/stop keys
-    Dbi<ByteBuffer> dbLmdbComparator = env.createDbi()
-        .setDbName("LmdbComparator")
-        .withNativeComparator()
-        .setDbiFlags(dbiFlagSet)
-        .open();
+    Dbi<ByteBuffer> dbLmdbComparator =
+        env.createDbi()
+            .setDbName("LmdbComparator")
+            .withNativeComparator()
+            .setDbiFlags(dbiFlagSet)
+            .open();
 
     // Use a java comparator for start/stop keys and as a callback comparator
-    Dbi<ByteBuffer> dbCallbackComparator = env.createDbi()
-        .setDbName("CallBackComparator")
-        .withCallbackComparator(bufferProxy::getComparator)
-        .setDbiFlags(dbiFlagSet)
-        .open();
+    Dbi<ByteBuffer> dbCallbackComparator =
+        env.createDbi()
+            .setDbName("CallBackComparator")
+            .withCallbackComparator(bufferProxy::getComparator)
+            .setDbiFlags(dbiFlagSet)
+            .open();
 
     dbs.add(dbJavaComparator);
     dbs.add(dbLmdbComparator);

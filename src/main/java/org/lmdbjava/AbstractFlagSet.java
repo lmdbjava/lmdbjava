@@ -24,9 +24,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-/**
- * Encapsulates an immutable set of flags and the associated bit mask for the flags in the set.
- */
+/** Encapsulates an immutable set of flags and the associated bit mask for the flags in the set. */
 public abstract class AbstractFlagSet<T extends Enum<T> & MaskedFlag> implements FlagSet<T> {
 
   private final Set<T> flags;
@@ -60,8 +58,7 @@ public abstract class AbstractFlagSet<T extends Enum<T> & MaskedFlag> implements
   @Override
   public boolean isSet(final T flag) {
     // Probably cheaper to compare the masks than to use EnumSet.contains()
-    return flag != null
-        && MaskedFlag.isSet(mask, flag);
+    return flag != null && MaskedFlag.isSet(mask, flag);
   }
 
   /**
@@ -103,11 +100,10 @@ public abstract class AbstractFlagSet<T extends Enum<T> & MaskedFlag> implements
     return FlagSet.asString(this);
   }
 
-
   // --------------------------------------------------------------------------------
 
-
-  static abstract class AbstractSingleFlagSet<T extends Enum<T> & MaskedFlag> implements FlagSet<T> {
+  abstract static class AbstractSingleFlagSet<T extends Enum<T> & MaskedFlag>
+      implements FlagSet<T> {
 
     private final T flag;
     // Only holding this for iterator() and getFlags() so make it lazy.
@@ -186,9 +182,7 @@ public abstract class AbstractFlagSet<T extends Enum<T> & MaskedFlag> implements
     }
   }
 
-
   // --------------------------------------------------------------------------------
-
 
   static class AbstractEmptyFlagSet<T extends MaskedFlag> implements FlagSet<T> {
 
@@ -243,9 +237,7 @@ public abstract class AbstractFlagSet<T extends Enum<T> & MaskedFlag> implements
     }
   }
 
-
   // --------------------------------------------------------------------------------
-
 
   /**
    * A builder for creating a {@link AbstractFlagSet}.
@@ -261,10 +253,11 @@ public abstract class AbstractFlagSet<T extends Enum<T> & MaskedFlag> implements
     final Function<E, S> singletonSetConstructor;
     final Supplier<S> emptySetSupplier;
 
-    protected Builder(final Class<E> type,
-                      final Function<EnumSet<E>, S> constructor,
-                      final Function<E, S> singletonSetConstructor,
-                      final Supplier<S> emptySetSupplier) {
+    protected Builder(
+        final Class<E> type,
+        final Function<EnumSet<E>, S> constructor,
+        final Function<E, S> singletonSetConstructor,
+        final Supplier<S> emptySetSupplier) {
       this.type = type;
       this.enumSet = EnumSet.noneOf(type);
       this.constructor = Objects.requireNonNull(constructor);
@@ -273,7 +266,8 @@ public abstract class AbstractFlagSet<T extends Enum<T> & MaskedFlag> implements
     }
 
     /**
-     * Replaces any flags already set in the builder with the contents of the passed flags {@link Collection}
+     * Replaces any flags already set in the builder with the contents of the passed flags {@link
+     * Collection}
      *
      * @param flags The flags to set in the builder.
      * @return this builder instance.

@@ -24,8 +24,7 @@ public class TxnFlagSetTest extends AbstractFlagSetTest<TxnFlags, TxnFlagSet> {
 
   @Override
   List<TxnFlags> getAllFlags() {
-    return Arrays.stream(TxnFlags.values())
-        .collect(Collectors.toList());
+    return Arrays.stream(TxnFlags.values()).collect(Collectors.toList());
   }
 
   @Override

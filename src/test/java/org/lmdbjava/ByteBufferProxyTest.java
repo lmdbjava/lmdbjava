@@ -51,9 +51,7 @@ import org.junit.jupiter.api.Test;
 import org.lmdbjava.ByteBufferProxy.BufferMustBeDirectException;
 import org.lmdbjava.Env.ReadersFullException;
 
-/**
- * Test {@link ByteBufferProxy}.
- */
+/** Test {@link ByteBufferProxy}. */
 public final class ByteBufferProxyTest {
 
   static final MemoryManager MEM_MGR = RUNTIME.getMemoryManager();
@@ -61,25 +59,24 @@ public final class ByteBufferProxyTest {
   @Test
   void buffersMustBeDirect() {
     assertThatThrownBy(
-        () -> {
-          FileUtil.useTempDir(
-              dir -> {
-                try (Env<ByteBuffer> env = create()
-                    .setMaxReaders(1)
-                    .open(dir)) {
-                  final Dbi<ByteBuffer> db = env.createDbi()
-                      .setDbName(DB_1)
-                      .withDefaultComparator()
-                      .setDbiFlags(MDB_CREATE)
-                      .open();
-                  final ByteBuffer key = allocate(100);
-                  key.putInt(1).flip();
-                  final ByteBuffer val = allocate(100);
-                  val.putInt(1).flip();
-                  db.put(key, val); // error
-                }
-              });
-        })
+            () -> {
+              FileUtil.useTempDir(
+                  dir -> {
+                    try (Env<ByteBuffer> env = create().setMaxReaders(1).open(dir)) {
+                      final Dbi<ByteBuffer> db =
+                          env.createDbi()
+                              .setDbName(DB_1)
+                              .withDefaultComparator()
+                              .setDbiFlags(MDB_CREATE)
+                              .open();
+                      final ByteBuffer key = allocate(100);
+                      key.putInt(1).flip();
+                      final ByteBuffer val = allocate(100);
+                      val.putInt(1).flip();
+                      db.put(key, val); // error
+                    }
+                  });
+            })
         .isInstanceOf(BufferMustBeDirectException.class);
   }
 
@@ -104,9 +101,9 @@ public final class ByteBufferProxyTest {
   @Test
   void fieldNeverFound() {
     assertThatThrownBy(
-        () -> {
-          findField(Exception.class, "notARealField");
-        })
+            () -> {
+              findField(Exception.class, "notARealField");
+            })
         .isInstanceOf(LmdbException.class);
   }
 
@@ -164,29 +161,29 @@ public final class ByteBufferProxyTest {
       int x = 0;
       for (int round = 0; round < rounds; round++) {
         for (int i = 1; i < values.length; i++) {
-          buffer1.order(ByteOrder.nativeOrder())
-              .putLong(0, values[i - 1]);
-          buffer2.order(ByteOrder.nativeOrder())
-              .putLong(0, values[i]);
-          final int result = ByteBufferProxy.AbstractByteBufferProxy.compareAsIntegerKeys(buffer1, buffer2);
+          buffer1.order(ByteOrder.nativeOrder()).putLong(0, values[i - 1]);
+          buffer2.order(ByteOrder.nativeOrder()).putLong(0, values[i]);
+          final int result =
+              ByteBufferProxy.AbstractByteBufferProxy.compareAsIntegerKeys(buffer1, buffer2);
           x += result;
         }
       }
-      System.out.println("compareAsIntegerKeys: " + Duration.between(time, Instant.now()) + ", x: " + x);
+      System.out.println(
+          "compareAsIntegerKeys: " + Duration.between(time, Instant.now()) + ", x: " + x);
 
       time = Instant.now();
       int y = 0;
       for (int round = 0; round < rounds; round++) {
         for (int i = 1; i < values.length; i++) {
-          buffer1.order(BIG_ENDIAN)
-              .putLong(0, values[i - 1]);
-          buffer2.order(BIG_ENDIAN)
-              .putLong(0, values[i]);
-          final int result = ByteBufferProxy.AbstractByteBufferProxy.compareLexicographically(buffer1, buffer2);
+          buffer1.order(BIG_ENDIAN).putLong(0, values[i - 1]);
+          buffer2.order(BIG_ENDIAN).putLong(0, values[i]);
+          final int result =
+              ByteBufferProxy.AbstractByteBufferProxy.compareLexicographically(buffer1, buffer2);
           y += result;
         }
       }
-      System.out.println("compareLexicographically: " + Duration.between(time, Instant.now()) + ", y: " + y);
+      System.out.println(
+          "compareLexicographically: " + Duration.between(time, Instant.now()) + ", y: " + y);
 
       assertThat(y).isEqualTo(x);
     }
@@ -195,25 +192,27 @@ public final class ByteBufferProxyTest {
   @Test
   public void verifyComparators() {
     final Random random = new Random(203948);
-    final ByteBuffer buffer1native = ByteBuffer.allocateDirect(Long.BYTES).order(ByteOrder.nativeOrder());
-    final ByteBuffer buffer2native = ByteBuffer.allocateDirect(Long.BYTES).order(ByteOrder.nativeOrder());
+    final ByteBuffer buffer1native =
+        ByteBuffer.allocateDirect(Long.BYTES).order(ByteOrder.nativeOrder());
+    final ByteBuffer buffer2native =
+        ByteBuffer.allocateDirect(Long.BYTES).order(ByteOrder.nativeOrder());
     final ByteBuffer buffer1be = ByteBuffer.allocateDirect(Long.BYTES).order(BIG_ENDIAN);
     final ByteBuffer buffer2be = ByteBuffer.allocateDirect(Long.BYTES).order(BIG_ENDIAN);
     buffer1native.limit(Long.BYTES);
     buffer2native.limit(Long.BYTES);
     buffer1be.limit(Long.BYTES);
     buffer2be.limit(Long.BYTES);
-    final long[] values = random.longs()
-        .filter(i -> i >= 0)
-        .limit(5_000_000)
-        .toArray();
-//    System.out.println("stats: " + Arrays.stream(values)
-//        .summaryStatistics()
-//        .toString());
+    final long[] values = random.longs().filter(i -> i >= 0).limit(5_000_000).toArray();
+    //    System.out.println("stats: " + Arrays.stream(values)
+    //        .summaryStatistics()
+    //        .toString());
 
     final LinkedHashMap<String, Comparator<ByteBuffer>> comparators = new LinkedHashMap<>();
-    comparators.put("compareAsIntegerKeys", ByteBufferProxy.AbstractByteBufferProxy::compareAsIntegerKeys);
-    comparators.put("compareLexicographically", ByteBufferProxy.AbstractByteBufferProxy::compareLexicographically);
+    comparators.put(
+        "compareAsIntegerKeys", ByteBufferProxy.AbstractByteBufferProxy::compareAsIntegerKeys);
+    comparators.put(
+        "compareLexicographically",
+        ByteBufferProxy.AbstractByteBufferProxy::compareLexicographically);
 
     final LinkedHashMap<String, Integer> results = new LinkedHashMap<>(comparators.size());
     final Set<Integer> uniqueResults = new HashSet<>(comparators.size());
@@ -228,22 +227,23 @@ public final class ByteBufferProxyTest {
       uniqueResults.clear();
 
       // Make sure all comparators give the same result for the same inputs
-      comparators.forEach((name, comparator) -> {
-        final int result;
-        // IntegerKey comparator expects keys to have been written in native order so need different buffers.
-        if (name.equals("compareAsIntegerKeys")) {
-          result = comparator.compare(buffer1native, buffer2native);
-        } else {
-          result = comparator.compare(buffer1be, buffer2be);
-        }
-        results.put(name, result);
-        uniqueResults.add(result);
-      });
+      comparators.forEach(
+          (name, comparator) -> {
+            final int result;
+            // IntegerKey comparator expects keys to have been written in native order so need
+            // different buffers.
+            if (name.equals("compareAsIntegerKeys")) {
+              result = comparator.compare(buffer1native, buffer2native);
+            } else {
+              result = comparator.compare(buffer1be, buffer2be);
+            }
+            results.put(name, result);
+            uniqueResults.add(result);
+          });
 
       if (uniqueResults.size() != 1) {
-        Assertions.fail("Comparator mismatch for values: "
-            + val1 + " and "
-            + val2 + ". Results: " + results);
+        Assertions.fail(
+            "Comparator mismatch for values: " + val1 + " and " + val2 + ". Results: " + results);
       }
     }
   }

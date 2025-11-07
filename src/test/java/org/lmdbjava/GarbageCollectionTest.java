@@ -37,10 +37,7 @@ public class GarbageCollectionTest {
   void buffersNotGarbageCollectedTest() {
     FileUtil.useTempDir(
         dir -> {
-          try (Env<ByteBuffer> env = create()
-              .setMapSize(2_085_760_999)
-              .setMaxDbs(1)
-              .open(dir)) {
+          try (Env<ByteBuffer> env = create().setMapSize(2_085_760_999).setMaxDbs(1).open(dir)) {
             final Dbi<ByteBuffer> db = env.openDbi(DB_NAME, MDB_CREATE);
 
             try (Txn<ByteBuffer> txn = env.txnWrite()) {

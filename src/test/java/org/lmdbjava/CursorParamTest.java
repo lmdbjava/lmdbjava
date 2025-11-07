@@ -56,7 +56,8 @@ public final class CursorParamTest {
 
   static Stream<Arguments> data() {
     return Stream.of(
-        Arguments.argumentSet("ByteBufferRunner(PROXY_OPTIMAL)", new ByteBufferRunner(PROXY_OPTIMAL)),
+        Arguments.argumentSet(
+            "ByteBufferRunner(PROXY_OPTIMAL)", new ByteBufferRunner(PROXY_OPTIMAL)),
         Arguments.argumentSet("ByteBufferRunner(PROXY_SAFE)", new ByteBufferRunner(PROXY_SAFE)),
         Arguments.argumentSet("ByteArrayRunner(PROXY_BA)", new ByteArrayRunner(PROXY_BA)),
         Arguments.argumentSet("DirectBufferRunner", new DirectBufferRunner()),

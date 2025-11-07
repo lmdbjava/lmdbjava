@@ -59,6 +59,5 @@ class ByteUnitTest {
 
     Assertions.assertThat(ByteUnit.PETABYTES.toBytes(1)).isEqualTo(1000000000000000L);
     Assertions.assertThat(ByteUnit.PETABYTES.toBytes(2)).isEqualTo(2000000000000000L);
-
   }
 }

@@ -28,8 +28,7 @@ public class PutFlagSetTest extends AbstractFlagSetTest<PutFlags, PutFlagSet> {
 
   @Override
   List<PutFlags> getAllFlags() {
-    return Arrays.stream(PutFlags.values())
-        .collect(Collectors.toList());
+    return Arrays.stream(PutFlags.values()).collect(Collectors.toList());
   }
 
   @Override
@@ -67,10 +66,14 @@ public class PutFlagSetTest extends AbstractFlagSetTest<PutFlags, PutFlagSet> {
 
     final int cnt = 10_000_000;
     final int[] arr = new int[cnt];
-    final List<PutFlagSet> flagSets = IntStream.range(0, cnt)
-        .boxed()
-        .map(i -> PutFlagSet.of(PutFlags.MDB_APPEND, PutFlags.MDB_NOOVERWRITE, PutFlags.MDB_RESERVE))
-        .collect(Collectors.toList());
+    final List<PutFlagSet> flagSets =
+        IntStream.range(0, cnt)
+            .boxed()
+            .map(
+                i ->
+                    PutFlagSet.of(
+                        PutFlags.MDB_APPEND, PutFlags.MDB_NOOVERWRITE, PutFlags.MDB_RESERVE))
+            .collect(Collectors.toList());
 
     Instant time;
     for (int i = 0; i < 5; i++) {

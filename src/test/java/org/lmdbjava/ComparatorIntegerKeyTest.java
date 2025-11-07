@@ -38,9 +38,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-/**
- * Tests comparator functions are consistent across buffers.
- */
+/** Tests comparator functions are consistent across buffers. */
 public final class ComparatorIntegerKeyTest {
 
   static Stream<Arguments> comparatorProvider() {
@@ -101,10 +99,7 @@ public final class ComparatorIntegerKeyTest {
     final Random random = new Random(3239480);
 
     // 5mil random longs to compare
-    final long[] values = random.longs()
-        .filter(i -> i >= 0)
-        .limit(5_000_000)
-        .toArray();
+    final long[] values = random.longs().filter(i -> i >= 0).limit(5_000_000).toArray();
 
     for (int i = 1; i < values.length; i++) {
       final long long1 = values[i - 1];
@@ -114,20 +109,32 @@ public final class ComparatorIntegerKeyTest {
       final ComparatorTest.ComparatorResult expectedResult = get(Long.compare(long1, long2));
 
       assertThat(result)
-          .withFailMessage(() -> "Compare mismatch - long1: " + long1
-              + ", long2: " + long2
-              + ", expected: " + expectedResult
-              + ", actual: " + result)
+          .withFailMessage(
+              () ->
+                  "Compare mismatch - long1: "
+                      + long1
+                      + ", long2: "
+                      + long2
+                      + ", expected: "
+                      + expectedResult
+                      + ", actual: "
+                      + result)
           .isEqualTo(expectedResult);
 
       final ComparatorTest.ComparatorResult result2 = get(runner.compare(long2, long1));
       final ComparatorTest.ComparatorResult expectedResult2 = expectedResult.opposite();
 
       assertThat(result)
-          .withFailMessage(() -> "Compare mismatch for - long2: " + long2
-              + ", long1: " + long1
-              + ", expected2: " + expectedResult2
-              + ", actual2: " + result2)
+          .withFailMessage(
+              () ->
+                  "Compare mismatch for - long2: "
+                      + long2
+                      + ", long1: "
+                      + long1
+                      + ", expected2: "
+                      + expectedResult2
+                      + ", actual2: "
+                      + result2)
           .isEqualTo(expectedResult);
     }
   }
@@ -138,10 +145,7 @@ public final class ComparatorIntegerKeyTest {
     final Random random = new Random(3239480);
 
     // 5mil random ints to compare
-    final int[] values = random.ints()
-        .filter(i -> i >= 0)
-        .limit(5_000_000)
-        .toArray();
+    final int[] values = random.ints().filter(i -> i >= 0).limit(5_000_000).toArray();
 
     for (int i = 1; i < values.length; i++) {
       final int int1 = values[i - 1];
@@ -151,34 +155,43 @@ public final class ComparatorIntegerKeyTest {
       final ComparatorTest.ComparatorResult expectedResult = get(Integer.compare(int1, int2));
 
       assertThat(result)
-          .withFailMessage(() -> "Compare mismatch for - int1: " + int1
-              + ", int2: " + int2
-              + ", expected: " + expectedResult
-              + ", actual: " + result)
+          .withFailMessage(
+              () ->
+                  "Compare mismatch for - int1: "
+                      + int1
+                      + ", int2: "
+                      + int2
+                      + ", expected: "
+                      + expectedResult
+                      + ", actual: "
+                      + result)
           .isEqualTo(expectedResult);
 
       final ComparatorTest.ComparatorResult result2 = get(runner.compare(int2, int1));
       final ComparatorTest.ComparatorResult expectedResult2 = expectedResult.opposite();
 
       assertThat(result)
-          .withFailMessage(() -> "Compare mismatch for - int2: " + int2
-              + ", int1: " + int1
-              + ", expected2: " + expectedResult2
-              + ", actual2: " + result2)
+          .withFailMessage(
+              () ->
+                  "Compare mismatch for - int2: "
+                      + int2
+                      + ", int1: "
+                      + int1
+                      + ", expected2: "
+                      + expectedResult2
+                      + ", actual2: "
+                      + result2)
           .isEqualTo(expectedResult);
     }
   }
 
-
   // --------------------------------------------------------------------------------
 
-
-  /**
-   * Tests {@link ByteBufferProxy}.
-   */
+  /** Tests {@link ByteBufferProxy}. */
   private static final class ByteBufferRunner implements ComparatorRunner {
 
-    private static final Comparator<ByteBuffer> COMPARATOR = PROXY_OPTIMAL.getComparator(DbiFlags.MDB_INTEGERKEY);
+    private static final Comparator<ByteBuffer> COMPARATOR =
+        PROXY_OPTIMAL.getComparator(DbiFlags.MDB_INTEGERKEY);
 
     @Override
     public int compare(long long1, long long2) {
@@ -247,15 +260,12 @@ public final class ComparatorIntegerKeyTest {
     }
   }
 
-
   // --------------------------------------------------------------------------------
 
-
-  /**
-   * Tests {@link DirectBufferProxy}.
-   */
+  /** Tests {@link DirectBufferProxy}. */
   private static final class DirectBufferRunner implements ComparatorRunner {
-    private static final Comparator<DirectBuffer> COMPARATOR = PROXY_DB.getComparator(DbiFlags.MDB_INTEGERKEY);
+    private static final Comparator<DirectBuffer> COMPARATOR =
+        PROXY_DB.getComparator(DbiFlags.MDB_INTEGERKEY);
 
     @Override
     public int compare(long long1, long long2) {
@@ -276,12 +286,11 @@ public final class ComparatorIntegerKeyTest {
     }
   }
 
-  /**
-   * Tests {@link ByteBufProxy}.
-   */
+  /** Tests {@link ByteBufProxy}. */
   private static final class NettyRunner implements ComparatorRunner {
 
-    private static final Comparator<ByteBuf> COMPARATOR = PROXY_NETTY.getComparator(DbiFlags.MDB_INTEGERKEY);
+    private static final Comparator<ByteBuf> COMPARATOR =
+        PROXY_NETTY.getComparator(DbiFlags.MDB_INTEGERKEY);
 
     @Override
     public int compare(long long1, long long2) {
@@ -322,13 +331,9 @@ public final class ComparatorIntegerKeyTest {
     }
   }
 
-
   // --------------------------------------------------------------------------------
 
-
-  /**
-   * Interface that can test a {@link BufferProxy} <code>compare</code> method.
-   */
+  /** Interface that can test a {@link BufferProxy} <code>compare</code> method. */
   private interface ComparatorRunner {
 
     /**

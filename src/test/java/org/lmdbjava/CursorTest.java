@@ -277,7 +277,8 @@ public final class CursorTest {
 
   @Test
   void putMultiple() {
-    final Dbi<ByteBuffer> db = env.openDbi(DB_1, DbiFlagSet.of(MDB_CREATE, MDB_DUPSORT, MDB_DUPFIXED));
+    final Dbi<ByteBuffer> db =
+        env.openDbi(DB_1, DbiFlagSet.of(MDB_CREATE, MDB_DUPSORT, MDB_DUPFIXED));
     final int elemCount = 20;
 
     final ByteBuffer values = allocateDirect(Integer.BYTES * elemCount);

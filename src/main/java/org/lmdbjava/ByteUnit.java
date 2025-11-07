@@ -15,53 +15,30 @@
  */
 package org.lmdbjava;
 
-/**
- * Simple {@link Enum} for converting various IEC and SI byte units down a number of bytes.
- */
+/** Simple {@link Enum} for converting various IEC and SI byte units down a number of bytes. */
 public enum ByteUnit {
-
   BYTES(1L),
 
-  /**
-   * IEC byte unit for 1024 bytes.
-   */
+  /** IEC byte unit for 1024 bytes. */
   KIBIBYTES(1024L),
-  /**
-   * IEC byte unit for 1024^2 bytes.
-   */
+  /** IEC byte unit for 1024^2 bytes. */
   MEBIBYTES(1_0485_76L),
-  /**
-   * IEC byte unit for 1024^3 bytes.
-   */
+  /** IEC byte unit for 1024^3 bytes. */
   GIBIBYTES(1_073_741_824L),
-  /**
-   * IEC byte unit for 1024^4 bytes.
-   */
+  /** IEC byte unit for 1024^4 bytes. */
   TEBIBYTES(1_099_511_627_776L),
-  /**
-   * IEC byte unit for 1024^5 bytes.
-   */
+  /** IEC byte unit for 1024^5 bytes. */
   PEBIBYTES(1_125_899_906_842_624L),
 
-  /**
-   * SI byte unit for 1000 bytes.
-   */
+  /** SI byte unit for 1000 bytes. */
   KILOBYTES(1_000L),
-  /**
-   * SI byte unit for 1000^2 bytes.
-   */
+  /** SI byte unit for 1000^2 bytes. */
   MEGABYTES(1_000_000L),
-  /**
-   * SI byte unit for 1000^3 bytes.
-   */
+  /** SI byte unit for 1000^3 bytes. */
   GIGABYTES(1_000_000_000L),
-  /**
-   * SI byte unit for 1000^4 bytes.
-   */
+  /** SI byte unit for 1000^4 bytes. */
   TERABYTES(1_000_000_000_000L),
-  /**
-   * SI byte unit for 1000^5 bytes.
-   */
+  /** SI byte unit for 1000^5 bytes. */
   PETABYTES(1_000_000_000_000_000L),
   ;
 

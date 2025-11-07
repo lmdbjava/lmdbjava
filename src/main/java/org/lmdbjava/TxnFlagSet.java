@@ -33,28 +33,19 @@ public interface TxnFlagSet extends FlagSet<TxnFlags> {
   }
 
   static TxnFlagSet of(final TxnFlags... TxnFlags) {
-    return builder()
-        .setFlags(TxnFlags)
-        .build();
+    return builder().setFlags(TxnFlags).build();
   }
 
   static TxnFlagSet of(final Collection<TxnFlags> txnFlags) {
-    return builder()
-        .setFlags(txnFlags)
-        .build();
+    return builder().setFlags(txnFlags).build();
   }
 
   static AbstractFlagSet.Builder<TxnFlags, TxnFlagSet> builder() {
     return new AbstractFlagSet.Builder<>(
-        TxnFlags.class,
-        TxnFlagSetImpl::new,
-        SingleTxnFlagSet::new,
-        () -> TxnFlagSetImpl.EMPTY);
+        TxnFlags.class, TxnFlagSetImpl::new, SingleTxnFlagSet::new, () -> TxnFlagSetImpl.EMPTY);
   }
 
-
   // --------------------------------------------------------------------------------
-
 
   class TxnFlagSetImpl extends AbstractFlagSet<TxnFlags> implements TxnFlagSet {
 
@@ -65,21 +56,18 @@ public interface TxnFlagSet extends FlagSet<TxnFlags> {
     }
   }
 
-
   // --------------------------------------------------------------------------------
 
-
-  class SingleTxnFlagSet extends AbstractFlagSet.AbstractSingleFlagSet<TxnFlags> implements TxnFlagSet {
+  class SingleTxnFlagSet extends AbstractFlagSet.AbstractSingleFlagSet<TxnFlags>
+      implements TxnFlagSet {
 
     SingleTxnFlagSet(final TxnFlags flag) {
       super(flag);
     }
   }
 
-
   // --------------------------------------------------------------------------------
 
-
-  class EmptyTxnFlagSet extends AbstractFlagSet.AbstractEmptyFlagSet<TxnFlags> implements TxnFlagSet {
-  }
+  class EmptyTxnFlagSet extends AbstractFlagSet.AbstractEmptyFlagSet<TxnFlags>
+      implements TxnFlagSet {}
 }

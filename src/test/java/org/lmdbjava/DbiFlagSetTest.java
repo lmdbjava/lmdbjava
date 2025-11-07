@@ -22,39 +22,38 @@ import java.util.stream.Collectors;
 
 public class DbiFlagSetTest extends AbstractFlagSetTest<DbiFlags, DbiFlagSet> {
 
-    @Override
-    List<DbiFlags> getAllFlags() {
-        return Arrays.stream(DbiFlags.values())
-            .collect(Collectors.toList());
-    }
+  @Override
+  List<DbiFlags> getAllFlags() {
+    return Arrays.stream(DbiFlags.values()).collect(Collectors.toList());
+  }
 
-    @Override
-    DbiFlagSet getEmptyFlagSet() {
-        return DbiFlagSet.empty();
-    }
+  @Override
+  DbiFlagSet getEmptyFlagSet() {
+    return DbiFlagSet.empty();
+  }
 
-    @Override
-    AbstractFlagSet.Builder<DbiFlags, DbiFlagSet> getBuilder() {
-        return DbiFlagSet.builder();
-    }
+  @Override
+  AbstractFlagSet.Builder<DbiFlags, DbiFlagSet> getBuilder() {
+    return DbiFlagSet.builder();
+  }
 
-    @Override
-    Class<DbiFlags> getFlagType() {
-        return DbiFlags.class;
-    }
+  @Override
+  Class<DbiFlags> getFlagType() {
+    return DbiFlags.class;
+  }
 
-    @Override
-    DbiFlagSet getFlagSet(Collection<DbiFlags> flags) {
-        return DbiFlagSet.of(flags);
-    }
+  @Override
+  DbiFlagSet getFlagSet(Collection<DbiFlags> flags) {
+    return DbiFlagSet.of(flags);
+  }
 
-    @Override
-    DbiFlagSet getFlagSet(DbiFlags[] flags) {
-        return DbiFlagSet.of(flags);
-    }
+  @Override
+  DbiFlagSet getFlagSet(DbiFlags[] flags) {
+    return DbiFlagSet.of(flags);
+  }
 
-    @Override
-    DbiFlagSet getFlagSet(DbiFlags flag) {
-        return DbiFlagSet.of(flag);
-    }
+  @Override
+  DbiFlagSet getFlagSet(DbiFlags flag) {
+    return DbiFlagSet.of(flag);
+  }
 }

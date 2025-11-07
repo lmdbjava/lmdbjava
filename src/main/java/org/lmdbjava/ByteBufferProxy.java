@@ -55,9 +55,7 @@ public final class ByteBufferProxy {
    */
   public static final BufferProxy<ByteBuffer> PROXY_OPTIMAL;
 
-  /**
-   * The safe, reflective {@link ByteBuffer} proxy for this system. Guaranteed to never be null.
-   */
+  /** The safe, reflective {@link ByteBuffer} proxy for this system. Guaranteed to never be null. */
   public static final BufferProxy<ByteBuffer> PROXY_SAFE;
 
   private static final ByteOrder NATIVE_ORDER = ByteOrder.nativeOrder();
@@ -67,8 +65,7 @@ public final class ByteBufferProxy {
     PROXY_OPTIMAL = getProxyOptimal();
   }
 
-  private ByteBufferProxy() {
-  }
+  private ByteBufferProxy() {}
 
   private static BufferProxy<ByteBuffer> getProxyOptimal() {
     try {
@@ -78,24 +75,18 @@ public final class ByteBufferProxy {
     }
   }
 
-  /**
-   * The buffer must be a direct buffer (not heap allocated).
-   */
+  /** The buffer must be a direct buffer (not heap allocated). */
   public static final class BufferMustBeDirectException extends LmdbException {
 
     private static final long serialVersionUID = 1L;
 
-    /**
-     * Creates a new instance.
-     */
+    /** Creates a new instance. */
     public BufferMustBeDirectException() {
       super("The buffer must be a direct buffer (not heap allocated");
     }
   }
 
-
   // --------------------------------------------------------------------------------
-
 
   /**
    * Provides {@link ByteBuffer} pooling and address resolution for concrete {@link BufferProxy}
@@ -150,8 +141,8 @@ public final class ByteBufferProxy {
     }
 
     /**
-     * Buffer comparator specifically for 4/8 byte keys that are unsigned ints/longs,
-     * i.e. when using MDB_INTEGER_KEY/MDB_INTEGERDUP. Compares the buffers numerically.
+     * Buffer comparator specifically for 4/8 byte keys that are unsigned ints/longs, i.e. when
+     * using MDB_INTEGER_KEY/MDB_INTEGERDUP. Compares the buffers numerically.
      *
      * @param o1 left operand (required)
      * @param o2 right operand (required)
@@ -162,12 +153,17 @@ public final class ByteBufferProxy {
       requireNonNull(o2);
       // Both buffers should be same length according to LMDB API.
       // From the LMDB docs for MDB_INTEGER_KEY
-      // numeric keys in native byte order: either unsigned int or size_t. The keys must all be of the same size.
+      // numeric keys in native byte order: either unsigned int or size_t. The keys must all be of
+      // the same size.
       final int len1 = o1.limit();
       final int len2 = o2.limit();
       if (len1 != len2) {
-        throw new RuntimeException("Length mismatch, len1: " + len1 + ", len2: " + len2
-            + ". Lengths must be identical and either 4 or 8 bytes.");
+        throw new RuntimeException(
+            "Length mismatch, len1: "
+                + len1
+                + ", len2: "
+                + len2
+                + ". Lengths must be identical and either 4 or 8 bytes.");
       }
       // Keys for MDB_INTEGER_KEY are written in native order so ensure we read them in that order
       o1.order(NATIVE_ORDER);
@@ -250,9 +246,7 @@ public final class ByteBufferProxy {
     }
   }
 
-
   // --------------------------------------------------------------------------------
-
 
   /**
    * A proxy that uses Java reflection to modify byte buffer fields, and official JNR-FFF methods to
@@ -298,9 +292,7 @@ public final class ByteBufferProxy {
     }
   }
 
-
   // --------------------------------------------------------------------------------
-
 
   /**
    * A proxy that uses Java's "unsafe" class to directly manipulate byte buffer fields and JNR-FFF

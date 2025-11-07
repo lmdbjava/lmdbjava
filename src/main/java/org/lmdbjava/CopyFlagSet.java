@@ -33,28 +33,19 @@ public interface CopyFlagSet extends FlagSet<CopyFlags> {
   }
 
   static CopyFlagSet of(final CopyFlags... CopyFlags) {
-    return builder()
-        .setFlags(CopyFlags)
-        .build();
+    return builder().setFlags(CopyFlags).build();
   }
 
   static CopyFlagSet of(final Collection<CopyFlags> CopyFlags) {
-    return builder()
-        .setFlags(CopyFlags)
-        .build();
+    return builder().setFlags(CopyFlags).build();
   }
 
   static AbstractFlagSet.Builder<CopyFlags, CopyFlagSet> builder() {
     return new AbstractFlagSet.Builder<>(
-        CopyFlags.class,
-        CopyFlagSetImpl::new,
-        copyFlag -> copyFlag,
-        () -> CopyFlagSetImpl.EMPTY);
+        CopyFlags.class, CopyFlagSetImpl::new, copyFlag -> copyFlag, () -> CopyFlagSetImpl.EMPTY);
   }
 
-
   // --------------------------------------------------------------------------------
-
 
   class CopyFlagSetImpl extends AbstractFlagSet<CopyFlags> implements CopyFlagSet {
 
@@ -65,10 +56,8 @@ public interface CopyFlagSet extends FlagSet<CopyFlags> {
     }
   }
 
-
   // --------------------------------------------------------------------------------
 
-
-  class EmptyCopyFlagSet extends AbstractFlagSet.AbstractEmptyFlagSet<CopyFlags> implements CopyFlagSet {
-  }
+  class EmptyCopyFlagSet extends AbstractFlagSet.AbstractEmptyFlagSet<CopyFlags>
+      implements CopyFlagSet {}
 }

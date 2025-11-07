@@ -32,30 +32,26 @@ public enum DbiFlags implements MaskedFlag, DbiFlagSet {
    * Use sorted duplicates.
    *
    * <p>Duplicate keys may be used in the database. Or, from another perspective, keys may have
-   * multiple data items, stored in sorted order. By default, keys must be unique and may have only a
-   * single data item.
-   * <p>
+   * multiple data items, stored in sorted order. By default, keys must be unique and may have only
+   * a single data item.
    *
-   * </p>
+   * <p>
    */
   MDB_DUPSORT(0x04),
   /**
-   * Numeric keys in native byte order: either unsigned int or size_t.
-   * <strong>The keys must all be of the same size.</strong>
-   * <p>
-   * This is an optimisation that is available when your keys are 4 or 8 byte unsigned numeric values.
-   * There are performance benefits for both ordered and un-ordered puts as compared to not using
-   * this flag.
-   * </p>
-   * <p>
-   * When writing the key to the buffer you must write it in native order and subsequently read any
-   * keys retrieved from LMDB (via cursor or get method) also using native order.
-   * </p>
-   * <p>
-   * For more information, see
-   * <a href="https://github.com/lmdbjava/lmdbjava/wiki/Keys#numeric-keys">Numeric Keys</a>
-   * in the LmdbJava wiki.
-   * </p>
+   * Numeric keys in native byte order: either unsigned int or size_t. <strong>The keys must all be
+   * of the same size.</strong>
+   *
+   * <p>This is an optimisation that is available when your keys are 4 or 8 byte unsigned numeric
+   * values. There are performance benefits for both ordered and un-ordered puts as compared to not
+   * using this flag.
+   *
+   * <p>When writing the key to the buffer you must write it in native order and subsequently read
+   * any keys retrieved from LMDB (via cursor or get method) also using native order.
+   *
+   * <p>For more information, see <a
+   * href="https://github.com/lmdbjava/lmdbjava/wiki/Keys#numeric-keys">Numeric Keys</a> in the
+   * LmdbJava wiki.
    */
   MDB_INTEGERKEY(0x08),
   /**

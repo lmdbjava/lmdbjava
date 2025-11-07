@@ -25,9 +25,7 @@ public interface DbiFlagSet extends FlagSet<DbiFlags> {
   DbiFlagSet EMPTY = DbiFlagSetImpl.EMPTY;
 
   /** The set of {@link DbiFlags} that indicate unsigned integer keys are being used. */
-  DbiFlagSet INTEGER_KEY_FLAGS = DbiFlagSet.of(
-      DbiFlags.MDB_INTEGERKEY,
-      DbiFlags.MDB_INTEGERDUP);
+  DbiFlagSet INTEGER_KEY_FLAGS = DbiFlagSet.of(DbiFlags.MDB_INTEGERKEY, DbiFlags.MDB_INTEGERDUP);
 
   static DbiFlagSet empty() {
     return DbiFlagSetImpl.EMPTY;
@@ -39,28 +37,19 @@ public interface DbiFlagSet extends FlagSet<DbiFlags> {
   }
 
   static DbiFlagSet of(final DbiFlags... DbiFlags) {
-    return builder()
-        .setFlags(DbiFlags)
-        .build();
+    return builder().setFlags(DbiFlags).build();
   }
 
   static DbiFlagSet of(final Collection<DbiFlags> DbiFlags) {
-    return builder()
-        .setFlags(DbiFlags)
-        .build();
+    return builder().setFlags(DbiFlags).build();
   }
 
   static AbstractFlagSet.Builder<DbiFlags, DbiFlagSet> builder() {
     return new AbstractFlagSet.Builder<>(
-        DbiFlags.class,
-        DbiFlagSetImpl::new,
-        dbiFlag -> dbiFlag,
-        () -> DbiFlagSetImpl.EMPTY);
+        DbiFlags.class, DbiFlagSetImpl::new, dbiFlag -> dbiFlag, () -> DbiFlagSetImpl.EMPTY);
   }
 
-
   // --------------------------------------------------------------------------------
-
 
   class DbiFlagSetImpl extends AbstractFlagSet<DbiFlags> implements DbiFlagSet {
 
@@ -71,10 +60,8 @@ public interface DbiFlagSet extends FlagSet<DbiFlags> {
     }
   }
 
-
   // --------------------------------------------------------------------------------
 
-
-  class EmptyDbiFlagSet extends AbstractFlagSet.AbstractEmptyFlagSet<DbiFlags> implements DbiFlagSet {
-  }
+  class EmptyDbiFlagSet extends AbstractFlagSet.AbstractEmptyFlagSet<DbiFlags>
+      implements DbiFlagSet {}
 }

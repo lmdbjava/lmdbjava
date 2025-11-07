@@ -22,39 +22,38 @@ import java.util.stream.Collectors;
 
 public class EnvFlagSetTest extends AbstractFlagSetTest<EnvFlags, EnvFlagSet> {
 
-    @Override
-    List<EnvFlags> getAllFlags() {
-        return Arrays.stream(EnvFlags.values())
-            .collect(Collectors.toList());
-    }
+  @Override
+  List<EnvFlags> getAllFlags() {
+    return Arrays.stream(EnvFlags.values()).collect(Collectors.toList());
+  }
 
-    @Override
-    EnvFlagSet getEmptyFlagSet() {
-        return EnvFlagSet.empty();
-    }
+  @Override
+  EnvFlagSet getEmptyFlagSet() {
+    return EnvFlagSet.empty();
+  }
 
-    @Override
-    AbstractFlagSet.Builder<EnvFlags, EnvFlagSet> getBuilder() {
-        return EnvFlagSet.builder();
-    }
+  @Override
+  AbstractFlagSet.Builder<EnvFlags, EnvFlagSet> getBuilder() {
+    return EnvFlagSet.builder();
+  }
 
-    @Override
-    EnvFlagSet getFlagSet(Collection<EnvFlags> flags) {
-        return EnvFlagSet.of(flags);
-    }
+  @Override
+  EnvFlagSet getFlagSet(Collection<EnvFlags> flags) {
+    return EnvFlagSet.of(flags);
+  }
 
-    @Override
-    EnvFlagSet getFlagSet(EnvFlags[] flags) {
-        return EnvFlagSet.of(flags);
-    }
+  @Override
+  EnvFlagSet getFlagSet(EnvFlags[] flags) {
+    return EnvFlagSet.of(flags);
+  }
 
-    @Override
-    EnvFlagSet getFlagSet(EnvFlags flag) {
-        return EnvFlagSet.of(flag);
-    }
+  @Override
+  EnvFlagSet getFlagSet(EnvFlags flag) {
+    return EnvFlagSet.of(flag);
+  }
 
-    @Override
-    Class<EnvFlags> getFlagType() {
-        return EnvFlags.class;
-    }
+  @Override
+  Class<EnvFlags> getFlagType() {
+    return EnvFlags.class;
+  }
 }

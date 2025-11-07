@@ -71,9 +71,7 @@ import org.junit.jupiter.params.provider.ArgumentsSource;
 import org.junit.jupiter.params.support.ParameterDeclarations;
 import org.lmdbjava.CursorIterable.KeyVal;
 
-/**
- * Test {@link CursorIterable}.
- */
+/** Test {@link CursorIterable}. */
 @ParameterizedClass(name = "{index}: dbi: {0}")
 @ArgumentsSource(CursorIterableTest.MyArgumentProvider.class)
 public final class CursorIterableTest {
@@ -85,23 +83,23 @@ public final class CursorIterableTest {
   private Env<ByteBuffer> env;
   private Deque<Integer> list;
 
-//  /**
-//   * Injected by {@link #data()} with appropriate runner.
-//   */
-//  @SuppressWarnings("ClassEscapesDefinedScope")
-  @Parameter
-  public DbiFactory dbiFactory;
+  //  /**
+  //   * Injected by {@link #data()} with appropriate runner.
+  //   */
+  //  @SuppressWarnings("ClassEscapesDefinedScope")
+  @Parameter public DbiFactory dbiFactory;
 
   @BeforeEach
   void beforeEach() {
     file = FileUtil.createTempFile();
     final BufferProxy<ByteBuffer> bufferProxy = ByteBufferProxy.PROXY_OPTIMAL;
-    env = create(bufferProxy)
-        .setMapSize(256, ByteUnit.KIBIBYTES)
-        .setMaxReaders(1)
-        .setMaxDbs(3)
-        .setEnvFlags(MDB_NOSUBDIR)
-        .open(file);
+    env =
+        create(bufferProxy)
+            .setMapSize(256, ByteUnit.KIBIBYTES)
+            .setMaxReaders(1)
+            .setMaxDbs(3)
+            .setEnvFlags(MDB_NOSUBDIR)
+            .open(file);
 
     populateTestDataList();
   }
@@ -111,7 +109,6 @@ public final class CursorIterableTest {
     env.close();
     FileUtil.delete(file);
   }
-
 
   private void populateTestDataList() {
     list = new LinkedList<>();
@@ -207,14 +204,14 @@ public final class CursorIterableTest {
   @Test
   void iterableOnlyReturnedOnce() {
     assertThatThrownBy(
-        () -> {
-          final Dbi<ByteBuffer> db = getDb();
-          try (Txn<ByteBuffer> txn = env.txnRead();
-               CursorIterable<ByteBuffer> c = db.iterate(txn)) {
-            c.iterator(); // ok
-            c.iterator(); // fails
-          }
-        })
+            () -> {
+              final Dbi<ByteBuffer> db = getDb();
+              try (Txn<ByteBuffer> txn = env.txnRead();
+                  CursorIterable<ByteBuffer> c = db.iterate(txn)) {
+                c.iterator(); // ok
+                c.iterator(); // fails
+              }
+            })
         .isInstanceOf(IllegalStateException.class);
   }
 
@@ -222,7 +219,7 @@ public final class CursorIterableTest {
   void iterate() {
     final Dbi<ByteBuffer> db = getDb();
     try (Txn<ByteBuffer> txn = env.txnRead();
-         CursorIterable<ByteBuffer> c = db.iterate(txn)) {
+        CursorIterable<ByteBuffer> c = db.iterate(txn)) {
 
       for (final KeyVal<ByteBuffer> kv : c) {
         assertThat(kv.key().getInt()).isEqualTo(list.pollFirst());
@@ -234,14 +231,14 @@ public final class CursorIterableTest {
   @Test
   void iteratorOnlyReturnedOnce() {
     assertThatThrownBy(
-        () -> {
-          final Dbi<ByteBuffer> db = getDb();
-          try (Txn<ByteBuffer> txn = env.txnRead();
-               CursorIterable<ByteBuffer> c = db.iterate(txn)) {
-            c.iterator(); // ok
-            c.iterator(); // fails
-          }
-        })
+            () -> {
+              final Dbi<ByteBuffer> db = getDb();
+              try (Txn<ByteBuffer> txn = env.txnRead();
+                  CursorIterable<ByteBuffer> c = db.iterate(txn)) {
+                c.iterator(); // ok
+                c.iterator(); // fails
+              }
+            })
         .isInstanceOf(IllegalStateException.class);
   }
 
@@ -260,21 +257,21 @@ public final class CursorIterableTest {
   @Test
   void nextThrowsNoSuchElementExceptionIfNoMoreElements() {
     assertThatThrownBy(
-        () -> {
-          final Dbi<ByteBuffer> db = getDb();
-          populateTestDataList();
-          try (Txn<ByteBuffer> txn = env.txnRead();
-               CursorIterable<ByteBuffer> c = db.iterate(txn)) {
-            final Iterator<KeyVal<ByteBuffer>> i = c.iterator();
-            while (i.hasNext()) {
-              final KeyVal<ByteBuffer> kv = i.next();
-              assertThat(kv.key().getInt()).isEqualTo(list.pollFirst());
-              assertThat(kv.val().getInt()).isEqualTo(list.pollFirst());
-            }
-            assertThat(i.hasNext()).isFalse();
-            i.next();
-          }
-        })
+            () -> {
+              final Dbi<ByteBuffer> db = getDb();
+              populateTestDataList();
+              try (Txn<ByteBuffer> txn = env.txnRead();
+                  CursorIterable<ByteBuffer> c = db.iterate(txn)) {
+                final Iterator<KeyVal<ByteBuffer>> i = c.iterator();
+                while (i.hasNext()) {
+                  final KeyVal<ByteBuffer> kv = i.next();
+                  assertThat(kv.key().getInt()).isEqualTo(list.pollFirst());
+                  assertThat(kv.val().getInt()).isEqualTo(list.pollFirst());
+                }
+                assertThat(i.hasNext()).isFalse();
+                i.next();
+              }
+            })
         .isInstanceOf(NoSuchElementException.class);
   }
 
@@ -307,11 +304,8 @@ public final class CursorIterableTest {
           bb2.reset();
           return guava.compare(array1, array2);
         };
-    final Dbi<ByteBuffer> guavaDbi = env.createDbi()
-        .setDbName(DB_1)
-        .withDefaultComparator()
-        .setDbiFlags(MDB_CREATE)
-        .open();
+    final Dbi<ByteBuffer> guavaDbi =
+        env.createDbi().setDbName(DB_1).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
     populateDatabase(guavaDbi);
     verify(openClosedBackward(bb(7), bb(2)), guavaDbi, 6, 4, 2);
     verify(openClosedBackward(bb(8), bb(4)), guavaDbi, 6, 4);
@@ -353,121 +347,121 @@ public final class CursorIterableTest {
   @Test
   void nextWithClosedEnvTest() {
     assertThatThrownBy(
-        () -> {
-          final Dbi<ByteBuffer> db = getDb();
-          try (Txn<ByteBuffer> txn = env.txnRead()) {
-            try (CursorIterable<ByteBuffer> ci = db.iterate(txn, KeyRange.all())) {
-              final Iterator<KeyVal<ByteBuffer>> c = ci.iterator();
+            () -> {
+              final Dbi<ByteBuffer> db = getDb();
+              try (Txn<ByteBuffer> txn = env.txnRead()) {
+                try (CursorIterable<ByteBuffer> ci = db.iterate(txn, KeyRange.all())) {
+                  final Iterator<KeyVal<ByteBuffer>> c = ci.iterator();
 
-              env.close();
-              c.next();
-            }
-          }
-        })
+                  env.close();
+                  c.next();
+                }
+              }
+            })
         .isInstanceOf(Env.AlreadyClosedException.class);
   }
 
   @Test
   void removeWithClosedEnvTest() {
     assertThatThrownBy(
-        () -> {
-          final Dbi<ByteBuffer> db = getDb();
-          try (Txn<ByteBuffer> txn = env.txnWrite()) {
-            try (CursorIterable<ByteBuffer> ci = db.iterate(txn, KeyRange.all())) {
-              final Iterator<KeyVal<ByteBuffer>> c = ci.iterator();
+            () -> {
+              final Dbi<ByteBuffer> db = getDb();
+              try (Txn<ByteBuffer> txn = env.txnWrite()) {
+                try (CursorIterable<ByteBuffer> ci = db.iterate(txn, KeyRange.all())) {
+                  final Iterator<KeyVal<ByteBuffer>> c = ci.iterator();
 
-              final KeyVal<ByteBuffer> keyVal = c.next();
-              assertThat(keyVal).isNotNull();
+                  final KeyVal<ByteBuffer> keyVal = c.next();
+                  assertThat(keyVal).isNotNull();
 
-              env.close();
-              c.remove();
-            }
-          }
-        })
+                  env.close();
+                  c.remove();
+                }
+              }
+            })
         .isInstanceOf(Env.AlreadyClosedException.class);
   }
 
   @Test
   void hasNextWithClosedEnvTest() {
     assertThatThrownBy(
-        () -> {
-          final Dbi<ByteBuffer> db = getDb();
-          try (Txn<ByteBuffer> txn = env.txnRead()) {
-            try (CursorIterable<ByteBuffer> ci = db.iterate(txn, KeyRange.all())) {
-              final Iterator<KeyVal<ByteBuffer>> c = ci.iterator();
+            () -> {
+              final Dbi<ByteBuffer> db = getDb();
+              try (Txn<ByteBuffer> txn = env.txnRead()) {
+                try (CursorIterable<ByteBuffer> ci = db.iterate(txn, KeyRange.all())) {
+                  final Iterator<KeyVal<ByteBuffer>> c = ci.iterator();
 
-              env.close();
-              c.hasNext();
-            }
-          }
-        })
+                  env.close();
+                  c.hasNext();
+                }
+              }
+            })
         .isInstanceOf(Env.AlreadyClosedException.class);
   }
 
   @Test
   void forEachRemainingWithClosedEnvTest() {
     assertThatThrownBy(
-        () -> {
-          final Dbi<ByteBuffer> db = getDb();
-          try (Txn<ByteBuffer> txn = env.txnRead()) {
-            try (CursorIterable<ByteBuffer> ci = db.iterate(txn, KeyRange.all())) {
-              final Iterator<KeyVal<ByteBuffer>> c = ci.iterator();
+            () -> {
+              final Dbi<ByteBuffer> db = getDb();
+              try (Txn<ByteBuffer> txn = env.txnRead()) {
+                try (CursorIterable<ByteBuffer> ci = db.iterate(txn, KeyRange.all())) {
+                  final Iterator<KeyVal<ByteBuffer>> c = ci.iterator();
 
-              env.close();
-              c.forEachRemaining(keyVal -> {
-              });
-            }
-          }
-        })
+                  env.close();
+                  c.forEachRemaining(keyVal -> {});
+                }
+              }
+            })
         .isInstanceOf(Env.AlreadyClosedException.class);
   }
 
-//  @Test
-//  public void testSignedVsUnsigned() {
-//    final ByteBuffer val1 = bb(1);
-//    final ByteBuffer val2 = bb(2);
-//    final ByteBuffer val110 = bb(110);
-//    final ByteBuffer val111 = bb(111);
-//    final ByteBuffer val150 = bb(150);
-//
-//    final BufferProxy<ByteBuffer> bufferProxy = ByteBufferProxy.PROXY_OPTIMAL;
-//    final Comparator<ByteBuffer> unsignedComparator = bufferProxy.getUnsignedComparator();
-//    final Comparator<ByteBuffer> signedComparator = bufferProxy.getSignedComparator();
-//
-//    // Compare the same
-//    assertThat(
-//        unsignedComparator.compare(val1, val2), Matchers.is(signedComparator.compare(val1, val2)));
-//
-//    // Compare differently
-//    assertThat(
-//        unsignedComparator.compare(val110, val150),
-//        Matchers.not(signedComparator.compare(val110, val150)));
-//
-//    // Compare differently
-//    assertThat(
-//        unsignedComparator.compare(val111, val150),
-//        Matchers.not(signedComparator.compare(val111, val150)));
-//
-//    // This will fail if the db is using a signed comparator for the start/stop keys
-//    for (final Dbi<ByteBuffer> db : dbs) {
-//      db.put(val110, val110);
-//      db.put(val150, val150);
-//
-//      final ByteBuffer startKeyBuf = val111;
-//      KeyRange<ByteBuffer> keyRange = KeyRange.atLeastBackward(startKeyBuf);
-//
-//      try (Txn<ByteBuffer> txn = env.txnRead();
-//          CursorIterable<ByteBuffer> c = db.iterate(txn, keyRange)) {
-//        for (final CursorIterable.KeyVal<ByteBuffer> kv : c) {
-//          final int key = kv.key().getInt();
-//          final int val = kv.val().getInt();
-//          //          System.out.println("key: " + key + " val: " + val);
-//          assertThat(key, is(110));
-//          break;
-//        }
-//      }
-//    }
-//  }
+  //  @Test
+  //  public void testSignedVsUnsigned() {
+  //    final ByteBuffer val1 = bb(1);
+  //    final ByteBuffer val2 = bb(2);
+  //    final ByteBuffer val110 = bb(110);
+  //    final ByteBuffer val111 = bb(111);
+  //    final ByteBuffer val150 = bb(150);
+  //
+  //    final BufferProxy<ByteBuffer> bufferProxy = ByteBufferProxy.PROXY_OPTIMAL;
+  //    final Comparator<ByteBuffer> unsignedComparator = bufferProxy.getUnsignedComparator();
+  //    final Comparator<ByteBuffer> signedComparator = bufferProxy.getSignedComparator();
+  //
+  //    // Compare the same
+  //    assertThat(
+  //        unsignedComparator.compare(val1, val2), Matchers.is(signedComparator.compare(val1,
+  // val2)));
+  //
+  //    // Compare differently
+  //    assertThat(
+  //        unsignedComparator.compare(val110, val150),
+  //        Matchers.not(signedComparator.compare(val110, val150)));
+  //
+  //    // Compare differently
+  //    assertThat(
+  //        unsignedComparator.compare(val111, val150),
+  //        Matchers.not(signedComparator.compare(val111, val150)));
+  //
+  //    // This will fail if the db is using a signed comparator for the start/stop keys
+  //    for (final Dbi<ByteBuffer> db : dbs) {
+  //      db.put(val110, val110);
+  //      db.put(val150, val150);
+  //
+  //      final ByteBuffer startKeyBuf = val111;
+  //      KeyRange<ByteBuffer> keyRange = KeyRange.atLeastBackward(startKeyBuf);
+  //
+  //      try (Txn<ByteBuffer> txn = env.txnRead();
+  //          CursorIterable<ByteBuffer> c = db.iterate(txn, keyRange)) {
+  //        for (final CursorIterable.KeyVal<ByteBuffer> kv : c) {
+  //          final int key = kv.key().getInt();
+  //          final int val = kv.val().getInt();
+  //          //          System.out.println("key: " + key + " val: " + val);
+  //          assertThat(key, is(110));
+  //          break;
+  //        }
+  //      }
+  //    }
+  //  }
 
   private void verify(final KeyRange<ByteBuffer> range, final int... expected) {
     final Dbi<ByteBuffer> db = getDb();
@@ -479,14 +473,13 @@ public final class CursorIterableTest {
     verify(range, dbi, expected);
   }
 
-  private void verify(final KeyRange<ByteBuffer> range,
-                      final Dbi<ByteBuffer> dbi,
-                      final int... expected) {
+  private void verify(
+      final KeyRange<ByteBuffer> range, final Dbi<ByteBuffer> dbi, final int... expected) {
 
     final List<Integer> results = new ArrayList<>();
 
     try (Txn<ByteBuffer> txn = env.txnRead();
-         CursorIterable<ByteBuffer> c = dbi.iterate(txn, range)) {
+        CursorIterable<ByteBuffer> c = dbi.iterate(txn, range)) {
       for (final KeyVal<ByteBuffer> kv : c) {
         final int key = kv.key().getInt();
         final int val = kv.val().getInt();
@@ -507,9 +500,7 @@ public final class CursorIterableTest {
     return dbi;
   }
 
-
   // --------------------------------------------------------------------------------
-
 
   private static class DbiFactory {
     private final String name;
@@ -526,44 +517,51 @@ public final class CursorIterableTest {
     }
   }
 
-
   // --------------------------------------------------------------------------------
-
 
   static class MyArgumentProvider implements ArgumentsProvider {
 
     @Override
-    public Stream<? extends Arguments> provideArguments(ParameterDeclarations parameters,
-                                                        ExtensionContext context) throws Exception {
-      final DbiFactory defaultComparatorDb = new DbiFactory("defaultComparator", env ->
-          env.createDbi()
-              .setDbName(DB_1)
-              .withDefaultComparator()
-              .setDbiFlags(DBI_FLAGS)
-              .open());
-      final DbiFactory nativeComparatorDb = new DbiFactory("nativeComparator", env ->
-          env.createDbi()
-              .setDbName(DB_2)
-              .withNativeComparator()
-              .setDbiFlags(DBI_FLAGS)
-              .open());
-      final DbiFactory callbackComparatorDb = new DbiFactory("callbackComparator", env ->
-          env.createDbi()
-              .setDbName(DB_3)
-              .withCallbackComparator(BUFFER_PROXY::getComparator)
-              .setDbiFlags(DBI_FLAGS)
-              .open());
-      final DbiFactory iteratorComparatorDb = new DbiFactory("iteratorComparator", env ->
-          env.createDbi()
-              .setDbName(DB_4)
-              .withIteratorComparator(BUFFER_PROXY::getComparator)
-              .setDbiFlags(DBI_FLAGS)
-              .open());
+    public Stream<? extends Arguments> provideArguments(
+        ParameterDeclarations parameters, ExtensionContext context) throws Exception {
+      final DbiFactory defaultComparatorDb =
+          new DbiFactory(
+              "defaultComparator",
+              env ->
+                  env.createDbi()
+                      .setDbName(DB_1)
+                      .withDefaultComparator()
+                      .setDbiFlags(DBI_FLAGS)
+                      .open());
+      final DbiFactory nativeComparatorDb =
+          new DbiFactory(
+              "nativeComparator",
+              env ->
+                  env.createDbi()
+                      .setDbName(DB_2)
+                      .withNativeComparator()
+                      .setDbiFlags(DBI_FLAGS)
+                      .open());
+      final DbiFactory callbackComparatorDb =
+          new DbiFactory(
+              "callbackComparator",
+              env ->
+                  env.createDbi()
+                      .setDbName(DB_3)
+                      .withCallbackComparator(BUFFER_PROXY::getComparator)
+                      .setDbiFlags(DBI_FLAGS)
+                      .open());
+      final DbiFactory iteratorComparatorDb =
+          new DbiFactory(
+              "iteratorComparator",
+              env ->
+                  env.createDbi()
+                      .setDbName(DB_4)
+                      .withIteratorComparator(BUFFER_PROXY::getComparator)
+                      .setDbiFlags(DBI_FLAGS)
+                      .open());
       return Stream.of(
-              defaultComparatorDb,
-              nativeComparatorDb,
-              callbackComparatorDb,
-              iteratorComparatorDb)
+              defaultComparatorDb, nativeComparatorDb, callbackComparatorDb, iteratorComparatorDb)
           .map(Arguments::of);
     }
   }

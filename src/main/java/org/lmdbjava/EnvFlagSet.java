@@ -33,28 +33,19 @@ public interface EnvFlagSet extends FlagSet<EnvFlags> {
   }
 
   static EnvFlagSet of(final EnvFlags... EnvFlags) {
-    return builder()
-        .setFlags(EnvFlags)
-        .build();
+    return builder().setFlags(EnvFlags).build();
   }
 
   static EnvFlagSet of(final Collection<EnvFlags> EnvFlags) {
-    return builder()
-        .setFlags(EnvFlags)
-        .build();
+    return builder().setFlags(EnvFlags).build();
   }
 
   static AbstractFlagSet.Builder<EnvFlags, EnvFlagSet> builder() {
     return new AbstractFlagSet.Builder<>(
-        EnvFlags.class,
-        EnvFlagSetImpl::new,
-        envFlag -> envFlag,
-        () -> EnvFlagSetImpl.EMPTY);
+        EnvFlags.class, EnvFlagSetImpl::new, envFlag -> envFlag, () -> EnvFlagSetImpl.EMPTY);
   }
 
-
   // --------------------------------------------------------------------------------
-
 
   class EnvFlagSetImpl extends AbstractFlagSet<EnvFlags> implements EnvFlagSet {
 
@@ -65,10 +56,8 @@ public interface EnvFlagSet extends FlagSet<EnvFlags> {
     }
   }
 
-
   // --------------------------------------------------------------------------------
 
-
-  class EmptyEnvFlagSet extends AbstractFlagSet.AbstractEmptyFlagSet<EnvFlags> implements EnvFlagSet {
-  }
+  class EmptyEnvFlagSet extends AbstractFlagSet.AbstractEmptyFlagSet<EnvFlags>
+      implements EnvFlagSet {}
 }

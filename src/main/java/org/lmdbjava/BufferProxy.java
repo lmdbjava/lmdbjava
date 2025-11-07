@@ -40,7 +40,6 @@ public abstract class BufferProxy<T> {
   /** Offset from a pointer of the <code>MDB_val.mv_size</code> field. */
   protected static final int STRUCT_FIELD_OFFSET_SIZE = 0;
 
-
   /** Explicitly-defined default constructor to avoid warnings. */
   protected BufferProxy() {}
 

@@ -55,9 +55,7 @@ public final class TutorialTest {
 
   private static final String DB_NAME = "my DB";
 
-  /**
-   * In this first tutorial we will use LmdbJava with some basic defaults.
-   */
+  /** In this first tutorial we will use LmdbJava with some basic defaults. */
   @Test
   void tutorial1() {
     // We need a storage directory first.
@@ -67,15 +65,16 @@ public final class TutorialTest {
 
           // We always need an Env. An Env owns a physical on-disk storage file. One
           // Env can store many different databases (ie sorted maps).
-          final Env<ByteBuffer> env = Env.create()
-              // LMDB also needs to know how large our DB might be. Over-estimating is OK.
-              .setMapSize(10_485_760)
-              // LMDB also needs to know how many DBs (Dbi) we want to store in this Env.
-              .setMaxDbs(1)
-              // Now let's open the Env. The same path can be concurrently opened and
-              // used in different processes, but do not open the same path twice in
-              // the same process at the same time.
-              .open(dir);
+          final Env<ByteBuffer> env =
+              Env.create()
+                  // LMDB also needs to know how large our DB might be. Over-estimating is OK.
+                  .setMapSize(10_485_760)
+                  // LMDB also needs to know how many DBs (Dbi) we want to store in this Env.
+                  .setMaxDbs(1)
+                  // Now let's open the Env. The same path can be concurrently opened and
+                  // used in different processes, but do not open the same path twice in
+                  // the same process at the same time.
+                  .open(dir);
 
           // We need a Dbi for each DB. A Dbi roughly equates to a sorted map. The
           // MDB_CREATE flag causes the DB to be created if it doesn't already exist.
@@ -124,9 +123,7 @@ public final class TutorialTest {
         });
   }
 
-  /**
-   * In this second tutorial we'll learn more about LMDB's ACID Txns.
-   */
+  /** In this second tutorial we'll learn more about LMDB's ACID Txns. */
   @Test
   void tutorial2() {
     FileUtil.useTempDir(
@@ -337,9 +334,7 @@ public final class TutorialTest {
         });
   }
 
-  /**
-   * In this fifth tutorial we'll explore multiple values sharing a single key.
-   */
+  /** In this fifth tutorial we'll explore multiple values sharing a single key. */
   @Test
   void tutorial5() {
     FileUtil.useTempDir(
@@ -399,7 +394,8 @@ public final class TutorialTest {
     FileUtil.useTempDir(
         dir -> {
           // Note we need to specify the Verifier's DBI_COUNT for the Env.
-          final Env<ByteBuffer> env = Env.create(PROXY_OPTIMAL)
+          final Env<ByteBuffer> env =
+              Env.create(PROXY_OPTIMAL)
                   .setMapSize(10_485_760)
                   .setMaxDbs(Verifier.DBI_COUNT)
                   .open(dir);
@@ -415,9 +411,7 @@ public final class TutorialTest {
         });
   }
 
-  /**
-   * In this final tutorial we'll look at using Agrona's DirectBuffer.
-   */
+  /** In this final tutorial we'll look at using Agrona's DirectBuffer. */
   @Test
   void tutorial7() {
     FileUtil.useTempDir(
@@ -425,10 +419,8 @@ public final class TutorialTest {
           // The critical difference is we pass the PROXY_DB field to Env.create().
           // There's also a PROXY_SAFE if you want to stop ByteBuffer's Unsafe use.
           // Aside from that and a different type argument, it's the same as usual...
-          final Env<DirectBuffer> env = Env.create(PROXY_DB)
-              .setMapSize(10_485_760)
-              .setMaxDbs(1)
-              .open(dir);
+          final Env<DirectBuffer> env =
+              Env.create(PROXY_DB).setMapSize(10_485_760).setMaxDbs(1).open(dir);
 
           final Dbi<DirectBuffer> db = env.openDbi(DB_NAME, MDB_CREATE);
 
@@ -485,10 +477,6 @@ public final class TutorialTest {
   // or reverse ordered keys, using Env.DISABLE_CHECKS_PROP etc), but you now
   // know enough to tackle the JavaDocs with confidence. Have fun!
   private Env<ByteBuffer> createSimpleEnv(final Path path) {
-    return Env.create()
-        .setMapSize(10_485_760)
-        .setMaxDbs(1)
-        .setMaxReaders(1)
-        .open(path);
+    return Env.create().setMapSize(10_485_760).setMaxDbs(1).setMaxReaders(1).open(path);
   }
 }

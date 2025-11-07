@@ -125,10 +125,8 @@ public final class TxnTest {
   @Test
   void readOnlyTxnAllowedInReadOnlyEnv() {
     env.openDbi(DB_1, MDB_CREATE);
-    try (Env<ByteBuffer> roEnv = create()
-        .setMaxReaders(1)
-        .setEnvFlags(MDB_NOSUBDIR, MDB_RDONLY_ENV)
-        .open(file)) {
+    try (Env<ByteBuffer> roEnv =
+        create().setMaxReaders(1).setEnvFlags(MDB_NOSUBDIR, MDB_RDONLY_ENV).open(file)) {
       assertThat(roEnv.txnRead()).isNotNull();
     }
   }

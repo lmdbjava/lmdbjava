@@ -91,11 +91,11 @@ public final class DirectBufferProxy extends BufferProxy<DirectBuffer> {
   }
 
   /**
-   * Buffer comparator specifically for 4/8 byte keys that are unsigned ints/longs,
-   * i.e. when using MDB_INTEGER_KEY/MDB_INTEGERDUP. Compares the buffers numerically.
-   * <p>
-   * Both buffer must have 4 or 8 bytes remaining
-   * </p>
+   * Buffer comparator specifically for 4/8 byte keys that are unsigned ints/longs, i.e. when using
+   * MDB_INTEGER_KEY/MDB_INTEGERDUP. Compares the buffers numerically.
+   *
+   * <p>Both buffer must have 4 or 8 bytes remaining
+   *
    * @param o1 left operand (required)
    * @param o2 right operand (required)
    * @return as specified by {@link Comparable} interface
@@ -107,8 +107,12 @@ public final class DirectBufferProxy extends BufferProxy<DirectBuffer> {
     final int len1 = o1.capacity();
     final int len2 = o2.capacity();
     if (len1 != len2) {
-      throw new RuntimeException("Length mismatch, len1: " + len1 + ", len2: " + len2
-          + ". Lengths must be identical and either 4 or 8 bytes.");
+      throw new RuntimeException(
+          "Length mismatch, len1: "
+              + len1
+              + ", len2: "
+              + len2
+              + ". Lengths must be identical and either 4 or 8 bytes.");
     }
     if (len1 == 8) {
       final long lw = o1.getLong(0, NATIVE_ORDER);

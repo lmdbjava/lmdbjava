@@ -59,9 +59,7 @@ public interface MaskedFlag {
     }
   }
 
-  /**
-   * Combine the two masks into a single mask value, i.e. when combining two {@link FlagSet}s.
-   */
+  /** Combine the two masks into a single mask value, i.e. when combining two {@link FlagSet}s. */
   static <M extends MaskedFlag> int mask(final int mask1, final int mask2) {
     return mask1 | mask2;
   }

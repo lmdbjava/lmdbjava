@@ -46,9 +46,7 @@ public final class Txn<T> implements AutoCloseable {
   private State state;
 
   Txn(final Env<T> env, final Txn<T> parent, final BufferProxy<T> proxy, final TxnFlagSet flags) {
-    this.flags = flags != null
-        ? flags
-        : TxnFlagSet.EMPTY;
+    this.flags = flags != null ? flags : TxnFlagSet.EMPTY;
     this.proxy = proxy;
     this.keyVal = proxy.keyVal();
     this.readOnly = this.flags.isSet(MDB_RDONLY_TXN);

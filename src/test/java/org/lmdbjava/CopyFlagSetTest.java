@@ -22,39 +22,38 @@ import java.util.stream.Collectors;
 
 public class CopyFlagSetTest extends AbstractFlagSetTest<CopyFlags, CopyFlagSet> {
 
-    @Override
-    List<CopyFlags> getAllFlags() {
-        return Arrays.stream(CopyFlags.values())
-            .collect(Collectors.toList());
-    }
+  @Override
+  List<CopyFlags> getAllFlags() {
+    return Arrays.stream(CopyFlags.values()).collect(Collectors.toList());
+  }
 
-    @Override
-    CopyFlagSet getEmptyFlagSet() {
-        return CopyFlagSet.empty();
-    }
+  @Override
+  CopyFlagSet getEmptyFlagSet() {
+    return CopyFlagSet.empty();
+  }
 
-    @Override
-    AbstractFlagSet.Builder<CopyFlags, CopyFlagSet> getBuilder() {
-        return CopyFlagSet.builder();
-    }
+  @Override
+  AbstractFlagSet.Builder<CopyFlags, CopyFlagSet> getBuilder() {
+    return CopyFlagSet.builder();
+  }
 
-    @Override
-    CopyFlagSet getFlagSet(Collection<CopyFlags> flags) {
-        return CopyFlagSet.of(flags);
-    }
+  @Override
+  CopyFlagSet getFlagSet(Collection<CopyFlags> flags) {
+    return CopyFlagSet.of(flags);
+  }
 
-    @Override
-    CopyFlagSet getFlagSet(CopyFlags[] flags) {
-        return CopyFlagSet.of(flags);
-    }
+  @Override
+  CopyFlagSet getFlagSet(CopyFlags[] flags) {
+    return CopyFlagSet.of(flags);
+  }
 
-    @Override
-    CopyFlagSet getFlagSet(CopyFlags flag) {
-        return CopyFlagSet.of(flag);
-    }
+  @Override
+  CopyFlagSet getFlagSet(CopyFlags flag) {
+    return CopyFlagSet.of(flag);
+  }
 
-    @Override
-    Class<CopyFlags> getFlagType() {
-        return CopyFlags.class;
-    }
+  @Override
+  Class<CopyFlags> getFlagType() {
+    return CopyFlags.class;
+  }
 }

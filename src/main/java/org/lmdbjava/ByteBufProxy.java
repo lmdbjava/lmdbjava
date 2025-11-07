@@ -89,8 +89,8 @@ public final class ByteBufProxy extends BufferProxy<ByteBuf> {
   }
 
   /**
-   * Buffer comparator specifically for 4/8 byte keys that are unsigned ints/longs,
-   * i.e. when using MDB_INTEGER_KEY/MDB_INTEGERDUP. Compares the buffers numerically.
+   * Buffer comparator specifically for 4/8 byte keys that are unsigned ints/longs, i.e. when using
+   * MDB_INTEGER_KEY/MDB_INTEGERDUP. Compares the buffers numerically.
    *
    * @param o1 left operand (required)
    * @param o2 right operand (required)
@@ -101,12 +101,17 @@ public final class ByteBufProxy extends BufferProxy<ByteBuf> {
     requireNonNull(o2);
     // Both buffers should be same length according to LMDB API.
     // From the LMDB docs for MDB_INTEGER_KEY
-    // numeric keys in native byte order: either unsigned int or size_t. The keys must all be of the same size.
+    // numeric keys in native byte order: either unsigned int or size_t. The keys must all be of the
+    // same size.
     final int len1 = o1.readableBytes();
     final int len2 = o2.readableBytes();
     if (len1 != len2) {
-      throw new RuntimeException("Length mismatch, len1: " + len1 + ", len2: " + len2
-          + ". Lengths must be identical and either 4 or 8 bytes.");
+      throw new RuntimeException(
+          "Length mismatch, len1: "
+              + len1
+              + ", len2: "
+              + len2
+              + ". Lengths must be identical and either 4 or 8 bytes.");
     }
     if (len1 == 8) {
       final long lw;
