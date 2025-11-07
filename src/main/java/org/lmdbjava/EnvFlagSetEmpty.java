@@ -16,5 +16,4 @@
 package org.lmdbjava;
 
 class EnvFlagSetEmpty extends AbstractFlagSet.AbstractEmptyFlagSet<EnvFlags>
-    implements EnvFlagSet {
-}
+    implements EnvFlagSet {}

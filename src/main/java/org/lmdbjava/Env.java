@@ -55,8 +55,8 @@ public final class Env<T> implements AutoCloseable {
   public static final String DISABLE_CHECKS_PROP = "lmdbjava.disable.checks";
 
   /**
-   * The default {@link Charset} used to convert DB names from a byte[] to a String or
-   * to encode a String as a byte[]. Only used if not explicit {@link Charset} is provided.
+   * The default {@link Charset} used to convert DB names from a byte[] to a String or to encode a
+   * String as a byte[]. Only used if not explicit {@link Charset} is provided.
    */
   public static final Charset DEFAULT_NAME_CHARSET = StandardCharsets.UTF_8;
 

@@ -18,56 +18,59 @@ package org.lmdbjava;
 import java.util.Collection;
 import java.util.Objects;
 
- /** An immutable set of flags for use when performing a "put". */
+/** An immutable set of flags for use when performing a "put". */
 public interface PutFlagSet extends FlagSet<PutFlags> {
 
-   /**
-    * An immutable empty {@link PutFlagSet}.
-    */
+  /** An immutable empty {@link PutFlagSet}. */
   PutFlagSet EMPTY = PutFlagSetImpl.EMPTY;
 
-   /**
-    * Gets the immutable empty {@link PutFlagSet} instance.
-    * @return The immutable empty {@link PutFlagSet} instance.
-    */
+  /**
+   * Gets the immutable empty {@link PutFlagSet} instance.
+   *
+   * @return The immutable empty {@link PutFlagSet} instance.
+   */
   static PutFlagSet empty() {
     return PutFlagSetImpl.EMPTY;
   }
 
-   /**
-    * Creates an immutable {@link PutFlagSet} containing putFlag.
-    * @param putFlag The flag to include in the {@link PutFlagSet}
-    * @return An immutable {@link PutFlagSet} containing just putFlag.
-    */
+  /**
+   * Creates an immutable {@link PutFlagSet} containing putFlag.
+   *
+   * @param putFlag The flag to include in the {@link PutFlagSet}
+   * @return An immutable {@link PutFlagSet} containing just putFlag.
+   */
   static PutFlagSet of(final PutFlags putFlag) {
     Objects.requireNonNull(putFlag);
     return putFlag;
   }
 
-   /**
-    * Creates an immutable {@link PutFlagSet} containing putFlags.
-    * @param putFlags The flags to include in the {@link PutFlagSet}.
-    * @return An immutable {@link PutFlagSet} containing putFlags.
-    */
+  /**
+   * Creates an immutable {@link PutFlagSet} containing putFlags.
+   *
+   * @param putFlags The flags to include in the {@link PutFlagSet}.
+   * @return An immutable {@link PutFlagSet} containing putFlags.
+   */
   static PutFlagSet of(final PutFlags... putFlags) {
     return builder().setFlags(putFlags).build();
   }
 
-   /**
-    * Creates an immutable {@link PutFlagSet} containing putFlags.
-    * @param putFlags The flags to include in the {@link PutFlagSet}.
-    * @return An immutable {@link PutFlagSet} containing putFlags.
-    */
+  /**
+   * Creates an immutable {@link PutFlagSet} containing putFlags.
+   *
+   * @param putFlags The flags to include in the {@link PutFlagSet}.
+   * @return An immutable {@link PutFlagSet} containing putFlags.
+   */
   static PutFlagSet of(final Collection<PutFlags> putFlags) {
     return builder().setFlags(putFlags).build();
   }
 
-   /**
-    * Create a builder for building an {@link PutFlagSet}.
-    * @return A builder instance for building an {@link PutFlagSet}.
-    */
+  /**
+   * Create a builder for building an {@link PutFlagSet}.
+   *
+   * @return A builder instance for building an {@link PutFlagSet}.
+   */
   static AbstractFlagSet.Builder<PutFlags, PutFlagSet> builder() {
     return new AbstractFlagSet.Builder<>(
         PutFlags.class, PutFlagSetImpl::new, putFlag -> putFlag, PutFlagSetEmpty::new);
   }
- }
+}

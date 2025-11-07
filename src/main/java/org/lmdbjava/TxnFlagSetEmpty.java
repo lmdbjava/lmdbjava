@@ -16,5 +16,4 @@
 package org.lmdbjava;
 
 class TxnFlagSetEmpty extends AbstractFlagSet.AbstractEmptyFlagSet<TxnFlags>
-    implements TxnFlagSet {
-}
+    implements TxnFlagSet {}

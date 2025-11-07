@@ -22,13 +22,12 @@ import java.util.Objects;
 /** An immutable set of flags for use when performing a {@link Env#copy(Path, CopyFlagSet)}. */
 public interface CopyFlagSet extends FlagSet<CopyFlags> {
 
-  /**
-   * An immutable empty {@link CopyFlagSet}.
-   */
+  /** An immutable empty {@link CopyFlagSet}. */
   CopyFlagSet EMPTY = CopyFlagSetImpl.EMPTY;
 
   /**
    * Gets the immutable empty {@link CopyFlagSet} instance.
+   *
    * @return The immutable empty {@link CopyFlagSet} instance.
    */
   static CopyFlagSet empty() {
@@ -37,6 +36,7 @@ public interface CopyFlagSet extends FlagSet<CopyFlags> {
 
   /**
    * Creates an immutable {@link CopyFlagSet} containing copyFlag.
+   *
    * @param copyFlag The flag to include in the {@link CopyFlagSet}
    * @return An immutable {@link CopyFlagSet} containing just copyFlag.
    */
@@ -47,6 +47,7 @@ public interface CopyFlagSet extends FlagSet<CopyFlags> {
 
   /**
    * Creates an immutable {@link CopyFlagSet} containing copyFlags.
+   *
    * @param copyFlags The flags to include in the {@link CopyFlagSet}.
    * @return An immutable {@link CopyFlagSet} containing copyFlags.
    */
@@ -56,6 +57,7 @@ public interface CopyFlagSet extends FlagSet<CopyFlags> {
 
   /**
    * Creates an immutable {@link CopyFlagSet} containing copyFlags.
+   *
    * @param copyFlags The flags to include in the {@link CopyFlagSet}.
    * @return An immutable {@link CopyFlagSet} containing copyFlags.
    */
@@ -65,6 +67,7 @@ public interface CopyFlagSet extends FlagSet<CopyFlags> {
 
   /**
    * Create a builder for building an {@link CopyFlagSet}.
+   *
    * @return A builder instance for building an {@link CopyFlagSet}.
    */
   static AbstractFlagSet.Builder<CopyFlags, CopyFlagSet> builder() {

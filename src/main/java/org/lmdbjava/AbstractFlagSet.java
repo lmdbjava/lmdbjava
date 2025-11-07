@@ -24,9 +24,11 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-/** Encapsulates an immutable set of flags and the associated bit mask for the flags in the set.
+/**
+ * Encapsulates an immutable set of flags and the associated bit mask for the flags in the set.
+ *
  * @param <T> The type of the flags in this set. Must extend {@link MaskedFlag} and {@link Enum<T>}.
- * */
+ */
 abstract class AbstractFlagSet<T extends Enum<T> & MaskedFlag> implements FlagSet<T> {
 
   private final Set<T> flags;
@@ -268,6 +270,7 @@ abstract class AbstractFlagSet<T extends Enum<T> & MaskedFlag> implements FlagSe
 
     /**
      * Replaces any flags already set in the builder with the passed flags.
+     *
      * @param flags The flags to set in the builder.
      * @return this builder instance.
      */

@@ -279,6 +279,7 @@ public final class Dbi<T> {
 
   /**
    * Obtains the name of this database, using the {@link Env#DEFAULT_NAME_CHARSET} {@link Charset}.
+   *
    * @return The name of this database, using the {@link Env#DEFAULT_NAME_CHARSET} {@link Charset}.
    */
   public String getNameAsString() {
@@ -288,7 +289,8 @@ public final class Dbi<T> {
   /**
    * Obtains the name of this database, using the supplied {@link Charset}.
    *
-   * @param charset The {@link Charset} to use when converting the DB from a byte[] to a {@link String}.
+   * @param charset The {@link Charset} to use when converting the DB from a byte[] to a {@link
+   *     String}.
    * @return The name of the database. If this is the unnamed database an empty string will be
    *     returned.
    * @throws RuntimeException if the name can't be decoded.

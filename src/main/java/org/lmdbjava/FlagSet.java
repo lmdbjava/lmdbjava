@@ -31,12 +31,14 @@ public interface FlagSet<T extends MaskedFlag> extends Iterable<T> {
 
   /**
    * The combined mask for this flagSet.
+   *
    * @return The combined mask for this flagSet.
    */
   int getMask();
 
   /**
    * Combines this {@link FlagSet} with another and returns the combined mask value.
+   *
    * @param other The other {@link FlagSet} to combine with this.
    * @return The result of combining the mask of this {@link FlagSet} with the mask of the other
    *     {@link FlagSet}.
@@ -51,12 +53,14 @@ public interface FlagSet<T extends MaskedFlag> extends Iterable<T> {
 
   /**
    * Get the set of flags in this {@link FlagSet}.
+   *
    * @return The set of flags in this {@link FlagSet}.
    */
   Set<T> getFlags();
 
   /**
    * Tests if flag is non-null and included in this {@link FlagSet}.
+   *
    * @param flag The flag to test.
    * @return True if flag is non-null and included in this {@link FlagSet}.
    */
@@ -64,12 +68,14 @@ public interface FlagSet<T extends MaskedFlag> extends Iterable<T> {
 
   /**
    * The number of flags in this set.
+   *
    * @return The number of flags in this set.
    */
   int size();
 
   /**
    * Tests if at least one of flags are included in this {@link FlagSet}
+   *
    * @param flags The flags to test.
    * @return True if at least one of flags are included in this {@link FlagSet}
    */
@@ -88,12 +94,14 @@ public interface FlagSet<T extends MaskedFlag> extends Iterable<T> {
 
   /**
    * Tests if this {@link FlagSet} is empty.
+   *
    * @return True if this {@link FlagSet} is empty.
    */
   boolean isEmpty();
 
   /**
    * Gets an {@link Iterator} (in no particular order) for the flags in this {@link FlagSet}.
+   *
    * @return The {@link Iterator} (in no particular order) for the flags in this {@link FlagSet}.
    */
   @Override
@@ -101,11 +109,13 @@ public interface FlagSet<T extends MaskedFlag> extends Iterable<T> {
     return getFlags().iterator();
   }
 
-  /** Convert this {@link FlagSet} to a string for use in toString methods.
+  /**
+   * Convert this {@link FlagSet} to a string for use in toString methods.
+   *
    * @param flagSet The {@link FlagSet} to convert to a string.
    * @param <T> The type of the flags in the {@link FlagSet}.
    * @return The {@link String} representation of the flagSet.
-   * */
+   */
   static <T extends MaskedFlag> String asString(final FlagSet<T> flagSet) {
     Objects.requireNonNull(flagSet);
     final String flagsStr =
@@ -118,6 +128,7 @@ public interface FlagSet<T extends MaskedFlag> extends Iterable<T> {
 
   /**
    * Compares a {@link FlagSet} to another object
+   *
    * @param flagSet The {@link FlagSet} to compare.
    * @param other THe object to compare against the {@link FlagSet}.
    * @return True if both arguments implement {@link FlagSet} and contain the same flags.

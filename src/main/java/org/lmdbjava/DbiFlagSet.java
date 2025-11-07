@@ -29,6 +29,7 @@ public interface DbiFlagSet extends FlagSet<DbiFlags> {
 
   /**
    * Gets the immutable empty {@link DbiFlagSet} instance.
+   *
    * @return The immutable empty {@link DbiFlagSet} instance.
    */
   static DbiFlagSet empty() {
@@ -37,6 +38,7 @@ public interface DbiFlagSet extends FlagSet<DbiFlags> {
 
   /**
    * Creates an immutable {@link DbiFlagSet} containing dbiFlag.
+   *
    * @param dbiFlag The flag to include in the {@link DbiFlagSet}
    * @return An immutable {@link DbiFlagSet} containing just dbiFlag.
    */
@@ -47,6 +49,7 @@ public interface DbiFlagSet extends FlagSet<DbiFlags> {
 
   /**
    * Creates an immutable {@link DbiFlagSet} containing dbiFlags.
+   *
    * @param dbiFlags The flags to include in the {@link DbiFlagSet}.
    * @return An immutable {@link DbiFlagSet} containing dbiFlags.
    */
@@ -56,6 +59,7 @@ public interface DbiFlagSet extends FlagSet<DbiFlags> {
 
   /**
    * Creates an immutable {@link DbiFlagSet} containing dbiFlags.
+   *
    * @param dbiFlags The flags to include in the {@link DbiFlagSet}.
    * @return An immutable {@link DbiFlagSet} containing dbiFlags.
    */
@@ -65,6 +69,7 @@ public interface DbiFlagSet extends FlagSet<DbiFlags> {
 
   /**
    * Create a builder for building an {@link DbiFlagSet}.
+   *
    * @return A builder instance for building an {@link DbiFlagSet}.
    */
   static AbstractFlagSet.Builder<DbiFlags, DbiFlagSet> builder() {

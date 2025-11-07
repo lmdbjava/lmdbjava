@@ -62,6 +62,7 @@ public enum ByteUnit {
 
   /**
    * Gets factor to apply when converting this unit into bytes.
+   *
    * @return The factor to apply when converting this unit into bytes.
    */
   public long getFactor() {

@@ -16,5 +16,4 @@
 package org.lmdbjava;
 
 class DbiFlagSetEmpty extends AbstractFlagSet.AbstractEmptyFlagSet<DbiFlags>
-    implements DbiFlagSet {
-}
+    implements DbiFlagSet {}

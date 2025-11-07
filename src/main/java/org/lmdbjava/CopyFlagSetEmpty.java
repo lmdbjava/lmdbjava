@@ -16,5 +16,4 @@
 package org.lmdbjava;
 
 class CopyFlagSetEmpty extends AbstractFlagSet.AbstractEmptyFlagSet<CopyFlags>
-    implements CopyFlagSet {
-}
+    implements CopyFlagSet {}

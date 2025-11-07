@@ -21,13 +21,12 @@ import java.util.Objects;
 /** An immutable set of flags for use when creating a {@link Txn}. */
 public interface TxnFlagSet extends FlagSet<TxnFlags> {
 
-  /**
-   * An immutable empty {@link TxnFlagSet}.
-   */
+  /** An immutable empty {@link TxnFlagSet}. */
   TxnFlagSet EMPTY = TxnFlagSetImpl.EMPTY;
 
   /**
    * Gets the immutable empty {@link TxnFlagSet} instance.
+   *
    * @return The immutable empty {@link TxnFlagSet} instance.
    */
   static TxnFlagSet empty() {
@@ -36,6 +35,7 @@ public interface TxnFlagSet extends FlagSet<TxnFlags> {
 
   /**
    * Creates an immutable {@link TxnFlagSet} containing txnFlag.
+   *
    * @param txnFlag The flag to include in the {@link TxnFlagSet}
    * @return An immutable {@link TxnFlagSet} containing just txnFlag.
    */
@@ -46,6 +46,7 @@ public interface TxnFlagSet extends FlagSet<TxnFlags> {
 
   /**
    * Creates an immutable {@link TxnFlagSet} containing txnFlags.
+   *
    * @param txnFlags The flags to include in the {@link TxnFlagSet}.
    * @return An immutable {@link TxnFlagSet} containing txnFlags.
    */
@@ -55,6 +56,7 @@ public interface TxnFlagSet extends FlagSet<TxnFlags> {
 
   /**
    * Creates an immutable {@link TxnFlagSet} containing txnFlags.
+   *
    * @param txnFlags The flags to include in the {@link TxnFlagSet}.
    * @return An immutable {@link TxnFlagSet} containing txnFlags.
    */
@@ -64,6 +66,7 @@ public interface TxnFlagSet extends FlagSet<TxnFlags> {
 
   /**
    * Create a builder for building an {@link TxnFlagSet}.
+   *
    * @return A builder instance for building an {@link TxnFlagSet}.
    */
   static AbstractFlagSet.Builder<TxnFlags, TxnFlagSet> builder() {

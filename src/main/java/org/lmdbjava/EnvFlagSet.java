@@ -21,13 +21,12 @@ import java.util.Objects;
 /** An immutable set of flags for use when opening the {@link Env}. */
 public interface EnvFlagSet extends FlagSet<EnvFlags> {
 
-  /**
-   * An immutable empty {@link EnvFlagSet}.
-   */
+  /** An immutable empty {@link EnvFlagSet}. */
   EnvFlagSet EMPTY = EnvFlagSetImpl.EMPTY;
 
   /**
    * Gets the immutable empty {@link EnvFlagSet} instance.
+   *
    * @return The immutable empty {@link EnvFlagSet} instance.
    */
   static EnvFlagSet empty() {
@@ -36,6 +35,7 @@ public interface EnvFlagSet extends FlagSet<EnvFlags> {
 
   /**
    * Creates an immutable {@link EnvFlagSet} containing envFlag.
+   *
    * @param envFlag The flag to include in the {@link EnvFlagSet}
    * @return An immutable {@link EnvFlagSet} containing just envFlag.
    */
@@ -46,6 +46,7 @@ public interface EnvFlagSet extends FlagSet<EnvFlags> {
 
   /**
    * Creates an immutable {@link EnvFlagSet} containing envFlags.
+   *
    * @param envFlags The flags to include in the {@link EnvFlagSet}.
    * @return An immutable {@link EnvFlagSet} containing envFlags.
    */
@@ -55,6 +56,7 @@ public interface EnvFlagSet extends FlagSet<EnvFlags> {
 
   /**
    * Creates an immutable {@link EnvFlagSet} containing envFlags.
+   *
    * @param envFlags The flags to include in the {@link EnvFlagSet}.
    * @return An immutable {@link EnvFlagSet} containing envFlags.
    */
@@ -64,6 +66,7 @@ public interface EnvFlagSet extends FlagSet<EnvFlags> {
 
   /**
    * Create a builder for building an {@link EnvFlagSet}.
+   *
    * @return A builder instance for building an {@link EnvFlagSet}.
    */
   static AbstractFlagSet.Builder<EnvFlags, EnvFlagSet> builder() {

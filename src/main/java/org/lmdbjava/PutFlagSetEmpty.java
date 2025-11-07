@@ -16,5 +16,4 @@
 package org.lmdbjava;
 
 class PutFlagSetEmpty extends AbstractFlagSet.AbstractEmptyFlagSet<PutFlags>
-    implements PutFlagSet {
-}
+    implements PutFlagSet {}
