@@ -47,6 +47,8 @@ public final class CursorIterableRangeTest {
       DbiFlagSet.of(DbiFlags.MDB_CREATE, DbiFlags.MDB_REVERSEKEY);
   private static final DbiFlagSet FLAGSET_INTEGERKEY =
       DbiFlagSet.of(DbiFlags.MDB_CREATE, DbiFlags.MDB_INTEGERKEY);
+  private static final DbiFlagSet FLAGSET_INTEGERKEY_DUPSORT =
+      DbiFlagSet.of(DbiFlags.MDB_CREATE, DbiFlags.MDB_INTEGERKEY, DbiFlags.MDB_DUPSORT);
   private static final DbiFlagSet FLAGSET_REVERSE_INTEGERKEY =
       DbiFlagSet.of(DbiFlags.MDB_CREATE, DbiFlags.MDB_INTEGERKEY, DbiFlags.MDB_REVERSEKEY);
 
@@ -122,12 +124,42 @@ public final class CursorIterableRangeTest {
   }
 
   @ParameterizedTest(name = "{index} => {0}: ({1}, {2})")
+  @CsvFileSource(resources = "/CursorIterableRangeTest/testUnsignedComparatorDupsort.csv")
+  void testIntegerKeyDupSort(
+      final String keyType, final String startKey, final String stopKey, final String expectedKV) {
+    testCSV(
+        createMultiIntegerDBPopulator(2),
+        FLAGSET_INTEGERKEY_DUPSORT,
+        keyType,
+        startKey,
+        stopKey,
+        expectedKV,
+        Integer.BYTES,
+        ByteOrder.nativeOrder());
+  }
+
+  @ParameterizedTest(name = "{index} => {0}: ({1}, {2})")
   @CsvFileSource(resources = "/CursorIterableRangeTest/testLongKey.csv")
   void testLongKey(
       final String keyType, final String startKey, final String stopKey, final String expectedKV) {
     testCSV(
         createLongDBPopulator(),
         FLAGSET_INTEGERKEY,
+        keyType,
+        startKey,
+        stopKey,
+        expectedKV,
+        Long.BYTES,
+        ByteOrder.nativeOrder());
+  }
+
+  @ParameterizedTest(name = "{index} => {0}: ({1}, {2})")
+  @CsvFileSource(resources = "/CursorIterableRangeTest/testUnsignedComparatorDupsort.csv")
+  void testLongKeyDupSort(
+      final String keyType, final String startKey, final String stopKey, final String expectedKV) {
+    testCSV(
+        createMultiLongDBPopulator(2),
+        FLAGSET_INTEGERKEY_DUPSORT,
         keyType,
         startKey,
         stopKey,
@@ -313,6 +345,40 @@ public final class CursorIterableRangeTest {
           c.put(bb(6), bb(7 + i));
           c.put(bb(8), bb(9 + i));
           c.put(bb(-2), bb(-1 + i));
+        }
+        txn.commit();
+      }
+    };
+  }
+
+  private BiConsumer<Env<ByteBuffer>, Dbi<ByteBuffer>> createMultiIntegerDBPopulator(final int copies) {
+    return (env, dbi) -> {
+      try (Txn<ByteBuffer> txn = env.txnWrite()) {
+        final Cursor<ByteBuffer> c = dbi.openCursor(txn);
+        for (int i = 0; i < copies; i++) {
+          c.put(bbNativeInt(0), bb(1 + i));
+          c.put(bbNativeInt(2), bb(3 + i));
+          c.put(bbNativeInt(4), bb(5 + i));
+          c.put(bbNativeInt(6), bb(7 + i));
+          c.put(bbNativeInt(8), bb(9 + i));
+          c.put(bbNativeInt(-2), bb(-1 + i));
+        }
+        txn.commit();
+      }
+    };
+  }
+
+  private BiConsumer<Env<ByteBuffer>, Dbi<ByteBuffer>> createMultiLongDBPopulator(final int copies) {
+    return (env, dbi) -> {
+      try (Txn<ByteBuffer> txn = env.txnWrite()) {
+        final Cursor<ByteBuffer> c = dbi.openCursor(txn);
+        for (int i = 0; i < copies; i++) {
+          c.put(bbNativeLong(0), bb(1 + i));
+          c.put(bbNativeLong(2), bb(3 + i));
+          c.put(bbNativeLong(4), bb(5 + i));
+          c.put(bbNativeLong(6), bb(7 + i));
+          c.put(bbNativeLong(8), bb(9 + i));
+          c.put(bbNativeLong(-2), bb(-1 + i));
         }
         txn.commit();
       }
