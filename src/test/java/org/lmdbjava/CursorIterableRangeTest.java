@@ -351,7 +351,8 @@ public final class CursorIterableRangeTest {
     };
   }
 
-  private BiConsumer<Env<ByteBuffer>, Dbi<ByteBuffer>> createMultiIntegerDBPopulator(final int copies) {
+  private BiConsumer<Env<ByteBuffer>, Dbi<ByteBuffer>> createMultiIntegerDBPopulator(
+      final int copies) {
     return (env, dbi) -> {
       try (Txn<ByteBuffer> txn = env.txnWrite()) {
         final Cursor<ByteBuffer> c = dbi.openCursor(txn);
@@ -368,7 +369,8 @@ public final class CursorIterableRangeTest {
     };
   }
 
-  private BiConsumer<Env<ByteBuffer>, Dbi<ByteBuffer>> createMultiLongDBPopulator(final int copies) {
+  private BiConsumer<Env<ByteBuffer>, Dbi<ByteBuffer>> createMultiLongDBPopulator(
+      final int copies) {
     return (env, dbi) -> {
       try (Txn<ByteBuffer> txn = env.txnWrite()) {
         final Cursor<ByteBuffer> c = dbi.openCursor(txn);
