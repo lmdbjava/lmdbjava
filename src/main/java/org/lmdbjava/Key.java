@@ -23,8 +23,7 @@ import jnr.ffi.Pointer;
 import jnr.ffi.provider.MemoryManager;
 
 /**
- * Represents off-heap memory holding a key only.
- * Equivalent to {@link KeyVal} without the val part.
+ * Represents off-heap memory holding a key only. Equivalent to {@link KeyVal} without the val part.
  *
  * @param <T> buffer type
  */
