@@ -18,11 +18,7 @@ package org.lmdbjava;
 
 import static java.nio.ByteBuffer.allocateDirect;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.lmdbjava.DbiFlags.MDB_CREATE;
-import static org.lmdbjava.DbiFlags.MDB_DUPSORT;
-import static org.lmdbjava.DbiFlags.MDB_INTEGERKEY;
 import static org.lmdbjava.Env.create;
-import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.bb;
 
@@ -40,14 +36,21 @@ import java.util.function.BiConsumer;
 import java.util.function.Function;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvFileSource;
-import org.lmdbjava.ByteBufferProxy.AbstractByteBufferProxy;
 import org.lmdbjava.CursorIterable.KeyVal;
 
 /** Test {@link CursorIterable}. */
 public final class CursorIterableRangeTest {
 
-  private static final DbiFlagSet CREATE_AND_DUPSORT = DbiFlagSet.of(MDB_CREATE, MDB_DUPSORT);
-  private static final DbiFlagSet CREATE_AND_INTEGERKEY = DbiFlagSet.of(MDB_CREATE, MDB_INTEGERKEY);
+  private static final DbiFlagSet FLAGSET_DUPSORT =
+      DbiFlagSet.of(DbiFlags.MDB_CREATE, DbiFlags.MDB_DUPSORT);
+  private static final DbiFlagSet FLAGSET_REVERSEKEY =
+      DbiFlagSet.of(DbiFlags.MDB_CREATE, DbiFlags.MDB_REVERSEKEY);
+  private static final DbiFlagSet FLAGSET_INTEGERKEY =
+      DbiFlagSet.of(DbiFlags.MDB_CREATE, DbiFlags.MDB_INTEGERKEY);
+  private static final DbiFlagSet FLAGSET_INTEGERKEY_DUPSORT =
+      DbiFlagSet.of(DbiFlags.MDB_CREATE, DbiFlags.MDB_INTEGERKEY, DbiFlags.MDB_DUPSORT);
+  private static final DbiFlagSet FLAGSET_REVERSE_INTEGERKEY =
+      DbiFlagSet.of(DbiFlags.MDB_CREATE, DbiFlags.MDB_INTEGERKEY, DbiFlags.MDB_REVERSEKEY);
 
   @ParameterizedTest(name = "{index} => {0}: ({1}, {2})")
   @CsvFileSource(resources = "/CursorIterableRangeTest/testSignedComparator.csv")
@@ -56,7 +59,7 @@ public final class CursorIterableRangeTest {
     testCSV(
         builder -> builder.withCallbackComparator(ignored -> ByteBuffer::compareTo),
         createBasicDBPopulator(),
-        MDB_CREATE,
+        DbiFlags.MDB_CREATE,
         keyType,
         startKey,
         stopKey,
@@ -67,16 +70,21 @@ public final class CursorIterableRangeTest {
   @CsvFileSource(resources = "/CursorIterableRangeTest/testUnsignedComparator.csv")
   void testUnsignedComparator(
       final String keyType, final String startKey, final String stopKey, final String expectedKV) {
-    testCSV(
-        builder ->
-            builder.withIteratorComparator(
-                ignored -> AbstractByteBufferProxy::compareLexicographically),
-        createBasicDBPopulator(),
-        MDB_CREATE,
-        keyType,
-        startKey,
-        stopKey,
-        expectedKV);
+    testCSV(createBasicDBPopulator(), DbiFlags.MDB_CREATE, keyType, startKey, stopKey, expectedKV);
+  }
+
+  @ParameterizedTest(name = "{index} => {0}: ({1}, {2})")
+  @CsvFileSource(resources = "/CursorIterableRangeTest/testUnsignedComparator.csv")
+  void testUnsignedComparator_Iterator(
+      final String keyType, final String startKey, final String stopKey, final String expectedKV) {
+    testCSV(createBasicDBPopulator(), DbiFlags.MDB_CREATE, keyType, startKey, stopKey, expectedKV);
+  }
+
+  @ParameterizedTest(name = "{index} => {0}: ({1}, {2})")
+  @CsvFileSource(resources = "/CursorIterableRangeTest/testUnsignedComparator.csv")
+  void testUnsignedComparator_Callback(
+      final String keyType, final String startKey, final String stopKey, final String expectedKV) {
+    testCSV(createBasicDBPopulator(), DbiFlags.MDB_CREATE, keyType, startKey, stopKey, expectedKV);
   }
 
   @ParameterizedTest(name = "{index} => {0}: ({1}, {2})")
@@ -86,7 +94,7 @@ public final class CursorIterableRangeTest {
     testCSV(
         builder -> builder.withCallbackComparator(ignored -> ByteBuffer::compareTo),
         createMultiDBPopulator(2),
-        CREATE_AND_DUPSORT,
+        FLAGSET_DUPSORT,
         keyType,
         startKey,
         stopKey,
@@ -97,16 +105,7 @@ public final class CursorIterableRangeTest {
   @CsvFileSource(resources = "/CursorIterableRangeTest/testUnsignedComparatorDupsort.csv")
   void testUnsignedComparatorDupsort(
       final String keyType, final String startKey, final String stopKey, final String expectedKV) {
-    testCSV(
-        builder ->
-            builder.withIteratorComparator(
-                ignored -> AbstractByteBufferProxy::compareLexicographically),
-        createMultiDBPopulator(2),
-        CREATE_AND_DUPSORT,
-        keyType,
-        startKey,
-        stopKey,
-        expectedKV);
+    testCSV(createMultiDBPopulator(2), FLAGSET_DUPSORT, keyType, startKey, stopKey, expectedKV);
   }
 
   @ParameterizedTest(name = "{index} => {0}: ({1}, {2})")
@@ -114,11 +113,23 @@ public final class CursorIterableRangeTest {
   void testIntegerKey(
       final String keyType, final String startKey, final String stopKey, final String expectedKV) {
     testCSV(
-        builder ->
-            builder.withIteratorComparator(
-                ignored -> AbstractByteBufferProxy::compareAsIntegerKeys),
         createIntegerDBPopulator(),
-        DbiFlagSet.of(MDB_CREATE, MDB_INTEGERKEY),
+        FLAGSET_INTEGERKEY,
+        keyType,
+        startKey,
+        stopKey,
+        expectedKV,
+        Integer.BYTES,
+        ByteOrder.nativeOrder());
+  }
+
+  @ParameterizedTest(name = "{index} => {0}: ({1}, {2})")
+  @CsvFileSource(resources = "/CursorIterableRangeTest/testUnsignedComparatorDupsort.csv")
+  void testIntegerKeyDupSort(
+      final String keyType, final String startKey, final String stopKey, final String expectedKV) {
+    testCSV(
+        createMultiIntegerDBPopulator(2),
+        FLAGSET_INTEGERKEY_DUPSORT,
         keyType,
         startKey,
         stopKey,
@@ -132,11 +143,23 @@ public final class CursorIterableRangeTest {
   void testLongKey(
       final String keyType, final String startKey, final String stopKey, final String expectedKV) {
     testCSV(
-        builder ->
-            builder.withIteratorComparator(
-                ignored -> AbstractByteBufferProxy::compareAsIntegerKeys),
         createLongDBPopulator(),
-        CREATE_AND_INTEGERKEY,
+        FLAGSET_INTEGERKEY,
+        keyType,
+        startKey,
+        stopKey,
+        expectedKV,
+        Long.BYTES,
+        ByteOrder.nativeOrder());
+  }
+
+  @ParameterizedTest(name = "{index} => {0}: ({1}, {2})")
+  @CsvFileSource(resources = "/CursorIterableRangeTest/testUnsignedComparatorDupsort.csv")
+  void testLongKeyDupSort(
+      final String keyType, final String startKey, final String stopKey, final String expectedKV) {
+    testCSV(
+        createMultiLongDBPopulator(2),
+        FLAGSET_INTEGERKEY_DUPSORT,
         keyType,
         startKey,
         stopKey,
@@ -166,6 +189,58 @@ public final class CursorIterableRangeTest {
   }
 
   private void testCSV(
+      final BiConsumer<Env<ByteBuffer>, Dbi<ByteBuffer>> dbPopulator,
+      final DbiFlagSet dbiFlags,
+      final String keyType,
+      final String startKey,
+      final String stopKey,
+      final String expectedKV) {
+    testCSV(
+        dbPopulator,
+        dbiFlags,
+        keyType,
+        startKey,
+        stopKey,
+        expectedKV,
+        Integer.BYTES,
+        ByteOrder.BIG_ENDIAN);
+  }
+
+  private void testCSV(
+      final BiConsumer<Env<ByteBuffer>, Dbi<ByteBuffer>> dbPopulator,
+      final DbiFlagSet dbiFlags,
+      final String keyType,
+      final String startKey,
+      final String stopKey,
+      final String expectedKV,
+      final int keyLen,
+      final ByteOrder byteOrder) {
+    // First test with our default iterator comparator
+    testCSV(
+        DbiBuilder.Stage2::withDefaultComparator,
+        dbPopulator,
+        dbiFlags,
+        keyType,
+        startKey,
+        stopKey,
+        expectedKV,
+        keyLen,
+        byteOrder);
+
+    // Now test with mdp_cmp doing all comparisons, should be the same
+    testCSV(
+        DbiBuilder.Stage2::withNativeComparator,
+        dbPopulator,
+        dbiFlags,
+        keyType,
+        startKey,
+        stopKey,
+        expectedKV,
+        keyLen,
+        byteOrder);
+  }
+
+  private void testCSV(
       final Function<DbiBuilder.Stage2<ByteBuffer>, DbiBuilder.Stage3<ByteBuffer>> comparatorFunc,
       final BiConsumer<Env<ByteBuffer>, Dbi<ByteBuffer>> dbPopulator,
       final DbiFlagSet dbiFlags,
@@ -182,7 +257,7 @@ public final class CursorIterableRangeTest {
               .setMapSize(256, ByteUnit.KIBIBYTES)
               .setMaxReaders(1)
               .setMaxDbs(1)
-              .setEnvFlags(MDB_NOSUBDIR)
+              .setEnvFlags(EnvFlags.MDB_NOSUBDIR)
               .open(file)) {
 
         final DbiBuilder.Stage2<ByteBuffer> builderStage2 = env.createDbi().setDbName(DB_1);
@@ -220,15 +295,15 @@ public final class CursorIterableRangeTest {
     if (key != null) {
       if (ByteOrder.nativeOrder().equals(byteOrder)) {
         if (keyLen == Integer.BYTES) {
-          return bbNativeInt(Integer.parseInt(key.trim()));
+          return bbNativeInt(TestUtils.parseInt(key));
         } else {
-          return bbNativeLong(Long.parseLong(key.trim()));
+          return bbNativeLong(TestUtils.parseLong(key));
         }
       } else {
         if (keyLen == Integer.BYTES) {
-          return bb(Integer.parseInt(key.trim()));
+          return bb(TestUtils.parseInt(key));
         } else {
-          return bb(Long.parseLong(key.trim()));
+          return bb(TestUtils.parseLong(key));
         }
       }
     }
@@ -270,6 +345,42 @@ public final class CursorIterableRangeTest {
           c.put(bb(6), bb(7 + i));
           c.put(bb(8), bb(9 + i));
           c.put(bb(-2), bb(-1 + i));
+        }
+        txn.commit();
+      }
+    };
+  }
+
+  private BiConsumer<Env<ByteBuffer>, Dbi<ByteBuffer>> createMultiIntegerDBPopulator(
+      final int copies) {
+    return (env, dbi) -> {
+      try (Txn<ByteBuffer> txn = env.txnWrite()) {
+        final Cursor<ByteBuffer> c = dbi.openCursor(txn);
+        for (int i = 0; i < copies; i++) {
+          c.put(bbNativeInt(0), bb(1 + i));
+          c.put(bbNativeInt(2), bb(3 + i));
+          c.put(bbNativeInt(4), bb(5 + i));
+          c.put(bbNativeInt(6), bb(7 + i));
+          c.put(bbNativeInt(8), bb(9 + i));
+          c.put(bbNativeInt(-2), bb(-1 + i));
+        }
+        txn.commit();
+      }
+    };
+  }
+
+  private BiConsumer<Env<ByteBuffer>, Dbi<ByteBuffer>> createMultiLongDBPopulator(
+      final int copies) {
+    return (env, dbi) -> {
+      try (Txn<ByteBuffer> txn = env.txnWrite()) {
+        final Cursor<ByteBuffer> c = dbi.openCursor(txn);
+        for (int i = 0; i < copies; i++) {
+          c.put(bbNativeLong(0), bb(1 + i));
+          c.put(bbNativeLong(2), bb(3 + i));
+          c.put(bbNativeLong(4), bb(5 + i));
+          c.put(bbNativeLong(6), bb(7 + i));
+          c.put(bbNativeLong(8), bb(9 + i));
+          c.put(bbNativeLong(-2), bb(-1 + i));
         }
         txn.commit();
       }

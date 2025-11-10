@@ -22,6 +22,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import static org.lmdbjava.DbiFlags.MDB_DUPSORT;
+import static org.lmdbjava.DbiFlags.MDB_INTEGERKEY;
+import static org.lmdbjava.DbiFlags.MDB_REVERSEKEY;
 import static org.lmdbjava.DirectBufferProxy.PROXY_DB;
 import static org.lmdbjava.GetOp.MDB_SET;
 import static org.lmdbjava.SeekOp.MDB_FIRST;
@@ -29,7 +31,10 @@ import static org.lmdbjava.SeekOp.MDB_LAST;
 import static org.lmdbjava.SeekOp.MDB_PREV;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.agrona.DirectBuffer;
@@ -467,6 +472,122 @@ public final class TutorialTest {
       txn.commit();
     }
 
+    env.close();
+  }
+
+  /**
+   * In this tutorial we'll look at using keys that are longs. The same approach applies would apply
+   * to int keys.
+   */
+  @Test
+  void tutorial8() {
+    final Path dir = tempDir.createTempDir();
+    final Env<ByteBuffer> env = createSimpleEnv(dir);
+
+    // This time we're going to tell the Dbi that all the keys are integers.
+    // MDB_INTEGERKEY applies to both int and long keys.
+    // LMDB can make optimisations for better performance.
+    final Dbi<ByteBuffer> db = env.openDbi(DB_NAME, DbiFlagSet.of(MDB_CREATE, MDB_INTEGERKEY));
+
+    // MDB_INTEGERKEY requires that the keys are written/read in native order
+    final ByteBuffer key = ByteBuffer.allocateDirect(Long.BYTES).order(ByteOrder.nativeOrder());
+    final ByteBuffer val = ByteBuffer.allocateDirect(100);
+
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
+
+      // Store one key, but many values, and in non-natural order.
+      key.putLong(42L).flip();
+      val.put("val-42".getBytes(UTF_8)).flip();
+      db.put(txn, key, val);
+
+      key.clear();
+      val.clear();
+      key.putLong(1L).flip();
+      val.put("val-1".getBytes(UTF_8)).flip();
+      db.put(txn, key, val);
+
+      key.clear();
+      val.clear();
+      key.putLong(Long.MAX_VALUE).flip();
+      val.put(("val-" + Long.MAX_VALUE).getBytes(UTF_8)).flip();
+      db.put(txn, key, val);
+
+      key.clear();
+      val.clear();
+      key.putLong(1_000L).flip();
+      val.put("val-1".getBytes(UTF_8)).flip();
+      db.put(txn, key, val);
+
+      // Get all the keys
+      final List<Long> keys = new ArrayList<>();
+      try (CursorIterable<ByteBuffer> ci = db.iterate(txn, KeyRange.all())) {
+        for (final KeyVal<ByteBuffer> kv : ci) {
+          assertThat(kv.key()).isNotNull();
+          assertThat(kv.val()).isNotNull();
+          keys.add(kv.key().order(ByteOrder.nativeOrder()).getLong());
+        }
+      }
+
+      assertThat(keys).containsExactly(1L, 42L, 1_000L, Long.MAX_VALUE);
+
+      txn.commit();
+    }
+    env.close();
+  }
+
+  /** In this tutorial we'll look storing the data in reverse order */
+  @Test
+  void tutorial9() {
+    final Path dir = tempDir.createTempDir();
+    final Env<ByteBuffer> env = createSimpleEnv(dir);
+
+    final Dbi<ByteBuffer> db = env.openDbi(DB_NAME, DbiFlagSet.of(MDB_CREATE, MDB_REVERSEKEY));
+
+    final ByteBuffer key = ByteBuffer.allocateDirect(100);
+    final ByteBuffer val = ByteBuffer.allocateDirect(100);
+
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
+
+      // Store one key, but many values, and in non-natural order.
+      key.put("tac".getBytes(UTF_8)).flip();
+      val.put("CAT".getBytes(UTF_8)).flip();
+      db.put(txn, key, val);
+
+      key.clear();
+      val.clear();
+      key.put("god".getBytes(UTF_8)).flip();
+      val.put("DOG".getBytes(UTF_8)).flip();
+      db.put(txn, key, val);
+
+      key.clear();
+      val.clear();
+      key.put("esroh".getBytes(UTF_8)).flip();
+      val.put("HORSE".getBytes(UTF_8)).flip();
+      db.put(txn, key, val);
+
+      key.clear();
+      val.clear();
+      key.put("tnahpele".getBytes(UTF_8)).flip();
+      val.put("ELEPHANT".getBytes(UTF_8)).flip();
+      db.put(txn, key, val);
+
+      // Get all the keys
+      final List<String> keys = new ArrayList<>();
+      final List<String> values = new ArrayList<>();
+      try (CursorIterable<ByteBuffer> ci = db.iterate(txn, KeyRange.all())) {
+        for (final KeyVal<ByteBuffer> kv : ci) {
+          assertThat(kv.key()).isNotNull();
+          assertThat(kv.val()).isNotNull();
+          keys.add(UTF_8.decode(kv.key()).toString());
+          values.add(UTF_8.decode(kv.val()).toString());
+        }
+      }
+
+      assertThat(keys).containsExactly("tac", "god", "tnahpele", "esroh");
+      assertThat(values).containsExactly("CAT", "DOG", "ELEPHANT", "HORSE");
+
+      txn.commit();
+    }
     env.close();
   }
 

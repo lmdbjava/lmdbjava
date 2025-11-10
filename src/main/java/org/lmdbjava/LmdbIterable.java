@@ -1,8 +1,22 @@
+/*
+ * Copyright © 2016-2025 The LmdbJava Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.lmdbjava;
 
 import static org.lmdbjava.GetOp.MDB_SET_RANGE;
 
-import java.util.Comparator;
 import java.util.Iterator;
 import org.lmdbjava.CursorIterable.KeyVal;
 
@@ -10,18 +24,18 @@ public class LmdbIterable<T> implements Iterable<KeyVal<T>>, AutoCloseable {
 
   private final Txn<T> txn;
   private final Cursor<T> cursor;
-  private final Comparator<T> comparator;
+  private final RangeComparator rangeComparator;
   private final KeyRange<T> keyRange;
   private boolean iteratorReturned;
 
-  private LmdbIterable(
+  LmdbIterable(
       final Txn<T> txn,
       final Cursor<T> cursor,
-      final Comparator<T> comparator,
+      final RangeComparator rangeComparator,
       final KeyRange<T> keyRange) {
     this.txn = txn;
     this.cursor = cursor;
-    this.comparator = comparator;
+    this.rangeComparator = rangeComparator;
     this.keyRange = keyRange;
   }
 
@@ -38,10 +52,10 @@ public class LmdbIterable<T> implements Iterable<KeyVal<T>>, AutoCloseable {
   static <T> void iterate(
       final Txn<T> txn,
       final Dbi<T> dbi,
-      final Comparator<T> comparator,
+      final RangeComparator rangeComparator,
       final KeyRange<T> keyRange,
       final EntryConsumer<T> consumer) {
-    try (final LmdbIterable<T> iterable = create(txn, dbi, comparator, keyRange)) {
+    try (final LmdbIterable<T> iterable = create(txn, dbi, rangeComparator, keyRange)) {
       for (final KeyVal<T> entry : iterable) {
         consumer.accept(entry.key(), entry.val());
       }
@@ -49,18 +63,18 @@ public class LmdbIterable<T> implements Iterable<KeyVal<T>>, AutoCloseable {
   }
 
   static <T> LmdbIterable<T> create(
-      final Txn<T> txn, final Dbi<T> dbi, final Comparator<T> comparator) {
-    return create(txn, dbi, comparator, KeyRange.all());
+      final Txn<T> txn, final Dbi<T> dbi, final RangeComparator rangeComparator) {
+    return create(txn, dbi, rangeComparator, KeyRange.all());
   }
 
   static <T> LmdbIterable<T> create(
       final Txn<T> txn,
       final Dbi<T> dbi,
-      final Comparator<T> comparator,
+      final RangeComparator rangeComparator,
       final KeyRange<T> keyRange) {
     final Cursor<T> cursor = dbi.openCursor(txn);
     try {
-      return new LmdbIterable<>(txn, cursor, comparator, keyRange);
+      return new LmdbIterable<>(txn, cursor, rangeComparator, keyRange);
     } catch (final Error | RuntimeException e) {
       cursor.close();
       throw e;
@@ -70,7 +84,7 @@ public class LmdbIterable<T> implements Iterable<KeyVal<T>>, AutoCloseable {
   private static <T> LmdbIterator<T> createIterator(
       final Cursor<T> cursor,
       final BufferProxy<T> proxy,
-      final Comparator<T> comparator,
+      final RangeComparator rangeComparator,
       final KeyRange<T> keyRange) {
     final LmdbIterator<T> iterator;
     if (keyRange.getPrefix() != null) {
@@ -84,7 +98,7 @@ public class LmdbIterable<T> implements Iterable<KeyVal<T>>, AutoCloseable {
         iterator =
             new LmdbRangeIterator<>(
                 cursor,
-                comparator,
+                rangeComparator,
                 keyRange.getStart(),
                 keyRange.getStop(),
                 keyRange.isStartKeyInclusive(),
@@ -93,7 +107,7 @@ public class LmdbIterable<T> implements Iterable<KeyVal<T>>, AutoCloseable {
         iterator =
             new LmdbRangeReversedIterator<>(
                 cursor,
-                comparator,
+                rangeComparator,
                 keyRange.getStart(),
                 keyRange.getStop(),
                 keyRange.isStartKeyInclusive(),
@@ -115,7 +129,7 @@ public class LmdbIterable<T> implements Iterable<KeyVal<T>>, AutoCloseable {
       throw new IllegalStateException("Iterator can only be returned once");
     }
     iteratorReturned = true;
-    return createIterator(cursor, txn.proxy, comparator, keyRange);
+    return createIterator(cursor, txn.proxy, rangeComparator, keyRange);
   }
 
   @Override
@@ -175,7 +189,7 @@ public class LmdbIterable<T> implements Iterable<KeyVal<T>>, AutoCloseable {
 
   private static class LmdbRangeIterator<T> extends LmdbIterator<T> {
 
-    private final Comparator<T> comparator;
+    private final RangeComparator rangeComparator;
     private final T start;
     private final T stop;
     private final boolean startInclusive;
@@ -183,13 +197,13 @@ public class LmdbIterable<T> implements Iterable<KeyVal<T>>, AutoCloseable {
 
     private LmdbRangeIterator(
         final Cursor<T> cursor,
-        final Comparator<T> comparator,
+        final RangeComparator rangeComparator,
         final T start,
         final T stop,
         final boolean startInclusive,
         final boolean stopInclusive) {
       super(cursor);
-      this.comparator = comparator;
+      this.rangeComparator = rangeComparator;
       this.start = start;
       this.stop = stop;
       this.startInclusive = startInclusive;
@@ -217,8 +231,8 @@ public class LmdbIterable<T> implements Iterable<KeyVal<T>>, AutoCloseable {
       }
 
       if (isFound && stop != null) {
-        final int compareResult = comparator.compare(stop, cursor.key());
-        isFound = compareResult > 0 || (compareResult == 0 && stopInclusive);
+        final int compareResult = rangeComparator.compareToStopKey();
+        isFound = compareResult < 0 || (compareResult == 0 && stopInclusive);
       }
 
       return isFound;
@@ -227,7 +241,7 @@ public class LmdbIterable<T> implements Iterable<KeyVal<T>>, AutoCloseable {
 
   private static class LmdbRangeReversedIterator<T> extends LmdbIterator<T> {
 
-    private final Comparator<T> comparator;
+    private final RangeComparator rangeComparator;
     private final T start;
     private final T stop;
     private final boolean startInclusive;
@@ -235,13 +249,13 @@ public class LmdbIterable<T> implements Iterable<KeyVal<T>>, AutoCloseable {
 
     private LmdbRangeReversedIterator(
         final Cursor<T> cursor,
-        final Comparator<T> comparator,
+        final RangeComparator rangeComparator,
         final T start,
         final T stop,
         final boolean startInclusive,
         final boolean stopInclusive) {
       super(cursor);
-      this.comparator = comparator;
+      this.rangeComparator = rangeComparator;
       this.start = start;
       this.stop = stop;
       this.startInclusive = startInclusive;
@@ -261,7 +275,7 @@ public class LmdbIterable<T> implements Iterable<KeyVal<T>>, AutoCloseable {
               // We need to ensure we move to the last matching key if using DUPSORT, see issue 267
               boolean loop = true;
               while (loop) {
-                if (comparator.compare(cursor.key(), start) <= 0) {
+                if (rangeComparator.compareToStartKey() <= 0) {
                   isFound = cursor.next();
                   if (!isFound) {
                     // We got to the end so move last.
@@ -275,8 +289,8 @@ public class LmdbIterable<T> implements Iterable<KeyVal<T>>, AutoCloseable {
                 }
               }
             } else {
-              final int compareResult = comparator.compare(start, cursor.key());
-              if (compareResult < 0 || (compareResult == 0)) {
+              final int compareResult = rangeComparator.compareToStartKey();
+              if (compareResult > 0 || (compareResult == 0)) {
                 isFound = cursor.prev();
               }
             }
@@ -289,8 +303,8 @@ public class LmdbIterable<T> implements Iterable<KeyVal<T>>, AutoCloseable {
       }
 
       if (isFound && stop != null) {
-        final int compareResult = comparator.compare(stop, cursor.key());
-        isFound = compareResult < 0 || (compareResult == 0 && stopInclusive);
+        final int compareResult = rangeComparator.compareToStopKey();
+        isFound = compareResult > 0 || (compareResult == 0 && stopInclusive);
       }
 
       return isFound;

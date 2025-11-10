@@ -35,6 +35,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 import jnr.ffi.Pointer;
 import jnr.ffi.byref.IntByReference;
 import jnr.ffi.byref.PointerByReference;
@@ -307,6 +308,17 @@ public final class Dbi<T> {
     }
   }
 
+  private RangeComparator createRangeComparator(
+      final Txn<T> txn, final Cursor<T> cursor, final KeyRange<T> range) {
+    if (comparator != null) {
+      // User supplied Java-side comparator so use that
+      return new JavaRangeComparator<>(range, comparator, cursor.kv::key);
+    } else {
+      // No Java-side comparator, so call down to LMDB to do the comparison
+      return new LmdbRangeComparator<>(txn, this, cursor, range, proxy);
+    }
+  }
+
   /**
    * Iterate the database from the first item and forwards.
    *
@@ -331,16 +343,18 @@ public final class Dbi<T> {
       env.checkNotClosed();
       txn.checkReady();
     }
-    return new CursorIterable<>(txn, this, range, comparator, proxy);
+    final Cursor<T> cursor = openCursor(txn);
+    try {
+      return new CursorIterable<>(
+          txn, this, cursor, range, createRangeComparator(txn, cursor, range));
+    } catch (final Error | RuntimeException e) {
+      cursor.close();
+      throw e;
+    }
   }
 
   public LmdbIterable<T> newIterate(final Txn<T> txn) {
-    if (SHOULD_CHECK) {
-      requireNonNull(txn);
-      env.checkNotClosed();
-      txn.checkReady();
-    }
-    return LmdbIterable.create(txn, this, comparator);
+    return newIterate(txn, KeyRange.all());
   }
 
   public LmdbIterable<T> newIterate(final Txn<T> txn, final KeyRange<T> keyRange) {
@@ -350,7 +364,15 @@ public final class Dbi<T> {
       env.checkNotClosed();
       txn.checkReady();
     }
-    return LmdbIterable.create(txn, this, comparator, keyRange);
+
+    final Cursor<T> cursor = openCursor(txn);
+    try {
+      return new LmdbIterable<>(
+          txn, cursor, createRangeComparator(txn, cursor, keyRange), keyRange);
+    } catch (final Error | RuntimeException e) {
+      cursor.close();
+      throw e;
+    }
   }
 
   public void newIterate(final Txn<T> txn, final EntryConsumer<T> entryConsumer) {
@@ -364,22 +386,15 @@ public final class Dbi<T> {
 
   public void newIterate(
       final Txn<T> txn, final KeyRange<T> keyRange, final EntryConsumer<T> entryConsumer) {
-    if (SHOULD_CHECK) {
-      requireNonNull(txn);
-      requireNonNull(keyRange);
-      env.checkNotClosed();
-      txn.checkReady();
+    try (final LmdbIterable<T> iterable = newIterate(txn, keyRange)) {
+      for (final CursorIterable.KeyVal<T> entry : iterable) {
+        entryConsumer.accept(entry.key(), entry.val());
+      }
     }
-    LmdbIterable.iterate(txn, this, comparator, keyRange, entryConsumer);
   }
 
   public Stream<CursorIterable.KeyVal<T>> stream(final Txn<T> txn) {
-    if (SHOULD_CHECK) {
-      requireNonNull(txn);
-      env.checkNotClosed();
-      txn.checkReady();
-    }
-    return LmdbStream.stream(txn, this, comparator);
+    return stream(txn, KeyRange.all());
   }
 
   public Stream<CursorIterable.KeyVal<T>> stream(final Txn<T> txn, final KeyRange<T> keyRange) {
@@ -389,7 +404,16 @@ public final class Dbi<T> {
       env.checkNotClosed();
       txn.checkReady();
     }
-    return LmdbStream.stream(txn, this, comparator, keyRange);
+    final Cursor<T> cursor = openCursor(txn);
+    try {
+      final LmdbStream.LmdbSpliterator<T> spliterator =
+          LmdbStream.createSpliterator(
+              cursor, createRangeComparator(txn, cursor, keyRange), txn.proxy, keyRange);
+      return StreamSupport.stream(spliterator, false).onClose(cursor::close);
+    } catch (final Error | RuntimeException e) {
+      cursor.close();
+      throw e;
+    }
   }
 
   /**

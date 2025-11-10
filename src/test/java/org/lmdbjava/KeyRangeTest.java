@@ -196,7 +196,7 @@ public final class KeyRangeTest {
     do {
       final Integer finalBuff = buff;
       final RangeComparator rangeComparator =
-          new CursorIterable.JavaRangeComparator<>(range, Integer::compareTo, () -> finalBuff);
+          new JavaRangeComparator<>(range, Integer::compareTo, () -> finalBuff);
       op = range.getType().iteratorOp(buff, rangeComparator);
       switch (op) {
         case CALL_NEXT_OP:

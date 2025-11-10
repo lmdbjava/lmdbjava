@@ -98,9 +98,8 @@ public final class DirectBufferProxy extends BufferProxy<DirectBuffer> {
    * @param length The length of each buffer to compare.
    * @return as specified by {@link Comparable} interface
    */
-  public static int compareLexicographically(final DirectBuffer o1,
-                                             final DirectBuffer o2,
-                                             final int length) {
+  public static int compareLexicographically(
+      final DirectBuffer o1, final DirectBuffer o2, final int length) {
     requireNonNull(o1);
     requireNonNull(o2);
     final int minWords = length / Long.BYTES;

@@ -23,7 +23,7 @@ import jnr.ffi.Pointer;
 import jnr.ffi.provider.MemoryManager;
 
 /**
- * Represents off-heap memory holding a key only.
+ * Represents off-heap memory holding a key only. Equivalent to {@link KeyVal} without the val part.
  *
  * @param <T> buffer type
  */
@@ -31,17 +31,15 @@ final class Key<T> implements AutoCloseable {
 
   private static final MemoryManager MEM_MGR = RUNTIME.getMemoryManager();
   private boolean closed;
-  private T k;
+  private final T k;
   private final BufferProxy<T> proxy;
   private final Pointer ptrKey;
-  private final long ptrKeyAddr;
 
   Key(final BufferProxy<T> proxy) {
     requireNonNull(proxy);
     this.proxy = proxy;
     this.k = proxy.allocate();
     ptrKey = MEM_MGR.allocateTemporary(MDB_VAL_STRUCT_SIZE, false);
-    ptrKeyAddr = ptrKey.address();
   }
 
   @Override
@@ -53,17 +51,8 @@ final class Key<T> implements AutoCloseable {
     proxy.deallocate(k);
   }
 
-  T key() {
-    return k;
-  }
-
   void keyIn(final T key) {
     proxy.in(key, ptrKey);
-  }
-
-  T keyOut() {
-    k = proxy.out(k, ptrKey);
-    return k;
   }
 
   Pointer pointer() {

@@ -1,3 +1,18 @@
+/*
+ * Copyright © 2016-2025 The LmdbJava Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.lmdbjava;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -314,8 +329,7 @@ class TestLmdbStream {
       final AtomicReference<ByteBuffer> firstItem = new AtomicReference<>();
       final AtomicReference<ByteBuffer> lastItem = new AtomicReference<>();
       final AtomicInteger count = new AtomicInteger();
-      try (final Env<ByteBuffer> env =
-          Env.create().setMapSize(1, ByteUnit.MEBIBYTES).open(path)) {
+      try (final Env<ByteBuffer> env = Env.create().setMapSize(1, ByteUnit.MEBIBYTES).open(path)) {
         final Dbi<ByteBuffer> dbi = setupDb(env);
         try (final Txn<ByteBuffer> txn = env.txnRead()) {
           try (final Stream<CursorIterable.KeyVal<ByteBuffer>> stream = function.apply(txn, dbi)) {

@@ -173,7 +173,7 @@ public final class LmdbStreamRangeTest {
               .setMapSize(256, ByteUnit.KIBIBYTES)
               .setMaxReaders(1)
               .setMaxDbs(1)
-                  .setEnvFlags(MDB_NOSUBDIR)
+              .setEnvFlags(MDB_NOSUBDIR)
               .open(file)) {
         final Dbi<ByteBuffer> dbi =
             env.openDbi(DB_1, comparator, nativeCb, flags.toArray(new DbiFlags[0]));

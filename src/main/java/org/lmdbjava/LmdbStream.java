@@ -1,3 +1,18 @@
+/*
+ * Copyright © 2016-2025 The LmdbJava Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.lmdbjava;
 
 import static org.lmdbjava.GetOp.MDB_SET_RANGE;
@@ -12,46 +27,42 @@ import org.lmdbjava.CursorIterable.KeyVal;
 public class LmdbStream {
 
   public static <T> Stream<KeyVal<T>> stream(
-      final Txn<T> txn, final Dbi<T> dbi, final Comparator<T> comparator) {
-    return stream(txn, dbi, comparator, KeyRange.all());
+      final Txn<T> txn, final Cursor<T> cursor, final RangeComparator rangeComparator) {
+    return stream(txn, cursor, rangeComparator, KeyRange.all());
   }
 
   public static <T> Stream<KeyVal<T>> stream(
       final Txn<T> txn,
-      final Dbi<T> dbi,
-      final Comparator<T> comparator,
+      final Cursor<T> cursor,
+      final RangeComparator rangeComparator,
       final KeyRange<T> keyRange) {
-    final Cursor<T> cursor = dbi.openCursor(txn);
-    try {
-      final LmdbSpliterator<T> spliterator =
-          createSpliterator(cursor, comparator, txn.proxy, keyRange);
-      return StreamSupport.stream(spliterator, false).onClose(cursor::close);
-    } catch (final Error | RuntimeException e) {
-      cursor.close();
-      throw e;
-    }
+    final LmdbSpliterator<T> spliterator =
+        createSpliterator(cursor, rangeComparator, txn.proxy, keyRange);
+    return StreamSupport.stream(spliterator, false).onClose(cursor::close);
   }
 
-  private static <T> LmdbSpliterator<T> createSpliterator(
+  static <T> LmdbSpliterator<T> createSpliterator(
       final Cursor<T> cursor,
-      final Comparator<T> comparator,
+      final RangeComparator rangeComparator,
       final BufferProxy<T> proxy,
       final KeyRange<T> keyRange) {
     final LmdbSpliterator<T> spliterator;
     if (keyRange.getPrefix() != null) {
       if (keyRange.directionForward) {
-        spliterator = new LmdbPrefixSpliterator<>(cursor, comparator, proxy, keyRange.getPrefix());
+        spliterator =
+            new LmdbPrefixSpliterator<>(cursor, rangeComparator, proxy, keyRange.getPrefix());
       } else {
         spliterator =
-            new LmdbPrefixReversedSpliterator<>(cursor, comparator, proxy, keyRange.getPrefix());
+            new LmdbPrefixReversedSpliterator<>(
+                cursor, rangeComparator, proxy, keyRange.getPrefix());
       }
     } else if (keyRange.getStart() != null || keyRange.getStop() != null) {
       if (keyRange.directionForward) {
         spliterator =
             new LmdbRangeSpliterator<>(
                 cursor,
-                comparator,
-                createEntryComparator(comparator),
+                rangeComparator,
+                createEntryComparator(rangeComparator),
                 keyRange.getStart(),
                 keyRange.getStop(),
                 keyRange.isStartKeyInclusive(),
@@ -60,8 +71,8 @@ public class LmdbStream {
         spliterator =
             new LmdbRangeReversedSpliterator<>(
                 cursor,
-                comparator,
-                createReversedEntryComparator(comparator),
+                rangeComparator,
+                createReversedEntryComparator(rangeComparator),
                 keyRange.getStart(),
                 keyRange.getStop(),
                 keyRange.isStartKeyInclusive(),
@@ -69,30 +80,31 @@ public class LmdbStream {
       }
     } else {
       if (keyRange.directionForward) {
-        spliterator = new LmdbSpliterator<>(cursor, comparator, createEntryComparator(comparator));
+        spliterator =
+            new LmdbSpliterator<>(cursor, rangeComparator, createEntryComparator(rangeComparator));
       } else {
         spliterator =
             new LmdbReversedSpliterator<>(
-                cursor, comparator, createReversedEntryComparator(comparator));
+                cursor, rangeComparator, createReversedEntryComparator(rangeComparator));
       }
     }
     return spliterator;
   }
 
-  private static class LmdbSpliterator<T> implements Spliterator<KeyVal<T>> {
+  static class LmdbSpliterator<T> implements Spliterator<KeyVal<T>> {
 
     final Cursor<T> cursor;
     Boolean isFound;
     final KeyVal<T> entry = new KeyVal<>();
-    final Comparator<T> comparator;
+    final RangeComparator rangeComparator;
     final Comparator<KeyVal<T>> entryComparator;
 
     private LmdbSpliterator(
         final Cursor<T> cursor,
-        final Comparator<T> comparator,
+        final RangeComparator rangeComparator,
         final Comparator<KeyVal<T>> entryComparator) {
       this.cursor = cursor;
-      this.comparator = comparator;
+      this.rangeComparator = rangeComparator;
       this.entryComparator = entryComparator;
     }
 
@@ -149,22 +161,25 @@ public class LmdbStream {
     }
   }
 
-  private static <T> Comparator<KeyVal<T>> createEntryComparator(final Comparator<T> comparator) {
-    return (o1, o2) -> comparator.compare(o1.key(), o2.key());
+  private static <T> Comparator<KeyVal<T>> createEntryComparator(
+      final RangeComparator rangeComparator) {
+    return null;
+    //    return (o1, o2) -> comparator.compare(o1.key(), o2.key());
   }
 
   private static <T> Comparator<KeyVal<T>> createReversedEntryComparator(
-      final Comparator<T> comparator) {
-    return (o1, o2) -> comparator.compare(o1.key(), o2.key());
+      final RangeComparator rangeComparator) {
+    return null;
+    //    return (o1, o2) -> comparator.compare(o1.key(), o2.key());
   }
 
   private static class LmdbReversedSpliterator<T> extends LmdbSpliterator<T> {
 
     private LmdbReversedSpliterator(
         final Cursor<T> cursor,
-        final Comparator<T> comparator,
+        final RangeComparator rangeComparator,
         final Comparator<KeyVal<T>> entryComparator) {
-      super(cursor, comparator, entryComparator);
+      super(cursor, rangeComparator, entryComparator);
     }
 
     @Override
@@ -185,7 +200,7 @@ public class LmdbStream {
 
   private static class LmdbRangeSpliterator<T> extends LmdbSpliterator<T> {
 
-    private final Comparator<T> comparator;
+    private final RangeComparator rangeComparator;
     private final T start;
     private final T stop;
     private final boolean startInclusive;
@@ -193,14 +208,14 @@ public class LmdbStream {
 
     private LmdbRangeSpliterator(
         final Cursor<T> cursor,
-        final Comparator<T> comparator,
+        final RangeComparator rangeComparator,
         final Comparator<KeyVal<T>> entryComparator,
         final T start,
         final T stop,
         final boolean startInclusive,
         final boolean stopInclusive) {
-      super(cursor, comparator, entryComparator);
-      this.comparator = comparator;
+      super(cursor, rangeComparator, entryComparator);
+      this.rangeComparator = rangeComparator;
       this.start = start;
       this.stop = stop;
       this.startInclusive = startInclusive;
@@ -228,8 +243,8 @@ public class LmdbStream {
       }
 
       if (isFound && stop != null) {
-        final int compareResult = comparator.compare(stop, cursor.key());
-        isFound = compareResult > 0 || (compareResult == 0 && stopInclusive);
+        final int compareResult = rangeComparator.compareToStopKey();
+        isFound = compareResult < 0 || (compareResult == 0 && stopInclusive);
       }
 
       return isFound;
@@ -238,7 +253,7 @@ public class LmdbStream {
 
   private static class LmdbRangeReversedSpliterator<T> extends LmdbReversedSpliterator<T> {
 
-    private final Comparator<T> comparator;
+    private final RangeComparator rangeComparator;
     private final T start;
     private final T stop;
     private final boolean startInclusive;
@@ -246,14 +261,14 @@ public class LmdbStream {
 
     private LmdbRangeReversedSpliterator(
         final Cursor<T> cursor,
-        final Comparator<T> comparator,
+        final RangeComparator rangeComparator,
         final Comparator<KeyVal<T>> entryComparator,
         final T start,
         final T stop,
         final boolean startInclusive,
         final boolean stopInclusive) {
-      super(cursor, comparator, entryComparator);
-      this.comparator = comparator;
+      super(cursor, rangeComparator, entryComparator);
+      this.rangeComparator = rangeComparator;
       this.start = start;
       this.stop = stop;
       this.startInclusive = startInclusive;
@@ -273,7 +288,7 @@ public class LmdbStream {
               // We need to ensure we move to the last matching key if using DUPSORT, see issue 267
               boolean loop = true;
               while (loop) {
-                if (comparator.compare(cursor.key(), start) <= 0) {
+                if (rangeComparator.compareToStartKey() <= 0) {
                   isFound = cursor.next();
                   if (!isFound) {
                     // We got to the end so move last.
@@ -287,8 +302,8 @@ public class LmdbStream {
                 }
               }
             } else {
-              final int compareResult = comparator.compare(start, cursor.key());
-              if (compareResult < 0 || (compareResult == 0)) {
+              final int compareResult = rangeComparator.compareToStartKey();
+              if (compareResult > 0 || (compareResult == 0)) {
                 isFound = cursor.prev();
               }
             }
@@ -301,8 +316,8 @@ public class LmdbStream {
       }
 
       if (isFound && stop != null) {
-        final int compareResult = comparator.compare(stop, cursor.key());
-        isFound = compareResult < 0 || (compareResult == 0 && stopInclusive);
+        final int compareResult = rangeComparator.compareToStopKey();
+        isFound = compareResult > 0 || (compareResult == 0 && stopInclusive);
       }
 
       return isFound;
@@ -316,10 +331,10 @@ public class LmdbStream {
 
     private LmdbPrefixSpliterator(
         final Cursor<T> cursor,
-        final Comparator<T> comparator,
+        final RangeComparator rangeComparator,
         final BufferProxy<T> proxy,
         final T prefix) {
-      super(cursor, comparator, createEntryComparator(comparator));
+      super(cursor, rangeComparator, createEntryComparator(rangeComparator));
       this.proxy = proxy;
       this.prefix = prefix;
     }
@@ -348,10 +363,10 @@ public class LmdbStream {
 
     private LmdbPrefixReversedSpliterator(
         final Cursor<T> cursor,
-        final Comparator<T> comparator,
+        final RangeComparator rangeComparator,
         final BufferProxy<T> proxy,
         final T prefix) {
-      super(cursor, comparator, createReversedEntryComparator(comparator));
+      super(cursor, rangeComparator, createReversedEntryComparator(rangeComparator));
       this.proxy = proxy;
       this.prefix = prefix;
 

@@ -86,8 +86,6 @@ public final class ByteBufferProxy {
     }
   }
 
-  // --------------------------------------------------------------------------------
-
   /**
    * Provides {@link ByteBuffer} pooling and address resolution for concrete {@link BufferProxy}
    * implementations.
@@ -148,9 +146,8 @@ public final class ByteBufferProxy {
      * @param length The length of each buffer to compare.
      * @return as specified by {@link Comparable} interface
      */
-    public static int compareLexicographically(final ByteBuffer o1,
-                                               final ByteBuffer o2,
-                                               final int length) {
+    public static int compareLexicographically(
+        final ByteBuffer o1, final ByteBuffer o2, final int length) {
       requireNonNull(o1);
       requireNonNull(o2);
       final int minWords = length / Long.BYTES;
@@ -339,8 +336,6 @@ public final class ByteBufferProxy {
     }
   }
 
-  // --------------------------------------------------------------------------------
-
   /**
    * A proxy that uses Java reflection to modify byte buffer fields, and official JNR-FFF methods to
    * manipulate native pointers.
@@ -384,8 +379,6 @@ public final class ByteBufferProxy {
       return buffer;
     }
   }
-
-  // --------------------------------------------------------------------------------
 
   /**
    * A proxy that uses Java's "unsafe" class to directly manipulate byte buffer fields and JNR-FFF

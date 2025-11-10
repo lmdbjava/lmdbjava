@@ -73,9 +73,7 @@ public final class ByteArrayProxy extends BufferProxy<byte[]> {
    * @param length The length of each buffer to compare.
    * @return as specified by {@link Comparable} interface
    */
-  public static int compareLexicographically(final byte[] o1,
-                                             final byte[] o2,
-                                             final int length) {
+  public static int compareLexicographically(final byte[] o1, final byte[] o2, final int length) {
     requireNonNull(o1);
     requireNonNull(o2);
     for (int i = 0; i < length; i++) {

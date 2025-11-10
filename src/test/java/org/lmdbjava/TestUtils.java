@@ -118,6 +118,26 @@ final class TestUtils {
     return bytes;
   }
 
+  static int parseInt(final String str) {
+    Objects.requireNonNull(str);
+    final String trimmed = str.trim();
+    try {
+      return Integer.parseInt(trimmed);
+    } catch (NumberFormatException e) {
+      throw new RuntimeException("Unable to parse '" + trimmed + "' as an int.");
+    }
+  }
+
+  static long parseLong(final String str) {
+    Objects.requireNonNull(str);
+    final String trimmed = str.trim();
+    try {
+      return Long.parseLong(trimmed);
+    } catch (NumberFormatException e) {
+      throw new RuntimeException("Unable to parse '" + trimmed + "' as a long.");
+    }
+  }
+
   static void invokePrivateConstructor(final Class<?> clazz) {
     try {
       final Constructor<?> c = clazz.getDeclaredConstructor();
