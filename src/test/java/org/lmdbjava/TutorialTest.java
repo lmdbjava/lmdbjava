@@ -16,16 +16,13 @@
 
 package org.lmdbjava;
 
-import static java.nio.ByteBuffer.allocateDirect;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.concurrent.Executors.newCachedThreadPool;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import static org.lmdbjava.DbiFlags.MDB_DUPSORT;
 import static org.lmdbjava.DirectBufferProxy.PROXY_DB;
-import static org.lmdbjava.Env.create;
 import static org.lmdbjava.GetOp.MDB_SET;
 import static org.lmdbjava.SeekOp.MDB_FIRST;
 import static org.lmdbjava.SeekOp.MDB_LAST;
@@ -34,6 +31,7 @@ import static org.lmdbjava.SeekOp.MDB_PREV;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -81,7 +79,7 @@ public final class TutorialTest {
     // We always need an Env. An Env owns a physical on-disk storage file. One
     // Env can store many different databases (ie sorted maps).
     final Env<ByteBuffer> env =
-        create()
+        Env.create()
             // LMDB also needs to know how large our DB might be. Over-estimating is OK.
             .setMapSize(10_485_760)
             // LMDB also needs to know how many DBs (Dbi) we want to store in this Env.
@@ -89,7 +87,7 @@ public final class TutorialTest {
             // Now let's open the Env. The same path can be concurrently opened and
             // used in different processes, but do not open the same path twice in
             // the same process at the same time.
-            .open(dir.toFile());
+            .open(dir);
 
     // We need a Dbi for each DB. A Dbi roughly equates to a sorted map. The
     // MDB_CREATE flag causes the DB to be created if it doesn't already exist.
@@ -98,8 +96,8 @@ public final class TutorialTest {
     // We want to store some data, so we will need a direct ByteBuffer.
     // Note that LMDB keys cannot exceed maxKeySize bytes (511 bytes by default).
     // Values can be larger.
-    final ByteBuffer key = allocateDirect(env.getMaxKeySize());
-    final ByteBuffer val = allocateDirect(700);
+    final ByteBuffer key = ByteBuffer.allocateDirect(env.getMaxKeySize());
+    final ByteBuffer val = ByteBuffer.allocateDirect(700);
     key.put("greeting".getBytes(UTF_8)).flip();
     val.put("Hello world".getBytes(UTF_8)).flip();
     final int valSize = val.remaining();
@@ -144,8 +142,8 @@ public final class TutorialTest {
     try {
       final Env<ByteBuffer> env = createSimpleEnv(dir);
       final Dbi<ByteBuffer> db = env.openDbi(DB_NAME, MDB_CREATE);
-      final ByteBuffer key = allocateDirect(env.getMaxKeySize());
-      final ByteBuffer val = allocateDirect(700);
+      final ByteBuffer key = ByteBuffer.allocateDirect(env.getMaxKeySize());
+      final ByteBuffer val = ByteBuffer.allocateDirect(700);
 
       // Let's write and commit "key1" via a Txn. A Txn can include multiple Dbis.
       // Note write Txns block other write Txns, due to writes being serialized.
@@ -174,7 +172,7 @@ public final class TutorialTest {
       // typically permitted (the exception is a read-only Env with MDB_NOTLS).
       //
       // Let's write out a "key2" via a new write Txn in a different thread.
-      final ExecutorService es = newCachedThreadPool();
+      final ExecutorService es = Executors.newCachedThreadPool();
       es.execute(
           () -> {
             try (Txn<ByteBuffer> txn = env.txnWrite()) {
@@ -220,8 +218,8 @@ public final class TutorialTest {
     final Path dir = tempDir.createTempDir();
     final Env<ByteBuffer> env = createSimpleEnv(dir);
     final Dbi<ByteBuffer> db = env.openDbi(DB_NAME, MDB_CREATE);
-    final ByteBuffer key = allocateDirect(env.getMaxKeySize());
-    final ByteBuffer val = allocateDirect(700);
+    final ByteBuffer key = ByteBuffer.allocateDirect(env.getMaxKeySize());
+    final ByteBuffer val = ByteBuffer.allocateDirect(700);
 
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
       // A cursor always belongs to a particular Dbi.
@@ -295,8 +293,8 @@ public final class TutorialTest {
     final Dbi<ByteBuffer> db = env.openDbi(DB_NAME, MDB_CREATE);
 
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
-      final ByteBuffer key = allocateDirect(env.getMaxKeySize());
-      final ByteBuffer val = allocateDirect(700);
+      final ByteBuffer key = ByteBuffer.allocateDirect(env.getMaxKeySize());
+      final ByteBuffer val = ByteBuffer.allocateDirect(700);
 
       // Insert some data. Note that ByteBuffer order defaults to Big Endian.
       // LMDB does not persist the byte order, but it's critical to sort keys.
@@ -350,11 +348,11 @@ public final class TutorialTest {
 
     // This time we're going to tell the Dbi it can store > 1 value per key.
     // There are other flags available if we're storing integers etc.
-    final Dbi<ByteBuffer> db = env.openDbi(DB_NAME, MDB_CREATE, MDB_DUPSORT);
+    final Dbi<ByteBuffer> db = env.openDbi(DB_NAME, DbiFlagSet.of(MDB_CREATE, MDB_DUPSORT));
 
     // Duplicate support requires both keys and values to be <= max key size.
-    final ByteBuffer key = allocateDirect(env.getMaxKeySize());
-    final ByteBuffer val = allocateDirect(env.getMaxKeySize());
+    final ByteBuffer key = ByteBuffer.allocateDirect(env.getMaxKeySize());
+    final ByteBuffer val = ByteBuffer.allocateDirect(env.getMaxKeySize());
 
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
       final Cursor<ByteBuffer> c = db.openCursor(txn);
@@ -400,10 +398,10 @@ public final class TutorialTest {
     final Path dir = tempDir.createTempDir();
     // Note we need to specify the Verifier's DBI_COUNT for the Env.
     final Env<ByteBuffer> env =
-        create(PROXY_OPTIMAL)
-            .setMapSize(10_485_760)
+        Env.create(PROXY_OPTIMAL)
+            .setMapSize(10, ByteUnit.MEBIBYTES)
             .setMaxDbs(Verifier.DBI_COUNT)
-            .open(dir.toFile());
+            .open(dir);
 
     // Create a Verifier (it's a Callable<Long> for those needing full control).
     final Verifier v = new Verifier(env);
@@ -423,13 +421,13 @@ public final class TutorialTest {
     // There's also a PROXY_SAFE if you want to stop ByteBuffer's Unsafe use.
     // Aside from that and a different type argument, it's the same as usual...
     final Env<DirectBuffer> env =
-        create(PROXY_DB).setMapSize(10_485_760).setMaxDbs(1).open(dir.toFile());
+        Env.create(PROXY_DB).setMapSize(10, ByteUnit.MEBIBYTES).setMaxDbs(1).open(dir);
 
     final Dbi<DirectBuffer> db = env.openDbi(DB_NAME, MDB_CREATE);
 
-    final ByteBuffer keyBb = allocateDirect(env.getMaxKeySize());
+    final ByteBuffer keyBb = ByteBuffer.allocateDirect(env.getMaxKeySize());
     final MutableDirectBuffer key = new UnsafeBuffer(keyBb);
-    final MutableDirectBuffer val = new UnsafeBuffer(allocateDirect(700));
+    final MutableDirectBuffer val = new UnsafeBuffer(ByteBuffer.allocateDirect(700));
 
     try (Txn<DirectBuffer> txn = env.txnWrite()) {
       try (Cursor<DirectBuffer> c = db.openCursor(txn)) {
@@ -477,6 +475,6 @@ public final class TutorialTest {
   // or reverse ordered keys, using Env.DISABLE_CHECKS_PROP etc), but you now
   // know enough to tackle the JavaDocs with confidence. Have fun!
   private Env<ByteBuffer> createSimpleEnv(final Path path) {
-    return create().setMapSize(10_485_760).setMaxDbs(1).setMaxReaders(1).open(path.toFile());
+    return Env.create().setMapSize(10, ByteUnit.MEBIBYTES).setMaxDbs(1).setMaxReaders(1).open(path);
   }
 }

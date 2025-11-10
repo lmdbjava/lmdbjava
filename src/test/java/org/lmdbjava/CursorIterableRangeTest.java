@@ -16,7 +16,6 @@
 
 package org.lmdbjava;
 
-import static com.jakewharton.byteunits.BinaryByteUnit.KIBIBYTES;
 import static java.nio.ByteBuffer.allocateDirect;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
@@ -25,7 +24,6 @@ import static org.lmdbjava.DbiFlags.MDB_INTEGERKEY;
 import static org.lmdbjava.Env.create;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.TestUtils.DB_1;
-import static org.lmdbjava.TestUtils.POSIX_MODE;
 import static org.lmdbjava.TestUtils.bb;
 
 import java.io.File;
@@ -38,9 +36,8 @@ import java.io.Writer;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.file.Path;
-import java.util.Comparator;
-import java.util.EnumSet;
 import java.util.function.BiConsumer;
+import java.util.function.Function;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvFileSource;
 import org.lmdbjava.ByteBufferProxy.AbstractByteBufferProxy;
@@ -49,15 +46,17 @@ import org.lmdbjava.CursorIterable.KeyVal;
 /** Test {@link CursorIterable}. */
 public final class CursorIterableRangeTest {
 
+  private static final DbiFlagSet CREATE_AND_DUPSORT = DbiFlagSet.of(MDB_CREATE, MDB_DUPSORT);
+  private static final DbiFlagSet CREATE_AND_INTEGERKEY = DbiFlagSet.of(MDB_CREATE, MDB_INTEGERKEY);
+
   @ParameterizedTest(name = "{index} => {0}: ({1}, {2})")
   @CsvFileSource(resources = "/CursorIterableRangeTest/testSignedComparator.csv")
   void testSignedComparator(
       final String keyType, final String startKey, final String stopKey, final String expectedKV) {
     testCSV(
-        ByteBuffer::compareTo,
-        true,
+        builder -> builder.withCallbackComparator(ignored -> ByteBuffer::compareTo),
         createBasicDBPopulator(),
-        EnumSet.of(MDB_CREATE),
+        MDB_CREATE,
         keyType,
         startKey,
         stopKey,
@@ -69,10 +68,11 @@ public final class CursorIterableRangeTest {
   void testUnsignedComparator(
       final String keyType, final String startKey, final String stopKey, final String expectedKV) {
     testCSV(
-        AbstractByteBufferProxy::compareBuff,
-        false,
+        builder ->
+            builder.withIteratorComparator(
+                ignored -> AbstractByteBufferProxy::compareLexicographically),
         createBasicDBPopulator(),
-        EnumSet.of(MDB_CREATE),
+        MDB_CREATE,
         keyType,
         startKey,
         stopKey,
@@ -84,10 +84,9 @@ public final class CursorIterableRangeTest {
   void testSignedComparatorDupsort(
       final String keyType, final String startKey, final String stopKey, final String expectedKV) {
     testCSV(
-        ByteBuffer::compareTo,
-        true,
+        builder -> builder.withCallbackComparator(ignored -> ByteBuffer::compareTo),
         createMultiDBPopulator(2),
-        EnumSet.of(MDB_CREATE, MDB_DUPSORT),
+        CREATE_AND_DUPSORT,
         keyType,
         startKey,
         stopKey,
@@ -99,10 +98,11 @@ public final class CursorIterableRangeTest {
   void testUnsignedComparatorDupsort(
       final String keyType, final String startKey, final String stopKey, final String expectedKV) {
     testCSV(
-        AbstractByteBufferProxy::compareBuff,
-        false,
+        builder ->
+            builder.withIteratorComparator(
+                ignored -> AbstractByteBufferProxy::compareLexicographically),
         createMultiDBPopulator(2),
-        EnumSet.of(MDB_CREATE, MDB_DUPSORT),
+        CREATE_AND_DUPSORT,
         keyType,
         startKey,
         stopKey,
@@ -114,16 +114,17 @@ public final class CursorIterableRangeTest {
   void testIntegerKey(
       final String keyType, final String startKey, final String stopKey, final String expectedKV) {
     testCSV(
-        AbstractByteBufferProxy::compareBuff,
-        false,
+        builder ->
+            builder.withIteratorComparator(
+                ignored -> AbstractByteBufferProxy::compareAsIntegerKeys),
         createIntegerDBPopulator(),
-        EnumSet.of(MDB_CREATE, MDB_INTEGERKEY),
+        DbiFlagSet.of(MDB_CREATE, MDB_INTEGERKEY),
         keyType,
         startKey,
         stopKey,
         expectedKV,
         Integer.BYTES,
-        ByteOrder.LITTLE_ENDIAN);
+        ByteOrder.nativeOrder());
   }
 
   @ParameterizedTest(name = "{index} => {0}: ({1}, {2})")
@@ -131,32 +132,31 @@ public final class CursorIterableRangeTest {
   void testLongKey(
       final String keyType, final String startKey, final String stopKey, final String expectedKV) {
     testCSV(
-        AbstractByteBufferProxy::compareBuff,
-        false,
+        builder ->
+            builder.withIteratorComparator(
+                ignored -> AbstractByteBufferProxy::compareAsIntegerKeys),
         createLongDBPopulator(),
-        EnumSet.of(MDB_CREATE, MDB_INTEGERKEY),
+        CREATE_AND_INTEGERKEY,
         keyType,
         startKey,
         stopKey,
         expectedKV,
         Long.BYTES,
-        ByteOrder.LITTLE_ENDIAN);
+        ByteOrder.nativeOrder());
   }
 
   private void testCSV(
-      final Comparator<ByteBuffer> comparator,
-      final boolean nativeCb,
+      final Function<DbiBuilder.Stage2<ByteBuffer>, DbiBuilder.Stage3<ByteBuffer>> comparatorFunc,
       final BiConsumer<Env<ByteBuffer>, Dbi<ByteBuffer>> dbPopulator,
-      final EnumSet<DbiFlags> flags,
+      final DbiFlagSet dbiFlags,
       final String keyType,
       final String startKey,
       final String stopKey,
       final String expectedKV) {
     testCSV(
-        comparator,
-        nativeCb,
+        comparatorFunc,
         dbPopulator,
-        flags,
+        dbiFlags,
         keyType,
         startKey,
         stopKey,
@@ -166,10 +166,9 @@ public final class CursorIterableRangeTest {
   }
 
   private void testCSV(
-      final Comparator<ByteBuffer> comparator,
-      final boolean nativeCb,
+      final Function<DbiBuilder.Stage2<ByteBuffer>, DbiBuilder.Stage3<ByteBuffer>> comparatorFunc,
       final BiConsumer<Env<ByteBuffer>, Dbi<ByteBuffer>> dbPopulator,
-      final EnumSet<DbiFlags> flags,
+      final DbiFlagSet dbiFlags,
       final String keyType,
       final String startKey,
       final String stopKey,
@@ -180,12 +179,16 @@ public final class CursorIterableRangeTest {
       final Path file = tempDir.createTempFile();
       try (final Env<ByteBuffer> env =
           create()
-              .setMapSize(KIBIBYTES.toBytes(256))
+              .setMapSize(256, ByteUnit.KIBIBYTES)
               .setMaxReaders(1)
               .setMaxDbs(1)
-              .open(file.toFile(), POSIX_MODE, MDB_NOSUBDIR)) {
-        final Dbi<ByteBuffer> dbi =
-            env.openDbi(DB_1, comparator, nativeCb, flags.toArray(new DbiFlags[0]));
+              .setEnvFlags(MDB_NOSUBDIR)
+              .open(file)) {
+
+        final DbiBuilder.Stage2<ByteBuffer> builderStage2 = env.createDbi().setDbName(DB_1);
+        final DbiBuilder.Stage3<ByteBuffer> builderStage3 = comparatorFunc.apply(builderStage2);
+        final Dbi<ByteBuffer> dbi = builderStage3.setDbiFlags(dbiFlags).open();
+
         dbPopulator.accept(env, dbi);
         try (final Writer writer = new StringWriter()) {
           final KeyRangeType keyRangeType = KeyRangeType.valueOf(keyType.trim());
@@ -197,7 +200,7 @@ public final class CursorIterableRangeTest {
               CursorIterable<ByteBuffer> c = dbi.iterate(txn, keyRange)) {
             for (final KeyVal<ByteBuffer> kv : c) {
               final long key = getLong(kv.key(), byteOrder);
-              final long val = getLong(kv.val(), byteOrder);
+              final long val = getLong(kv.val(), ByteOrder.BIG_ENDIAN);
               writer.append("[");
               writer.append(String.valueOf(key));
               writer.append(" ");
@@ -215,11 +218,11 @@ public final class CursorIterableRangeTest {
 
   private ByteBuffer parseKey(final String key, final int keyLen, final ByteOrder byteOrder) {
     if (key != null) {
-      if (ByteOrder.LITTLE_ENDIAN.equals(byteOrder)) {
+      if (ByteOrder.nativeOrder().equals(byteOrder)) {
         if (keyLen == Integer.BYTES) {
-          return bbLeInt(Integer.parseInt(key.trim()));
+          return bbNativeInt(Integer.parseInt(key.trim()));
         } else {
-          return bbLeLong(Long.parseLong(key.trim()));
+          return bbNativeLong(Long.parseLong(key.trim()));
         }
       } else {
         if (keyLen == Integer.BYTES) {
@@ -277,11 +280,11 @@ public final class CursorIterableRangeTest {
     return (env, dbi) -> {
       try (Txn<ByteBuffer> txn = env.txnWrite()) {
         final Cursor<ByteBuffer> c = dbi.openCursor(txn);
-        c.put(bbLeInt(Integer.MIN_VALUE), bb(1));
-        c.put(bbLeInt(-1000), bb(2));
-        c.put(bbLeInt(0), bb(3));
-        c.put(bbLeInt(1000), bb(4));
-        c.put(bbLeInt(Integer.MAX_VALUE), bb(5));
+        c.put(bbNativeInt(0), bb(1));
+        c.put(bbNativeInt(1000), bb(2));
+        c.put(bbNativeInt(1000000), bb(3));
+        c.put(bbNativeInt(-1000000), bb(4));
+        c.put(bbNativeInt(-1000), bb(5));
         txn.commit();
       }
     };
@@ -291,11 +294,11 @@ public final class CursorIterableRangeTest {
     return (env, dbi) -> {
       try (Txn<ByteBuffer> txn = env.txnWrite()) {
         final Cursor<ByteBuffer> c = dbi.openCursor(txn);
-        c.put(bbLeLong(Long.MIN_VALUE), bb(1));
-        c.put(bbLeLong(-1000), bb(2));
-        c.put(bbLeLong(0), bb(3));
-        c.put(bbLeLong(1000), bb(4));
-        c.put(bbLeLong(Long.MAX_VALUE), bb(5));
+        c.put(bbNativeLong(0), bb(1));
+        c.put(bbNativeLong(1000), bb(2));
+        c.put(bbNativeLong(1000000), bb(3));
+        c.put(bbNativeLong(-1000000), bb(4));
+        c.put(bbNativeLong(-1000), bb(5));
         txn.commit();
       }
     };
@@ -329,14 +332,14 @@ public final class CursorIterableRangeTest {
     return result.toString();
   }
 
-  static ByteBuffer bbLeInt(final int value) {
-    final ByteBuffer bb = allocateDirect(Integer.BYTES).order(ByteOrder.LITTLE_ENDIAN);
+  static ByteBuffer bbNativeInt(final int value) {
+    final ByteBuffer bb = allocateDirect(Integer.BYTES).order(ByteOrder.nativeOrder());
     bb.putInt(value).flip();
     return bb;
   }
 
-  static ByteBuffer bbLeLong(final long value) {
-    final ByteBuffer bb = allocateDirect(Long.BYTES).order(ByteOrder.LITTLE_ENDIAN);
+  static ByteBuffer bbNativeLong(final long value) {
+    final ByteBuffer bb = allocateDirect(Long.BYTES).order(ByteOrder.nativeOrder());
     bb.putLong(value).flip();
     return bb;
   }

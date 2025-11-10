@@ -194,7 +194,10 @@ public final class KeyRangeTest {
 
     IteratorOp op;
     do {
-      op = range.getType().iteratorOp(range.getStart(), range.getStop(), buff, Integer::compare);
+      final Integer finalBuff = buff;
+      final RangeComparator rangeComparator =
+          new CursorIterable.JavaRangeComparator<>(range, Integer::compareTo, () -> finalBuff);
+      op = range.getType().iteratorOp(buff, rangeComparator);
       switch (op) {
         case CALL_NEXT_OP:
           buff = cursor.apply(range.getType().nextOp(), range.getStart());

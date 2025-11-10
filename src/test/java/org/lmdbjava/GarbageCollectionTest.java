@@ -20,7 +20,6 @@ import static java.nio.ByteBuffer.allocateDirect;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.fail;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
-import static org.lmdbjava.Env.create;
 
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
@@ -28,7 +27,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
-public class GarbageCollectionTest {
+class GarbageCollectionTest {
 
   private static final String DB_NAME = "my DB";
   private static final String KEY_PREFIX = "Uncorruptedkey";
@@ -38,8 +37,7 @@ public class GarbageCollectionTest {
   void buffersNotGarbageCollectedTest() {
     try (final TempDir tempDir = new TempDir()) {
       final Path dir = tempDir.createTempDir();
-      try (Env<ByteBuffer> env =
-          create().setMapSize(2_085_760_999).setMaxDbs(1).open(dir.toFile())) {
+      try (Env<ByteBuffer> env = Env.create().setMapSize(2_085_760_999).setMaxDbs(1).open(dir)) {
         final Dbi<ByteBuffer> db = env.openDbi(DB_NAME, MDB_CREATE);
 
         try (Txn<ByteBuffer> txn = env.txnWrite()) {

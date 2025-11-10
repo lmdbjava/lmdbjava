@@ -1,6 +1,5 @@
 package org.lmdbjava;
 
-import static com.jakewharton.byteunits.BinaryByteUnit.MEBIBYTES;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
@@ -316,7 +315,7 @@ class TestLmdbStream {
       final AtomicReference<ByteBuffer> lastItem = new AtomicReference<>();
       final AtomicInteger count = new AtomicInteger();
       try (final Env<ByteBuffer> env =
-          Env.create().setMapSize(MEBIBYTES.toBytes(1)).open(path.toFile())) {
+          Env.create().setMapSize(1, ByteUnit.MEBIBYTES).open(path)) {
         final Dbi<ByteBuffer> dbi = setupDb(env);
         try (final Txn<ByteBuffer> txn = env.txnRead()) {
           try (final Stream<CursorIterable.KeyVal<ByteBuffer>> stream = function.apply(txn, dbi)) {

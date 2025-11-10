@@ -16,7 +16,6 @@
 
 package org.lmdbjava;
 
-import static com.jakewharton.byteunits.BinaryByteUnit.MEBIBYTES;
 import static java.lang.Long.BYTES;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -32,8 +31,14 @@ import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.GetOp.MDB_SET_KEY;
 import static org.lmdbjava.GetOp.MDB_SET_RANGE;
 import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
-import static org.lmdbjava.SeekOp.*;
-import static org.lmdbjava.TestUtils.*;
+import static org.lmdbjava.SeekOp.MDB_FIRST;
+import static org.lmdbjava.SeekOp.MDB_LAST;
+import static org.lmdbjava.SeekOp.MDB_NEXT;
+import static org.lmdbjava.SeekOp.MDB_PREV;
+import static org.lmdbjava.TestUtils.DB_1;
+import static org.lmdbjava.TestUtils.bb;
+import static org.lmdbjava.TestUtils.mdb;
+import static org.lmdbjava.TestUtils.nb;
 
 import io.netty.buffer.ByteBuf;
 import java.nio.ByteBuffer;
@@ -89,7 +94,7 @@ public final class CursorParamTest {
     public final void execute(final Path tmp) {
       try (Env<T> env = env(tmp)) {
         assertThat(env.getDbiNames()).isEmpty();
-        final Dbi<T> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
+        final Dbi<T> db = env.openDbi(DB_1, DbiFlagSet.of(MDB_CREATE, MDB_DUPSORT));
         assertThat(env.getDbiNames().get(0)).isEqualTo(DB_1.getBytes(UTF_8));
         try (Txn<T> txn = env.txnWrite();
             Cursor<T> c = db.openCursor(txn)) {
@@ -160,10 +165,11 @@ public final class CursorParamTest {
 
     private Env<T> env(final Path tmp) {
       return create(proxy)
-          .setMapSize(MEBIBYTES.toBytes(1))
+          .setMapSize(1, ByteUnit.MEBIBYTES)
           .setMaxReaders(1)
           .setMaxDbs(1)
-          .open(tmp.resolve("db").toFile(), POSIX_MODE, MDB_NOSUBDIR);
+          .setEnvFlags(MDB_NOSUBDIR)
+          .open(tmp.resolve("db"));
     }
   }
 

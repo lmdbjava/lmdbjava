@@ -16,7 +16,6 @@
 
 package org.lmdbjava;
 
-import static com.jakewharton.byteunits.BinaryByteUnit.MEBIBYTES;
 import static java.lang.Long.MAX_VALUE;
 import static java.lang.System.getProperty;
 import static java.nio.ByteBuffer.allocateDirect;
@@ -57,8 +56,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
-import java.util.function.Function;
 import java.util.function.IntFunction;
+import java.util.function.Supplier;
 import java.util.function.ToIntFunction;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -82,17 +81,19 @@ public final class DbiTest {
     final Path file = tempDir.createTempFile();
     env =
         create()
-            .setMapSize(MEBIBYTES.toBytes(64))
+            .setMapSize(64, ByteUnit.MEBIBYTES)
             .setMaxReaders(2)
             .setMaxDbs(2)
-            .open(file.toFile(), MDB_NOSUBDIR);
+            .setEnvFlags(MDB_NOSUBDIR)
+            .open(file);
     final Path fileBa = tempDir.createTempFile();
     envBa =
         create(PROXY_BA)
-            .setMapSize(MEBIBYTES.toBytes(64))
+            .setMapSize(64, ByteUnit.MEBIBYTES)
             .setMaxReaders(2)
             .setMaxDbs(2)
-            .open(fileBa.toFile(), MDB_NOSUBDIR);
+            .setEnvFlags(MDB_NOSUBDIR)
+            .open(fileBa);
   }
 
   @AfterEach
@@ -106,7 +107,12 @@ public final class DbiTest {
   void close() {
     assertThatThrownBy(
             () -> {
-              final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
+              final Dbi<ByteBuffer> db =
+                  env.createDbi()
+                      .setDbName(DB_1)
+                      .withDefaultComparator()
+                      .addDbiFlag(MDB_CREATE)
+                      .open();
               db.put(bb(1), bb(42));
               db.close();
               db.put(bb(2), bb(42)); // error
@@ -145,7 +151,12 @@ public final class DbiTest {
       Comparator<T> comparator,
       IntFunction<T> serializer,
       ToIntFunction<T> deserializer) {
-    final Dbi<T> db = env.openDbi(DB_1, comparator, true, MDB_CREATE);
+    final Dbi<T> db =
+        env.createDbi()
+            .setDbName(DB_1)
+            .withCallbackComparator(ignored -> comparator)
+            .setDbiFlags(MDB_CREATE)
+            .open();
     try (Txn<T> txn = env.txnWrite()) {
       assertThat(db.put(txn, serializer.apply(2), serializer.apply(3))).isTrue();
       assertThat(db.put(txn, serializer.apply(4), serializer.apply(6))).isTrue();
@@ -187,16 +198,23 @@ public final class DbiTest {
 
   private <T> void doDbiWithComparatorThreadSafety(
       Env<T> env,
-      Function<DbiFlags[], Comparator<T>> comparator,
+      Supplier<Comparator<T>> comparatorSupplier,
       IntFunction<T> serializer,
       ToIntFunction<T> deserializer) {
-    final DbiFlags[] flags = new DbiFlags[] {MDB_CREATE, MDB_INTEGERKEY};
-    final Comparator<T> c = comparator.apply(flags);
-    final Dbi<T> db = env.openDbi(DB_1, c, true, flags);
+    final DbiFlagSet flags = DbiFlagSet.of(MDB_CREATE, MDB_INTEGERKEY);
+    final Comparator<T> comparator = comparatorSupplier.get();
+    final Dbi<T> db =
+        env.createDbi()
+            .setDbName(DB_1)
+            .withCallbackComparator(ignored -> comparator)
+            .setDbiFlags(flags)
+            .open();
 
     final List<Integer> keys = range(0, 1_000).boxed().collect(toList());
 
-    final ExecutorService pool = Executors.newCachedThreadPool();
+    // TODO surround with try-with-resources in J19+
+    //noinspection resource // Not in J8
+    ExecutorService pool = Executors.newCachedThreadPool();
     final AtomicBoolean proceed = new AtomicBoolean(true);
     final Future<?> reader =
         pool.submit(
@@ -257,7 +275,7 @@ public final class DbiTest {
   @Test
   void dropAndDelete() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
-    final Dbi<ByteBuffer> nameDb = env.openDbi((byte[]) null);
+    final Dbi<ByteBuffer> nameDb = env.openDbi((byte[]) null, DbiFlagSet.EMPTY);
     final byte[] dbNameBytes = DB_1.getBytes(UTF_8);
     final ByteBuffer dbNameBuffer = allocateDirect(dbNameBytes.length);
     dbNameBuffer.put(dbNameBytes).flip();
@@ -273,7 +291,7 @@ public final class DbiTest {
   @Test
   void dropAndDeleteAnonymousDb() {
     env.openDbi(DB_1, MDB_CREATE);
-    final Dbi<ByteBuffer> nameDb = env.openDbi((byte[]) null);
+    final Dbi<ByteBuffer> nameDb = env.openDbi((byte[]) null, DbiFlagSet.EMPTY);
     final byte[] dbNameBytes = DB_1.getBytes(UTF_8);
     final ByteBuffer dbNameBuffer = allocateDirect(dbNameBytes.length);
     dbNameBuffer.put(dbNameBytes).flip();
@@ -314,7 +332,8 @@ public final class DbiTest {
 
   @Test
   void listsFlags() {
-    final Dbi<ByteBuffer> dbi = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT, MDB_REVERSEKEY);
+    final Dbi<ByteBuffer> dbi =
+        env.openDbi(DB_1, DbiFlagSet.of(MDB_CREATE, MDB_DUPSORT, MDB_REVERSEKEY));
 
     try (Txn<ByteBuffer> txn = env.txnRead()) {
       final List<DbiFlags> flags = dbi.listFlags(txn);
@@ -374,10 +393,11 @@ public final class DbiTest {
     final Path file = tempDir.createTempFile();
     try (Env<byte[]> envBa =
         create(PROXY_BA)
-            .setMapSize(MEBIBYTES.toBytes(64))
+            .setMapSize(64, ByteUnit.MEBIBYTES)
             .setMaxReaders(1)
             .setMaxDbs(2)
-            .open(file.toFile(), MDB_NOSUBDIR)) {
+            .setEnvFlags(MDB_NOSUBDIR)
+            .open(file)) {
       final Dbi<byte[]> db = envBa.openDbi(DB_1, MDB_CREATE);
       try (Txn<byte[]> txn = envBa.txnWrite()) {
         db.put(txn, ba(5), ba(5));
@@ -406,7 +426,7 @@ public final class DbiTest {
 
   @Test
   void putDuplicateDelete() {
-    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
+    final Dbi<ByteBuffer> db = env.openDbi(DB_1, DbiFlagSet.of(MDB_CREATE, MDB_DUPSORT));
 
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
       db.put(txn, bb(5), bb(5));
@@ -465,7 +485,7 @@ public final class DbiTest {
 
   @Test
   void returnValueForNoDupData() {
-    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
+    final Dbi<ByteBuffer> db = env.openDbi(DB_1, DbiFlagSet.of(MDB_CREATE, MDB_DUPSORT));
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
       // ok
       assertThat(db.put(txn, bb(5), bb(6), MDB_NODUPDATA)).isTrue();
@@ -568,6 +588,7 @@ public final class DbiTest {
               doEnvClosedTest(
                   (db, txn) -> {
                     final ByteBuffer valBuf = db.get(txn, bb(1));
+                    assertThat(valBuf).isNotNull();
                     assertThat(valBuf.getInt()).isEqualTo(10);
                   },
                   (db, txn) -> db.get(txn, bb(2)));

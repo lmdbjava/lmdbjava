@@ -29,6 +29,7 @@ import static org.lmdbjava.MaskedFlag.mask;
 import static org.lmdbjava.PutFlags.*;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
 
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -47,12 +48,26 @@ import org.lmdbjava.Library.MDB_stat;
  */
 public final class Dbi<T> {
 
-  private final ComparatorCallback ccb;
+  @SuppressWarnings("FieldCanBeLocal") // Needs to be instance variable for FFI
+  private final ComparatorCallback callbackComparator;
+
   private boolean cleaned;
+  // Used for CursorIterable KeyRange testing and/or native callbacks
   private final Comparator<T> comparator;
   private final Env<T> env;
   private final byte[] name;
   private final Pointer ptr;
+  private final BufferProxy<T> proxy;
+  private final DbiFlagSet dbiFlagSet;
+
+  Dbi(
+      final Env<T> env,
+      final Txn<T> txn,
+      final byte[] name,
+      final BufferProxy<T> proxy,
+      final DbiFlagSet dbiFlagSet) {
+    this(env, txn, name, null, false, proxy, dbiFlagSet);
+  }
 
   Dbi(
       final Env<T> env,
@@ -61,36 +76,44 @@ public final class Dbi<T> {
       final Comparator<T> comparator,
       final boolean nativeCb,
       final BufferProxy<T> proxy,
-      final DbiFlags... flags) {
+      final DbiFlagSet dbiFlagSet) {
     if (SHOULD_CHECK) {
+      if (nativeCb && comparator == null) {
+        throw new IllegalArgumentException("Is nativeCb is true, you must supply a comparator");
+      }
       requireNonNull(txn);
       txn.checkReady();
     }
     this.env = env;
     this.name = name == null ? null : Arrays.copyOf(name, name.length);
-    if (comparator == null) {
-      this.comparator = proxy.getComparator(flags);
-    } else {
-      this.comparator = comparator;
-    }
-    final int flagsMask = mask(true, flags);
+    this.proxy = proxy;
+    this.comparator = comparator;
+    this.dbiFlagSet = dbiFlagSet == null ? DbiFlagSet.EMPTY : dbiFlagSet;
     final Pointer dbiPtr = allocateDirect(RUNTIME, ADDRESS);
-    checkRc(LIB.mdb_dbi_open(txn.pointer(), name, flagsMask, dbiPtr));
+    checkRc(LIB.mdb_dbi_open(txn.pointer(), name, this.dbiFlagSet.getMask(), dbiPtr));
     ptr = dbiPtr.getPointer(0);
     if (nativeCb) {
-      this.ccb =
-          (keyA, keyB) -> {
-            final T compKeyA = proxy.out(proxy.allocate(), keyA);
-            final T compKeyB = proxy.out(proxy.allocate(), keyB);
-            final int result = this.comparator.compare(compKeyA, compKeyB);
-            proxy.deallocate(compKeyA);
-            proxy.deallocate(compKeyB);
-            return result;
-          };
-      LIB.mdb_set_compare(txn.pointer(), ptr, ccb);
+      // LMDB will call back to this comparator for insertion/iteration order
+      this.callbackComparator = createCallbackComparator(proxy);
+      LIB.mdb_set_compare(txn.pointer(), ptr, callbackComparator);
     } else {
-      ccb = null;
+      callbackComparator = null;
     }
+  }
+
+  private ComparatorCallback createCallbackComparator(final BufferProxy<T> proxy) {
+    return (keyA, keyB) -> {
+      final T compKeyA = proxy.out(proxy.allocate(), keyA);
+      final T compKeyB = proxy.out(proxy.allocate(), keyB);
+      final int result = this.comparator.compare(compKeyA, compKeyB);
+      proxy.deallocate(compKeyA);
+      proxy.deallocate(compKeyB);
+      return result;
+    };
+  }
+
+  Pointer pointer() {
+    return ptr;
   }
 
   /**
@@ -247,10 +270,41 @@ public final class Dbi<T> {
   /**
    * Obtains the name of this database.
    *
-   * @return the name (may be null)
+   * @return The name (it maybe null)
    */
   public byte[] getName() {
     return name == null ? null : Arrays.copyOf(name, name.length);
+  }
+
+  /**
+   * Obtains the name of this database, using the {@link Env#DEFAULT_NAME_CHARSET} {@link Charset}.
+   *
+   * @return The name of this database, using the {@link Env#DEFAULT_NAME_CHARSET} {@link Charset}.
+   */
+  public String getNameAsString() {
+    return getNameAsString(Env.DEFAULT_NAME_CHARSET);
+  }
+
+  /**
+   * Obtains the name of this database, using the supplied {@link Charset}.
+   *
+   * @param charset The {@link Charset} to use when converting the DB from a byte[] to a {@link
+   *     String}.
+   * @return The name of the database. If this is the unnamed database an empty string will be
+   *     returned.
+   * @throws RuntimeException if the name can't be decoded.
+   */
+  public String getNameAsString(final Charset charset) {
+    if (name == null) {
+      return "";
+    } else {
+      // Assume a UTF8 encoding as we don't know, thus swallow if it fails
+      try {
+        return new String(name, requireNonNull(charset));
+      } catch (Exception e) {
+        throw new RuntimeException("Unable to decode database name using charset " + charset);
+      }
+    }
   }
 
   /**
@@ -277,7 +331,7 @@ public final class Dbi<T> {
       env.checkNotClosed();
       txn.checkReady();
     }
-    return new CursorIterable<>(txn, this, range, comparator);
+    return new CursorIterable<>(txn, this, range, comparator, proxy);
   }
 
   public LmdbIterable<T> newIterate(final Txn<T> txn) {
@@ -345,6 +399,7 @@ public final class Dbi<T> {
    * @return the list of flags this Dbi was created with
    */
   public List<DbiFlags> listFlags(final Txn<T> txn) {
+    // TODO we could just return what is in dbiFlagSet, rather than hitting LMDB.
     if (SHOULD_CHECK) {
       env.checkNotClosed();
     }
@@ -394,13 +449,46 @@ public final class Dbi<T> {
    *
    * @param key key to store in the database (not null)
    * @param val value to store in the database (not null)
-   * @see #put(org.lmdbjava.Txn, java.lang.Object, java.lang.Object, org.lmdbjava.PutFlags...)
+   * @see #put(Txn, Object, Object, PutFlagSet)
    */
   public void put(final T key, final T val) {
     try (Txn<T> txn = env.txnWrite()) {
-      put(txn, key, val);
+      put(txn, key, val, PutFlagSet.EMPTY);
       txn.commit();
     }
+  }
+
+  /**
+   * @param txn transaction handle (not null; not committed; must be R-W)
+   * @param key key to store in the database (not null)
+   * @param val value to store in the database (not null)
+   * @param flags Special options for this operation
+   * @return true if the value was put, false if MDB_NOOVERWRITE or MDB_NODUPDATA were set and the
+   *     key/value existed already.
+   * @deprecated Use {@link Dbi#put(Txn, Object, Object, PutFlagSet)} instead, with a statically
+   *     held {@link PutFlagSet}. <hr>
+   *     <p>Store a key/value pair in the database.
+   *     <p>This function stores key/data pairs in the database. The default behavior is to enter
+   *     the new key/data pair, replacing any previously existing key if duplicates are disallowed,
+   *     or adding a duplicate data item if duplicates are allowed ({@link DbiFlags#MDB_DUPSORT}).
+   */
+  @Deprecated
+  public boolean put(final Txn<T> txn, final T key, final T val, final PutFlags... flags) {
+    return put(txn, key, val, PutFlagSet.of(flags));
+  }
+
+  /**
+   * Store a key/value pair in the database.
+   *
+   * @param txn transaction handle (not null; not committed; must be R-W)
+   * @param key key to store in the database (not null)
+   * @param val value to store in the database (not null)
+   * @return true if the value was put, false if MDB_NOOVERWRITE or MDB_NODUPDATA were set and the
+   *     key/value existed already.
+   * @see #put(Txn, Object, Object, PutFlagSet)
+   */
+  public boolean put(final Txn<T> txn, final T key, final T val) {
+    return put(txn, key, val, PutFlagSet.EMPTY);
   }
 
   /**
@@ -413,11 +501,11 @@ public final class Dbi<T> {
    * @param txn transaction handle (not null; not committed; must be R-W)
    * @param key key to store in the database (not null)
    * @param val value to store in the database (not null)
-   * @param flags Special options for this operation
+   * @param flags Special options for this operation.
    * @return true if the value was put, false if MDB_NOOVERWRITE or MDB_NODUPDATA were set and the
    *     key/value existed already.
    */
-  public boolean put(final Txn<T> txn, final T key, final T val, final PutFlags... flags) {
+  public boolean put(final Txn<T> txn, final T key, final T val, final PutFlagSet flags) {
     if (SHOULD_CHECK) {
       requireNonNull(txn);
       requireNonNull(key);
@@ -426,15 +514,16 @@ public final class Dbi<T> {
       txn.checkReady();
       txn.checkWritesAllowed();
     }
+    final PutFlagSet flagSet = flags != null ? flags : PutFlagSet.empty();
     final Pointer transientKey = txn.kv().keyIn(key);
     final Pointer transientVal = txn.kv().valIn(val);
-    final int mask = mask(true, flags);
     final int rc =
-        LIB.mdb_put(txn.pointer(), ptr, txn.kv().pointerKey(), txn.kv().pointerVal(), mask);
+        LIB.mdb_put(
+            txn.pointer(), ptr, txn.kv().pointerKey(), txn.kv().pointerVal(), flagSet.getMask());
     if (rc == MDB_KEYEXIST) {
-      if (isSet(mask, MDB_NOOVERWRITE)) {
+      if (flagSet.isSet(MDB_NOOVERWRITE)) {
         txn.kv().valOut(); // marked as in,out in LMDB C docs
-      } else if (!isSet(mask, MDB_NODUPDATA)) {
+      } else if (!flagSet.isSet(MDB_NODUPDATA)) {
         checkRc(rc);
       }
       return false;
@@ -472,7 +561,7 @@ public final class Dbi<T> {
     }
     final Pointer transientKey = txn.kv().keyIn(key);
     final Pointer transientVal = txn.kv().valIn(size);
-    final int flags = mask(true, op) | MDB_RESERVE.getMask();
+    final int flags = mask(op) | MDB_RESERVE.getMask();
     checkRc(LIB.mdb_put(txn.pointer(), ptr, txn.kv().pointerKey(), txn.kv().pointerVal(), flags));
     txn.kv().valOut(); // marked as in,out in LMDB C docs
     ReferenceUtil.reachabilityFence0(transientKey);
@@ -509,6 +598,17 @@ public final class Dbi<T> {
       return;
     }
     cleaned = true;
+  }
+
+  @Override
+  public String toString() {
+    String name;
+    try {
+      name = getNameAsString();
+    } catch (Exception e) {
+      name = "?";
+    }
+    return "Dbi{" + "name='" + name + "', dbiFlagSet=" + dbiFlagSet + '}';
   }
 
   /** The specified DBI was changed unexpectedly. */

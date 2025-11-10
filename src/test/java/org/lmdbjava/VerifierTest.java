@@ -16,7 +16,6 @@
 
 package org.lmdbjava;
 
-import static com.jakewharton.byteunits.BinaryByteUnit.MEBIBYTES;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.lmdbjava.Env.create;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
@@ -37,8 +36,9 @@ public final class VerifierTest {
           create()
               .setMaxReaders(1)
               .setMaxDbs(Verifier.DBI_COUNT)
-              .setMapSize(MEBIBYTES.toBytes(10))
-              .open(file.toFile(), MDB_NOSUBDIR)) {
+              .setMapSize(10, ByteUnit.MEBIBYTES)
+              .setEnvFlags(MDB_NOSUBDIR)
+              .open(file)) {
         final Verifier v = new Verifier(env);
         final int seconds = Integer.getInteger("verificationSeconds", 2);
         assertThat(v.runFor(seconds, TimeUnit.SECONDS)).isGreaterThan(1L);

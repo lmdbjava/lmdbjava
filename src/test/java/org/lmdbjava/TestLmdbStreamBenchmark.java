@@ -1,6 +1,5 @@
 package org.lmdbjava;
 
-import static com.jakewharton.byteunits.BinaryByteUnit.GIBIBYTES;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
@@ -50,12 +49,11 @@ public class TestLmdbStreamBenchmark {
   @Test
   void testForwardRange() throws IOException {
     dbDir = Files.createTempDirectory("lmdb");
-    env = Env.create().setMapSize(GIBIBYTES.toBytes(100)).open(dbDir.toFile());
+    env = Env.create().setMapSize(100, ByteUnit.GIBIBYTES).open(dbDir);
 
     dbi =
         env.openDbi(
             "test".getBytes(StandardCharsets.UTF_8),
-            ByteBufferProxy.AbstractByteBufferProxy::compareBuff,
             DbiFlags.MDB_CREATE);
     final ByteBuffer key = ByteBuffer.allocateDirect(Integer.BYTES + Integer.BYTES);
     final ByteBuffer value = ByteBuffer.allocateDirect(0);
@@ -130,12 +128,11 @@ public class TestLmdbStreamBenchmark {
   void testIterationMethods() throws IOException {
     //        System.setProperty(Env.DISABLE_CHECKS_PROP, "true");
     dbDir = Files.createTempDirectory("lmdb");
-    env = Env.create().setMapSize(GIBIBYTES.toBytes(10)).open(dbDir.toFile());
+    env = Env.create().setMapSize(10, ByteUnit.GIBIBYTES).open(dbDir);
 
     dbi =
         env.openDbi(
             "test".getBytes(StandardCharsets.UTF_8),
-            ByteBufferProxy.AbstractByteBufferProxy::compareBuff,
             DbiFlags.MDB_CREATE);
     writeData();
 

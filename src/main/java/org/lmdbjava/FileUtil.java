@@ -31,7 +31,7 @@ final class FileUtil {
 
   private FileUtil() {}
 
-  public static long size(final Path path) {
+  static long size(final Path path) {
     try {
       return Files.size(path);
     } catch (final IOException e) {
@@ -39,7 +39,7 @@ final class FileUtil {
     }
   }
 
-  public static void deleteFile(final Path path) {
+  static void deleteFile(final Path path) {
     try {
       Files.delete(path);
     } catch (final IOException e) {
@@ -47,7 +47,7 @@ final class FileUtil {
     }
   }
 
-  public static void deleteDir(final Path path) {
+  static void deleteDir(final Path path) {
     if (path != null && Files.isDirectory(path)) {
       recursiveDelete(path);
       deleteIfExists(path);
@@ -102,7 +102,7 @@ final class FileUtil {
     }
   }
 
-  public static long count(final Path path) {
+  static long count(final Path path) {
     try (final Stream<Path> stream = Files.list(path)) {
       return stream.count();
     } catch (final IOException e) {

@@ -16,7 +16,6 @@
 
 package org.lmdbjava;
 
-import static com.jakewharton.byteunits.BinaryByteUnit.KIBIBYTES;
 import static java.nio.ByteBuffer.allocateDirect;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.lmdbjava.DbiFlags.*;
@@ -60,7 +59,7 @@ public final class LmdbStreamRangeTest {
   void testUnsignedComparator(
       final String keyType, final String startKey, final String stopKey, final String expectedKV) {
     testCSV(
-        AbstractByteBufferProxy::compareBuff,
+        AbstractByteBufferProxy::compareLexicographically,
         false,
         createBasicDBPopulator(),
         EnumSet.of(MDB_CREATE),
@@ -90,7 +89,7 @@ public final class LmdbStreamRangeTest {
   void testUnsignedComparatorDupsort(
       final String keyType, final String startKey, final String stopKey, final String expectedKV) {
     testCSV(
-        AbstractByteBufferProxy::compareBuff,
+        AbstractByteBufferProxy::compareLexicographically,
         false,
         createMultiDBPopulator(2),
         EnumSet.of(MDB_CREATE, MDB_DUPSORT),
@@ -105,7 +104,7 @@ public final class LmdbStreamRangeTest {
   void testIntegerKey(
       final String keyType, final String startKey, final String stopKey, final String expectedKV) {
     testCSV(
-        AbstractByteBufferProxy::compareBuff,
+        AbstractByteBufferProxy::compareAsIntegerKeys,
         false,
         createIntegerDBPopulator(),
         EnumSet.of(MDB_CREATE, MDB_INTEGERKEY),
@@ -122,7 +121,7 @@ public final class LmdbStreamRangeTest {
   void testLongKey(
       final String keyType, final String startKey, final String stopKey, final String expectedKV) {
     testCSV(
-        AbstractByteBufferProxy::compareBuff,
+        AbstractByteBufferProxy::compareAsIntegerKeys,
         false,
         createLongDBPopulator(),
         EnumSet.of(MDB_CREATE, MDB_INTEGERKEY),
@@ -171,10 +170,11 @@ public final class LmdbStreamRangeTest {
       final Path file = tempDir.createTempFile();
       try (final Env<ByteBuffer> env =
           create()
-              .setMapSize(KIBIBYTES.toBytes(256))
+              .setMapSize(256, ByteUnit.KIBIBYTES)
               .setMaxReaders(1)
               .setMaxDbs(1)
-              .open(file.toFile(), POSIX_MODE, MDB_NOSUBDIR)) {
+                  .setEnvFlags(MDB_NOSUBDIR)
+              .open(file)) {
         final Dbi<ByteBuffer> dbi =
             env.openDbi(DB_1, comparator, nativeCb, flags.toArray(new DbiFlags[0]));
         dbPopulator.accept(env, dbi);
@@ -190,7 +190,7 @@ public final class LmdbStreamRangeTest {
                 kv -> {
                   try {
                     final long key = getLong(kv.key(), byteOrder);
-                    final long val = getLong(kv.val(), byteOrder);
+                    final long val = getLong(kv.val(), ByteOrder.BIG_ENDIAN);
                     writer.append("[");
                     writer.append(String.valueOf(key));
                     writer.append(" ");
@@ -273,11 +273,11 @@ public final class LmdbStreamRangeTest {
     return (env, dbi) -> {
       try (Txn<ByteBuffer> txn = env.txnWrite()) {
         final Cursor<ByteBuffer> c = dbi.openCursor(txn);
-        c.put(bbLeInt(Integer.MIN_VALUE), bb(1));
-        c.put(bbLeInt(-1000), bb(2));
-        c.put(bbLeInt(0), bb(3));
-        c.put(bbLeInt(1000), bb(4));
-        c.put(bbLeInt(Integer.MAX_VALUE), bb(5));
+        c.put(bbLeInt(0), bb(1));
+        c.put(bbLeInt(1000), bb(2));
+        c.put(bbLeInt(1000000), bb(3));
+        c.put(bbLeInt(-1000000), bb(4));
+        c.put(bbLeInt(-1000), bb(5));
         txn.commit();
       }
     };
@@ -287,11 +287,11 @@ public final class LmdbStreamRangeTest {
     return (env, dbi) -> {
       try (Txn<ByteBuffer> txn = env.txnWrite()) {
         final Cursor<ByteBuffer> c = dbi.openCursor(txn);
-        c.put(bbLeLong(Long.MIN_VALUE), bb(1));
-        c.put(bbLeLong(-1000), bb(2));
-        c.put(bbLeLong(0), bb(3));
-        c.put(bbLeLong(1000), bb(4));
-        c.put(bbLeLong(Long.MAX_VALUE), bb(5));
+        c.put(bbLeLong(0), bb(1));
+        c.put(bbLeLong(1000), bb(2));
+        c.put(bbLeLong(1000000), bb(3));
+        c.put(bbLeLong(-1000000), bb(4));
+        c.put(bbLeLong(-1000), bb(5));
         txn.commit();
       }
     };
