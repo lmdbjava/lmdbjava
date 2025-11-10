@@ -15,8 +15,11 @@
  */
 package org.lmdbjava;
 
+import java.util.EnumSet;
+import java.util.Set;
+
 /** Flags for use when opening a {@link Dbi}. */
-public enum DbiFlags implements MaskedFlag {
+public enum DbiFlags implements MaskedFlag, DbiFlagSet {
 
   /**
    * Use reverse string keys.
@@ -29,13 +32,24 @@ public enum DbiFlags implements MaskedFlag {
    * Use sorted duplicates.
    *
    * <p>Duplicate keys may be used in the database. Or, from another perspective, keys may have
-   * multiple data items, stored in sorted order. By default keys must be unique and may have only a
-   * single data item.
+   * multiple data items, stored in sorted order. By default, keys must be unique and may have only
+   * a single data item.
    */
   MDB_DUPSORT(0x04),
   /**
-   * Numeric keys in native byte order: either unsigned int or size_t. The keys must all be of the
-   * same size.
+   * Numeric keys in native byte order: either unsigned int or size_t. <strong>The keys must all be
+   * of the same size.</strong>
+   *
+   * <p>This is an optimisation that is available when your keys are 4 or 8 byte unsigned numeric
+   * values. There are performance benefits for both ordered and un-ordered puts as compared to not
+   * using this flag.
+   *
+   * <p>When writing the key to the buffer you must write it in native order and subsequently read
+   * any keys retrieved from LMDB (via cursor or get method) also using native order.
+   *
+   * <p>For more information, see <a
+   * href="https://github.com/lmdbjava/lmdbjava/wiki/Keys#numeric-keys">Numeric Keys</a> in the
+   * LmdbJava wiki.
    */
   MDB_INTEGERKEY(0x08),
   /**
@@ -56,14 +70,6 @@ public enum DbiFlags implements MaskedFlag {
    */
   MDB_INTEGERDUP(0x20),
   /**
-   * Compare the <b>numeric</b> keys in native byte order and as unsigned.
-   *
-   * <p>This option is applied only to {@link java.nio.ByteBuffer}, {@link org.agrona.DirectBuffer}
-   * and byte array keys. {@link io.netty.buffer.ByteBuf} keys are always compared in native byte
-   * order and as unsigned.
-   */
-  MDB_UNSIGNEDKEY(0x30, false),
-  /**
    * With {@link #MDB_DUPSORT}, use reverse string dups.
    *
    * <p>This option specifies that duplicate data items should be compared as strings in reverse
@@ -78,15 +84,9 @@ public enum DbiFlags implements MaskedFlag {
   MDB_CREATE(0x4_0000);
 
   private final int mask;
-  private final boolean propagatedToLmdb;
-
-  DbiFlags(final int mask, final boolean propagatedToLmdb) {
-    this.mask = mask;
-    this.propagatedToLmdb = propagatedToLmdb;
-  }
 
   DbiFlags(final int mask) {
-    this(mask, true);
+    this.mask = mask;
   }
 
   @Override
@@ -95,7 +95,27 @@ public enum DbiFlags implements MaskedFlag {
   }
 
   @Override
-  public boolean isPropagatedToLmdb() {
-    return propagatedToLmdb;
+  public Set<DbiFlags> getFlags() {
+    return EnumSet.of(this);
+  }
+
+  @Override
+  public boolean isSet(final DbiFlags flag) {
+    return flag != null && mask == flag.getMask();
+  }
+
+  @Override
+  public int size() {
+    return 1;
+  }
+
+  @Override
+  public boolean isEmpty() {
+    return false;
+  }
+
+  @Override
+  public String toString() {
+    return FlagSet.asString(this);
   }
 }

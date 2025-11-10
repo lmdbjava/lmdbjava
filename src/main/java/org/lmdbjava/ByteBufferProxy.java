@@ -27,6 +27,7 @@ import static org.lmdbjava.UnsafeAccess.UNSAFE;
 import java.lang.reflect.Field;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.ArrayDeque;
 import java.util.Comparator;
 import jnr.ffi.Pointer;
@@ -56,6 +57,8 @@ public final class ByteBufferProxy {
 
   /** The safe, reflective {@link ByteBuffer} proxy for this system. Guaranteed to never be null. */
   public static final BufferProxy<ByteBuffer> PROXY_SAFE;
+
+  private static final ByteOrder NATIVE_ORDER = ByteOrder.nativeOrder();
 
   static {
     PROXY_SAFE = new ReflectiveProxy();
@@ -92,16 +95,6 @@ public final class ByteBufferProxy {
     protected static final String FIELD_NAME_ADDRESS = "address";
     protected static final String FIELD_NAME_CAPACITY = "capacity";
 
-    private static final Comparator<ByteBuffer> signedComparator =
-        (o1, o2) -> {
-          requireNonNull(o1);
-          requireNonNull(o2);
-
-          return o1.compareTo(o2);
-        };
-    private static final Comparator<ByteBuffer> unsignedComparator =
-        AbstractByteBufferProxy::compareBuff;
-
     /**
      * A thread-safe pool for a given length. If the buffer found is valid (ie not of a negative
      * length) then that buffer is used. If no valid buffer is found, a new buffer is created.
@@ -116,7 +109,7 @@ public final class ByteBufferProxy {
      * @param o2 right operand (required)
      * @return as specified by {@link Comparable} interface
      */
-    public static int compareBuff(final ByteBuffer o1, final ByteBuffer o2) {
+    public static int compareLexicographically(final ByteBuffer o1, final ByteBuffer o2) {
       requireNonNull(o1);
       requireNonNull(o2);
 
@@ -144,6 +137,92 @@ public final class ByteBufferProxy {
       }
 
       return o1.remaining() - o2.remaining();
+    }
+
+    /**
+     * Lexicographically compare two buffers up to a common length.
+     *
+     * @param o1 left operand (required)
+     * @param o2 right operand (required)
+     * @param length The length of each buffer to compare.
+     * @return as specified by {@link Comparable} interface
+     */
+    public static int compareLexicographically(
+        final ByteBuffer o1, final ByteBuffer o2, final int length) {
+      requireNonNull(o1);
+      requireNonNull(o2);
+      final int minWords = length / Long.BYTES;
+
+      final boolean reverse1 = o1.order() == LITTLE_ENDIAN;
+      final boolean reverse2 = o2.order() == LITTLE_ENDIAN;
+      for (int i = 0; i < minWords * Long.BYTES; i += Long.BYTES) {
+        final long lw = reverse1 ? reverseBytes(o1.getLong(i)) : o1.getLong(i);
+        final long rw = reverse2 ? reverseBytes(o2.getLong(i)) : o2.getLong(i);
+        final int diff = Long.compareUnsigned(lw, rw);
+        if (diff != 0) {
+          return diff;
+        }
+      }
+
+      for (int i = minWords * Long.BYTES; i < length; i++) {
+        final int lw = Byte.toUnsignedInt(o1.get(i));
+        final int rw = Byte.toUnsignedInt(o2.get(i));
+        final int result = Integer.compareUnsigned(lw, rw);
+        if (result != 0) {
+          return result;
+        }
+      }
+
+      return 0;
+    }
+
+    /**
+     * Buffer comparator specifically for 4/8 byte keys that are unsigned ints/longs, i.e. when
+     * using MDB_INTEGER_KEY/MDB_INTEGERDUP. Compares the buffers numerically.
+     *
+     * @param o1 left operand (required)
+     * @param o2 right operand (required)
+     * @return as specified by {@link Comparable} interface
+     */
+    public static int compareAsIntegerKeys(final ByteBuffer o1, final ByteBuffer o2) {
+      requireNonNull(o1);
+      requireNonNull(o2);
+      // Both buffers should be same length according to LMDB API.
+      // From the LMDB docs for MDB_INTEGER_KEY
+      // numeric keys in native byte order: either unsigned int or size_t. The keys must all be of
+      // the same size.
+      final int len1 = o1.limit();
+      final int len2 = o2.limit();
+      if (len1 != len2) {
+        throw new RuntimeException(
+            "Length mismatch, len1: "
+                + len1
+                + ", len2: "
+                + len2
+                + ". Lengths must be identical and either 4 or 8 bytes.");
+      }
+      // Keys for MDB_INTEGER_KEY are written in native order so ensure we read them in that order
+      o1.order(NATIVE_ORDER);
+      o2.order(NATIVE_ORDER);
+      // TODO it might be worth the DbiBuilder having a method to capture fixedKeyLength() or -1
+      //  for variable length keys. This can be passed to getComparator(..) so it can return a
+      //  comparator that doesn't need to test the length every time. There may be other benefits
+      //  to the Dbi knowing the key length if it is fixed.
+      if (len1 == 8) {
+        final long lw = o1.getLong(0);
+        final long rw = o2.getLong(0);
+        return Long.compareUnsigned(lw, rw);
+      } else if (len1 == 4) {
+        final int lw = o1.getInt(0);
+        final int rw = o2.getInt(0);
+        return Integer.compareUnsigned(lw, rw);
+      } else {
+        // size_t and int are likely to be 8bytes and 4bytes respectively on 64bit.
+        // If 32bit then would be 4/2 respectively.
+        // Short.compareUnsigned is not available in Java8.
+        // For now just fall back to our standard comparator
+        return compareLexicographically(o1, o2);
+      }
     }
 
     static Field findField(final Class<?> c, final String name) {
@@ -180,13 +259,12 @@ public final class ByteBufferProxy {
     }
 
     @Override
-    protected Comparator<ByteBuffer> getSignedComparator() {
-      return signedComparator;
-    }
-
-    @Override
-    protected Comparator<ByteBuffer> getUnsignedComparator() {
-      return unsignedComparator;
+    public Comparator<ByteBuffer> getComparator(final DbiFlagSet dbiFlagSet) {
+      if (dbiFlagSet.areAnySet(DbiFlagSet.INTEGER_KEY_FLAGS)) {
+        return AbstractByteBufferProxy::compareAsIntegerKeys;
+      } else {
+        return AbstractByteBufferProxy::compareLexicographically;
+      }
     }
 
     @Override
@@ -201,6 +279,61 @@ public final class ByteBufferProxy {
       final byte[] dest = new byte[buffer.limit()];
       buffer.get(dest, 0, buffer.limit());
       return dest;
+    }
+
+    @Override
+    boolean containsPrefix(final ByteBuffer buffer, final ByteBuffer prefixBuffer) {
+      if (buffer.remaining() < prefixBuffer.remaining()) {
+        return false;
+      }
+
+      // TODO : Use mismatch after upgrade beyond Java 11.
+      //      final int pos =  prefixBuffer.mismatch(buffer);
+      //      return pos == -1 || pos == prefixBuffer.limit();
+
+      // We don't care about signed or unsigned since we are checking for equality.
+      return compareLexicographically(buffer, prefixBuffer, prefixBuffer.remaining()) == 0;
+    }
+
+    @Override
+    ByteBuffer incrementLeastSignificantByte(final ByteBuffer buffer) {
+      if (buffer == null || buffer.remaining() == 0) {
+        return null;
+      }
+
+      if (LITTLE_ENDIAN.equals(buffer.order())) {
+        // Start from the least significant byte (closest to start)
+        for (int i = buffer.position(); i < buffer.limit(); i++) {
+          final byte b = buffer.get(i);
+
+          // Check if byte is not at max unsigned value (0xFF = 255 = -1 in signed)
+          if (b != (byte) 0xFF) {
+            final ByteBuffer oneBigger = ByteBuffer.allocateDirect(buffer.remaining());
+            oneBigger.put(buffer.duplicate());
+            oneBigger.flip();
+            oneBigger.put(i - buffer.position(), (byte) (b + 1));
+            return oneBigger;
+          }
+        }
+
+      } else {
+        // Start from the least significant byte (closest to limit)
+        for (int i = buffer.limit() - 1; i >= buffer.position(); i--) {
+          final byte b = buffer.get(i);
+
+          // Check if byte is not at max unsigned value (0xFF = 255 = -1 in signed)
+          if (b != (byte) 0xFF) {
+            final ByteBuffer oneBigger = ByteBuffer.allocateDirect(buffer.remaining());
+            oneBigger.put(buffer.duplicate());
+            oneBigger.flip();
+            oneBigger.put(i - buffer.position(), (byte) (b + 1));
+            return oneBigger;
+          }
+        }
+      }
+
+      // All bytes are at maximum value
+      return null;
     }
   }
 

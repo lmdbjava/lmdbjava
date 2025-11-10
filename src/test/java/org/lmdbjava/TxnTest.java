@@ -16,7 +16,6 @@
 
 package org.lmdbjava;
 
-import static com.jakewharton.byteunits.BinaryByteUnit.KIBIBYTES;
 import static java.nio.ByteBuffer.allocateDirect;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -27,7 +26,6 @@ import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.EnvFlags.MDB_RDONLY_ENV;
 import static org.lmdbjava.KeyRange.closed;
 import static org.lmdbjava.TestUtils.DB_1;
-import static org.lmdbjava.TestUtils.POSIX_MODE;
 import static org.lmdbjava.TestUtils.bb;
 import static org.lmdbjava.Txn.State.DONE;
 import static org.lmdbjava.Txn.State.READY;
@@ -35,7 +33,6 @@ import static org.lmdbjava.Txn.State.RELEASED;
 import static org.lmdbjava.Txn.State.RESET;
 import static org.lmdbjava.TxnFlags.MDB_RDONLY_TXN;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -60,25 +57,29 @@ public final class TxnTest {
   private Path file;
   private Env<ByteBuffer> env;
 
+  private TempDir tempDir;
+
   @BeforeEach
   void beforeEach() {
-    file = FileUtil.createTempFile();
+    tempDir = new TempDir();
+    file = tempDir.createTempFile();
     env =
         create()
-            .setMapSize(KIBIBYTES.toBytes(256))
+            .setMapSize(256, ByteUnit.KIBIBYTES)
             .setMaxReaders(1)
             .setMaxDbs(2)
-            .open(file.toFile(), POSIX_MODE, MDB_NOSUBDIR);
+            .setEnvFlags(MDB_NOSUBDIR)
+            .open(file);
   }
 
   @AfterEach
   void afterEach() {
     env.close();
-    FileUtil.delete(file);
+    tempDir.cleanup();
   }
 
   @Test
-  void largeKeysRejected() throws IOException {
+  void largeKeysRejected() {
     assertThatThrownBy(
             () -> {
               final Dbi<ByteBuffer> dbi = env.openDbi(DB_1, MDB_CREATE);
@@ -127,7 +128,7 @@ public final class TxnTest {
   void readOnlyTxnAllowedInReadOnlyEnv() {
     env.openDbi(DB_1, MDB_CREATE);
     try (Env<ByteBuffer> roEnv =
-        create().setMaxReaders(1).open(file.toFile(), MDB_NOSUBDIR, MDB_RDONLY_ENV)) {
+        create().setMaxReaders(1).setEnvFlags(MDB_NOSUBDIR, MDB_RDONLY_ENV).open(file)) {
       assertThat(roEnv.txnRead()).isNotNull();
     }
   }
@@ -139,7 +140,7 @@ public final class TxnTest {
               env.openDbi(DB_1, MDB_CREATE);
               env.close();
               try (Env<ByteBuffer> roEnv =
-                  create().setMaxReaders(1).open(file.toFile(), MDB_NOSUBDIR, MDB_RDONLY_ENV)) {
+                  create().setMaxReaders(1).setEnvFlags(MDB_NOSUBDIR, MDB_RDONLY_ENV).open(file)) {
                 roEnv.txnWrite(); // error
               }
             })

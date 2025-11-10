@@ -46,7 +46,7 @@ public enum KeyRangeType {
    *
    * <p>In our example, the returned keys would be 2, 4, 6 and 8.
    */
-  FORWARD_ALL(true, false, false),
+  FORWARD_ALL(true, false, false, false, false),
   /**
    * Start on the passed key (or the first key immediately after it) and iterate forward until no
    * keys remain.
@@ -56,7 +56,7 @@ public enum KeyRangeType {
    * <p>In our example and with a passed search key of 5, the returned keys would be 6 and 8. With a
    * passed key of 6, the returned keys would be 6 and 8.
    */
-  FORWARD_AT_LEAST(true, true, false),
+  FORWARD_AT_LEAST(true, true, true, false, false),
   /**
    * Start on the first key and iterate forward until a key equal to it (or the first key
    * immediately after it) is reached.
@@ -66,7 +66,7 @@ public enum KeyRangeType {
    * <p>In our example and with a passed search key of 5, the returned keys would be 2 and 4. With a
    * passed key of 6, the returned keys would be 2, 4 and 6.
    */
-  FORWARD_AT_MOST(true, false, true),
+  FORWARD_AT_MOST(true, false, false, true, true),
   /**
    * Iterate forward between the passed keys, matching on the first keys directly equal to the
    * passed key (or immediately following it in the case of the "start" key, or immediately
@@ -77,7 +77,7 @@ public enum KeyRangeType {
    * <p>In our example and with a passed search range of 3 - 7, the returned keys would be 4 and 6.
    * With a range of 2 - 6, the keys would be 2, 4 and 6.
    */
-  FORWARD_CLOSED(true, true, true),
+  FORWARD_CLOSED(true, true, true, true, true),
   /**
    * Iterate forward between the passed keys, matching on the first keys directly equal to the
    * passed key (or immediately following it in the case of the "start" key, or immediately
@@ -88,7 +88,7 @@ public enum KeyRangeType {
    * <p>In our example and with a passed search range of 3 - 8, the returned keys would be 4 and 6.
    * With a range of 2 - 6, the keys would be 2 and 4.
    */
-  FORWARD_CLOSED_OPEN(true, true, true),
+  FORWARD_CLOSED_OPEN(true, true, true, true, false),
   /**
    * Start after the passed key (but not equal to it) and iterate forward until no keys remain.
    *
@@ -97,7 +97,7 @@ public enum KeyRangeType {
    * <p>In our example and with a passed search key of 4, the returned keys would be 6 and 8. With a
    * passed key of 3, the returned keys would be 4, 6 and 8.
    */
-  FORWARD_GREATER_THAN(true, true, false),
+  FORWARD_GREATER_THAN(true, true, false, false, false),
   /**
    * Start on the first key and iterate forward until a key the passed key has been reached (but do
    * not return that key).
@@ -107,7 +107,7 @@ public enum KeyRangeType {
    * <p>In our example and with a passed search key of 5, the returned keys would be 2 and 4. With a
    * passed key of 8, the returned keys would be 2, 4 and 6.
    */
-  FORWARD_LESS_THAN(true, false, true),
+  FORWARD_LESS_THAN(true, false, false, true, false),
   /**
    * Iterate forward between the passed keys but not equal to either of them.
    *
@@ -116,7 +116,7 @@ public enum KeyRangeType {
    * <p>In our example and with a passed search range of 3 - 7, the returned keys would be 4 and 6.
    * With a range of 2 - 8, the key would be 4 and 6.
    */
-  FORWARD_OPEN(true, true, true),
+  FORWARD_OPEN(true, true, false, true, false),
   /**
    * Iterate forward between the passed keys. Do not return the "start" key, but do return the
    * "stop" key.
@@ -126,7 +126,7 @@ public enum KeyRangeType {
    * <p>In our example and with a passed search range of 3 - 8, the returned keys would be 4, 6 and
    * 8. With a range of 2 - 6, the keys would be 4 and 6.
    */
-  FORWARD_OPEN_CLOSED(true, true, true),
+  FORWARD_OPEN_CLOSED(true, true, false, true, true),
   /**
    * Start on the last key and iterate backward until no keys remain.
    *
@@ -134,7 +134,7 @@ public enum KeyRangeType {
    *
    * <p>In our example, the returned keys would be 8, 6, 4 and 2.
    */
-  BACKWARD_ALL(false, false, false),
+  BACKWARD_ALL(false, false, false, false, false),
   /**
    * Start on the passed key (or the first key immediately preceding it) and iterate backward until
    * no keys remain.
@@ -145,7 +145,7 @@ public enum KeyRangeType {
    * passed key of 6, the returned keys would be 6, 4 and 2. With a passed key of 9, the returned
    * keys would be 8, 6, 4 and 2.
    */
-  BACKWARD_AT_LEAST(false, true, false),
+  BACKWARD_AT_LEAST(false, true, true, false, false),
   /**
    * Start on the last key and iterate backward until a key equal to it (or the first key
    * immediately preceding it it) is reached.
@@ -155,7 +155,7 @@ public enum KeyRangeType {
    * <p>In our example and with a passed search key of 5, the returned keys would be 8 and 6. With a
    * passed key of 6, the returned keys would be 8 and 6.
    */
-  BACKWARD_AT_MOST(false, false, true),
+  BACKWARD_AT_MOST(false, false, false, true, true),
   /**
    * Iterate backward between the passed keys, matching on the first keys directly equal to the
    * passed key (or immediately preceding it in the case of the "start" key, or immediately
@@ -167,7 +167,7 @@ public enum KeyRangeType {
    * With a range of 6 - 2, the keys would be 6, 4 and 2. With a range of 9 - 3, the returned keys
    * would be 8, 6 and 4.
    */
-  BACKWARD_CLOSED(false, true, true),
+  BACKWARD_CLOSED(false, true, true, true, true),
   /**
    * Iterate backward between the passed keys, matching on the first keys directly equal to the
    * passed key (or immediately preceding it in the case of the "start" key, or immediately
@@ -179,7 +179,7 @@ public enum KeyRangeType {
    * 4. With a range of 7 - 2, the keys would be 6 and 4. With a range of 9 - 3, the keys would be
    * 8, 6 and 4.
    */
-  BACKWARD_CLOSED_OPEN(false, true, true),
+  BACKWARD_CLOSED_OPEN(false, true, true, true, false),
   /**
    * Start immediate prior to the passed key (but not equal to it) and iterate backward until no
    * keys remain.
@@ -190,7 +190,7 @@ public enum KeyRangeType {
    * passed key of 7, the returned keys would be 6, 4 and 2. With a passed key of 9, the returned
    * keys would be 8, 6, 4 and 2.
    */
-  BACKWARD_GREATER_THAN(false, true, false),
+  BACKWARD_GREATER_THAN(false, true, false, false, false),
   /**
    * Start on the last key and iterate backward until the last key greater than the passed "stop"
    * key is reached. Do not return the "stop" key.
@@ -200,7 +200,7 @@ public enum KeyRangeType {
    * <p>In our example and with a passed search key of 5, the returned keys would be 8 and 6. With a
    * passed key of 2, the returned keys would be 8, 6 and 4
    */
-  BACKWARD_LESS_THAN(false, false, true),
+  BACKWARD_LESS_THAN(false, false, false, true, false),
   /**
    * Iterate backward between the passed keys, but do not return the passed keys.
    *
@@ -210,7 +210,7 @@ public enum KeyRangeType {
    * With a range of 8 - 1, the keys would be 6, 4 and 2. With a range of 9 - 4, the keys would be 8
    * and 6.
    */
-  BACKWARD_OPEN(false, true, true),
+  BACKWARD_OPEN(false, true, false, true, false),
   /**
    * Iterate backward between the passed keys. Do not return the "start" key, but do return the
    * "stop" key.
@@ -221,19 +221,25 @@ public enum KeyRangeType {
    * 2. With a range of 8 - 4, the keys would be 6 and 4. With a range of 9 - 4, the keys would be
    * 8, 6 and 4.
    */
-  BACKWARD_OPEN_CLOSED(false, true, true);
+  BACKWARD_OPEN_CLOSED(false, true, false, true, true);
 
   private final boolean directionForward;
   private final boolean startKeyRequired;
+  private final boolean startKeyInclusive;
   private final boolean stopKeyRequired;
+  private final boolean stopKeyInclusive;
 
   KeyRangeType(
       final boolean directionForward,
       final boolean startKeyRequired,
-      final boolean stopKeyRequired) {
+      final boolean startKeyInclusive,
+      final boolean stopKeyRequired,
+      final boolean stopKeyInclusive) {
     this.directionForward = directionForward;
     this.startKeyRequired = startKeyRequired;
+    this.startKeyInclusive = startKeyInclusive;
     this.stopKeyRequired = stopKeyRequired;
+    this.stopKeyInclusive = stopKeyInclusive;
   }
 
   /**
@@ -255,12 +261,32 @@ public enum KeyRangeType {
   }
 
   /**
+   * Is the start key to be treated as inclusive in the range.
+   *
+   * @return true if start key is inclusive. False if not inclusive or no start key is required by
+   *     the range type.
+   */
+  public boolean isStartKeyInclusive() {
+    return startKeyInclusive;
+  }
+
+  /**
    * Whether the iteration requires a "stop" key.
    *
    * @return true if stop key must be non-null
    */
   public boolean isStopKeyRequired() {
     return stopKeyRequired;
+  }
+
+  /**
+   * Is the stop key to be treated as inclusive in the range.
+   *
+   * @return true if stop key is inclusive. False if not inclusive or no stop key is required by the
+   *     range type.
+   */
+  public boolean isStopKeyInclusive() {
+    return stopKeyInclusive;
   }
 
   /**
@@ -319,15 +345,13 @@ public enum KeyRangeType {
    *
    * @param <T> buffer type
    * @param <C> comparator for the buffers
-   * @param start start buffer
-   * @param stop stop buffer
    * @param buffer current key returned by LMDB (may be null)
-   * @param c comparator (required)
+   * @param rangeComparator comparator (required)
    * @return response to this key
    */
   <T, C extends Comparator<T>> IteratorOp iteratorOp(
-      final T start, final T stop, final T buffer, final C c) {
-    requireNonNull(c, "Comparator required");
+      final T buffer, final RangeComparator rangeComparator) {
+    requireNonNull(rangeComparator, "Comparator required");
     if (buffer == null) {
       return TERMINATE;
     }
@@ -337,55 +361,55 @@ public enum KeyRangeType {
       case FORWARD_AT_LEAST:
         return RELEASE;
       case FORWARD_AT_MOST:
-        return c.compare(buffer, stop) > 0 ? TERMINATE : RELEASE;
+        return rangeComparator.compareToStopKey() > 0 ? TERMINATE : RELEASE;
       case FORWARD_CLOSED:
-        return c.compare(buffer, stop) > 0 ? TERMINATE : RELEASE;
+        return rangeComparator.compareToStopKey() > 0 ? TERMINATE : RELEASE;
       case FORWARD_CLOSED_OPEN:
-        return c.compare(buffer, stop) >= 0 ? TERMINATE : RELEASE;
+        return rangeComparator.compareToStopKey() >= 0 ? TERMINATE : RELEASE;
       case FORWARD_GREATER_THAN:
-        return c.compare(buffer, start) == 0 ? CALL_NEXT_OP : RELEASE;
+        return rangeComparator.compareToStartKey() == 0 ? CALL_NEXT_OP : RELEASE;
       case FORWARD_LESS_THAN:
-        return c.compare(buffer, stop) >= 0 ? TERMINATE : RELEASE;
+        return rangeComparator.compareToStopKey() >= 0 ? TERMINATE : RELEASE;
       case FORWARD_OPEN:
-        if (c.compare(buffer, start) == 0) {
+        if (rangeComparator.compareToStartKey() == 0) {
           return CALL_NEXT_OP;
         }
-        return c.compare(buffer, stop) >= 0 ? TERMINATE : RELEASE;
+        return rangeComparator.compareToStopKey() >= 0 ? TERMINATE : RELEASE;
       case FORWARD_OPEN_CLOSED:
-        if (c.compare(buffer, start) == 0) {
+        if (rangeComparator.compareToStartKey() == 0) {
           return CALL_NEXT_OP;
         }
-        return c.compare(buffer, stop) > 0 ? TERMINATE : RELEASE;
+        return rangeComparator.compareToStopKey() > 0 ? TERMINATE : RELEASE;
       case BACKWARD_ALL:
         return RELEASE;
       case BACKWARD_AT_LEAST:
-        return c.compare(buffer, start) > 0 ? CALL_NEXT_OP : RELEASE; // rewind
+        return rangeComparator.compareToStartKey() > 0 ? CALL_NEXT_OP : RELEASE; // rewind
       case BACKWARD_AT_MOST:
-        return c.compare(buffer, stop) >= 0 ? RELEASE : TERMINATE;
+        return rangeComparator.compareToStopKey() >= 0 ? RELEASE : TERMINATE;
       case BACKWARD_CLOSED:
-        if (c.compare(buffer, start) > 0) {
+        if (rangeComparator.compareToStartKey() > 0) {
           return CALL_NEXT_OP; // rewind
         }
-        return c.compare(buffer, stop) >= 0 ? RELEASE : TERMINATE;
+        return rangeComparator.compareToStopKey() >= 0 ? RELEASE : TERMINATE;
       case BACKWARD_CLOSED_OPEN:
-        if (c.compare(buffer, start) > 0) {
+        if (rangeComparator.compareToStartKey() > 0) {
           return CALL_NEXT_OP; // rewind
         }
-        return c.compare(buffer, stop) > 0 ? RELEASE : TERMINATE;
+        return rangeComparator.compareToStopKey() > 0 ? RELEASE : TERMINATE;
       case BACKWARD_GREATER_THAN:
-        return c.compare(buffer, start) >= 0 ? CALL_NEXT_OP : RELEASE;
+        return rangeComparator.compareToStartKey() >= 0 ? CALL_NEXT_OP : RELEASE;
       case BACKWARD_LESS_THAN:
-        return c.compare(buffer, stop) > 0 ? RELEASE : TERMINATE;
+        return rangeComparator.compareToStopKey() > 0 ? RELEASE : TERMINATE;
       case BACKWARD_OPEN:
-        if (c.compare(buffer, start) >= 0) {
+        if (rangeComparator.compareToStartKey() >= 0) {
           return CALL_NEXT_OP; // rewind
         }
-        return c.compare(buffer, stop) > 0 ? RELEASE : TERMINATE;
+        return rangeComparator.compareToStopKey() > 0 ? RELEASE : TERMINATE;
       case BACKWARD_OPEN_CLOSED:
-        if (c.compare(buffer, start) >= 0) {
+        if (rangeComparator.compareToStartKey() >= 0) {
           return CALL_NEXT_OP; // rewind
         }
-        return c.compare(buffer, stop) >= 0 ? RELEASE : TERMINATE;
+        return rangeComparator.compareToStopKey() >= 0 ? RELEASE : TERMINATE;
       default:
         throw new IllegalStateException("Invalid type");
     }

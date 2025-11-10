@@ -25,54 +25,13 @@ import java.nio.file.NotDirectoryException;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.EnumSet;
-import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 final class FileUtil {
 
   private FileUtil() {}
 
-  static Path createTempDir() {
-    try {
-      return Files.createTempDirectory("lmdbjava");
-    } catch (final IOException e) {
-      throw new UncheckedIOException(e);
-    }
-  }
-
-  static Path createTempFile() {
-    try {
-      return Files.createTempFile("lmdbjava", "db");
-    } catch (final IOException e) {
-      throw new UncheckedIOException(e);
-    }
-  }
-
-  static void useTempDir(final Consumer<Path> consumer) {
-    Path path = null;
-    try {
-      path = createTempDir();
-      consumer.accept(path);
-    } finally {
-      if (path != null) {
-        deleteDir(path);
-      }
-    }
-  }
-
-  static void useTempFile(final Consumer<Path> consumer) {
-    Path path = null;
-    try {
-      path = createTempFile();
-      consumer.accept(path);
-    } finally {
-      if (path != null) {
-        deleteIfExists(path);
-      }
-    }
-  }
-
-  public static long size(final Path path) {
+  static long size(final Path path) {
     try {
       return Files.size(path);
     } catch (final IOException e) {
@@ -80,7 +39,7 @@ final class FileUtil {
     }
   }
 
-  public static void delete(final Path path) {
+  static void deleteFile(final Path path) {
     try {
       Files.delete(path);
     } catch (final IOException e) {
@@ -88,7 +47,7 @@ final class FileUtil {
     }
   }
 
-  public static void deleteDir(final Path path) {
+  static void deleteDir(final Path path) {
     if (path != null && Files.isDirectory(path)) {
       recursiveDelete(path);
       deleteIfExists(path);
@@ -143,7 +102,7 @@ final class FileUtil {
     }
   }
 
-  public static long count(final Path path) {
+  static long count(final Path path) {
     try (final Stream<Path> stream = Files.list(path)) {
       return stream.count();
     } catch (final IOException e) {

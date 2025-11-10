@@ -175,7 +175,7 @@ public final class Verifier implements Callable<Long> {
 
   private void deleteDbis() {
     for (final byte[] existingDbiName : env.getDbiNames()) {
-      final Dbi<ByteBuffer> existingDbi = env.openDbi(existingDbiName);
+      final Dbi<ByteBuffer> existingDbi = env.openDbi(existingDbiName, DbiFlagSet.EMPTY);
       try (Txn<ByteBuffer> txn = env.txnWrite()) {
         existingDbi.drop(txn, true);
         txn.commit();

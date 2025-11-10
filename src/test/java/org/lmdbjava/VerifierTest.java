@@ -16,12 +16,12 @@
 
 package org.lmdbjava;
 
-import static com.jakewharton.byteunits.BinaryByteUnit.MEBIBYTES;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.lmdbjava.Env.create;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 
 import java.nio.ByteBuffer;
+import java.nio.file.Path;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
 
@@ -30,18 +30,19 @@ public final class VerifierTest {
 
   @Test
   void verification() {
-    FileUtil.useTempFile(
-        file -> {
-          try (Env<ByteBuffer> env =
-              create()
-                  .setMaxReaders(1)
-                  .setMaxDbs(Verifier.DBI_COUNT)
-                  .setMapSize(MEBIBYTES.toBytes(10))
-                  .open(file.toFile(), MDB_NOSUBDIR)) {
-            final Verifier v = new Verifier(env);
-            final int seconds = Integer.getInteger("verificationSeconds", 2);
-            assertThat(v.runFor(seconds, TimeUnit.SECONDS)).isGreaterThan(1L);
-          }
-        });
+    try (final TempDir tempDir = new TempDir()) {
+      final Path file = tempDir.createTempFile();
+      try (Env<ByteBuffer> env =
+          create()
+              .setMaxReaders(1)
+              .setMaxDbs(Verifier.DBI_COUNT)
+              .setMapSize(10, ByteUnit.MEBIBYTES)
+              .setEnvFlags(MDB_NOSUBDIR)
+              .open(file)) {
+        final Verifier v = new Verifier(env);
+        final int seconds = Integer.getInteger("verificationSeconds", 2);
+        assertThat(v.runFor(seconds, TimeUnit.SECONDS)).isGreaterThan(1L);
+      }
+    }
   }
 }

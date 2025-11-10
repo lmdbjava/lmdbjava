@@ -18,10 +18,12 @@ package org.lmdbjava;
 import static java.lang.ThreadLocal.withInitial;
 import static java.nio.ByteBuffer.allocateDirect;
 import static java.nio.ByteOrder.BIG_ENDIAN;
+import static java.nio.ByteOrder.LITTLE_ENDIAN;
 import static java.util.Objects.requireNonNull;
 import static org.lmdbjava.UnsafeAccess.UNSAFE;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.ArrayDeque;
 import java.util.Comparator;
 import jnr.ffi.Pointer;
@@ -35,14 +37,6 @@ import org.agrona.concurrent.UnsafeBuffer;
  * <p>This class requires {@link UnsafeAccess} and Agrona must be in the classpath.
  */
 public final class DirectBufferProxy extends BufferProxy<DirectBuffer> {
-  private static final Comparator<DirectBuffer> signedComparator =
-      (o1, o2) -> {
-        requireNonNull(o1);
-        requireNonNull(o2);
-
-        return o1.compareTo(o2);
-      };
-  private static final Comparator<DirectBuffer> unsignedComparator = DirectBufferProxy::compareBuff;
 
   /**
    * The {@link MutableDirectBuffer} proxy. Guaranteed to never be null, although a class
@@ -58,6 +52,8 @@ public final class DirectBufferProxy extends BufferProxy<DirectBuffer> {
   private static final ThreadLocal<ArrayDeque<DirectBuffer>> BUFFERS =
       withInitial(() -> new ArrayDeque<>(16));
 
+  private static final ByteOrder NATIVE_ORDER = ByteOrder.nativeOrder();
+
   private DirectBufferProxy() {}
 
   /**
@@ -67,10 +63,9 @@ public final class DirectBufferProxy extends BufferProxy<DirectBuffer> {
    * @param o2 right operand (required)
    * @return as specified by {@link Comparable} interface
    */
-  public static int compareBuff(final DirectBuffer o1, final DirectBuffer o2) {
+  public static int compareLexicographically(final DirectBuffer o1, final DirectBuffer o2) {
     requireNonNull(o1);
     requireNonNull(o2);
-
     final int minLength = Math.min(o1.capacity(), o2.capacity());
     final int minWords = minLength / Long.BYTES;
 
@@ -95,6 +90,82 @@ public final class DirectBufferProxy extends BufferProxy<DirectBuffer> {
     return o1.capacity() - o2.capacity();
   }
 
+  /**
+   * Lexicographically compare two buffers up to a common length.
+   *
+   * @param o1 left operand (required)
+   * @param o2 right operand (required)
+   * @param length The length of each buffer to compare.
+   * @return as specified by {@link Comparable} interface
+   */
+  public static int compareLexicographically(
+      final DirectBuffer o1, final DirectBuffer o2, final int length) {
+    requireNonNull(o1);
+    requireNonNull(o2);
+    final int minWords = length / Long.BYTES;
+
+    for (int i = 0; i < minWords * Long.BYTES; i += Long.BYTES) {
+      final long lw = o1.getLong(i, BIG_ENDIAN);
+      final long rw = o2.getLong(i, BIG_ENDIAN);
+      final int diff = Long.compareUnsigned(lw, rw);
+      if (diff != 0) {
+        return diff;
+      }
+    }
+
+    for (int i = minWords * Long.BYTES; i < length; i++) {
+      final int lw = Byte.toUnsignedInt(o1.getByte(i));
+      final int rw = Byte.toUnsignedInt(o2.getByte(i));
+      final int result = Integer.compareUnsigned(lw, rw);
+      if (result != 0) {
+        return result;
+      }
+    }
+
+    return 0;
+  }
+
+  /**
+   * Buffer comparator specifically for 4/8 byte keys that are unsigned ints/longs, i.e. when using
+   * MDB_INTEGER_KEY/MDB_INTEGERDUP. Compares the buffers numerically.
+   *
+   * <p>Both buffer must have 4 or 8 bytes remaining
+   *
+   * @param o1 left operand (required)
+   * @param o2 right operand (required)
+   * @return as specified by {@link Comparable} interface
+   */
+  public static int compareAsIntegerKeys(final DirectBuffer o1, final DirectBuffer o2) {
+    requireNonNull(o1);
+    requireNonNull(o2);
+    // Both buffers should be same len
+    final int len1 = o1.capacity();
+    final int len2 = o2.capacity();
+    if (len1 != len2) {
+      throw new RuntimeException(
+          "Length mismatch, len1: "
+              + len1
+              + ", len2: "
+              + len2
+              + ". Lengths must be identical and either 4 or 8 bytes.");
+    }
+    if (len1 == 8) {
+      final long lw = o1.getLong(0, NATIVE_ORDER);
+      final long rw = o2.getLong(0, NATIVE_ORDER);
+      return Long.compareUnsigned(lw, rw);
+    } else if (len1 == 4) {
+      final int lw = o1.getInt(0, NATIVE_ORDER);
+      final int rw = o2.getInt(0, NATIVE_ORDER);
+      return Integer.compareUnsigned(lw, rw);
+    } else {
+      // size_t and int are likely to be 8bytes and 4bytes respectively on 64bit.
+      // If 32bit then would be 4/2 respectively.
+      // Short.compareUnsigned is not available in Java8.
+      // For now just fall back to our standard comparator
+      return compareLexicographically(o1, o2);
+    }
+  }
+
   @Override
   protected DirectBuffer allocate() {
     final ArrayDeque<DirectBuffer> q = BUFFERS.get();
@@ -109,13 +180,12 @@ public final class DirectBufferProxy extends BufferProxy<DirectBuffer> {
   }
 
   @Override
-  protected Comparator<DirectBuffer> getSignedComparator() {
-    return signedComparator;
-  }
-
-  @Override
-  protected Comparator<DirectBuffer> getUnsignedComparator() {
-    return unsignedComparator;
+  public Comparator<DirectBuffer> getComparator(final DbiFlagSet dbiFlagSet) {
+    if (dbiFlagSet.areAnySet(DbiFlagSet.INTEGER_KEY_FLAGS)) {
+      return DirectBufferProxy::compareAsIntegerKeys;
+    } else {
+      return DirectBufferProxy::compareLexicographically;
+    }
   }
 
   @Override
@@ -157,5 +227,57 @@ public final class DirectBufferProxy extends BufferProxy<DirectBuffer> {
     final long size = UNSAFE.getLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE);
     buffer.wrap(addr, (int) size);
     return buffer;
+  }
+
+  @Override
+  boolean containsPrefix(final DirectBuffer buffer, final DirectBuffer prefixBuffer) {
+    if (buffer.capacity() < prefixBuffer.capacity()) {
+      return false;
+    }
+
+    // We don't care about signed or unsigned since we are checking for equality.
+    return compareLexicographically(buffer, prefixBuffer, prefixBuffer.capacity()) == 0;
+  }
+
+  @Override
+  DirectBuffer incrementLeastSignificantByte(final DirectBuffer directBuffer) {
+    if (directBuffer == null || directBuffer.capacity() == 0) {
+      return null;
+    }
+
+    final ByteBuffer buffer = directBuffer.byteBuffer();
+    if (LITTLE_ENDIAN.equals(buffer.order())) {
+      // Start from the least significant byte (closest to start)
+      for (int i = buffer.position(); i < buffer.limit(); i++) {
+        final byte b = buffer.get(i);
+
+        // Check if byte is not at max unsigned value (0xFF = 255 = -1 in signed)
+        if (b != (byte) 0xFF) {
+          final ByteBuffer oneBigger = ByteBuffer.allocateDirect(buffer.remaining());
+          oneBigger.put(buffer.duplicate());
+          oneBigger.flip();
+          oneBigger.put(i - buffer.position(), (byte) (b + 1));
+          return new UnsafeBuffer(oneBigger);
+        }
+      }
+
+    } else {
+      // Start from the least significant byte (closest to limit)
+      for (int i = buffer.limit() - 1; i >= buffer.position(); i--) {
+        final byte b = buffer.get(i);
+
+        // Check if byte is not at max unsigned value (0xFF = 255 = -1 in signed)
+        if (b != (byte) 0xFF) {
+          final ByteBuffer oneBigger = ByteBuffer.allocateDirect(buffer.remaining());
+          oneBigger.put(buffer.duplicate());
+          oneBigger.flip();
+          oneBigger.put(i - buffer.position(), (byte) (b + 1));
+          return new UnsafeBuffer(oneBigger);
+        }
+      }
+    }
+
+    // All bytes are at maximum value
+    return null;
   }
 }

@@ -16,10 +16,6 @@
 package org.lmdbjava;
 
 import static java.lang.Long.BYTES;
-import static org.lmdbjava.DbiFlags.MDB_INTEGERKEY;
-import static org.lmdbjava.DbiFlags.MDB_UNSIGNEDKEY;
-import static org.lmdbjava.MaskedFlag.isSet;
-import static org.lmdbjava.MaskedFlag.mask;
 
 import java.util.Comparator;
 import jnr.ffi.Pointer;
@@ -75,30 +71,22 @@ public abstract class BufferProxy<T> {
    * <p>The provided comparator must strictly match the lexicographical order of keys in the native
    * LMDB database.
    *
-   * @param flags for the database
+   * @param dbiFlagSet The {@link DbiFlags} set for the database.
    * @return a comparator that can be used (never null)
    */
-  protected Comparator<T> getComparator(DbiFlags... flags) {
-    final int intFlag = mask(flags);
+  public abstract Comparator<T> getComparator(final DbiFlagSet dbiFlagSet);
 
-    return isSet(intFlag, MDB_INTEGERKEY) || isSet(intFlag, MDB_UNSIGNEDKEY)
-        ? getUnsignedComparator()
-        : getSignedComparator();
+  /**
+   * Get a suitable default {@link Comparator}
+   *
+   * <p>The provided comparator must strictly match the lexicographical order of keys in the native
+   * LMDB database.
+   *
+   * @return a comparator that can be used (never null)
+   */
+  public Comparator<T> getComparator() {
+    return getComparator(DbiFlagSet.empty());
   }
-
-  /**
-   * Get a suitable default {@link Comparator} to compare numeric key values as signed.
-   *
-   * @return a comparator that can be used (never null)
-   */
-  protected abstract Comparator<T> getSignedComparator();
-
-  /**
-   * Get a suitable default {@link Comparator} to compare numeric key values as unsigned.
-   *
-   * @return a comparator that can be used (never null)
-   */
-  protected abstract Comparator<T> getUnsignedComparator();
 
   /**
    * Called when the <code>MDB_val</code> should be set to reflect the passed buffer. This buffer
@@ -138,4 +126,32 @@ public abstract class BufferProxy<T> {
   final KeyVal<T> keyVal() {
     return new KeyVal<>(this);
   }
+
+  /**
+   * Create a new {@link Key} to hold pointers for this buffer proxy.
+   *
+   * @return a non-null key holder
+   */
+  final Key<T> key() {
+    return new Key<>(this);
+  }
+
+  /**
+   * Test if a supplied buffer contains the supplied prefix buffer.
+   *
+   * @param buffer The buffer to test.
+   * @param prefixBuffer The prefix to find.
+   * @return True if the key contains the prefix;
+   */
+  abstract boolean containsPrefix(T buffer, T prefixBuffer);
+
+  /**
+   * Make a buffer that is one bit greater than the supplied buffer by incrementing the least
+   * significant byte that is not already 255. This is useful in situations where we want to move
+   * past a key range before iterating backward.
+   *
+   * @param buffer The buffer to increment.
+   * @return The incremented buffer or null if the buffer is already at max value.
+   */
+  abstract T incrementLeastSignificantByte(T buffer);
 }
