@@ -19,8 +19,18 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 class CopyFlagSetTest extends AbstractFlagSetTest<CopyFlags, CopyFlagSet> {
+
+  @Test
+  void test() {
+    // This is here purely to stop CodeQL moaning that this class is unused.
+    // All the actual tests are in the superclass
+    Assertions.assertThat(getAllFlags())
+        .isNotNull();
+  }
 
   @Override
   List<CopyFlags> getAllFlags() {

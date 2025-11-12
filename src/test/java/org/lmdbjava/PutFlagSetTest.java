@@ -22,9 +22,18 @@ import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 class PutFlagSetTest extends AbstractFlagSetTest<PutFlags, PutFlagSet> {
+
+  @Test
+  void test() {
+    // This is here purely to stop CodeQL moaning that this class is unused.
+    // All the actual tests are in the superclass
+    Assertions.assertThat(getAllFlags())
+        .isNotNull();
+  }
 
   @Override
   List<PutFlags> getAllFlags() {

@@ -99,6 +99,7 @@ public abstract class AbstractFlagSetTest<
       final F flagSet = getBuilder().setFlags(flags).build();
       final int flagSetMask = flagSet.getMask();
 
+      // Make sure all the mask values are unique
       assertThat(masks).doesNotContain(flagSetMask);
       masks.add(flagSetMask);
       assertThat(flagSetMask).isEqualTo(MaskedFlag.mask(flags));
