@@ -31,8 +31,7 @@ class PutFlagSetTest extends AbstractFlagSetTest<PutFlags, PutFlagSet> {
   void test() {
     // This is here purely to stop CodeQL moaning that this class is unused.
     // All the actual tests are in the superclass
-    Assertions.assertThat(getAllFlags())
-        .isNotNull();
+    Assertions.assertThat(getAllFlags()).isNotNull();
   }
 
   @Override
