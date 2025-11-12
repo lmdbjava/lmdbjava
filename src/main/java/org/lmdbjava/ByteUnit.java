@@ -15,7 +15,7 @@
  */
 package org.lmdbjava;
 
-/** Simple {@link Enum} for converting various IEC and SI byte units down a number of bytes. */
+/** Simple {@link Enum} for converting various IEC and SI byte units down to a number of bytes. */
 public enum ByteUnit {
 
   /** IEC/SI byte unit for bytes. */
