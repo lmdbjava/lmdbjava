@@ -22,7 +22,6 @@ import static org.lmdbjava.PutFlags.MDB_APPEND;
 import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
 import static org.lmdbjava.TestUtils.bb;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -44,7 +43,7 @@ class CursorIterablePerfTest {
   private Env<ByteBuffer> env;
 
   @BeforeEach
-  public void before() throws IOException {
+  public void before() {
     tempDir = new TempDir();
     final BufferProxy<ByteBuffer> bufferProxy = ByteBufferProxy.PROXY_OPTIMAL;
     env =
