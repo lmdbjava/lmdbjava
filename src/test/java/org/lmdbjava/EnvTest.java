@@ -450,9 +450,9 @@ public final class EnvTest {
           .isInstanceOf(IllegalArgumentException.class);
 
       assertThatThrownBy(
-          () -> {
-            env.setMapSize(-1);
-          })
+              () -> {
+                env.setMapSize(-1);
+              })
           .isInstanceOf(IllegalArgumentException.class);
 
       env.setMapSize(1024, ByteUnit.KIBIBYTES);

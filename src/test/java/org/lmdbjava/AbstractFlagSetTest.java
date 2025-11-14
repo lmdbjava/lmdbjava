@@ -166,8 +166,7 @@ public abstract class AbstractFlagSetTest<
     final Function<EnumSet<T>, F> constructor = getConstructor();
     EnumSet<T> set = EnumSet.allOf(getFlagType());
     final F flagSet = constructor.apply(set);
-    Assertions.assertThat(flagSet.getFlags())
-        .containsExactlyInAnyOrderElementsOf(getAllFlags());
+    Assertions.assertThat(flagSet.getFlags()).containsExactlyInAnyOrderElementsOf(getAllFlags());
   }
 
   private T[] toArray(final int cnt) {

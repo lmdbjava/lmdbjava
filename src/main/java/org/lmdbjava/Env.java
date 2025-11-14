@@ -248,8 +248,7 @@ public final class Env<T> implements AutoCloseable {
   public List<String> getDbiNames(final Charset charset) {
     final List<byte[]> dbiNames = getDbiNames();
     return dbiNames.stream()
-        .map(nameBytes ->
-            Dbi.getNameAsString(nameBytes, charset))
+        .map(nameBytes -> Dbi.getNameAsString(nameBytes, charset))
         .collect(Collectors.toList());
   }
 

@@ -48,13 +48,11 @@ public final class VerifierTest {
             .setDbiFlags(DbiFlags.MDB_CREATE)
             .open();
 
-        Assertions.assertThat(env.getDbiNames(Env.DEFAULT_NAME_CHARSET))
-            .containsExactly("db1");
+        Assertions.assertThat(env.getDbiNames(Env.DEFAULT_NAME_CHARSET)).containsExactly("db1");
 
         final Verifier v = new Verifier(env);
 
-        Assertions.assertThat(env.getDbiNames(Env.DEFAULT_NAME_CHARSET))
-            .doesNotContain("db1");
+        Assertions.assertThat(env.getDbiNames(Env.DEFAULT_NAME_CHARSET)).doesNotContain("db1");
 
         final int seconds = Integer.getInteger("verificationSeconds", 2);
         assertThat(v.runFor(seconds, TimeUnit.SECONDS)).isGreaterThan(1L);
