@@ -20,10 +20,9 @@ import static io.netty.buffer.PooledByteBufAllocator.DEFAULT;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.lmdbjava.ByteBufProxy.PROXY_NETTY;
 import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
-import static org.lmdbjava.ComparatorTest.ComparatorResult.EQUAL_TO;
-import static org.lmdbjava.ComparatorTest.ComparatorResult.GREATER_THAN;
-import static org.lmdbjava.ComparatorTest.ComparatorResult.LESS_THAN;
-import static org.lmdbjava.ComparatorTest.ComparatorResult.get;
+import static org.lmdbjava.ComparatorResult.EQUAL_TO;
+import static org.lmdbjava.ComparatorResult.GREATER_THAN;
+import static org.lmdbjava.ComparatorResult.LESS_THAN;
 import static org.lmdbjava.DirectBufferProxy.PROXY_DB;
 
 import io.netty.buffer.ByteBuf;
@@ -57,40 +56,50 @@ public final class ComparatorIntegerKeyTest {
     return array;
   }
 
+  private ComparatorResult compare(
+      final ComparatorRunner comparatorRunner, final long o1, final long o2) {
+    return ComparatorResult.get(comparatorRunner.compare(o1, o2));
+  }
+
+  private ComparatorResult compare(
+      final ComparatorRunner comparatorRunner, final int o1, final int o2) {
+    return ComparatorResult.get(comparatorRunner.compare(o1, o2));
+  }
+
   @ParameterizedTest
   @MethodSource("comparatorProvider")
   void testLong(final ComparatorRunner comparator) {
 
-    assertThat(get(comparator.compare(0L, 0L))).isEqualTo(EQUAL_TO);
-    assertThat(get(comparator.compare(Long.MAX_VALUE, Long.MAX_VALUE))).isEqualTo(EQUAL_TO);
+    assertThat(compare(comparator, 0L, 0L)).isEqualTo(EQUAL_TO);
+    assertThat(compare(comparator, Long.MAX_VALUE, Long.MAX_VALUE)).isEqualTo(EQUAL_TO);
 
-    assertThat(get(comparator.compare(0L, 1L))).isEqualTo(LESS_THAN);
-    assertThat(get(comparator.compare(0L, Long.MAX_VALUE))).isEqualTo(LESS_THAN);
-    assertThat(get(comparator.compare(0L, 10L))).isEqualTo(LESS_THAN);
-    assertThat(get(comparator.compare(10L, 100L))).isEqualTo(LESS_THAN);
-    assertThat(get(comparator.compare(10L, 100L))).isEqualTo(LESS_THAN);
-    assertThat(get(comparator.compare(10L, 1000L))).isEqualTo(LESS_THAN);
+    assertThat(compare(comparator, 0L, 1L)).isEqualTo(LESS_THAN);
+    assertThat(compare(comparator, 0L, Long.MAX_VALUE)).isEqualTo(LESS_THAN);
+    assertThat(compare(comparator, 0L, 10L)).isEqualTo(LESS_THAN);
+    assertThat(compare(comparator, 10L, 100L)).isEqualTo(LESS_THAN);
+    assertThat(compare(comparator, 10L, 100L)).isEqualTo(LESS_THAN);
+    assertThat(compare(comparator, 10L, 1000L)).isEqualTo(LESS_THAN);
 
-    assertThat(get(comparator.compare(1L, 0L))).isEqualTo(GREATER_THAN);
-    assertThat(get(comparator.compare(Long.MAX_VALUE, 0L))).isEqualTo(GREATER_THAN);
+    assertThat(compare(comparator, 1L, 0L)).isEqualTo(GREATER_THAN);
+    assertThat(compare(comparator, Long.MAX_VALUE, 0L)).isEqualTo(GREATER_THAN);
   }
 
   @ParameterizedTest
   @MethodSource("comparatorProvider")
   void testInt(final ComparatorRunner comparator) {
 
-    assertThat(get(comparator.compare(0, 0))).isEqualTo(EQUAL_TO);
-    assertThat(get(comparator.compare(Integer.MAX_VALUE, Integer.MAX_VALUE))).isEqualTo(EQUAL_TO);
+    assertThat(compare(comparator, 0, 0)).isEqualTo(EQUAL_TO);
+    assertThat(compare(comparator, Integer.MAX_VALUE, Integer.MAX_VALUE)).isEqualTo(EQUAL_TO);
 
-    assertThat(get(comparator.compare(0, 1))).isEqualTo(LESS_THAN);
-    assertThat(get(comparator.compare(0, Integer.MAX_VALUE))).isEqualTo(LESS_THAN);
-    assertThat(get(comparator.compare(0, 10))).isEqualTo(LESS_THAN);
-    assertThat(get(comparator.compare(10, 100))).isEqualTo(LESS_THAN);
-    assertThat(get(comparator.compare(10, 100))).isEqualTo(LESS_THAN);
-    assertThat(get(comparator.compare(10, 1000))).isEqualTo(LESS_THAN);
+    assertThat(compare(comparator, 0, 1)).isEqualTo(LESS_THAN);
+    assertThat(compare(comparator, 0, Integer.MAX_VALUE)).isEqualTo(LESS_THAN);
+    assertThat(compare(comparator, 0, 10)).isEqualTo(LESS_THAN);
+    assertThat(compare(comparator, 10, 100)).isEqualTo(LESS_THAN);
+    assertThat(compare(comparator, 10, 100)).isEqualTo(LESS_THAN);
+    assertThat(compare(comparator, 10, 1000)).isEqualTo(LESS_THAN);
 
-    assertThat(get(comparator.compare(1, 0))).isEqualTo(GREATER_THAN);
-    assertThat(get(comparator.compare(Integer.MAX_VALUE, 0))).isEqualTo(GREATER_THAN);
+    assertThat(compare(comparator, 1, 0)).isEqualTo(GREATER_THAN);
+    assertThat(compare(comparator, Integer.MAX_VALUE, 0)).isEqualTo(GREATER_THAN);
   }
 
   @ParameterizedTest
@@ -105,8 +114,8 @@ public final class ComparatorIntegerKeyTest {
       final long long1 = values[i - 1];
       final long long2 = values[i];
       // Make sure the comparator under test gives the same outcome as just comparing two longs
-      final ComparatorTest.ComparatorResult result = get(runner.compare(long1, long2));
-      final ComparatorTest.ComparatorResult expectedResult = get(Long.compare(long1, long2));
+      final ComparatorResult result = ComparatorResult.get(runner.compare(long1, long2));
+      final ComparatorResult expectedResult = ComparatorResult.get(Long.compare(long1, long2));
 
       assertThat(result)
           .withFailMessage(
@@ -121,8 +130,8 @@ public final class ComparatorIntegerKeyTest {
                       + result)
           .isEqualTo(expectedResult);
 
-      final ComparatorTest.ComparatorResult result2 = get(runner.compare(long2, long1));
-      final ComparatorTest.ComparatorResult expectedResult2 = expectedResult.opposite();
+      final ComparatorResult result2 = ComparatorResult.get(runner.compare(long2, long1));
+      final ComparatorResult expectedResult2 = expectedResult.opposite();
 
       assertThat(result)
           .withFailMessage(
@@ -151,8 +160,8 @@ public final class ComparatorIntegerKeyTest {
       final int int1 = values[i - 1];
       final int int2 = values[i];
       // Make sure the comparator under test gives the same outcome as just comparing two ints
-      final ComparatorTest.ComparatorResult result = get(runner.compare(int1, int2));
-      final ComparatorTest.ComparatorResult expectedResult = get(Integer.compare(int1, int2));
+      final ComparatorResult result = ComparatorResult.get(runner.compare(int1, int2));
+      final ComparatorResult expectedResult = ComparatorResult.get(Integer.compare(int1, int2));
 
       assertThat(result)
           .withFailMessage(
@@ -167,8 +176,8 @@ public final class ComparatorIntegerKeyTest {
                       + result)
           .isEqualTo(expectedResult);
 
-      final ComparatorTest.ComparatorResult result2 = get(runner.compare(int2, int1));
-      final ComparatorTest.ComparatorResult expectedResult2 = expectedResult.opposite();
+      final ComparatorResult result2 = ComparatorResult.get(runner.compare(int2, int1));
+      final ComparatorResult expectedResult2 = expectedResult.opposite();
 
       assertThat(result)
           .withFailMessage(

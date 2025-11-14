@@ -24,6 +24,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
+import java.util.Comparator;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -194,5 +195,11 @@ final class TestUtils {
     try (Txn<T> readTxn = env.txnWrite()) {
       return work.apply(readTxn);
     }
+  }
+
+  static <T> ComparatorResult compare(final Comparator<T> comparator, final T o1, final T o2) {
+    Objects.requireNonNull(comparator);
+    final int result = comparator.compare(o1, o2);
+    return ComparatorResult.get(result);
   }
 }

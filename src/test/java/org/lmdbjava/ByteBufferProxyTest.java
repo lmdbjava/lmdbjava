@@ -191,7 +191,66 @@ public final class ByteBufferProxyTest {
   }
 
   @Test
-  public void verifyComparators() {
+  public void verifyComparators_int() {
+    final Random random = new Random(203948);
+    final ByteBuffer buffer1native =
+        ByteBuffer.allocateDirect(Integer.BYTES).order(ByteOrder.nativeOrder());
+    final ByteBuffer buffer2native =
+        ByteBuffer.allocateDirect(Integer.BYTES).order(ByteOrder.nativeOrder());
+    final ByteBuffer buffer1be = ByteBuffer.allocateDirect(Integer.BYTES).order(BIG_ENDIAN);
+    final ByteBuffer buffer2be = ByteBuffer.allocateDirect(Integer.BYTES).order(BIG_ENDIAN);
+    buffer1native.limit(Integer.BYTES);
+    buffer2native.limit(Integer.BYTES);
+    buffer1be.limit(Integer.BYTES);
+    buffer2be.limit(Integer.BYTES);
+    final int[] values = random.ints().filter(i -> i >= 0).limit(5_000_000).toArray();
+    //    System.out.println("stats: " + Arrays.stream(values)
+    //        .summaryStatistics()
+    //        .toString());
+
+    final LinkedHashMap<String, Comparator<ByteBuffer>> comparators = new LinkedHashMap<>();
+    comparators.put(
+        "compareAsIntegerKeys", ByteBufferProxy.AbstractByteBufferProxy::compareAsIntegerKeys);
+    comparators.put(
+        "compareLexicographically",
+        ByteBufferProxy.AbstractByteBufferProxy::compareLexicographically);
+
+    final LinkedHashMap<String, Integer> results = new LinkedHashMap<>(comparators.size());
+    final Set<Integer> uniqueResults = new HashSet<>(comparators.size());
+
+    for (int i = 1; i < values.length; i++) {
+      final int val1 = values[i - 1];
+      final int val2 = values[i];
+      buffer1native.putInt(0, val1);
+      buffer2native.putInt(0, val2);
+      buffer1be.putInt(0, val1);
+      buffer2be.putInt(0, val2);
+      uniqueResults.clear();
+
+      // Make sure all comparators give the same result for the same inputs
+      comparators.forEach(
+          (name, comparator) -> {
+            final int result;
+            // IntegerKey comparator expects keys to have been written in native order so need
+            // different buffers.
+            if (name.equals("compareAsIntegerKeys")) {
+              result = comparator.compare(buffer1native, buffer2native);
+            } else {
+              result = comparator.compare(buffer1be, buffer2be);
+            }
+            results.put(name, result);
+            uniqueResults.add(result);
+          });
+
+      if (uniqueResults.size() != 1) {
+        Assertions.fail(
+            "Comparator mismatch for values: " + val1 + " and " + val2 + ". Results: " + results);
+      }
+    }
+  }
+
+  @Test
+  public void verifyComparators_long() {
     final Random random = new Random(203948);
     final ByteBuffer buffer1native =
         ByteBuffer.allocateDirect(Long.BYTES).order(ByteOrder.nativeOrder());
