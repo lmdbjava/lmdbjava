@@ -19,7 +19,9 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.assertj.core.api.Assertions;
@@ -67,6 +69,11 @@ class PutFlagSetTest extends AbstractFlagSetTest<PutFlags, PutFlagSet> {
   @Override
   Class<PutFlags> getFlagType() {
     return PutFlags.class;
+  }
+
+  @Override
+  Function<EnumSet<PutFlags>, PutFlagSet> getConstructor() {
+    return PutFlagSetImpl::new;
   }
 
   @Test

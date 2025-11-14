@@ -23,6 +23,7 @@ import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.util.concurrent.TimeUnit;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 /** Test {@link Verifier}. */
@@ -39,7 +40,22 @@ public final class VerifierTest {
               .setMapSize(10, ByteUnit.MEBIBYTES)
               .setEnvFlags(MDB_NOSUBDIR)
               .open(file)) {
+
+        // Create a DB to ensure that the verifier can c
+        env.createDbi()
+            .setDbName("db1")
+            .withDefaultComparator()
+            .setDbiFlags(DbiFlags.MDB_CREATE)
+            .open();
+
+        Assertions.assertThat(env.getDbiNames(Env.DEFAULT_NAME_CHARSET))
+            .containsExactly("db1");
+
         final Verifier v = new Verifier(env);
+
+        Assertions.assertThat(env.getDbiNames(Env.DEFAULT_NAME_CHARSET))
+            .doesNotContain("db1");
+
         final int seconds = Integer.getInteger("verificationSeconds", 2);
         assertThat(v.runFor(seconds, TimeUnit.SECONDS)).isGreaterThan(1L);
       }

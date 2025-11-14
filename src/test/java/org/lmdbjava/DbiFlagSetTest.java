@@ -17,7 +17,9 @@ package org.lmdbjava;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -64,5 +66,10 @@ class DbiFlagSetTest extends AbstractFlagSetTest<DbiFlags, DbiFlagSet> {
   @Override
   DbiFlagSet getFlagSet(DbiFlags flag) {
     return DbiFlagSet.of(flag);
+  }
+
+  @Override
+  Function<EnumSet<DbiFlags>, DbiFlagSet> getConstructor() {
+    return DbiFlagSetImpl::new;
   }
 }

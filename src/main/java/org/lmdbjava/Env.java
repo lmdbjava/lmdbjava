@@ -37,6 +37,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 import jnr.ffi.Pointer;
 import jnr.ffi.byref.IntByReference;
 import jnr.ffi.byref.PointerByReference;
@@ -230,7 +231,26 @@ public final class Env<T> implements AutoCloseable {
         } while (cursor.next());
       }
     }
-    return result;
+    return Collections.unmodifiableList(result);
+  }
+
+  /**
+   * Obtain the DBI names.
+   *
+   * <p>This method is only compatible with {@link Env}s that use named databases. If an unnamed
+   * {@link Dbi} is being used to store data, this method will attempt to return all such keys from
+   * the unnamed database.
+   *
+   * <p>This method must not be called from concurrent threads.
+   *
+   * @return a list of DBI names (never null)
+   */
+  public List<String> getDbiNames(final Charset charset) {
+    final List<byte[]> dbiNames = getDbiNames();
+    return dbiNames.stream()
+        .map(nameBytes ->
+            Dbi.getNameAsString(nameBytes, charset))
+        .collect(Collectors.toList());
   }
 
   /**

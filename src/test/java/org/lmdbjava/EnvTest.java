@@ -504,10 +504,15 @@ public final class EnvTest {
       db.put(bb("def"), allocateDirect(1));
 
       // As this is the unnamed database it returns all keys in the unnamed db
-      final List<byte[]> dbiNames = env.getDbiNames();
+      final List<byte[]> dbiNamesBytes = env.getDbiNames();
+      assertThat(dbiNamesBytes).hasSize(2);
+      assertThat(dbiNamesBytes.get(0)).isEqualTo("abc".getBytes(Env.DEFAULT_NAME_CHARSET));
+      assertThat(dbiNamesBytes.get(1)).isEqualTo("def".getBytes(Env.DEFAULT_NAME_CHARSET));
+
+      final List<String> dbiNames = env.getDbiNames(Env.DEFAULT_NAME_CHARSET);
       assertThat(dbiNames).hasSize(2);
-      assertThat(dbiNames.get(0)).isEqualTo("abc".getBytes(Env.DEFAULT_NAME_CHARSET));
-      assertThat(dbiNames.get(1)).isEqualTo("def".getBytes(Env.DEFAULT_NAME_CHARSET));
+      assertThat(dbiNames.get(0)).isEqualTo("abc");
+      assertThat(dbiNames.get(1)).isEqualTo("def");
     }
   }
 

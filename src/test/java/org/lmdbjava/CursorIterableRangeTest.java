@@ -31,13 +31,17 @@ import java.io.Writer;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvFileSource;
 import org.lmdbjava.CursorIterable.KeyVal;
 
-/** Test {@link CursorIterable}. */
+/**
+ * Test {@link CursorIterable}.
+ */
 public final class CursorIterableRangeTest {
 
   private static final DbiFlagSet FLAGSET_DUPSORT =
@@ -210,29 +214,36 @@ public final class CursorIterableRangeTest {
       final String expectedKV,
       final int keyLen,
       final ByteOrder byteOrder) {
-    // First test with our default iterator comparator
-    testCSV(
-        DbiBuilder.Stage2::withDefaultComparator,
-        dbPopulator,
-        dbiFlags,
-        keyType,
-        startKey,
-        stopKey,
-        expectedKV,
-        keyLen,
-        byteOrder);
 
+    // We want to assert that the behaviour of all 4 comparator functions
+    // is identical.
+
+    final List<Function<DbiBuilder.Stage2<ByteBuffer>, DbiBuilder.Stage3<ByteBuffer>>> comparatorFuncs =
+        new ArrayList<>();
+
+    // First test with our default iterator comparator
+    comparatorFuncs.add(DbiBuilder.Stage2::withDefaultComparator);
     // Now test with mdp_cmp doing all comparisons, should be the same
-    testCSV(
-        DbiBuilder.Stage2::withNativeComparator,
-        dbPopulator,
-        dbiFlags,
-        keyType,
-        startKey,
-        stopKey,
-        expectedKV,
-        keyLen,
-        byteOrder);
+    comparatorFuncs.add(DbiBuilder.Stage2::withNativeComparator);
+    // Now test with the java callback comparator doing all the work
+    comparatorFuncs.add(byteBufferStage2 ->
+        byteBufferStage2.withCallbackComparator(ByteBufferProxy.PROXY_OPTIMAL::getComparator));
+    // Now test with the java comparator for iteration only
+    comparatorFuncs.add(byteBufferStage2 ->
+        byteBufferStage2.withIteratorComparator(ByteBufferProxy.PROXY_OPTIMAL::getComparator));
+
+    for (Function<DbiBuilder.Stage2<ByteBuffer>, DbiBuilder.Stage3<ByteBuffer>> comparatorFunc : comparatorFuncs) {
+      testCSV(
+          comparatorFunc,
+          dbPopulator,
+          dbiFlags,
+          keyType,
+          startKey,
+          stopKey,
+          expectedKV,
+          keyLen,
+          byteOrder);
+    }
   }
 
   private void testCSV(
@@ -248,12 +259,12 @@ public final class CursorIterableRangeTest {
     try (final TempDir tempDir = new TempDir()) {
       final Path file = tempDir.createTempFile();
       try (final Env<ByteBuffer> env =
-          create()
-              .setMapSize(256, ByteUnit.KIBIBYTES)
-              .setMaxReaders(1)
-              .setMaxDbs(1)
-              .setEnvFlags(EnvFlags.MDB_NOSUBDIR)
-              .open(file)) {
+               create()
+                   .setMapSize(256, ByteUnit.KIBIBYTES)
+                   .setMaxReaders(1)
+                   .setMaxDbs(1)
+                   .setEnvFlags(EnvFlags.MDB_NOSUBDIR)
+                   .open(file)) {
 
         final DbiBuilder.Stage2<ByteBuffer> builderStage2 = env.createDbi().setDbName(DB_1);
         final DbiBuilder.Stage3<ByteBuffer> builderStage3 = comparatorFunc.apply(builderStage2);
@@ -267,7 +278,7 @@ public final class CursorIterableRangeTest {
 
           final KeyRange<ByteBuffer> keyRange = new KeyRange<>(keyRangeType, start, stop);
           try (Txn<ByteBuffer> txn = env.txnRead();
-              CursorIterable<ByteBuffer> c = dbi.iterate(txn, keyRange)) {
+               CursorIterable<ByteBuffer> c = dbi.iterate(txn, keyRange)) {
             for (final KeyVal<ByteBuffer> kv : c) {
               final long key = getLong(kv.key(), byteOrder);
               final long val = getLong(kv.val(), ByteOrder.BIG_ENDIAN);

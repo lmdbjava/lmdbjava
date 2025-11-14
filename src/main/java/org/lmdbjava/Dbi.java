@@ -296,6 +296,10 @@ public final class Dbi<T> {
    * @throws RuntimeException if the name can't be decoded.
    */
   public String getNameAsString(final Charset charset) {
+    return getNameAsString(this.name, charset);
+  }
+
+  static String getNameAsString(final byte[] name, final Charset charset) {
     if (name == null) {
       return "";
     } else {

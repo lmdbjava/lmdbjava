@@ -20,9 +20,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 public abstract class AbstractFlagSetTest<
@@ -41,6 +44,8 @@ public abstract class AbstractFlagSetTest<
   abstract F getFlagSet(final T flag);
 
   abstract Class<T> getFlagType();
+
+  abstract Function<EnumSet<T>, F> getConstructor();
 
   T getFirst() {
     return getAllFlags().get(0);
@@ -75,6 +80,7 @@ public abstract class AbstractFlagSetTest<
       assertThat(flagSet.areAnySet(flag)).isTrue();
       assertThat(flagSet.areAnySet(null)).isFalse();
       assertThat(flagSet.areAnySet(getEmptyFlagSet())).isFalse();
+      assertThat(flagSet.isSet(null)).isFalse();
       assertThat(flagSet.isSet(getFirst())).isEqualTo(getFirst() == flag);
       if (getFirst() == flag) {
         assertThat(flagSet.getMask()).isEqualTo(MaskedFlag.mask(getFirst()));
@@ -153,6 +159,15 @@ public abstract class AbstractFlagSetTest<
     final F flagSet = getBuilder().addFlag(getFirst()).clear().build();
 
     assertThat(flagSet.isEmpty()).isTrue();
+  }
+
+  @Test
+  void testConstructor() {
+    final Function<EnumSet<T>, F> constructor = getConstructor();
+    EnumSet<T> set = EnumSet.allOf(getFlagType());
+    final F flagSet = constructor.apply(set);
+    Assertions.assertThat(flagSet.getFlags())
+        .containsExactlyInAnyOrderElementsOf(getAllFlags());
   }
 
   private T[] toArray(final int cnt) {
