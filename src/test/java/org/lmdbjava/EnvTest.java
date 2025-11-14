@@ -23,6 +23,7 @@ import static org.lmdbjava.CopyFlags.MDB_CP_COMPACT;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import static org.lmdbjava.Env.Builder.MAX_READERS_DEFAULT;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
+import static org.lmdbjava.EnvFlags.MDB_NOTLS;
 import static org.lmdbjava.EnvFlags.MDB_RDONLY_ENV;
 import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.bb;
@@ -32,8 +33,10 @@ import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.List;
 import java.util.Random;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -556,5 +559,90 @@ public final class EnvTest {
       assertThat(dbiNames.get(0)).isEqualTo("abc".getBytes(Env.DEFAULT_NAME_CHARSET));
       assertThat(dbiNames.get(1)).isEqualTo("def".getBytes(Env.DEFAULT_NAME_CHARSET));
     }
+  }
+
+  @Test
+  void addEnvFlag() {
+    final Path file = tempDir.createTempFile();
+    try (Env<ByteBuffer> env =
+             Env.create()
+                 .setMapSize(1, ByteUnit.MEBIBYTES)
+                 .setMaxDbs(1)
+                 .setMaxReaders(1)
+                 .addEnvFlag(MDB_NOSUBDIR)
+                 .addEnvFlag(MDB_NOTLS) // Should not overwrite the existing one
+                 .open(file)) {
+      env.sync(true);
+      assertThat(Files.isRegularFile(file)).isTrue();
+    }
+  }
+
+  @Test
+  void addEnvFlags() {
+    final Path file = tempDir.createTempFile();
+    try (Env<ByteBuffer> env =
+             Env.create()
+                 .setMapSize(1, ByteUnit.MEBIBYTES)
+                 .setMaxDbs(1)
+                 .setMaxReaders(1)
+                 .addEnvFlags(EnvFlagSet.of(MDB_NOSUBDIR, MDB_NOTLS))
+                 .addEnvFlag(MDB_NOTLS) // Should not overwrite the existing one
+                 .addEnvFlag(null) // no-op
+                 .addEnvFlags(null) // no-op
+                 .open(file)) {
+      env.sync(true);
+      assertThat(Files.isRegularFile(file)).isTrue();
+    }
+  }
+
+  @Test
+  void setEnvFlags_null1() {
+    final Path file = tempDir.createTempFile();
+    // MDB_NOSUBDIR is cleared out so it will error as file is a file not a dir
+    Assertions.assertThatThrownBy(() -> {
+      try (Env<ByteBuffer> env =
+               Env.create()
+                   .setMapSize(1, ByteUnit.MEBIBYTES)
+                   .setMaxDbs(1)
+                   .setMaxReaders(1)
+                   .addEnvFlag(MDB_NOSUBDIR)
+                   .setEnvFlags((Collection<EnvFlags>) null) // Clears the flags
+                   .open(file)) {
+      }
+    }).isInstanceOf(LmdbNativeException.class);
+  }
+
+  @Test
+  void setEnvFlags_null2() {
+    final Path file = tempDir.createTempFile();
+    // MDB_NOSUBDIR is cleared out so it will error as file is a file not a dir
+    Assertions.assertThatThrownBy(() -> {
+      try (Env<ByteBuffer> env =
+               Env.create()
+                   .setMapSize(1, ByteUnit.MEBIBYTES)
+                   .setMaxDbs(1)
+                   .setMaxReaders(1)
+                   .addEnvFlag(MDB_NOSUBDIR)
+                   .setEnvFlags((EnvFlags) null) // Clears the flags
+                   .open(file)) {
+      }
+    }).isInstanceOf(LmdbNativeException.class);
+  }
+
+  @Test
+  void setEnvFlags_null3() {
+    final Path file = tempDir.createTempFile();
+    // MDB_NOSUBDIR is cleared out so it will error as file is a file not a dir
+    Assertions.assertThatThrownBy(() -> {
+      try (Env<ByteBuffer> env =
+               Env.create()
+                   .setMapSize(1, ByteUnit.MEBIBYTES)
+                   .setMaxDbs(1)
+                   .setMaxReaders(1)
+                   .addEnvFlag(MDB_NOSUBDIR)
+                   .setEnvFlags((EnvFlagSet) null) // Clears the flags
+                   .open(file)) {
+      }
+    }).isInstanceOf(LmdbNativeException.class);
   }
 }
