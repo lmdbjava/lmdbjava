@@ -22,7 +22,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.lmdbjava.ByteArrayProxy.PROXY_BA;
 import static org.lmdbjava.ByteBufProxy.PROXY_NETTY;
 import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
-import static org.lmdbjava.ComparatorTest.ComparatorResult.*;
+import static org.lmdbjava.ComparatorResult.EQUAL_TO;
+import static org.lmdbjava.ComparatorResult.GREATER_THAN;
+import static org.lmdbjava.ComparatorResult.LESS_THAN;
 import static org.lmdbjava.DirectBufferProxy.PROXY_DB;
 
 import com.google.common.primitives.SignedBytes;
@@ -34,9 +36,12 @@ import java.util.Comparator;
 import java.util.stream.Stream;
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
+import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ArgumentsProvider;
+import org.junit.jupiter.params.provider.ArgumentsSource;
+import org.junit.jupiter.params.support.ParameterDeclarations;
 
 /** Tests comparator functions are consistent across buffers. */
 public final class ComparatorTest {
@@ -54,16 +59,20 @@ public final class ComparatorTest {
   private static final byte[] LX = buffer(0);
   private static final byte[] XX = buffer();
 
-  static Stream<Arguments> comparatorProvider() {
-    return Stream.of(
-        Arguments.argumentSet("StringRunner", new StringRunner()),
-        Arguments.argumentSet("DirectBufferRunner", new DirectBufferRunner()),
-        Arguments.argumentSet("ByteArrayRunner", new ByteArrayRunner()),
-        Arguments.argumentSet("UnsignedByteArrayRunner", new UnsignedByteArrayRunner()),
-        Arguments.argumentSet("ByteBufferRunner", new ByteBufferRunner()),
-        Arguments.argumentSet("NettyRunner", new NettyRunner()),
-        Arguments.argumentSet("GuavaUnsignedBytes", new GuavaUnsignedBytes()),
-        Arguments.argumentSet("GuavaSignedBytes", new GuavaSignedBytes()));
+  static class MyArgumentProvider implements ArgumentsProvider {
+    @Override
+    public Stream<? extends Arguments> provideArguments(
+        ParameterDeclarations parameters, ExtensionContext context) {
+      return Stream.of(
+          Arguments.argumentSet("StringRunner", new StringRunner()),
+          Arguments.argumentSet("DirectBufferRunner", new DirectBufferRunner()),
+          Arguments.argumentSet("ByteArrayRunner", new ByteArrayRunner()),
+          Arguments.argumentSet("UnsignedByteArrayRunner", new UnsignedByteArrayRunner()),
+          Arguments.argumentSet("ByteBufferRunner", new ByteBufferRunner()),
+          Arguments.argumentSet("NettyRunner", new NettyRunner()),
+          Arguments.argumentSet("GuavaUnsignedBytes", new GuavaUnsignedBytes()),
+          Arguments.argumentSet("GuavaSignedBytes", new GuavaSignedBytes()));
+    }
   }
 
   private static byte[] buffer(final int... bytes) {
@@ -75,54 +84,54 @@ public final class ComparatorTest {
   }
 
   @ParameterizedTest
-  @MethodSource("comparatorProvider")
+  @ArgumentsSource(MyArgumentProvider.class)
   void atLeastOneBufferHasEightBytes(final ComparatorRunner comparator) {
-    assertThat(get(comparator.compare(HLLLLLLL, LLLLLLLL))).isEqualTo(GREATER_THAN);
-    assertThat(get(comparator.compare(LLLLLLLL, HLLLLLLL))).isEqualTo(LESS_THAN);
+    assertThat(TestUtils.compare(comparator, HLLLLLLL, LLLLLLLL)).isEqualTo(GREATER_THAN);
+    assertThat(TestUtils.compare(comparator, LLLLLLLL, HLLLLLLL)).isEqualTo(LESS_THAN);
 
-    assertThat(get(comparator.compare(LHLLLLLL, LLLLLLLL))).isEqualTo(GREATER_THAN);
-    assertThat(get(comparator.compare(LLLLLLLL, LHLLLLLL))).isEqualTo(LESS_THAN);
+    assertThat(TestUtils.compare(comparator, LHLLLLLL, LLLLLLLL)).isEqualTo(GREATER_THAN);
+    assertThat(TestUtils.compare(comparator, LLLLLLLL, LHLLLLLL)).isEqualTo(LESS_THAN);
 
-    assertThat(get(comparator.compare(LLLLLLLL, LLLLLLLX))).isEqualTo(GREATER_THAN);
-    assertThat(get(comparator.compare(LLLLLLLX, LLLLLLLL))).isEqualTo(LESS_THAN);
+    assertThat(TestUtils.compare(comparator, LLLLLLLL, LLLLLLLX)).isEqualTo(GREATER_THAN);
+    assertThat(TestUtils.compare(comparator, LLLLLLLX, LLLLLLLL)).isEqualTo(LESS_THAN);
 
-    assertThat(get(comparator.compare(HLLLLLLL, HLLLLLLX))).isEqualTo(GREATER_THAN);
-    assertThat(get(comparator.compare(HLLLLLLX, HLLLLLLL))).isEqualTo(LESS_THAN);
+    assertThat(TestUtils.compare(comparator, HLLLLLLL, HLLLLLLX)).isEqualTo(GREATER_THAN);
+    assertThat(TestUtils.compare(comparator, HLLLLLLX, HLLLLLLL)).isEqualTo(LESS_THAN);
 
-    assertThat(get(comparator.compare(HLLLLLLX, LHLLLLLL))).isEqualTo(GREATER_THAN);
-    assertThat(get(comparator.compare(LHLLLLLL, HLLLLLLX))).isEqualTo(LESS_THAN);
+    assertThat(TestUtils.compare(comparator, HLLLLLLX, LHLLLLLL)).isEqualTo(GREATER_THAN);
+    assertThat(TestUtils.compare(comparator, LHLLLLLL, HLLLLLLX)).isEqualTo(LESS_THAN);
   }
 
   @ParameterizedTest
-  @MethodSource("comparatorProvider")
+  @ArgumentsSource(MyArgumentProvider.class)
   void buffersOfTwoBytes(final ComparatorRunner comparator) {
-    assertThat(get(comparator.compare(LL, XX))).isEqualTo(GREATER_THAN);
-    assertThat(get(comparator.compare(XX, LL))).isEqualTo(LESS_THAN);
+    assertThat(TestUtils.compare(comparator, LL, XX)).isEqualTo(GREATER_THAN);
+    assertThat(TestUtils.compare(comparator, XX, LL)).isEqualTo(LESS_THAN);
 
-    assertThat(get(comparator.compare(LL, LX))).isEqualTo(GREATER_THAN);
-    assertThat(get(comparator.compare(LX, LL))).isEqualTo(LESS_THAN);
+    assertThat(TestUtils.compare(comparator, LL, LX)).isEqualTo(GREATER_THAN);
+    assertThat(TestUtils.compare(comparator, LX, LL)).isEqualTo(LESS_THAN);
 
-    assertThat(get(comparator.compare(LH, LX))).isEqualTo(GREATER_THAN);
-    assertThat(get(comparator.compare(LX, HL))).isEqualTo(LESS_THAN);
+    assertThat(TestUtils.compare(comparator, LH, LX)).isEqualTo(GREATER_THAN);
+    assertThat(TestUtils.compare(comparator, LX, HL)).isEqualTo(LESS_THAN);
 
-    assertThat(get(comparator.compare(HX, LL))).isEqualTo(GREATER_THAN);
-    assertThat(get(comparator.compare(LH, HX))).isEqualTo(LESS_THAN);
+    assertThat(TestUtils.compare(comparator, HX, LL)).isEqualTo(GREATER_THAN);
+    assertThat(TestUtils.compare(comparator, LH, HX)).isEqualTo(LESS_THAN);
   }
 
   @ParameterizedTest
-  @MethodSource("comparatorProvider")
+  @ArgumentsSource(MyArgumentProvider.class)
   void equalBuffers(final ComparatorRunner comparator) {
-    assertThat(get(comparator.compare(LL, LL))).isEqualTo(EQUAL_TO);
-    assertThat(get(comparator.compare(HX, HX))).isEqualTo(EQUAL_TO);
-    assertThat(get(comparator.compare(LH, LH))).isEqualTo(EQUAL_TO);
-    assertThat(get(comparator.compare(LL, LL))).isEqualTo(EQUAL_TO);
-    assertThat(get(comparator.compare(LX, LX))).isEqualTo(EQUAL_TO);
+    assertThat(TestUtils.compare(comparator, LL, LL)).isEqualTo(EQUAL_TO);
+    assertThat(TestUtils.compare(comparator, HX, HX)).isEqualTo(EQUAL_TO);
+    assertThat(TestUtils.compare(comparator, LH, LH)).isEqualTo(EQUAL_TO);
+    assertThat(TestUtils.compare(comparator, LL, LL)).isEqualTo(EQUAL_TO);
+    assertThat(TestUtils.compare(comparator, LX, LX)).isEqualTo(EQUAL_TO);
 
-    assertThat(get(comparator.compare(HLLLLLLL, HLLLLLLL))).isEqualTo(EQUAL_TO);
-    assertThat(get(comparator.compare(HLLLLLLX, HLLLLLLX))).isEqualTo(EQUAL_TO);
-    assertThat(get(comparator.compare(LHLLLLLL, LHLLLLLL))).isEqualTo(EQUAL_TO);
-    assertThat(get(comparator.compare(LLLLLLLL, LLLLLLLL))).isEqualTo(EQUAL_TO);
-    assertThat(get(comparator.compare(LLLLLLLX, LLLLLLLX))).isEqualTo(EQUAL_TO);
+    assertThat(TestUtils.compare(comparator, HLLLLLLL, HLLLLLLL)).isEqualTo(EQUAL_TO);
+    assertThat(TestUtils.compare(comparator, HLLLLLLX, HLLLLLLX)).isEqualTo(EQUAL_TO);
+    assertThat(TestUtils.compare(comparator, LHLLLLLL, LHLLLLLL)).isEqualTo(EQUAL_TO);
+    assertThat(TestUtils.compare(comparator, LLLLLLLL, LLLLLLLL)).isEqualTo(EQUAL_TO);
+    assertThat(TestUtils.compare(comparator, LLLLLLLX, LLLLLLLX)).isEqualTo(EQUAL_TO);
   }
 
   /** Tests {@link ByteArrayProxy}. */
@@ -140,7 +149,7 @@ public final class ComparatorTest {
 
     @Override
     public int compare(final byte[] o1, final byte[] o2) {
-      final Comparator<byte[]> c = PROXY_BA.getUnsignedComparator();
+      final Comparator<byte[]> c = PROXY_BA.getComparator();
       return c.compare(o1, o2);
     }
   }
@@ -247,22 +256,32 @@ public final class ComparatorTest {
     }
   }
 
-  /** Converts an integer result code into its contractual meaning. */
-  enum ComparatorResult {
-    LESS_THAN,
-    EQUAL_TO,
-    GREATER_THAN;
-
-    static ComparatorResult get(final int comparatorResult) {
-      if (comparatorResult == 0) {
-        return EQUAL_TO;
-      }
-      return comparatorResult < 0 ? LESS_THAN : GREATER_THAN;
-    }
-  }
+  //  /** Converts an integer result code into its contractual meaning. */
+  //  enum ComparatorResult {
+  //    LESS_THAN,
+  //    EQUAL_TO,
+  //    GREATER_THAN;
+  //
+  //    static ComparatorResult get(final int comparatorResult) {
+  //      if (comparatorResult == 0) {
+  //        return EQUAL_TO;
+  //      }
+  //      return comparatorResult < 0 ? LESS_THAN : GREATER_THAN;
+  //    }
+  //
+  //    ComparatorResult opposite() {
+  //      if (this == LESS_THAN) {
+  //        return GREATER_THAN;
+  //      } else if (this == GREATER_THAN) {
+  //        return LESS_THAN;
+  //      } else {
+  //        return EQUAL_TO;
+  //      }
+  //    }
+  //  }
 
   /** Interface that can test a {@link BufferProxy} <code>compare</code> method. */
-  private interface ComparatorRunner {
+  private interface ComparatorRunner extends Comparator<byte[]> {
 
     /**
      * Convert the passed byte arrays into the proxy's relevant buffer type and then invoke the

@@ -23,6 +23,7 @@ import static org.lmdbjava.UnsafeAccess.UNSAFE;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
 import java.lang.reflect.Field;
+import java.nio.ByteOrder;
 import java.util.Comparator;
 import jnr.ffi.Pointer;
 
@@ -44,13 +45,6 @@ public final class ByteBufProxy extends BufferProxy<ByteBuf> {
   private static final String FIELD_NAME_ADDRESS = "memoryAddress";
   private static final String FIELD_NAME_LENGTH = "length";
   private static final String NAME = "io.netty.buffer.PooledUnsafeDirectByteBuf";
-  private static final Comparator<ByteBuf> comparator =
-      (o1, o2) -> {
-        requireNonNull(o1);
-        requireNonNull(o2);
-
-        return o1.compareTo(o2);
-      };
   private final long lengthOffset;
   private final long addressOffset;
 
@@ -78,6 +72,71 @@ public final class ByteBufProxy extends BufferProxy<ByteBuf> {
       lengthOffset = UNSAFE.objectFieldOffset(length);
     } catch (final SecurityException e) {
       throw new LmdbException("Field access error", e);
+    }
+  }
+
+  /**
+   * Lexicographically compare two buffers.
+   *
+   * @param o1 left operand (required)
+   * @param o2 right operand (required)
+   * @return as specified by {@link Comparable} interface
+   */
+  public static int compareLexicographically(final ByteBuf o1, final ByteBuf o2) {
+    requireNonNull(o1);
+    requireNonNull(o2);
+    return o1.compareTo(o2);
+  }
+
+  /**
+   * Buffer comparator specifically for 4/8 byte keys that are unsigned ints/longs, i.e. when using
+   * MDB_INTEGER_KEY/MDB_INTEGERDUP. Compares the buffers numerically.
+   *
+   * @param o1 left operand (required)
+   * @param o2 right operand (required)
+   * @return as specified by {@link Comparable} interface
+   */
+  public static int compareAsIntegerKeys(final ByteBuf o1, final ByteBuf o2) {
+    requireNonNull(o1);
+    requireNonNull(o2);
+    // Both buffers should be same length according to LMDB API.
+    // From the LMDB docs for MDB_INTEGER_KEY
+    // numeric keys in native byte order: either unsigned int or size_t. The keys must all be of the
+    // same size.
+    final int len1 = o1.readableBytes();
+    final int len2 = o2.readableBytes();
+    if (len1 != len2) {
+      throw new RuntimeException(
+          "Length mismatch, len1: "
+              + len1
+              + ", len2: "
+              + len2
+              + ". Lengths must be identical and either 4 or 8 bytes.");
+    }
+    if (len1 == 8) {
+      final long lw;
+      final long rw;
+      if (ByteOrder.nativeOrder() == ByteOrder.LITTLE_ENDIAN) {
+        lw = o1.readLongLE();
+        rw = o2.readLongLE();
+      } else {
+        lw = o1.readLong();
+        rw = o2.readLong();
+      }
+      return Long.compareUnsigned(lw, rw);
+    } else if (len1 == 4) {
+      final int lw;
+      final int rw;
+      if (ByteOrder.nativeOrder() == ByteOrder.LITTLE_ENDIAN) {
+        lw = o1.readIntLE();
+        rw = o2.readIntLE();
+      } else {
+        lw = o1.readInt();
+        rw = o2.readInt();
+      }
+      return Integer.compareUnsigned(lw, rw);
+    } else {
+      return compareLexicographically(o1, o2);
     }
   }
 
@@ -114,13 +173,12 @@ public final class ByteBufProxy extends BufferProxy<ByteBuf> {
   }
 
   @Override
-  protected Comparator<ByteBuf> getSignedComparator() {
-    return comparator;
-  }
-
-  @Override
-  protected Comparator<ByteBuf> getUnsignedComparator() {
-    return comparator;
+  public Comparator<ByteBuf> getComparator(final DbiFlagSet dbiFlagSet) {
+    if (dbiFlagSet.areAnySet(DbiFlagSet.INTEGER_KEY_FLAGS)) {
+      return ByteBufProxy::compareAsIntegerKeys;
+    } else {
+      return ByteBufProxy::compareLexicographically;
+    }
   }
 
   @Override

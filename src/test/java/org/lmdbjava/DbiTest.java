@@ -16,7 +16,6 @@
 
 package org.lmdbjava;
 
-import static com.jakewharton.byteunits.BinaryByteUnit.MEBIBYTES;
 import static java.lang.Long.MAX_VALUE;
 import static java.lang.System.getProperty;
 import static java.nio.ByteBuffer.allocateDirect;
@@ -29,14 +28,20 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.lmdbjava.ByteArrayProxy.PROXY_BA;
 import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
-import static org.lmdbjava.DbiFlags.*;
+import static org.lmdbjava.DbiFlags.MDB_CREATE;
+import static org.lmdbjava.DbiFlags.MDB_DUPSORT;
+import static org.lmdbjava.DbiFlags.MDB_INTEGERKEY;
+import static org.lmdbjava.DbiFlags.MDB_REVERSEKEY;
 import static org.lmdbjava.Env.create;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.GetOp.MDB_SET_KEY;
 import static org.lmdbjava.KeyRange.atMost;
 import static org.lmdbjava.PutFlags.MDB_NODUPDATA;
 import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
-import static org.lmdbjava.TestUtils.*;
+import static org.lmdbjava.TestUtils.DB_1;
+import static org.lmdbjava.TestUtils.ba;
+import static org.lmdbjava.TestUtils.bb;
+import static org.lmdbjava.TestUtils.fromBa;
 
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
@@ -44,11 +49,15 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
-import java.util.function.Function;
 import java.util.function.IntFunction;
+import java.util.function.Supplier;
 import java.util.function.ToIntFunction;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -62,42 +71,48 @@ import org.lmdbjava.LmdbNativeException.ConstantDerivedException;
 /** Test {@link Dbi}. */
 public final class DbiTest {
 
-  private Path file;
+  private TempDir tempDir;
   private Env<ByteBuffer> env;
-  private Path fileBa;
   private Env<byte[]> envBa;
 
   @BeforeEach
   void beforeEach() {
-    file = FileUtil.createTempFile();
+    tempDir = new TempDir();
+    final Path file = tempDir.createTempFile();
     env =
         create()
-            .setMapSize(MEBIBYTES.toBytes(64))
+            .setMapSize(64, ByteUnit.MEBIBYTES)
             .setMaxReaders(2)
             .setMaxDbs(2)
-            .open(file.toFile(), MDB_NOSUBDIR);
-    fileBa = FileUtil.createTempFile();
+            .setEnvFlags(MDB_NOSUBDIR)
+            .open(file);
+    final Path fileBa = tempDir.createTempFile();
     envBa =
         create(PROXY_BA)
-            .setMapSize(MEBIBYTES.toBytes(64))
+            .setMapSize(64, ByteUnit.MEBIBYTES)
             .setMaxReaders(2)
             .setMaxDbs(2)
-            .open(fileBa.toFile(), MDB_NOSUBDIR);
+            .setEnvFlags(MDB_NOSUBDIR)
+            .open(fileBa);
   }
 
   @AfterEach
   void afterEach() {
     env.close();
     envBa.close();
-    FileUtil.delete(file);
-    FileUtil.delete(fileBa);
+    tempDir.cleanup();
   }
 
   @Test
   void close() {
     assertThatThrownBy(
             () -> {
-              final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
+              final Dbi<ByteBuffer> db =
+                  env.createDbi()
+                      .setDbName(DB_1)
+                      .withDefaultComparator()
+                      .addDbiFlag(MDB_CREATE)
+                      .open();
               db.put(bb(1), bb(42));
               db.close();
               db.put(bb(2), bb(42)); // error
@@ -136,7 +151,12 @@ public final class DbiTest {
       Comparator<T> comparator,
       IntFunction<T> serializer,
       ToIntFunction<T> deserializer) {
-    final Dbi<T> db = env.openDbi(DB_1, comparator, true, MDB_CREATE);
+    final Dbi<T> db =
+        env.createDbi()
+            .setDbName(DB_1)
+            .withCallbackComparator(ignored -> comparator)
+            .setDbiFlags(MDB_CREATE)
+            .open();
     try (Txn<T> txn = env.txnWrite()) {
       assertThat(db.put(txn, serializer.apply(2), serializer.apply(3))).isTrue();
       assertThat(db.put(txn, serializer.apply(4), serializer.apply(6))).isTrue();
@@ -157,9 +177,21 @@ public final class DbiTest {
   void dbOpenMaxDatabases() {
     assertThatThrownBy(
             () -> {
-              env.openDbi("db1 is OK", MDB_CREATE);
-              env.openDbi("db2 is OK", MDB_CREATE);
-              env.openDbi("db3 fails", MDB_CREATE);
+              env.createDbi()
+                  .setDbName("db1 is OK")
+                  .withDefaultComparator()
+                  .setDbiFlags(MDB_CREATE)
+                  .open();
+              env.createDbi()
+                  .setDbName("db2 is OK")
+                  .withDefaultComparator()
+                  .setDbiFlags(MDB_CREATE)
+                  .open();
+              env.createDbi()
+                  .setDbName("db3 fails")
+                  .withDefaultComparator()
+                  .setDbiFlags(MDB_CREATE)
+                  .open();
             })
         .isInstanceOf(DbFullException.class);
   }
@@ -178,16 +210,23 @@ public final class DbiTest {
 
   private <T> void doDbiWithComparatorThreadSafety(
       Env<T> env,
-      Function<DbiFlags[], Comparator<T>> comparator,
+      Supplier<Comparator<T>> comparatorSupplier,
       IntFunction<T> serializer,
       ToIntFunction<T> deserializer) {
-    final DbiFlags[] flags = new DbiFlags[] {MDB_CREATE, MDB_INTEGERKEY};
-    final Comparator<T> c = comparator.apply(flags);
-    final Dbi<T> db = env.openDbi(DB_1, c, true, flags);
+    final DbiFlagSet flags = DbiFlagSet.of(MDB_CREATE, MDB_INTEGERKEY);
+    final Comparator<T> comparator = comparatorSupplier.get();
+    final Dbi<T> db =
+        env.createDbi()
+            .setDbName(DB_1)
+            .withCallbackComparator(ignored -> comparator)
+            .setDbiFlags(flags)
+            .open();
 
     final List<Integer> keys = range(0, 1_000).boxed().collect(toList());
 
-    final ExecutorService pool = Executors.newCachedThreadPool();
+    // TODO surround with try-with-resources in J19+
+    //noinspection resource // Not in J8
+    ExecutorService pool = Executors.newCachedThreadPool();
     final AtomicBoolean proceed = new AtomicBoolean(true);
     final Future<?> reader =
         pool.submit(
@@ -229,7 +268,8 @@ public final class DbiTest {
 
   @Test
   void drop() {
-    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
+    final Dbi<ByteBuffer> db =
+        env.createDbi().setDbName(DB_1).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
       db.put(txn, bb(1), bb(42));
       db.put(txn, bb(2), bb(42));
@@ -247,8 +287,14 @@ public final class DbiTest {
 
   @Test
   void dropAndDelete() {
-    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
-    final Dbi<ByteBuffer> nameDb = env.openDbi((byte[]) null);
+    final Dbi<ByteBuffer> db =
+        env.createDbi().setDbName(DB_1).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
+    final Dbi<ByteBuffer> nameDb =
+        env.createDbi()
+            .setDbName((byte[]) null)
+            .withDefaultComparator()
+            .setDbiFlags(DbiFlagSet.EMPTY)
+            .open();
     final byte[] dbNameBytes = DB_1.getBytes(UTF_8);
     final ByteBuffer dbNameBuffer = allocateDirect(dbNameBytes.length);
     dbNameBuffer.put(dbNameBytes).flip();
@@ -263,8 +309,8 @@ public final class DbiTest {
 
   @Test
   void dropAndDeleteAnonymousDb() {
-    env.openDbi(DB_1, MDB_CREATE);
-    final Dbi<ByteBuffer> nameDb = env.openDbi((byte[]) null);
+    env.createDbi().setDbName(DB_1).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
+    final Dbi<ByteBuffer> nameDb = env.createDbi().withoutDbName().withDefaultComparator().open();
     final byte[] dbNameBytes = DB_1.getBytes(UTF_8);
     final ByteBuffer dbNameBuffer = allocateDirect(dbNameBytes.length);
     dbNameBuffer.put(dbNameBytes).flip();
@@ -281,7 +327,8 @@ public final class DbiTest {
 
   @Test
   void getName() {
-    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
+    final Dbi<ByteBuffer> db =
+        env.createDbi().setDbName(DB_1).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
     assertThat(db.getName()).isEqualTo(DB_1.getBytes(UTF_8));
   }
 
@@ -289,8 +336,8 @@ public final class DbiTest {
   void getNamesWhenDbisPresent() {
     final byte[] dbHello = new byte[] {'h', 'e', 'l', 'l', 'o'};
     final byte[] dbWorld = new byte[] {'w', 'o', 'r', 'l', 'd'};
-    env.openDbi(dbHello, MDB_CREATE);
-    env.openDbi(dbWorld, MDB_CREATE);
+    env.createDbi().setDbName(dbHello).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
+    env.createDbi().setDbName(dbWorld).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
     final List<byte[]> dbiNames = env.getDbiNames();
     assertThat(dbiNames).hasSize(2);
     assertThat(dbiNames.get(0)).isEqualTo(dbHello);
@@ -305,7 +352,12 @@ public final class DbiTest {
 
   @Test
   void listsFlags() {
-    final Dbi<ByteBuffer> dbi = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT, MDB_REVERSEKEY);
+    final Dbi<ByteBuffer> dbi =
+        env.createDbi()
+            .setDbName(DB_1)
+            .withDefaultComparator()
+            .setDbiFlags(MDB_CREATE, MDB_DUPSORT, MDB_REVERSEKEY)
+            .open();
 
     try (Txn<ByteBuffer> txn = env.txnRead()) {
       final List<DbiFlags> flags = dbi.listFlags(txn);
@@ -315,7 +367,8 @@ public final class DbiTest {
 
   @Test
   void putAbortGet() {
-    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
+    final Dbi<ByteBuffer> db =
+        env.createDbi().setDbName(DB_1).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
 
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
       db.put(txn, bb(5), bb(5));
@@ -329,7 +382,8 @@ public final class DbiTest {
 
   @Test
   void putAndGetAndDeleteWithInternalTx() {
-    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
+    final Dbi<ByteBuffer> db =
+        env.createDbi().setDbName(DB_1).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
 
     db.put(bb(5), bb(5));
     try (Txn<ByteBuffer> txn = env.txnRead()) {
@@ -347,7 +401,8 @@ public final class DbiTest {
 
   @Test
   void putCommitGet() {
-    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
+    final Dbi<ByteBuffer> db =
+        env.createDbi().setDbName(DB_1).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
       db.put(txn, bb(5), bb(5));
       txn.commit();
@@ -362,31 +417,32 @@ public final class DbiTest {
 
   @Test
   void putCommitGetByteArray() {
-    FileUtil.useTempFile(
-        file -> {
-          try (Env<byte[]> envBa =
-              create(PROXY_BA)
-                  .setMapSize(MEBIBYTES.toBytes(64))
-                  .setMaxReaders(1)
-                  .setMaxDbs(2)
-                  .open(file.toFile(), MDB_NOSUBDIR)) {
-            final Dbi<byte[]> db = envBa.openDbi(DB_1, MDB_CREATE);
-            try (Txn<byte[]> txn = envBa.txnWrite()) {
-              db.put(txn, ba(5), ba(5));
-              txn.commit();
-            }
-            try (Txn<byte[]> txn = envBa.txnWrite()) {
-              final byte[] found = db.get(txn, ba(5));
-              assertThat(found).isNotNull();
-              assertThat(fromBa(txn.val())).isEqualTo(5);
-            }
-          }
-        });
+    final Path file = tempDir.createTempFile();
+    try (Env<byte[]> envBa =
+        create(PROXY_BA)
+            .setMapSize(64, ByteUnit.MEBIBYTES)
+            .setMaxReaders(1)
+            .setMaxDbs(2)
+            .setEnvFlags(MDB_NOSUBDIR)
+            .open(file)) {
+      final Dbi<byte[]> db =
+          envBa.createDbi().setDbName(DB_1).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
+      try (Txn<byte[]> txn = envBa.txnWrite()) {
+        db.put(txn, ba(5), ba(5));
+        txn.commit();
+      }
+      try (Txn<byte[]> txn = envBa.txnWrite()) {
+        final byte[] found = db.get(txn, ba(5));
+        assertThat(found).isNotNull();
+        assertThat(fromBa(txn.val())).isEqualTo(5);
+      }
+    }
   }
 
   @Test
   void putDelete() {
-    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
+    final Dbi<ByteBuffer> db =
+        env.createDbi().setDbName(DB_1).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
 
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
       db.put(txn, bb(5), bb(5));
@@ -399,7 +455,12 @@ public final class DbiTest {
 
   @Test
   void putDuplicateDelete() {
-    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
+    final Dbi<ByteBuffer> db =
+        env.createDbi()
+            .setDbName(DB_1)
+            .withDefaultComparator()
+            .setDbiFlags(MDB_CREATE, MDB_DUPSORT)
+            .open();
 
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
       db.put(txn, bb(5), bb(5));
@@ -421,7 +482,8 @@ public final class DbiTest {
 
   @Test
   void putReserve() {
-    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
+    final Dbi<ByteBuffer> db =
+        env.createDbi().setDbName(DB_1).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
 
     final ByteBuffer key = bb(5);
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
@@ -442,7 +504,8 @@ public final class DbiTest {
 
   @Test
   void putZeroByteValueForNonMdbDupSortDatabase() {
-    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
+    final Dbi<ByteBuffer> db =
+        env.createDbi().setDbName(DB_1).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
       final ByteBuffer val = allocateDirect(0);
       db.put(txn, bb(5), val);
@@ -458,7 +521,12 @@ public final class DbiTest {
 
   @Test
   void returnValueForNoDupData() {
-    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
+    final Dbi<ByteBuffer> db =
+        env.createDbi()
+            .setDbName(DB_1)
+            .withDefaultComparator()
+            .setDbiFlags(MDB_CREATE, MDB_DUPSORT)
+            .open();
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
       // ok
       assertThat(db.put(txn, bb(5), bb(6), MDB_NODUPDATA)).isTrue();
@@ -469,7 +537,8 @@ public final class DbiTest {
 
   @Test
   void returnValueForNoOverwrite() {
-    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
+    final Dbi<ByteBuffer> db =
+        env.createDbi().setDbName(DB_1).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
       // ok
       assertThat(db.put(txn, bb(5), bb(6), MDB_NOOVERWRITE)).isTrue();
@@ -481,7 +550,8 @@ public final class DbiTest {
 
   @Test
   void stats() {
-    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
+    final Dbi<ByteBuffer> db =
+        env.createDbi().setDbName(DB_1).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
     db.put(bb(1), bb(42));
     db.put(bb(2), bb(42));
     db.put(bb(3), bb(42));
@@ -502,7 +572,12 @@ public final class DbiTest {
   void testMapFullException() {
     assertThatThrownBy(
             () -> {
-              final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
+              final Dbi<ByteBuffer> db =
+                  env.createDbi()
+                      .setDbName(DB_1)
+                      .withDefaultComparator()
+                      .setDbiFlags(MDB_CREATE)
+                      .open();
               try (Txn<ByteBuffer> txn = env.txnWrite()) {
                 final ByteBuffer v;
                 try {
@@ -523,7 +598,8 @@ public final class DbiTest {
       return; // Windows VMs run this test too slowly
     }
 
-    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
+    final Dbi<ByteBuffer> db =
+        env.createDbi().setDbName(DB_1).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
 
     // Travis CI has 1.5 cores for legacy builds
     nCopies(2, null).parallelStream()
@@ -540,7 +616,11 @@ public final class DbiTest {
     assertThatThrownBy(
             () -> {
               env.close();
-              env.openDbi(DB_1, MDB_CREATE);
+              env.createDbi()
+                  .setDbName(DB_1)
+                  .withDefaultComparator()
+                  .setDbiFlags(MDB_CREATE)
+                  .open();
             })
         .isInstanceOf(AlreadyClosedException.class);
   }
@@ -561,6 +641,7 @@ public final class DbiTest {
               doEnvClosedTest(
                   (db, txn) -> {
                     final ByteBuffer valBuf = db.get(txn, bb(1));
+                    assertThat(valBuf).isNotNull();
                     assertThat(valBuf.getInt()).isEqualTo(10);
                   },
                   (db, txn) -> db.get(txn, bb(2)));
@@ -647,7 +728,8 @@ public final class DbiTest {
   private void doEnvClosedTest(
       final BiConsumer<Dbi<ByteBuffer>, Txn<ByteBuffer>> workBeforeEnvClosed,
       final BiConsumer<Dbi<ByteBuffer>, Txn<ByteBuffer>> workAfterEnvClose) {
-    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
+    final Dbi<ByteBuffer> db =
+        env.createDbi().setDbName(DB_1).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
 
     db.put(bb(1), bb(10));
     db.put(bb(2), bb(20));

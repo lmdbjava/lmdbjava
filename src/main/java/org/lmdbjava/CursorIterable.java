@@ -21,10 +21,14 @@ import static org.lmdbjava.CursorIterable.State.REQUIRES_ITERATOR_OP;
 import static org.lmdbjava.CursorIterable.State.REQUIRES_NEXT_OP;
 import static org.lmdbjava.CursorIterable.State.TERMINATED;
 import static org.lmdbjava.GetOp.MDB_SET_RANGE;
+import static org.lmdbjava.Library.LIB;
 
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+import java.util.Objects;
+import java.util.function.Supplier;
+import jnr.ffi.Pointer;
 import org.lmdbjava.KeyRangeType.CursorOp;
 import org.lmdbjava.KeyRangeType.IteratorOp;
 
@@ -38,7 +42,7 @@ import org.lmdbjava.KeyRangeType.IteratorOp;
  */
 public final class CursorIterable<T> implements Iterable<CursorIterable.KeyVal<T>>, AutoCloseable {
 
-  private final Comparator<T> comparator;
+  private final RangeComparator rangeComparator;
   private final Cursor<T> cursor;
   private final KeyVal<T> entry;
   private boolean iteratorReturned;
@@ -46,16 +50,32 @@ public final class CursorIterable<T> implements Iterable<CursorIterable.KeyVal<T
   private State state = REQUIRES_INITIAL_OP;
 
   CursorIterable(
-      final Txn<T> txn, final Dbi<T> dbi, final KeyRange<T> range, final Comparator<T> comparator) {
+      final Txn<T> txn,
+      final Dbi<T> dbi,
+      final KeyRange<T> range,
+      final Comparator<T> comparator,
+      final BufferProxy<T> proxy) {
     this.cursor = dbi.openCursor(txn);
     this.range = range;
-    this.comparator = comparator;
     this.entry = new KeyVal<>();
+
+    if (comparator != null) {
+      // User supplied Java-side comparator so use that
+      this.rangeComparator = new JavaRangeComparator<>(range, comparator, cursor::key);
+    } else {
+      // No Java-side comparator, so call down to LMDB to do the comparison
+      this.rangeComparator = new LmdbRangeComparator<>(txn, dbi, cursor, range, proxy);
+    }
   }
 
   @Override
   public void close() {
     cursor.close();
+    try {
+      rangeComparator.close();
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
   }
 
   /**
@@ -95,13 +115,13 @@ public final class CursorIterable<T> implements Iterable<CursorIterable.KeyVal<T
 
       @Override
       public void remove() {
-        cursor.delete();
+        cursor.delete(PutFlags.EMPTY);
       }
     };
   }
 
   private void executeCursorOp(final CursorOp op) {
-    final boolean found;
+    boolean found;
     switch (op) {
       case FIRST:
         found = cursor.first();
@@ -119,7 +139,31 @@ public final class CursorIterable<T> implements Iterable<CursorIterable.KeyVal<T
         found = cursor.get(range.getStart(), MDB_SET_RANGE);
         break;
       case GET_START_KEY_BACKWARD:
-        found = cursor.get(range.getStart(), MDB_SET_RANGE) || cursor.last();
+        found = cursor.get(range.getStart(), MDB_SET_RANGE);
+        if (found) {
+          if (!range.getType().isDirectionForward()
+              && range.getType().isStartKeyRequired()
+              && range.getType().isStartKeyInclusive()) {
+            // We need to ensure we move to the last matching key if using DUPSORT, see issue 267
+            boolean loop = true;
+            while (loop) {
+              if (rangeComparator.compareToStartKey() <= 0) {
+                found = cursor.next();
+                if (!found) {
+                  // We got to the end so move last.
+                  found = cursor.last();
+                  loop = false;
+                }
+              } else {
+                // We have moved past so go back one.
+                found = cursor.prev();
+                loop = false;
+              }
+            }
+          }
+        } else {
+          found = cursor.last();
+        }
         break;
       default:
         throw new IllegalStateException("Unknown cursor operation");
@@ -129,8 +173,7 @@ public final class CursorIterable<T> implements Iterable<CursorIterable.KeyVal<T
   }
 
   private void executeIteratorOp() {
-    final IteratorOp op =
-        range.getType().iteratorOp(range.getStart(), range.getStop(), entry.key(), comparator);
+    final IteratorOp op = range.getType().iteratorOp(entry.key(), rangeComparator);
     switch (op) {
       case CALL_NEXT_OP:
         executeCursorOp(range.getType().nextOp());
@@ -218,5 +261,101 @@ public final class CursorIterable<T> implements Iterable<CursorIterable.KeyVal<T
     REQUIRES_ITERATOR_OP,
     RELEASED,
     TERMINATED
+  }
+
+  static class JavaRangeComparator<T> implements RangeComparator {
+
+    private final Comparator<T> comparator;
+    private final Supplier<T> currentKeySupplier;
+    private final T start;
+    private final T stop;
+
+    JavaRangeComparator(
+        final KeyRange<T> range,
+        final Comparator<T> comparator,
+        final Supplier<T> currentKeySupplier) {
+      this.comparator = comparator;
+      this.currentKeySupplier = currentKeySupplier;
+      this.start = range.getStart();
+      this.stop = range.getStop();
+    }
+
+    @Override
+    public int compareToStartKey() {
+      return comparator.compare(currentKeySupplier.get(), start);
+    }
+
+    @Override
+    public int compareToStopKey() {
+      return comparator.compare(currentKeySupplier.get(), stop);
+    }
+
+    @Override
+    public void close() throws Exception {
+      // Nothing to close
+    }
+  }
+
+  /**
+   * Calls down to mdb_cmp to make use of the comparator that LMDB uses for insertion order. Has a
+   * very slight overhead as compared to {@link JavaRangeComparator}.
+   */
+  private static class LmdbRangeComparator<T> implements RangeComparator {
+
+    private final Pointer txnPointer;
+    private final Pointer dbiPointer;
+    private final Pointer cursorKeyPointer;
+    private final Key<T> startKey;
+    private final Key<T> stopKey;
+    private final Pointer startKeyPointer;
+    private final Pointer stopKeyPointer;
+
+    public LmdbRangeComparator(
+        final Txn<T> txn,
+        final Dbi<T> dbi,
+        final Cursor<T> cursor,
+        final KeyRange<T> range,
+        final BufferProxy<T> proxy) {
+      txnPointer = Objects.requireNonNull(txn).pointer();
+      dbiPointer = Objects.requireNonNull(dbi).pointer();
+      cursorKeyPointer = Objects.requireNonNull(cursor).keyVal().pointerKey();
+      // Allocate buffers for use with the start/stop keys if required.
+      // Saves us copying bytes on each comparison
+      Objects.requireNonNull(range);
+      startKey = createKey(range.getStart(), proxy);
+      stopKey = createKey(range.getStop(), proxy);
+      startKeyPointer = startKey != null ? startKey.pointer() : null;
+      stopKeyPointer = stopKey != null ? stopKey.pointer() : null;
+    }
+
+    @Override
+    public int compareToStartKey() {
+      return LIB.mdb_cmp(txnPointer, dbiPointer, cursorKeyPointer, startKeyPointer);
+    }
+
+    @Override
+    public int compareToStopKey() {
+      return LIB.mdb_cmp(txnPointer, dbiPointer, cursorKeyPointer, stopKeyPointer);
+    }
+
+    @Override
+    public void close() {
+      if (startKey != null) {
+        startKey.close();
+      }
+      if (stopKey != null) {
+        stopKey.close();
+      }
+    }
+
+    private Key<T> createKey(final T keyBuffer, final BufferProxy<T> proxy) {
+      if (keyBuffer != null) {
+        final Key<T> key = proxy.key();
+        key.keyIn(keyBuffer);
+        return key;
+      } else {
+        return null;
+      }
+    }
   }
 }

@@ -20,8 +20,6 @@ import static org.lmdbjava.Dbi.KeyExistsException.MDB_KEYEXIST;
 import static org.lmdbjava.Dbi.KeyNotFoundException.MDB_NOTFOUND;
 import static org.lmdbjava.Env.SHOULD_CHECK;
 import static org.lmdbjava.Library.LIB;
-import static org.lmdbjava.MaskedFlag.isSet;
-import static org.lmdbjava.MaskedFlag.mask;
 import static org.lmdbjava.PutFlags.MDB_MULTIPLE;
 import static org.lmdbjava.PutFlags.MDB_NODUPDATA;
 import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
@@ -99,21 +97,40 @@ public final class Cursor<T> implements AutoCloseable {
   }
 
   /**
+   * @deprecated Instead use {@link Cursor#delete(PutFlagSet)}. <hr> Delete current key/data pair.
+   *     <p>This function deletes the key/data pair to which the cursor refers.
+   * @param flags flags (either null or {@link PutFlags#MDB_NODUPDATA}
+   */
+  @Deprecated
+  public void delete(final PutFlags... flags) {
+    delete(PutFlagSet.of(flags));
+  }
+
+  /**
+   * Delete current key/data pair.
+   *
+   * <p>This function deletes the key/data pair to which the cursor refers.
+   */
+  public void delete() {
+    delete(PutFlagSet.EMPTY);
+  }
+
+  /**
    * Delete current key/data pair.
    *
    * <p>This function deletes the key/data pair to which the cursor refers.
    *
-   * @param f flags (either null or {@link PutFlags#MDB_NODUPDATA}
+   * @param flags flags (either null or {@link PutFlags#MDB_NODUPDATA}
    */
-  public void delete(final PutFlags... f) {
+  public void delete(final PutFlagSet flags) {
     if (SHOULD_CHECK) {
       env.checkNotClosed();
       checkNotClosed();
       txn.checkReady();
       txn.checkWritesAllowed();
     }
-    final int flags = mask(true, f);
-    checkRc(LIB.mdb_cursor_del(ptrCursor, flags));
+    final PutFlagSet putFlagSet = flags != null ? flags : PutFlagSet.EMPTY;
+    checkRc(LIB.mdb_cursor_del(ptrCursor, putFlagSet.getMask()));
   }
 
   /**
@@ -203,6 +220,10 @@ public final class Cursor<T> implements AutoCloseable {
     return kv.key();
   }
 
+  KeyVal<T> keyVal() {
+    return kv;
+  }
+
   /**
    * Position at last key/data item.
    *
@@ -231,17 +252,45 @@ public final class Cursor<T> implements AutoCloseable {
   }
 
   /**
+   * @deprecated Use {@link Cursor#put(Object, Object, PutFlagSet)} instead. <hr> Store by cursor.
+   *     <p>This function stores key/data pairs into the database.
+   * @param key key to store
+   * @param val data to store
+   * @param flags options for this operation
+   * @return true if the value was put, false if MDB_NOOVERWRITE or MDB_NODUPDATA were set and the
+   *     key/value existed already.
+   */
+  @Deprecated
+  public boolean put(final T key, final T val, final PutFlags... flags) {
+    return put(key, val, PutFlagSet.of(flags));
+  }
+
+  /**
    * Store by cursor.
    *
    * <p>This function stores key/data pairs into the database.
    *
    * @param key key to store
    * @param val data to store
-   * @param op options for this operation
    * @return true if the value was put, false if MDB_NOOVERWRITE or MDB_NODUPDATA were set and the
    *     key/value existed already.
    */
-  public boolean put(final T key, final T val, final PutFlags... op) {
+  public boolean put(final T key, final T val) {
+    return put(key, val, PutFlagSet.EMPTY);
+  }
+
+  /**
+   * Store by cursor.
+   *
+   * <p>This function stores key/data pairs into the database.
+   *
+   * @param key key to store
+   * @param val data to store
+   * @param flags options for this operation
+   * @return true if the value was put, false if MDB_NOOVERWRITE or MDB_NODUPDATA were set and the
+   *     key/value existed already.
+   */
+  public boolean put(final T key, final T val, final PutFlagSet flags) {
     if (SHOULD_CHECK) {
       requireNonNull(key);
       requireNonNull(val);
@@ -252,12 +301,13 @@ public final class Cursor<T> implements AutoCloseable {
     }
     final Pointer transientKey = kv.keyIn(key);
     final Pointer transientVal = kv.valIn(val);
-    final int mask = mask(true, op);
-    final int rc = LIB.mdb_cursor_put(ptrCursor, kv.pointerKey(), kv.pointerVal(), mask);
+    final PutFlagSet putFlagSet = flags != null ? flags : PutFlagSet.EMPTY;
+    final int rc =
+        LIB.mdb_cursor_put(ptrCursor, kv.pointerKey(), kv.pointerVal(), putFlagSet.getMask());
     if (rc == MDB_KEYEXIST) {
-      if (isSet(mask, MDB_NOOVERWRITE)) {
+      if (putFlagSet.isSet(MDB_NOOVERWRITE)) {
         kv.valOut(); // marked as in,out in LMDB C docs
-      } else if (!isSet(mask, MDB_NODUPDATA)) {
+      } else if (!putFlagSet.isSet(MDB_NODUPDATA)) {
         checkRc(rc);
       }
       return false;
@@ -271,6 +321,23 @@ public final class Cursor<T> implements AutoCloseable {
   }
 
   /**
+   * @deprecated Use {@link Cursor#put(Object, Object, PutFlagSet)} instead. <hr> Put multiple
+   *     values into the database in one <code>MDB_MULTIPLE</code> operation.
+   *     <p>The database must have been opened with {@link DbiFlags#MDB_DUPFIXED}. The buffer must
+   *     contain fixed-sized values to be inserted. The size of each element is calculated from the
+   *     buffer's size divided by the given element count. For example, to populate 10 X 4 byte
+   *     integers at once, present a buffer of 40 bytes and specify the element as 10.
+   * @param key key to store in the database (not null)
+   * @param val value to store in the database (not null)
+   * @param elements number of elements contained in the passed value buffer
+   * @param flags options for operation (must set <code>MDB_MULTIPLE</code>)
+   */
+  @Deprecated
+  public void putMultiple(final T key, final T val, final int elements, final PutFlags... flags) {
+    putMultiple(key, val, elements, PutFlagSet.of(flags));
+  }
+
+  /**
    * Put multiple values into the database in one <code>MDB_MULTIPLE</code> operation.
    *
    * <p>The database must have been opened with {@link DbiFlags#MDB_DUPFIXED}. The buffer must
@@ -281,9 +348,26 @@ public final class Cursor<T> implements AutoCloseable {
    * @param key key to store in the database (not null)
    * @param val value to store in the database (not null)
    * @param elements number of elements contained in the passed value buffer
-   * @param op options for operation (must set <code>MDB_MULTIPLE</code>)
    */
-  public void putMultiple(final T key, final T val, final int elements, final PutFlags... op) {
+  public void putMultiple(final T key, final T val, final int elements) {
+    putMultiple(key, val, elements, PutFlagSet.EMPTY);
+  }
+
+  /**
+   * Put multiple values into the database in one <code>MDB_MULTIPLE</code> operation.
+   *
+   * <p>The database must have been opened with {@link DbiFlags#MDB_DUPFIXED}. The buffer must
+   * contain fixed-sized values to be inserted. The size of each element is calculated from the
+   * buffer's size divided by the given element count. For example, to populate 10 X 4 byte integers
+   * at once, present a buffer of 40 bytes and specify the element as 10.
+   *
+   * @param key key to store in the database (not null)
+   * @param val value to store in the database (not null)
+   * @param elements number of elements contained in the passed value buffer
+   * @param flags options for operation (must set <code>MDB_MULTIPLE</code>) Either a {@link
+   *     PutFlagSet} or a single {@link PutFlags}.
+   */
+  public void putMultiple(final T key, final T val, final int elements, final PutFlagSet flags) {
     if (SHOULD_CHECK) {
       requireNonNull(txn);
       requireNonNull(key);
@@ -292,13 +376,14 @@ public final class Cursor<T> implements AutoCloseable {
       txn.checkReady();
       txn.checkWritesAllowed();
     }
-    final int mask = mask(true, op);
-    if (SHOULD_CHECK && !isSet(mask, MDB_MULTIPLE)) {
+    final PutFlagSet putFlagSet = flags != null ? flags : PutFlagSet.EMPTY;
+    if (SHOULD_CHECK && !putFlagSet.isSet(MDB_MULTIPLE)) {
       throw new IllegalArgumentException("Must set " + MDB_MULTIPLE + " flag");
     }
     final Pointer transientKey = txn.kv().keyIn(key);
     final Pointer dataPtr = txn.kv().valInMulti(val, elements);
-    final int rc = LIB.mdb_cursor_put(ptrCursor, txn.kv().pointerKey(), dataPtr, mask);
+    final int rc =
+        LIB.mdb_cursor_put(ptrCursor, txn.kv().pointerKey(), dataPtr, putFlagSet.getMask());
     checkRc(rc);
     ReferenceUtil.reachabilityFence0(transientKey);
     ReferenceUtil.reachabilityFence0(dataPtr);
@@ -330,20 +415,55 @@ public final class Cursor<T> implements AutoCloseable {
   }
 
   /**
+   * @deprecated Use {@link Cursor#reserve(Object, int, PutFlagSet)} instead. <hr> Reserve space for
+   *     data of the given size, but don't copy the given val. Instead, return a pointer to the
+   *     reserved space, which the caller can fill in later - before the next update operation or
+   *     the transaction ends. This saves an extra memcpy if the data is being generated later. LMDB
+   *     does nothing else with this memory, the caller is expected to modify all of the space
+   *     requested.
+   *     <p>This flag must not be specified if the database was opened with MDB_DUPSORT
+   * @param key key to store in the database (not null)
+   * @param size size of the value to be stored in the database (not null)
+   * @param flags options for this operation
+   * @return a buffer that can be used to modify the value
+   */
+  @Deprecated
+  public T reserve(final T key, final int size, final PutFlags... flags) {
+    return reserve(key, size, PutFlagSet.of(flags));
+  }
+
+  /**
    * Reserve space for data of the given size, but don't copy the given val. Instead, return a
    * pointer to the reserved space, which the caller can fill in later - before the next update
-   * operation or the transaction ends. This saves an extra memcpy if the data is being generated
-   * later. LMDB does nothing else with this memory, the caller is expected to modify all of the
-   * space requested.
+   * operation or the transaction ends. This saves an extra {@code memcpy} if the data is being
+   * generated later. LMDB does nothing else with this memory, the caller is expected to modify all
+   * the space requested.
    *
    * <p>This flag must not be specified if the database was opened with MDB_DUPSORT
    *
    * @param key key to store in the database (not null)
    * @param size size of the value to be stored in the database (not null)
-   * @param op options for this operation
    * @return a buffer that can be used to modify the value
    */
-  public T reserve(final T key, final int size, final PutFlags... op) {
+  public T reserve(final T key, final int size) {
+    return reserve(key, size, PutFlagSet.EMPTY);
+  }
+
+  /**
+   * Reserve space for data of the given size, but don't copy the given val. Instead, return a
+   * pointer to the reserved space, which the caller can fill in later - before the next update
+   * operation or the transaction ends. This saves an extra memcpy if the data is being generated
+   * later. LMDB does nothing else with this memory, the caller is expected to modify all the space
+   * requested.
+   *
+   * <p>This flag must not be specified if the database was opened with MDB_DUPSORT
+   *
+   * @param key key to store in the database (not null)
+   * @param size size of the value to be stored in the database (not null)
+   * @param flags options for this operation
+   * @return a buffer that can be used to modify the value
+   */
+  public T reserve(final T key, final int size, final PutFlagSet flags) {
     if (SHOULD_CHECK) {
       requireNonNull(key);
       env.checkNotClosed();
@@ -353,8 +473,10 @@ public final class Cursor<T> implements AutoCloseable {
     }
     final Pointer transientKey = kv.keyIn(key);
     final Pointer transientVal = kv.valIn(size);
-    final int flags = mask(true, op) | MDB_RESERVE.getMask();
-    checkRc(LIB.mdb_cursor_put(ptrCursor, kv.pointerKey(), kv.pointerVal(), flags));
+    final PutFlagSet putFlagSet = flags != null ? flags : PutFlagSet.EMPTY;
+    // This is inconsistent with putMultiple which require MDB_MULTIPLE to be in the set.
+    final int flagsMask = putFlagSet.getMaskWith(MDB_RESERVE);
+    checkRc(LIB.mdb_cursor_put(ptrCursor, kv.pointerKey(), kv.pointerVal(), flagsMask));
     kv.valOut();
     ReferenceUtil.reachabilityFence0(transientKey);
     ReferenceUtil.reachabilityFence0(transientVal);
