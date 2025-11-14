@@ -97,6 +97,7 @@ public abstract class AbstractFlagSetTest<
       assertThat(flag.size()).isEqualTo(1);
 
       assertThat(flag.getFlags()).containsExactlyElementsOf(getFlagSet(flag).getFlags());
+      assertThat(flag.getFlags()).hasSize(1);
       assertThat(flag.getMask()).isEqualTo(getFlagSet(flag).getMask());
     }
   }
