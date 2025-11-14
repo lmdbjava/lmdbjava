@@ -16,16 +16,15 @@
 
 package org.lmdbjava;
 
-import static java.nio.ByteBuffer.allocateDirect;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.lmdbjava.Env.create;
 import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.bb;
+import static org.lmdbjava.TestUtils.bbNative;
+import static org.lmdbjava.TestUtils.parseInt;
+import static org.lmdbjava.TestUtils.parseLong;
 
-import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
-import java.io.Reader;
 import java.io.StringWriter;
 import java.io.UncheckedIOException;
 import java.io.Writer;
@@ -43,14 +42,10 @@ public final class CursorIterableRangeTest {
 
   private static final DbiFlagSet FLAGSET_DUPSORT =
       DbiFlagSet.of(DbiFlags.MDB_CREATE, DbiFlags.MDB_DUPSORT);
-  private static final DbiFlagSet FLAGSET_REVERSEKEY =
-      DbiFlagSet.of(DbiFlags.MDB_CREATE, DbiFlags.MDB_REVERSEKEY);
   private static final DbiFlagSet FLAGSET_INTEGERKEY =
       DbiFlagSet.of(DbiFlags.MDB_CREATE, DbiFlags.MDB_INTEGERKEY);
   private static final DbiFlagSet FLAGSET_INTEGERKEY_DUPSORT =
       DbiFlagSet.of(DbiFlags.MDB_CREATE, DbiFlags.MDB_INTEGERKEY, DbiFlags.MDB_DUPSORT);
-  private static final DbiFlagSet FLAGSET_REVERSE_INTEGERKEY =
-      DbiFlagSet.of(DbiFlags.MDB_CREATE, DbiFlags.MDB_INTEGERKEY, DbiFlags.MDB_REVERSEKEY);
 
   @ParameterizedTest(name = "{index} => {0}: ({1}, {2})")
   @CsvFileSource(resources = "/CursorIterableRangeTest/testSignedComparator.csv")
@@ -295,15 +290,15 @@ public final class CursorIterableRangeTest {
     if (key != null) {
       if (ByteOrder.nativeOrder().equals(byteOrder)) {
         if (keyLen == Integer.BYTES) {
-          return bbNativeInt(TestUtils.parseInt(key));
+          return bbNative(parseInt(key));
         } else {
-          return bbNativeLong(TestUtils.parseLong(key));
+          return bbNative(parseLong(key));
         }
       } else {
         if (keyLen == Integer.BYTES) {
-          return bb(TestUtils.parseInt(key));
+          return bb(parseInt(key));
         } else {
-          return bb(TestUtils.parseLong(key));
+          return bb(parseLong(key));
         }
       }
     }
@@ -357,12 +352,12 @@ public final class CursorIterableRangeTest {
       try (Txn<ByteBuffer> txn = env.txnWrite()) {
         final Cursor<ByteBuffer> c = dbi.openCursor(txn);
         for (int i = 0; i < copies; i++) {
-          c.put(bbNativeInt(0), bb(1 + i));
-          c.put(bbNativeInt(2), bb(3 + i));
-          c.put(bbNativeInt(4), bb(5 + i));
-          c.put(bbNativeInt(6), bb(7 + i));
-          c.put(bbNativeInt(8), bb(9 + i));
-          c.put(bbNativeInt(-2), bb(-1 + i));
+          c.put(bbNative(0), bb(1 + i));
+          c.put(bbNative(2), bb(3 + i));
+          c.put(bbNative(4), bb(5 + i));
+          c.put(bbNative(6), bb(7 + i));
+          c.put(bbNative(8), bb(9 + i));
+          c.put(bbNative(-2), bb(-1 + i));
         }
         txn.commit();
       }
@@ -375,12 +370,12 @@ public final class CursorIterableRangeTest {
       try (Txn<ByteBuffer> txn = env.txnWrite()) {
         final Cursor<ByteBuffer> c = dbi.openCursor(txn);
         for (int i = 0; i < copies; i++) {
-          c.put(bbNativeLong(0), bb(1 + i));
-          c.put(bbNativeLong(2), bb(3 + i));
-          c.put(bbNativeLong(4), bb(5 + i));
-          c.put(bbNativeLong(6), bb(7 + i));
-          c.put(bbNativeLong(8), bb(9 + i));
-          c.put(bbNativeLong(-2), bb(-1 + i));
+          c.put(bbNative(0L), bb(1 + i));
+          c.put(bbNative(2L), bb(3 + i));
+          c.put(bbNative(4L), bb(5 + i));
+          c.put(bbNative(6L), bb(7 + i));
+          c.put(bbNative(8L), bb(9 + i));
+          c.put(bbNative(-2L), bb(-1 + i));
         }
         txn.commit();
       }
@@ -391,11 +386,11 @@ public final class CursorIterableRangeTest {
     return (env, dbi) -> {
       try (Txn<ByteBuffer> txn = env.txnWrite()) {
         final Cursor<ByteBuffer> c = dbi.openCursor(txn);
-        c.put(bbNativeInt(0), bb(1));
-        c.put(bbNativeInt(1000), bb(2));
-        c.put(bbNativeInt(1000000), bb(3));
-        c.put(bbNativeInt(-1000000), bb(4));
-        c.put(bbNativeInt(-1000), bb(5));
+        c.put(bbNative(0), bb(1));
+        c.put(bbNative(1000), bb(2));
+        c.put(bbNative(1000000), bb(3));
+        c.put(bbNative(-1000000), bb(4));
+        c.put(bbNative(-1000), bb(5));
         txn.commit();
       }
     };
@@ -405,53 +400,13 @@ public final class CursorIterableRangeTest {
     return (env, dbi) -> {
       try (Txn<ByteBuffer> txn = env.txnWrite()) {
         final Cursor<ByteBuffer> c = dbi.openCursor(txn);
-        c.put(bbNativeLong(0), bb(1));
-        c.put(bbNativeLong(1000), bb(2));
-        c.put(bbNativeLong(1000000), bb(3));
-        c.put(bbNativeLong(-1000000), bb(4));
-        c.put(bbNativeLong(-1000), bb(5));
+        c.put(bbNative(0L), bb(1));
+        c.put(bbNative(1000L), bb(2));
+        c.put(bbNative(1000000L), bb(3));
+        c.put(bbNative(-1000000L), bb(4));
+        c.put(bbNative(-1000L), bb(5));
         txn.commit();
       }
     };
-  }
-
-  private void populateDatabase(
-      final Env<ByteBuffer> env, final Dbi<ByteBuffer> dbi, final int copies) {
-    try (Txn<ByteBuffer> txn = env.txnWrite()) {
-      final Cursor<ByteBuffer> c = dbi.openCursor(txn);
-      for (int i = 0; i < copies; i++) {
-        c.put(bb(0), bb(1 + i));
-        c.put(bb(2), bb(3 + i));
-        c.put(bb(4), bb(5 + i));
-        c.put(bb(6), bb(7 + i));
-        c.put(bb(8), bb(9 + i));
-        c.put(bb(-2), bb(-1 + i));
-      }
-      txn.commit();
-    }
-  }
-
-  private String readFile(final File file) throws IOException {
-    final StringBuilder result = new StringBuilder();
-    try (final Reader reader = new FileReader(file)) {
-      final char[] cbuf = new char[4096];
-      int nread;
-      while ((nread = reader.read(cbuf, 0, cbuf.length)) != -1) {
-        result.append(cbuf, 0, nread);
-      }
-    }
-    return result.toString();
-  }
-
-  static ByteBuffer bbNativeInt(final int value) {
-    final ByteBuffer bb = allocateDirect(Integer.BYTES).order(ByteOrder.nativeOrder());
-    bb.putInt(value).flip();
-    return bb;
-  }
-
-  static ByteBuffer bbNativeLong(final long value) {
-    final ByteBuffer bb = allocateDirect(Long.BYTES).order(ByteOrder.nativeOrder());
-    bb.putLong(value).flip();
-    return bb;
   }
 }

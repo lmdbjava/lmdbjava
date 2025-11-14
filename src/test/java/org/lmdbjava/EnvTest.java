@@ -361,7 +361,12 @@ public final class EnvTest {
                       .setMapSize(8, ByteUnit.MEBIBYTES)
                       .setMaxDbs(1)
                       .open(dir)) {
-                final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
+                final Dbi<ByteBuffer> db =
+                    env.createDbi()
+                        .setDbName(DB_1)
+                        .withDefaultComparator()
+                        .setDbiFlags(MDB_CREATE)
+                        .open();
                 //noinspection InfiniteLoopStatement // Needs infinite loop to fill the env
                 for (; ; ) {
                   rnd.nextBytes(k);
@@ -379,12 +384,19 @@ public final class EnvTest {
   void readOnlySupported() {
     final Path dir = tempDir.createTempDir();
     try (Env<ByteBuffer> rwEnv = Env.create().setMaxReaders(1).open(dir)) {
-      final Dbi<ByteBuffer> rwDb = rwEnv.openDbi(DB_1, MDB_CREATE);
+      final Dbi<ByteBuffer> rwDb =
+          rwEnv.createDbi().setDbName(DB_1).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
       rwDb.put(bb(1), bb(42));
     }
     try (Env<ByteBuffer> roEnv =
         Env.create().setMaxReaders(1).setEnvFlags(MDB_RDONLY_ENV).open(dir)) {
-      final Dbi<ByteBuffer> roDb = roEnv.openDbi(DB_1, DbiFlagSet.EMPTY);
+      final Dbi<ByteBuffer> roDb =
+          roEnv
+              .createDbi()
+              .setDbName(DB_1)
+              .withDefaultComparator()
+              .setDbiFlags(DbiFlagSet.EMPTY)
+              .open();
       try (Txn<ByteBuffer> roTxn = roEnv.txnRead()) {
         assertThat(roDb.get(roTxn, bb(1))).isNotNull();
       }
@@ -400,7 +412,8 @@ public final class EnvTest {
     final Random rnd = new Random();
     try (Env<ByteBuffer> env =
         Env.create().setMaxReaders(1).setMapSize(256, ByteUnit.KIBIBYTES).setMaxDbs(1).open(dir)) {
-      final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
+      final Dbi<ByteBuffer> db =
+          env.createDbi().setDbName(DB_1).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
 
       db.put(bb(1), bb(42));
       boolean mapFullExThrown = false;
@@ -469,7 +482,8 @@ public final class EnvTest {
     try (Env<ByteBuffer> env = Env.create().setMapSize(10, ByteUnit.MEBIBYTES).open(dir)) {
       final EnvInfo info = env.info();
       assertThat(info.maxReaders).isEqualTo(MAX_READERS_DEFAULT);
-      final Dbi<ByteBuffer> db = env.openDbi("test", MDB_CREATE);
+      final Dbi<ByteBuffer> db =
+          env.createDbi().setDbName("test").withDefaultComparator().setDbiFlags(MDB_CREATE).open();
       db.put(allocateDirect(1), allocateDirect(1));
     }
   }
@@ -480,7 +494,12 @@ public final class EnvTest {
     try (Env<ByteBuffer> env = Env.create().setMapSize(10, ByteUnit.MEBIBYTES).open(dir)) {
       final EnvInfo info = env.info();
       assertThat(info.maxReaders).isEqualTo(MAX_READERS_DEFAULT);
-      final Dbi<ByteBuffer> db = env.openDbi((String) null, MDB_CREATE);
+      final Dbi<ByteBuffer> db =
+          env.createDbi()
+              .setDbName((String) null)
+              .withDefaultComparator()
+              .setDbiFlags(MDB_CREATE)
+              .open();
       db.put(bb("abc"), allocateDirect(1));
       db.put(bb("def"), allocateDirect(1));
 
@@ -498,7 +517,12 @@ public final class EnvTest {
     try (Env<ByteBuffer> env = Env.create().setMapSize(10, ByteUnit.MEBIBYTES).open(dir)) {
       final EnvInfo info = env.info();
       assertThat(info.maxReaders).isEqualTo(MAX_READERS_DEFAULT);
-      final Dbi<ByteBuffer> db = env.openDbi((byte[]) null, MDB_CREATE);
+      final Dbi<ByteBuffer> db =
+          env.createDbi()
+              .setDbName((byte[]) null)
+              .withDefaultComparator()
+              .setDbiFlags(MDB_CREATE)
+              .open();
       db.put(bb("abc"), allocateDirect(1));
       db.put(bb("def"), allocateDirect(1));
 

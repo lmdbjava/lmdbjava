@@ -78,7 +78,12 @@ public final class CursorTest {
   void closedCursorRejectsSubsequentGets() {
     assertThatThrownBy(
             () -> {
-              final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
+              final Dbi<ByteBuffer> db =
+                  env.createDbi()
+                      .setDbName(DB_1)
+                      .withDefaultComparator()
+                      .setDbiFlags(MDB_CREATE)
+                      .open();
               try (Txn<ByteBuffer> txn = env.txnWrite()) {
                 final Cursor<ByteBuffer> c = db.openCursor(txn);
                 c.close();
@@ -175,7 +180,12 @@ public final class CursorTest {
 
   @Test
   void count() {
-    final Dbi<ByteBuffer> db = env.openDbi(DB_1, DbiFlagSet.of(MDB_CREATE, MDB_DUPSORT));
+    final Dbi<ByteBuffer> db =
+        env.createDbi()
+            .setDbName(DB_1)
+            .withDefaultComparator()
+            .setDbiFlags(MDB_CREATE, MDB_DUPSORT)
+            .open();
     try (Txn<ByteBuffer> txn = env.txnWrite();
         Cursor<ByteBuffer> c = db.openCursor(txn)) {
       c.put(bb(1), bb(2), MDB_APPENDDUP);
@@ -193,7 +203,12 @@ public final class CursorTest {
   void cursorCannotCloseIfTransactionCommitted() {
     assertThatThrownBy(
             () -> {
-              final Dbi<ByteBuffer> db = env.openDbi(DB_1, DbiFlagSet.of(MDB_CREATE, MDB_DUPSORT));
+              final Dbi<ByteBuffer> db =
+                  env.createDbi()
+                      .setDbName(DB_1)
+                      .withDefaultComparator()
+                      .setDbiFlags(MDB_CREATE, MDB_DUPSORT)
+                      .open();
               try (Txn<ByteBuffer> txn = env.txnWrite()) {
                 try (Cursor<ByteBuffer> c = db.openCursor(txn); ) {
                   c.put(bb(1), bb(2), MDB_APPENDDUP);
@@ -209,7 +224,8 @@ public final class CursorTest {
 
   @Test
   void cursorFirstLastNextPrev() {
-    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
+    final Dbi<ByteBuffer> db =
+        env.createDbi().setDbName(DB_1).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
     try (Txn<ByteBuffer> txn = env.txnWrite();
         Cursor<ByteBuffer> c = db.openCursor(txn)) {
       c.put(bb(1), bb(2), MDB_NOOVERWRITE);
@@ -238,7 +254,12 @@ public final class CursorTest {
 
   @Test
   void delete() {
-    final Dbi<ByteBuffer> db = env.openDbi(DB_1, DbiFlagSet.of(MDB_CREATE, MDB_DUPSORT));
+    final Dbi<ByteBuffer> db =
+        env.createDbi()
+            .setDbName(DB_1)
+            .withDefaultComparator()
+            .setDbiFlags(MDB_CREATE, MDB_DUPSORT)
+            .open();
     try (Txn<ByteBuffer> txn = env.txnWrite();
         Cursor<ByteBuffer> c = db.openCursor(txn)) {
       c.put(bb(1), bb(2), MDB_NOOVERWRITE);
@@ -257,7 +278,12 @@ public final class CursorTest {
 
   @Test
   void getKeyVal() {
-    final Dbi<ByteBuffer> db = env.openDbi(DB_1, DbiFlagSet.of(MDB_CREATE, MDB_DUPSORT));
+    final Dbi<ByteBuffer> db =
+        env.createDbi()
+            .setDbName(DB_1)
+            .withDefaultComparator()
+            .setDbiFlags(MDB_CREATE, MDB_DUPSORT)
+            .open();
     try (Txn<ByteBuffer> txn = env.txnWrite();
         Cursor<ByteBuffer> c = db.openCursor(txn)) {
       c.put(bb(1), bb(2), MDB_APPENDDUP);
@@ -279,7 +305,11 @@ public final class CursorTest {
   @Test
   void putMultiple() {
     final Dbi<ByteBuffer> db =
-        env.openDbi(DB_1, DbiFlagSet.of(MDB_CREATE, MDB_DUPSORT, MDB_DUPFIXED));
+        env.createDbi()
+            .setDbName(DB_1)
+            .withDefaultComparator()
+            .setDbiFlags(MDB_CREATE, MDB_DUPSORT, MDB_DUPFIXED)
+            .open();
     final int elemCount = 20;
 
     final ByteBuffer values = allocateDirect(Integer.BYTES * elemCount);
@@ -301,7 +331,12 @@ public final class CursorTest {
   void putMultipleWithoutMdbMultipleFlag() {
     assertThatThrownBy(
             () -> {
-              final Dbi<ByteBuffer> db = env.openDbi(DB_1, DbiFlagSet.of(MDB_CREATE, MDB_DUPSORT));
+              final Dbi<ByteBuffer> db =
+                  env.createDbi()
+                      .setDbName(DB_1)
+                      .withDefaultComparator()
+                      .setDbiFlags(MDB_CREATE, MDB_DUPSORT)
+                      .open();
               try (Txn<ByteBuffer> txn = env.txnWrite();
                   Cursor<ByteBuffer> c = db.openCursor(txn)) {
                 c.putMultiple(bb(100), bb(1), 1);
@@ -312,7 +347,8 @@ public final class CursorTest {
 
   @Test
   void renewTxRo() {
-    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
+    final Dbi<ByteBuffer> db =
+        env.createDbi().setDbName(DB_1).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
 
     final Cursor<ByteBuffer> c;
     try (Txn<ByteBuffer> txn = env.txnRead()) {
@@ -332,7 +368,12 @@ public final class CursorTest {
   void renewTxRw() {
     assertThatThrownBy(
             () -> {
-              final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
+              final Dbi<ByteBuffer> db =
+                  env.createDbi()
+                      .setDbName(DB_1)
+                      .withDefaultComparator()
+                      .setDbiFlags(MDB_CREATE)
+                      .open();
               try (Txn<ByteBuffer> txn = env.txnWrite()) {
                 assertThat(txn.isReadOnly()).isFalse();
 
@@ -346,7 +387,12 @@ public final class CursorTest {
 
   @Test
   void repeatedCloseCausesNotError() {
-    final Dbi<ByteBuffer> db = env.openDbi(DB_1, DbiFlagSet.of(MDB_CREATE, MDB_DUPSORT));
+    final Dbi<ByteBuffer> db =
+        env.createDbi()
+            .setDbName(DB_1)
+            .withDefaultComparator()
+            .setDbiFlags(MDB_CREATE, MDB_DUPSORT)
+            .open();
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
       final Cursor<ByteBuffer> c = db.openCursor(txn);
       c.close();
@@ -356,7 +402,8 @@ public final class CursorTest {
 
   @Test
   void reserve() {
-    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
+    final Dbi<ByteBuffer> db =
+        env.createDbi().setDbName(DB_1).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
     final ByteBuffer key = bb(5);
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
       assertThat(db.get(txn, key)).isNull();
@@ -376,7 +423,12 @@ public final class CursorTest {
 
   @Test
   void returnValueForNoDupData() {
-    final Dbi<ByteBuffer> db = env.openDbi(DB_1, DbiFlagSet.of(MDB_CREATE, MDB_DUPSORT));
+    final Dbi<ByteBuffer> db =
+        env.createDbi()
+            .setDbName(DB_1)
+            .withDefaultComparator()
+            .setDbiFlags(MDB_CREATE, MDB_DUPSORT)
+            .open();
     try (Txn<ByteBuffer> txn = env.txnWrite();
         Cursor<ByteBuffer> c = db.openCursor(txn)) {
       // ok
@@ -388,7 +440,8 @@ public final class CursorTest {
 
   @Test
   void returnValueForNoOverwrite() {
-    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
+    final Dbi<ByteBuffer> db =
+        env.createDbi().setDbName(DB_1).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
     try (Txn<ByteBuffer> txn = env.txnWrite();
         Cursor<ByteBuffer> c = db.openCursor(txn)) {
       // ok
@@ -401,7 +454,8 @@ public final class CursorTest {
 
   @Test
   void testCursorByteBufferDuplicate() {
-    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
+    final Dbi<ByteBuffer> db =
+        env.createDbi().setDbName(DB_1).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
       try (Cursor<ByteBuffer> c = db.openCursor(txn)) {
         c.put(bb(1), bb(2));
@@ -431,7 +485,8 @@ public final class CursorTest {
   private void doEnvClosedTest(
       final Consumer<Cursor<ByteBuffer>> workBeforeEnvClosed,
       final Consumer<Cursor<ByteBuffer>> workAfterEnvClose) {
-    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
+    final Dbi<ByteBuffer> db =
+        env.createDbi().setDbName(DB_1).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
 
     db.put(bb(1), bb(10));
     db.put(bb(2), bb(20));

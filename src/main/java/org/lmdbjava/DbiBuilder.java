@@ -170,10 +170,8 @@ public final class DbiBuilder<T> {
     }
 
     /**
+     * <strong>WARNING</strong>: Only use this if you fully understand the risks and implications.
      * <hr>
-     *
-     * <p><strong>WARNING</strong>: Only use this if you fully understand the risks and
-     * implications. <hr>
      *
      * <p>With this option, {@link CursorIterable} will make use of the passed comparator for
      * comparing iteration keys to start/stop keys. It has <strong>NO</strong> bearing on the

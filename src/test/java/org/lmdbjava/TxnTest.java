@@ -82,7 +82,12 @@ public final class TxnTest {
   void largeKeysRejected() {
     assertThatThrownBy(
             () -> {
-              final Dbi<ByteBuffer> dbi = env.openDbi(DB_1, MDB_CREATE);
+              final Dbi<ByteBuffer> dbi =
+                  env.createDbi()
+                      .setDbName(DB_1)
+                      .withDefaultComparator()
+                      .setDbiFlags(MDB_CREATE)
+                      .open();
               final ByteBuffer key = allocateDirect(env.getMaxKeySize() + 1);
               key.limit(key.capacity());
               dbi.put(key, bb(2));
@@ -92,7 +97,8 @@ public final class TxnTest {
 
   @Test
   void rangeSearch() {
-    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
+    final Dbi<ByteBuffer> db =
+        env.createDbi().setDbName(DB_1).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
 
     final ByteBuffer key = allocateDirect(env.getMaxKeySize());
     key.put("cherry".getBytes(UTF_8)).flip();
@@ -126,7 +132,7 @@ public final class TxnTest {
 
   @Test
   void readOnlyTxnAllowedInReadOnlyEnv() {
-    env.openDbi(DB_1, MDB_CREATE);
+    env.createDbi().setDbName(DB_1).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
     try (Env<ByteBuffer> roEnv =
         create().setMaxReaders(1).setEnvFlags(MDB_NOSUBDIR, MDB_RDONLY_ENV).open(file)) {
       assertThat(roEnv.txnRead()).isNotNull();
@@ -137,7 +143,11 @@ public final class TxnTest {
   void readWriteTxnDeniedInReadOnlyEnv() {
     assertThatThrownBy(
             () -> {
-              env.openDbi(DB_1, MDB_CREATE);
+              env.createDbi()
+                  .setDbName(DB_1)
+                  .withDefaultComparator()
+                  .setDbiFlags(MDB_CREATE)
+                  .open();
               env.close();
               try (Env<ByteBuffer> roEnv =
                   create().setMaxReaders(1).setEnvFlags(MDB_NOSUBDIR, MDB_RDONLY_ENV).open(file)) {
@@ -183,8 +193,8 @@ public final class TxnTest {
 
   @Test
   void testGetId() {
-    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
-
+    final Dbi<ByteBuffer> db =
+        env.createDbi().setDbName(DB_1).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
     final AtomicLong txId1 = new AtomicLong();
     final AtomicLong txId2 = new AtomicLong();
 
@@ -419,7 +429,12 @@ public final class TxnTest {
   void zeroByteKeysRejected() {
     assertThatThrownBy(
             () -> {
-              final Dbi<ByteBuffer> dbi = env.openDbi(DB_1, MDB_CREATE);
+              final Dbi<ByteBuffer> dbi =
+                  env.createDbi()
+                      .setDbName(DB_1)
+                      .withDefaultComparator()
+                      .setDbiFlags(MDB_CREATE)
+                      .open();
               final ByteBuffer key = allocateDirect(4);
               key.putInt(1);
               assertThat(key.remaining()).isEqualTo(0); // because key.flip() skipped

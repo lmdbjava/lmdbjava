@@ -38,7 +38,12 @@ class GarbageCollectionTest {
     try (final TempDir tempDir = new TempDir()) {
       final Path dir = tempDir.createTempDir();
       try (Env<ByteBuffer> env = Env.create().setMapSize(2_085_760_999).setMaxDbs(1).open(dir)) {
-        final Dbi<ByteBuffer> db = env.openDbi(DB_NAME, MDB_CREATE);
+        final Dbi<ByteBuffer> db =
+            env.createDbi()
+                .setDbName(DB_NAME)
+                .withDefaultComparator()
+                .setDbiFlags(MDB_CREATE)
+                .open();
 
         try (Txn<ByteBuffer> txn = env.txnWrite()) {
           for (int i = 0; i < 5_000; i++) {

@@ -96,7 +96,8 @@ public final class TutorialTest {
 
     // We need a Dbi for each DB. A Dbi roughly equates to a sorted map. The
     // MDB_CREATE flag causes the DB to be created if it doesn't already exist.
-    final Dbi<ByteBuffer> db = env.openDbi(DB_NAME, MDB_CREATE);
+    final Dbi<ByteBuffer> db =
+        env.createDbi().setDbName(DB_NAME).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
 
     // We want to store some data, so we will need a direct ByteBuffer.
     // Note that LMDB keys cannot exceed maxKeySize bytes (511 bytes by default).
@@ -146,7 +147,8 @@ public final class TutorialTest {
     final Path dir = tempDir.createTempDir();
     try {
       final Env<ByteBuffer> env = createSimpleEnv(dir);
-      final Dbi<ByteBuffer> db = env.openDbi(DB_NAME, MDB_CREATE);
+      final Dbi<ByteBuffer> db =
+          env.createDbi().setDbName(DB_NAME).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
       final ByteBuffer key = ByteBuffer.allocateDirect(env.getMaxKeySize());
       final ByteBuffer val = ByteBuffer.allocateDirect(700);
 
@@ -222,7 +224,8 @@ public final class TutorialTest {
   void tutorial3() {
     final Path dir = tempDir.createTempDir();
     final Env<ByteBuffer> env = createSimpleEnv(dir);
-    final Dbi<ByteBuffer> db = env.openDbi(DB_NAME, MDB_CREATE);
+    final Dbi<ByteBuffer> db =
+        env.createDbi().setDbName(DB_NAME).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
     final ByteBuffer key = ByteBuffer.allocateDirect(env.getMaxKeySize());
     final ByteBuffer val = ByteBuffer.allocateDirect(700);
 
@@ -295,7 +298,8 @@ public final class TutorialTest {
   void tutorial4() {
     final Path dir = tempDir.createTempDir();
     final Env<ByteBuffer> env = createSimpleEnv(dir);
-    final Dbi<ByteBuffer> db = env.openDbi(DB_NAME, MDB_CREATE);
+    final Dbi<ByteBuffer> db =
+        env.createDbi().setDbName(DB_NAME).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
 
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
       final ByteBuffer key = ByteBuffer.allocateDirect(env.getMaxKeySize());
@@ -353,7 +357,12 @@ public final class TutorialTest {
 
     // This time we're going to tell the Dbi it can store > 1 value per key.
     // There are other flags available if we're storing integers etc.
-    final Dbi<ByteBuffer> db = env.openDbi(DB_NAME, DbiFlagSet.of(MDB_CREATE, MDB_DUPSORT));
+    final Dbi<ByteBuffer> db =
+        env.createDbi()
+            .setDbName(DB_NAME)
+            .withDefaultComparator()
+            .setDbiFlags(MDB_CREATE, MDB_DUPSORT)
+            .open();
 
     // Duplicate support requires both keys and values to be <= max key size.
     final ByteBuffer key = ByteBuffer.allocateDirect(env.getMaxKeySize());
@@ -428,7 +437,8 @@ public final class TutorialTest {
     final Env<DirectBuffer> env =
         Env.create(PROXY_DB).setMapSize(10, ByteUnit.MEBIBYTES).setMaxDbs(1).open(dir);
 
-    final Dbi<DirectBuffer> db = env.openDbi(DB_NAME, MDB_CREATE);
+    final Dbi<DirectBuffer> db =
+        env.createDbi().setDbName(DB_NAME).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
 
     final ByteBuffer keyBb = ByteBuffer.allocateDirect(env.getMaxKeySize());
     final MutableDirectBuffer key = new UnsafeBuffer(keyBb);
@@ -487,7 +497,12 @@ public final class TutorialTest {
     // This time we're going to tell the Dbi that all the keys are integers.
     // MDB_INTEGERKEY applies to both int and long keys.
     // LMDB can make optimisations for better performance.
-    final Dbi<ByteBuffer> db = env.openDbi(DB_NAME, DbiFlagSet.of(MDB_CREATE, MDB_INTEGERKEY));
+    final Dbi<ByteBuffer> db =
+        env.createDbi()
+            .setDbName(DB_NAME)
+            .withDefaultComparator()
+            .setDbiFlags(MDB_CREATE, MDB_INTEGERKEY)
+            .open();
 
     // MDB_INTEGERKEY requires that the keys are written/read in native order
     final ByteBuffer key = ByteBuffer.allocateDirect(Long.BYTES).order(ByteOrder.nativeOrder());
@@ -541,7 +556,12 @@ public final class TutorialTest {
     final Path dir = tempDir.createTempDir();
     final Env<ByteBuffer> env = createSimpleEnv(dir);
 
-    final Dbi<ByteBuffer> db = env.openDbi(DB_NAME, DbiFlagSet.of(MDB_CREATE, MDB_REVERSEKEY));
+    final Dbi<ByteBuffer> db =
+        env.createDbi()
+            .setDbName(DB_NAME)
+            .withDefaultComparator()
+            .setDbiFlags(MDB_CREATE, MDB_REVERSEKEY)
+            .open();
 
     final ByteBuffer key = ByteBuffer.allocateDirect(100);
     final ByteBuffer val = ByteBuffer.allocateDirect(100);
