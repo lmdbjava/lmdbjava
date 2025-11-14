@@ -90,7 +90,14 @@ public abstract class AbstractFlagSetTest<
       }
       assertThat(flagSet.toString()).isNotNull();
       assertThat(flag.name()).isNotNull();
+      assertThat(flag.isSet(flag)).isTrue();
+      assertThat(flag.isSet(null)).isFalse();
       assertThat(flagSet.getMaskWith(null)).isEqualTo(flagSet.getMask());
+      assertThat(flag.isEmpty()).isFalse();
+      assertThat(flag.size()).isEqualTo(1);
+
+      assertThat(flag.getFlags()).containsExactlyElementsOf(getFlagSet(flag).getFlags());
+      assertThat(flag.getMask()).isEqualTo(getFlagSet(flag).getMask());
     }
   }
 
