@@ -205,6 +205,19 @@ public final class EnvTest {
   }
 
   @Test
+  void copyDirectoryBased_noFlags() {
+    final Path dest = tempDir.createTempDir();
+    assertThat(Files.exists(dest)).isTrue();
+    assertThat(Files.isDirectory(dest)).isTrue();
+    assertThat(FileUtil.count(dest)).isEqualTo(0);
+    final Path src = tempDir.createTempDir();
+    try (Env<ByteBuffer> env = Env.create().setMaxReaders(1).open(src)) {
+      env.copy(dest);
+      assertThat(FileUtil.count(dest)).isEqualTo(1);
+    }
+  }
+
+  @Test
   void copyDirectoryRejectsFileDestination() {
     assertThatThrownBy(
             () -> {
@@ -434,6 +447,12 @@ public final class EnvTest {
               () -> {
                 env.setMapSize(-1, ByteUnit.KIBIBYTES);
               })
+          .isInstanceOf(IllegalArgumentException.class);
+
+      assertThatThrownBy(
+          () -> {
+            env.setMapSize(-1);
+          })
           .isInstanceOf(IllegalArgumentException.class);
 
       env.setMapSize(1024, ByteUnit.KIBIBYTES);
