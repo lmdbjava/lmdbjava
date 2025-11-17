@@ -121,6 +121,78 @@ public final class DbiTest {
   }
 
   @Test
+  void constructorArgsNullEnv() {
+    assertThatThrownBy(
+            () -> {
+              try (Txn<ByteBuffer> txn = env.txnWrite()) {
+                new Dbi<>(
+                    null,
+                    txn,
+                    "foo".getBytes(Env.DEFAULT_NAME_CHARSET),
+                    PROXY_OPTIMAL,
+                    DbiFlagSet.EMPTY);
+              }
+            })
+        .isInstanceOf(NullPointerException.class);
+  }
+
+  @Test
+  void constructorArgsNullTxn() {
+    assertThatThrownBy(
+            () -> {
+              new Dbi<>(
+                  env,
+                  null,
+                  "foo".getBytes(Env.DEFAULT_NAME_CHARSET),
+                  PROXY_OPTIMAL,
+                  DbiFlagSet.EMPTY);
+            })
+        .isInstanceOf(NullPointerException.class);
+  }
+
+  @Test
+  void constructorArgsNullProxy() {
+    assertThatThrownBy(
+            () -> {
+              try (Txn<ByteBuffer> txn = env.txnWrite()) {
+                new Dbi<>(
+                    env, txn, "foo".getBytes(Env.DEFAULT_NAME_CHARSET), null, DbiFlagSet.EMPTY);
+              }
+            })
+        .isInstanceOf(NullPointerException.class);
+  }
+
+  @Test
+  void constructorArgsNullFlags() {
+    assertThatThrownBy(
+            () -> {
+              try (Txn<ByteBuffer> txn = env.txnWrite()) {
+                new Dbi<>(env, txn, "foo".getBytes(Env.DEFAULT_NAME_CHARSET), PROXY_OPTIMAL, null);
+              }
+            })
+        .isInstanceOf(NullPointerException.class);
+  }
+
+  @Test
+  void constructorArgsNullNativeCallbackComparator() {
+    assertThatThrownBy(
+            () -> {
+              try (Txn<ByteBuffer> txn = env.txnWrite()) {
+                new Dbi<>(
+                    env,
+                    txn,
+                    "foo".getBytes(Env.DEFAULT_NAME_CHARSET),
+                    null,
+                    true,
+                    PROXY_OPTIMAL,
+                    DbiFlagSet.EMPTY);
+              }
+            })
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Is nativeCb is true, you must supply a comparator");
+  }
+
+  @Test
   void customComparator() {
     final Comparator<ByteBuffer> reverseOrder =
         (o1, o2) -> {
