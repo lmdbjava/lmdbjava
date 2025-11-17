@@ -16,7 +16,6 @@
 
 package org.lmdbjava;
 
-import static com.jakewharton.byteunits.BinaryByteUnit.MEBIBYTES;
 import static java.lang.Long.BYTES;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -37,7 +36,6 @@ import static org.lmdbjava.SeekOp.MDB_LAST;
 import static org.lmdbjava.SeekOp.MDB_NEXT;
 import static org.lmdbjava.SeekOp.MDB_PREV;
 import static org.lmdbjava.TestUtils.DB_1;
-import static org.lmdbjava.TestUtils.POSIX_MODE;
 import static org.lmdbjava.TestUtils.bb;
 import static org.lmdbjava.TestUtils.mdb;
 import static org.lmdbjava.TestUtils.nb;
@@ -48,25 +46,33 @@ import java.nio.file.Path;
 import java.util.stream.Stream;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
+import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ArgumentsProvider;
+import org.junit.jupiter.params.provider.ArgumentsSource;
+import org.junit.jupiter.params.support.ParameterDeclarations;
 
 /** Test {@link Cursor} with different buffer implementations. */
 public final class CursorParamTest {
 
-  static Stream<Arguments> data() {
-    return Stream.of(
-        Arguments.argumentSet("ByteBufferRunner(PROXY_OPTIMAL)", new ByteBufferRunner(PROXY_OPTIMAL)),
-        Arguments.argumentSet("ByteBufferRunner(PROXY_SAFE)", new ByteBufferRunner(PROXY_SAFE)),
-        Arguments.argumentSet("ByteArrayRunner(PROXY_BA)", new ByteArrayRunner(PROXY_BA)),
-        Arguments.argumentSet("DirectBufferRunner", new DirectBufferRunner()),
-        Arguments.argumentSet("NettyBufferRunner", new NettyBufferRunner()));
+  static class MyArgumentProvider implements ArgumentsProvider {
+    @Override
+    public Stream<? extends Arguments> provideArguments(
+        ParameterDeclarations parameters, ExtensionContext context) {
+      return Stream.of(
+          Arguments.argumentSet(
+              "ByteBufferRunner(PROXY_OPTIMAL)", new ByteBufferRunner(PROXY_OPTIMAL)),
+          Arguments.argumentSet("ByteBufferRunner(PROXY_SAFE)", new ByteBufferRunner(PROXY_SAFE)),
+          Arguments.argumentSet("ByteArrayRunner(PROXY_BA)", new ByteArrayRunner(PROXY_BA)),
+          Arguments.argumentSet("DirectBufferRunner", new DirectBufferRunner()),
+          Arguments.argumentSet("NettyBufferRunner", new NettyBufferRunner()));
+    }
   }
 
   @ParameterizedTest
-  @MethodSource("data")
+  @ArgumentsSource(MyArgumentProvider.class)
   void execute(final BufferRunner<?> runner, @TempDir final Path tmp) {
     runner.execute(tmp);
   }
@@ -88,7 +94,12 @@ public final class CursorParamTest {
     public final void execute(final Path tmp) {
       try (Env<T> env = env(tmp)) {
         assertThat(env.getDbiNames()).isEmpty();
-        final Dbi<T> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
+        final Dbi<T> db =
+            env.createDbi()
+                .setDbName(DB_1)
+                .withDefaultComparator()
+                .setDbiFlags(MDB_CREATE, MDB_DUPSORT)
+                .open();
         assertThat(env.getDbiNames().get(0)).isEqualTo(DB_1.getBytes(UTF_8));
         try (Txn<T> txn = env.txnWrite();
             Cursor<T> c = db.openCursor(txn)) {
@@ -159,10 +170,11 @@ public final class CursorParamTest {
 
     private Env<T> env(final Path tmp) {
       return create(proxy)
-          .setMapSize(MEBIBYTES.toBytes(1))
+          .setMapSize(1, ByteUnit.MEBIBYTES)
           .setMaxReaders(1)
           .setMaxDbs(1)
-          .open(tmp.resolve("db").toFile(), POSIX_MODE, MDB_NOSUBDIR);
+          .setEnvFlags(MDB_NOSUBDIR)
+          .open(tmp.resolve("db"));
     }
   }
 
