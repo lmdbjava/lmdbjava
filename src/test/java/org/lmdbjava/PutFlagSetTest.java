@@ -15,6 +15,8 @@
  */
 package org.lmdbjava;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
@@ -74,6 +76,21 @@ class PutFlagSetTest extends AbstractFlagSetTest<PutFlags, PutFlagSet> {
   @Override
   Function<EnumSet<PutFlags>, PutFlagSet> getConstructor() {
     return PutFlagSetImpl::new;
+  }
+
+  /**
+   * {@link FlagSet#isSet(MaskedFlag)} on the flag enum is tested in {@link AbstractFlagSetTest} but the coverage check
+   * doesn't seem to notice it.
+   */
+  @Test
+  void testIsSet() {
+    assertThat(PutFlags.MDB_APPEND.isSet(PutFlags.MDB_APPEND))
+        .isTrue();
+    assertThat(PutFlags.MDB_APPEND.isSet(PutFlags.MDB_MULTIPLE))
+        .isFalse();
+    //noinspection ConstantValue
+    assertThat(PutFlags.MDB_APPEND.isSet(null))
+        .isFalse();
   }
 
   @Test

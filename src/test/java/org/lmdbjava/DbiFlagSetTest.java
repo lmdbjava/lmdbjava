@@ -15,6 +15,8 @@
  */
 package org.lmdbjava;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
@@ -71,5 +73,20 @@ class DbiFlagSetTest extends AbstractFlagSetTest<DbiFlags, DbiFlagSet> {
   @Override
   Function<EnumSet<DbiFlags>, DbiFlagSet> getConstructor() {
     return DbiFlagSetImpl::new;
+  }
+
+  /**
+   * {@link FlagSet#isSet(MaskedFlag)} on the flag enum is tested in {@link AbstractFlagSetTest} but the coverage check
+   * doesn't seem to notice it.
+   */
+  @Test
+  void testIsSet() {
+    assertThat(DbiFlags.MDB_CREATE.isSet(DbiFlags.MDB_CREATE))
+        .isTrue();
+    assertThat(DbiFlags.MDB_CREATE.isSet(DbiFlags.MDB_REVERSEKEY))
+        .isFalse();
+    //noinspection ConstantValue
+    assertThat(DbiFlags.MDB_CREATE.isSet(null))
+        .isFalse();
   }
 }

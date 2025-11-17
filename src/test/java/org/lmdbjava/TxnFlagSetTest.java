@@ -15,13 +15,15 @@
  */
 package org.lmdbjava;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.lmdbjava.TxnFlags.MDB_RDONLY_TXN;
+
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 class TxnFlagSetTest extends AbstractFlagSetTest<TxnFlags, TxnFlagSet> {
@@ -30,7 +32,7 @@ class TxnFlagSetTest extends AbstractFlagSetTest<TxnFlags, TxnFlagSet> {
   void test() {
     // This is here purely to stop CodeQL moaning that this class is unused.
     // All the actual tests are in the superclass
-    Assertions.assertThat(getAllFlags()).isNotNull();
+    assertThat(getAllFlags()).isNotNull();
   }
 
   @Override
@@ -71,5 +73,18 @@ class TxnFlagSetTest extends AbstractFlagSetTest<TxnFlags, TxnFlagSet> {
   @Override
   Function<EnumSet<TxnFlags>, TxnFlagSet> getConstructor() {
     return TxnFlagSetImpl::new;
+  }
+
+  /**
+   * {@link FlagSet#isSet(MaskedFlag)} on the flag enum is tested in {@link AbstractFlagSetTest} but the coverage check
+   * doesn't seem to notice it.
+   */
+  @Test
+  void testIsSet() {
+    assertThat(MDB_RDONLY_TXN.isSet(MDB_RDONLY_TXN))
+        .isTrue();
+    //noinspection ConstantValue
+    assertThat(MDB_RDONLY_TXN.isSet(null))
+        .isFalse();
   }
 }

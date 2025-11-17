@@ -15,6 +15,8 @@
  */
 package org.lmdbjava;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
@@ -71,5 +73,18 @@ class CopyFlagSetTest extends AbstractFlagSetTest<CopyFlags, CopyFlagSet> {
   @Override
   Function<EnumSet<CopyFlags>, CopyFlagSet> getConstructor() {
     return CopyFlagSetImpl::new;
+  }
+
+  /**
+   * {@link FlagSet#isSet(MaskedFlag)} on the flag enum is tested in {@link AbstractFlagSetTest} but the coverage check
+   * doesn't seem to notice it.
+   */
+  @Test
+  void testIsSet() {
+    assertThat(CopyFlags.MDB_CP_COMPACT.isSet(CopyFlags.MDB_CP_COMPACT))
+        .isTrue();
+    //noinspection ConstantValue
+    assertThat(CopyFlags.MDB_CP_COMPACT.isSet(null))
+        .isFalse();
   }
 }
