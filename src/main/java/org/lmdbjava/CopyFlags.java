@@ -43,7 +43,7 @@ public enum CopyFlags implements MaskedFlag, CopyFlagSet {
 
   @Override
   public boolean isSet(final CopyFlags flag) {
-    return flag != null && mask == flag.getMask();
+    return this == flag;
   }
 
   @Override

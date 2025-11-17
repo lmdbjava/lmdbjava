@@ -73,18 +73,24 @@ public final class Env<T> implements AutoCloseable {
   private final BufferProxy<T> proxy;
   private final Pointer ptr;
   private final boolean readOnly;
+  private final Path path;
+  private final EnvFlagSet envFlagSet;
 
   private Env(
       final BufferProxy<T> proxy,
       final Pointer ptr,
       final boolean readOnly,
-      final boolean noSubDir) {
+      final boolean noSubDir,
+      final Path path,
+      final EnvFlagSet envFlagSet) {
     this.proxy = proxy;
     this.readOnly = readOnly;
     this.noSubDir = noSubDir;
     this.ptr = ptr;
     // cache max key size to avoid further JNI calls
     this.maxKeySize = LIB.mdb_env_get_maxkeysize(ptr);
+    this.path = path;
+    this.envFlagSet = envFlagSet;
   }
 
   /**
@@ -353,7 +359,7 @@ public final class Env<T> implements AutoCloseable {
    */
   @Deprecated()
   public Dbi<T> openDbi(final String name, final DbiFlags... flags) {
-    return createDbi().setDbName(name).withDefaultComparator().setDbiFlags(flags).open();
+    return openDbi(Dbi.getNameBytes(name), null, false, flags);
   }
 
   /**
@@ -374,13 +380,7 @@ public final class Env<T> implements AutoCloseable {
   @Deprecated()
   public Dbi<T> openDbi(
       final String name, final Comparator<T> comparator, final DbiFlags... flags) {
-    final byte[] nameBytes = name == null ? null : name.getBytes(DEFAULT_NAME_CHARSET);
-    try (Txn<T> txn = readOnly ? txnRead() : txnWrite()) {
-      final Dbi<T> dbi =
-          new Dbi<>(this, txn, nameBytes, comparator, false, proxy, DbiFlagSet.of(flags));
-      txn.commit(); // even RO Txns require a commit to retain Dbi in Env
-      return dbi;
-    }
+    return openDbi(Dbi.getNameBytes(name), comparator, false, flags);
   }
 
   /**
@@ -403,13 +403,7 @@ public final class Env<T> implements AutoCloseable {
       final Comparator<T> comparator,
       final boolean nativeCb,
       final DbiFlags... flags) {
-    final byte[] nameBytes = name == null ? null : name.getBytes(DEFAULT_NAME_CHARSET);
-    try (Txn<T> txn = readOnly ? txnRead() : txnWrite()) {
-      final Dbi<T> dbi =
-          new Dbi<>(this, txn, nameBytes, comparator, nativeCb, proxy, DbiFlagSet.of(flags));
-      txn.commit(); // even RO Txns require a commit to retain Dbi in Env
-      return dbi;
-    }
+    return openDbi(Dbi.getNameBytes(name), comparator, nativeCb, flags);
   }
 
   /**
@@ -422,7 +416,7 @@ public final class Env<T> implements AutoCloseable {
    */
   @Deprecated()
   public Dbi<T> openDbi(final byte[] name, final DbiFlags... flags) {
-    return createDbi().setDbName(name).withDefaultComparator().setDbiFlags(flags).open();
+    return openDbi(name, null, false, flags);
   }
 
   /**
@@ -437,12 +431,7 @@ public final class Env<T> implements AutoCloseable {
   @Deprecated()
   public Dbi<T> openDbi(
       final byte[] name, final Comparator<T> comparator, final DbiFlags... flags) {
-    requireNonNull(comparator);
-    return createDbi()
-        .setDbName(name)
-        .withIteratorComparator(ignored -> comparator)
-        .setDbiFlags(flags)
-        .open();
+    return openDbi(name, comparator, false, flags);
   }
 
   /**
@@ -640,6 +629,29 @@ public final class Env<T> implements AutoCloseable {
     return resultPtr.intValue();
   }
 
+  /** For testing use. */
+  EnvFlagSet getEnvFlagSet() {
+    return envFlagSet;
+  }
+
+  @Override
+  public String toString() {
+    return "Env{"
+        + "closed="
+        + closed
+        + ", maxKeySize="
+        + maxKeySize
+        + ", noSubDir="
+        + noSubDir
+        + ", readOnly="
+        + readOnly
+        + ", path="
+        + path
+        + ", envFlagSet="
+        + envFlagSet
+        + '}';
+  }
+
   /** Object has already been closed and the operation is therefore prohibited. */
   public static final class AlreadyClosedException extends LmdbException {
 
@@ -754,7 +766,7 @@ public final class Env<T> implements AutoCloseable {
         final boolean readOnly = flags.isSet(MDB_RDONLY_ENV);
         final boolean noSubDir = flags.isSet(MDB_NOSUBDIR);
         checkRc(LIB.mdb_env_open(ptr, path.toAbsolutePath().toString(), flags.getMask(), mode));
-        return new Env<>(proxy, ptr, readOnly, noSubDir);
+        return new Env<>(proxy, ptr, readOnly, noSubDir, path, flags);
       } catch (final LmdbNativeException e) {
         LIB.mdb_env_close(ptr);
         throw e;
@@ -846,7 +858,7 @@ public final class Env<T> implements AutoCloseable {
     public Builder<T> setEnvFlags(final Collection<EnvFlags> envFlags) {
       flagSetBuilder.clear();
       if (envFlags != null) {
-        envFlags.stream().filter(Objects::nonNull).forEach(envFlags::add);
+        envFlags.stream().filter(Objects::nonNull).forEach(flagSetBuilder::addFlag);
       }
       return this;
     }
@@ -884,23 +896,37 @@ public final class Env<T> implements AutoCloseable {
     /**
      * Adds a single {@link EnvFlags} to any existing flags.
      *
-     * @param dbiFlag The flag to add to any existing flags. A null value is a no-op.
+     * @param envFlag The flag to add to any existing flags. A null value is a no-op.
      * @return this builder instance.
      */
-    public Builder<T> addEnvFlag(final EnvFlags dbiFlag) {
-      this.flagSetBuilder.addFlag(dbiFlag);
+    public Builder<T> addEnvFlag(final EnvFlags envFlag) {
+      this.flagSetBuilder.addFlag(envFlag);
       return this;
     }
 
     /**
-     * Adds a set of {@link EnvFlags} to any existing flags.
+     * Adds the contents of an {@link EnvFlagSet} to any existing flags.
      *
-     * @param dbiFlagSet The set of flags to add to any existing flags. A null value is a no-op.
+     * @param envFlagSet The set of flags to add to any existing flags. A null value is a no-op.
      * @return this builder instance.
      */
-    public Builder<T> addEnvFlags(final EnvFlagSet dbiFlagSet) {
-      if (dbiFlagSet != null) {
-        flagSetBuilder.addFlags(dbiFlagSet.getFlags());
+    public Builder<T> addEnvFlags(final EnvFlagSet envFlagSet) {
+      if (envFlagSet != null) {
+        flagSetBuilder.addFlags(envFlagSet.getFlags());
+      }
+      return this;
+    }
+
+    /**
+     * Adds a {@link Collection} of {@link EnvFlags} to any existing flags.
+     *
+     * @param envFlags The {@link Collection} of flags to add to any existing flags. A null value is
+     *     a no-op.
+     * @return this builder instance.
+     */
+    public Builder<T> addEnvFlags(final Collection<EnvFlags> envFlags) {
+      if (envFlags != null) {
+        flagSetBuilder.addFlags(envFlags);
       }
       return this;
     }

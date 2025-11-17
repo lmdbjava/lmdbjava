@@ -282,6 +282,16 @@ public final class Dbi<T> {
   }
 
   /**
+   * Convert the passed name into bytes using the default {@link Charset}.
+   *
+   * @param name The name to convert.
+   * @return The name as a byte[] or null if name is null.
+   */
+  public static byte[] getNameBytes(final String name) {
+    return name == null ? null : name.getBytes(Env.DEFAULT_NAME_CHARSET);
+  }
+
+  /**
    * Obtains the name of this database, using the {@link Env#DEFAULT_NAME_CHARSET} {@link Charset}.
    *
    * @return The name of this database, using the {@link Env#DEFAULT_NAME_CHARSET} {@link Charset}.

@@ -23,6 +23,7 @@ import static org.lmdbjava.CopyFlags.MDB_CP_COMPACT;
 import static org.lmdbjava.DbiFlags.MDB_CREATE;
 import static org.lmdbjava.Env.Builder.MAX_READERS_DEFAULT;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
+import static org.lmdbjava.EnvFlags.MDB_NOSYNC;
 import static org.lmdbjava.EnvFlags.MDB_NOTLS;
 import static org.lmdbjava.EnvFlags.MDB_RDONLY_ENV;
 import static org.lmdbjava.TestUtils.DB_1;
@@ -33,7 +34,9 @@ import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 import org.assertj.core.api.Assertions;
@@ -85,6 +88,20 @@ public final class EnvTest {
                   Env.create().setMaxReaders(1).setEnvFlags(MDB_NOSUBDIR);
               try (Env<ByteBuffer> ignored = builder.setEnvFlags(MDB_NOSUBDIR).open(file)) {
                 builder.setMapSize(1);
+              }
+            })
+        .isInstanceOf(AlreadyOpenException.class);
+  }
+
+  @Test
+  void cannotChangePermissionsAfterOpen() {
+    assertThatThrownBy(
+            () -> {
+              final Path file = tempDir.createTempFile();
+              final Builder<ByteBuffer> builder =
+                  Env.create().setFilePermissions(0666).setEnvFlags(MDB_NOSUBDIR);
+              try (Env<ByteBuffer> ignored = builder.setEnvFlags(MDB_NOSUBDIR).open(file)) {
+                builder.setFilePermissions(0664);
               }
             })
         .isInstanceOf(AlreadyOpenException.class);
@@ -164,6 +181,16 @@ public final class EnvTest {
             () -> {
               final Builder<ByteBuffer> builder = Env.create().setMaxReaders(1);
               builder.setMapSize(-1);
+            })
+        .isInstanceOf(IllegalArgumentException.class);
+  }
+
+  @Test
+  void negativeMapSize2() {
+    assertThatThrownBy(
+            () -> {
+              final Builder<ByteBuffer> builder = Env.create().setMaxReaders(1);
+              builder.setMapSize(-1, ByteUnit.MEBIBYTES);
             })
         .isInstanceOf(IllegalArgumentException.class);
   }
@@ -574,6 +601,8 @@ public final class EnvTest {
             .open(file)) {
       env.sync(true);
       assertThat(Files.isRegularFile(file)).isTrue();
+      assertThat(env.getEnvFlagSet().getFlags())
+          .containsExactlyInAnyOrderElementsOf(EnvFlagSet.of(MDB_NOSUBDIR, MDB_NOTLS).getFlags());
     }
   }
 
@@ -588,10 +617,71 @@ public final class EnvTest {
             .addEnvFlags(EnvFlagSet.of(MDB_NOSUBDIR, MDB_NOTLS))
             .addEnvFlag(MDB_NOTLS) // Should not overwrite the existing one
             .addEnvFlag(null) // no-op
-            .addEnvFlags(null) // no-op
+            .addEnvFlags((EnvFlagSet) null) // no-op
+            .addEnvFlags((Collection<EnvFlags>) null) // no-op
+            .open(file)) {
+      env.sync(true);
+      assertThat(env.getEnvFlagSet().getFlags())
+          .containsExactlyInAnyOrderElementsOf(EnvFlagSet.of(MDB_NOSUBDIR, MDB_NOTLS).getFlags());
+      assertThat(Files.isRegularFile(file)).isTrue();
+    }
+  }
+
+  @Test
+  void addEnvFlags2() {
+    final Path file = tempDir.createTempFile();
+    try (Env<ByteBuffer> env =
+        Env.create()
+            .setMapSize(1, ByteUnit.MEBIBYTES)
+            .setMaxDbs(1)
+            .setMaxReaders(1)
+            .addEnvFlags(Arrays.asList(MDB_NOSUBDIR, MDB_NOTLS))
+            .addEnvFlags(Collections.singleton(MDB_NOSYNC))
+            .open(file)) {
+      env.sync(true);
+      assertThat(env.getEnvFlagSet().getFlags())
+          .containsExactlyInAnyOrderElementsOf(
+              EnvFlagSet.of(MDB_NOSUBDIR, MDB_NOTLS, MDB_NOSYNC).getFlags());
+      assertThat(Files.isRegularFile(file)).isTrue();
+    }
+  }
+
+  @Test
+  void setEnvFlags() {
+    final Path file = tempDir.createTempFile();
+    try (Env<ByteBuffer> env =
+        Env.create()
+            .setMapSize(1, ByteUnit.MEBIBYTES)
+            .setMaxDbs(1)
+            .setMaxReaders(1)
+            .setEnvFlags((EnvFlagSet) null) // No-op
+            .setEnvFlags((EnvFlags) null) // No-op
+            .setEnvFlags((EnvFlags[]) null) // No-op
+            .setEnvFlags((Collection<EnvFlags>) null) // No-op
+            .setEnvFlags(MDB_NOSYNC) // Will be overwritten
+            .setEnvFlags(Arrays.asList(MDB_NOSUBDIR, MDB_NOTLS))
             .open(file)) {
       env.sync(true);
       assertThat(Files.isRegularFile(file)).isTrue();
+      assertThat(env.getEnvFlagSet().getFlags())
+          .containsExactlyInAnyOrderElementsOf(EnvFlagSet.of(MDB_NOSUBDIR, MDB_NOTLS).getFlags());
+    }
+  }
+
+  @Test
+  void setEnvFlags2() {
+    final Path dir = tempDir.createTempDir();
+    try (Env<ByteBuffer> env =
+        Env.create()
+            .setMapSize(1, ByteUnit.MEBIBYTES)
+            .setMaxDbs(1)
+            .setMaxReaders(1)
+            .setEnvFlags(MDB_NOSUBDIR, MDB_NOTLS)
+            .setEnvFlags(Collections.emptySet()) // Clears them
+            .open(dir)) {
+      env.sync(true);
+      assertThat(env.getEnvFlagSet().getFlags()).isEmpty();
+      assertThat(Files.isDirectory(dir));
     }
   }
 

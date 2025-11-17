@@ -155,7 +155,7 @@ public enum EnvFlags implements MaskedFlag, EnvFlagSet {
 
   @Override
   public boolean isSet(final EnvFlags flag) {
-    return flag != null && mask == flag.getMask();
+    return this == flag;
   }
 
   @Override

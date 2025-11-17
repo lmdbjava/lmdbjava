@@ -821,4 +821,12 @@ public final class DbiTest {
       }
     }
   }
+
+  @Test
+  void getNameBytes() {
+    //noinspection ConstantValue
+    assertThat(Dbi.getNameBytes(null)).isNull();
+    ;
+    assertThat(Dbi.getNameBytes("foo")).isEqualTo("foo".getBytes(Env.DEFAULT_NAME_CHARSET));
+  }
 }

@@ -60,7 +60,7 @@ public enum PutFlags implements MaskedFlag, PutFlagSet {
 
   @Override
   public boolean isSet(PutFlags flag) {
-    return flag != null && mask == flag.getMask();
+    return this == flag;
   }
 
   @Override

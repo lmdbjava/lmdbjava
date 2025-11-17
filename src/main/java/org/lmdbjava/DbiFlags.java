@@ -101,7 +101,7 @@ public enum DbiFlags implements MaskedFlag, DbiFlagSet {
 
   @Override
   public boolean isSet(final DbiFlags flag) {
-    return flag != null && mask == flag.getMask();
+    return this == flag;
   }
 
   @Override

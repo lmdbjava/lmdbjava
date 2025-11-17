@@ -42,7 +42,7 @@ public enum TxnFlags implements MaskedFlag, TxnFlagSet {
 
   @Override
   public boolean isSet(final TxnFlags flag) {
-    return flag != null && mask == flag.getMask();
+    return this == flag;
   }
 
   @Override
