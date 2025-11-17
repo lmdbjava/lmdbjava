@@ -31,8 +31,8 @@ import org.lmdbjava.Env.AlreadyClosedException;
 import org.lmdbjava.Txn.IncompatibleParent;
 
 /**
- * Tests all the deprecated txn related methods in {@link Env}. Essentially a duplicate of {@link TxnTest}. When
- * all the deprecated methods are deleted we can delete this test class.
+ * Tests all the deprecated txn related methods in {@link Env}. Essentially a duplicate of {@link
+ * TxnTest}. When all the deprecated methods are deleted we can delete this test class.
  *
  * @deprecated Tests all the deprecated txn related methods in {@link Env}.
  */
@@ -75,7 +75,7 @@ public final class TxnDeprecatedTest {
   @Test
   public void txParent2() {
     try (Txn<ByteBuffer> txRoot = env.txnWrite();
-         Txn<ByteBuffer> txChild = env.txn(txRoot, (TxnFlags[]) null)) {
+        Txn<ByteBuffer> txChild = env.txn(txRoot, (TxnFlags[]) null)) {
       assertThat(txRoot.getParent()).isNull();
       assertThat(txChild.getParent()).isEqualTo(txRoot);
     }
@@ -110,7 +110,7 @@ public final class TxnDeprecatedTest {
     assertThatThrownBy(
             () -> {
               try (Txn<ByteBuffer> txRoot = env.txnWrite()) {
-                TxnFlags[] flags = new TxnFlags[]{MDB_RDONLY_TXN};
+                TxnFlags[] flags = new TxnFlags[] {MDB_RDONLY_TXN};
                 env.txn(txRoot, flags); // error
               }
             })
