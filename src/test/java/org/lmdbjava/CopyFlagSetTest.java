@@ -76,15 +76,13 @@ class CopyFlagSetTest extends AbstractFlagSetTest<CopyFlags, CopyFlagSet> {
   }
 
   /**
-   * {@link FlagSet#isSet(MaskedFlag)} on the flag enum is tested in {@link AbstractFlagSetTest} but the coverage check
-   * doesn't seem to notice it.
+   * {@link FlagSet#isSet(MaskedFlag)} on the flag enum is tested in {@link AbstractFlagSetTest} but
+   * the coverage check doesn't seem to notice it.
    */
   @Test
   void testIsSet() {
-    assertThat(CopyFlags.MDB_CP_COMPACT.isSet(CopyFlags.MDB_CP_COMPACT))
-        .isTrue();
+    assertThat(CopyFlags.MDB_CP_COMPACT.isSet(CopyFlags.MDB_CP_COMPACT)).isTrue();
     //noinspection ConstantValue
-    assertThat(CopyFlags.MDB_CP_COMPACT.isSet(null))
-        .isFalse();
+    assertThat(CopyFlags.MDB_CP_COMPACT.isSet(null)).isFalse();
   }
 }

@@ -79,18 +79,15 @@ class PutFlagSetTest extends AbstractFlagSetTest<PutFlags, PutFlagSet> {
   }
 
   /**
-   * {@link FlagSet#isSet(MaskedFlag)} on the flag enum is tested in {@link AbstractFlagSetTest} but the coverage check
-   * doesn't seem to notice it.
+   * {@link FlagSet#isSet(MaskedFlag)} on the flag enum is tested in {@link AbstractFlagSetTest} but
+   * the coverage check doesn't seem to notice it.
    */
   @Test
   void testIsSet() {
-    assertThat(PutFlags.MDB_APPEND.isSet(PutFlags.MDB_APPEND))
-        .isTrue();
-    assertThat(PutFlags.MDB_APPEND.isSet(PutFlags.MDB_MULTIPLE))
-        .isFalse();
+    assertThat(PutFlags.MDB_APPEND.isSet(PutFlags.MDB_APPEND)).isTrue();
+    assertThat(PutFlags.MDB_APPEND.isSet(PutFlags.MDB_MULTIPLE)).isFalse();
     //noinspection ConstantValue
-    assertThat(PutFlags.MDB_APPEND.isSet(null))
-        .isFalse();
+    assertThat(PutFlags.MDB_APPEND.isSet(null)).isFalse();
   }
 
   @Test

@@ -138,7 +138,7 @@ public class CursorDeprecatedTest {
   }
 
   @Test
-  void delete() {
+  void delete1() {
     final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
     try (Txn<ByteBuffer> txn = env.txnWrite();
         Cursor<ByteBuffer> c = db.openCursor(txn)) {
@@ -147,11 +147,49 @@ public class CursorDeprecatedTest {
       assertThat(c.seek(MDB_FIRST)).isTrue();
       assertThat(c.key().getInt()).isEqualTo(1);
       assertThat(c.val().getInt()).isEqualTo(2);
-      c.delete();
+      c.delete(new PutFlags[0]);
       assertThat(c.seek(MDB_FIRST)).isTrue();
       assertThat(c.key().getInt()).isEqualTo(3);
       assertThat(c.val().getInt()).isEqualTo(4);
-      c.delete();
+      c.delete(new PutFlags[0]);
+      assertThat(c.seek(MDB_FIRST)).isFalse();
+    }
+  }
+
+  @Test
+  void delete2() {
+    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
+    try (Txn<ByteBuffer> txn = env.txnWrite();
+        Cursor<ByteBuffer> c = db.openCursor(txn)) {
+      c.put(bb(1), bb(2), MDB_NOOVERWRITE);
+      c.put(bb(3), bb(4), new PutFlags[0]);
+      assertThat(c.seek(MDB_FIRST)).isTrue();
+      assertThat(c.key().getInt()).isEqualTo(1);
+      assertThat(c.val().getInt()).isEqualTo(2);
+      c.delete((PutFlags[]) null);
+      assertThat(c.seek(MDB_FIRST)).isTrue();
+      assertThat(c.key().getInt()).isEqualTo(3);
+      assertThat(c.val().getInt()).isEqualTo(4);
+      c.delete((PutFlags[]) null);
+      assertThat(c.seek(MDB_FIRST)).isFalse();
+    }
+  }
+
+  @Test
+  void delete3() {
+    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE, MDB_DUPSORT);
+    try (Txn<ByteBuffer> txn = env.txnWrite();
+        Cursor<ByteBuffer> c = db.openCursor(txn)) {
+      c.put(bb(1), bb(2), MDB_NOOVERWRITE);
+      c.put(bb(3), bb(4), new PutFlags[0]);
+      assertThat(c.seek(MDB_FIRST)).isTrue();
+      assertThat(c.key().getInt()).isEqualTo(1);
+      assertThat(c.val().getInt()).isEqualTo(2);
+      c.delete((PutFlags) null);
+      assertThat(c.seek(MDB_FIRST)).isTrue();
+      assertThat(c.key().getInt()).isEqualTo(3);
+      assertThat(c.val().getInt()).isEqualTo(4);
+      c.delete((PutFlags) null);
       assertThat(c.seek(MDB_FIRST)).isFalse();
     }
   }

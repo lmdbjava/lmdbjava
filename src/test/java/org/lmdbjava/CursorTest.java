@@ -277,6 +277,54 @@ public final class CursorTest {
   }
 
   @Test
+  void delete2() {
+    final Dbi<ByteBuffer> db =
+        env.createDbi()
+            .setDbName(DB_1)
+            .withDefaultComparator()
+            .setDbiFlags(MDB_CREATE, MDB_DUPSORT)
+            .open();
+    try (Txn<ByteBuffer> txn = env.txnWrite();
+        Cursor<ByteBuffer> c = db.openCursor(txn)) {
+      c.put(bb(1), bb(2), MDB_NOOVERWRITE);
+      c.put(bb(3), bb(4));
+      assertThat(c.seek(MDB_FIRST)).isTrue();
+      assertThat(c.key().getInt()).isEqualTo(1);
+      assertThat(c.val().getInt()).isEqualTo(2);
+      c.delete(PutFlags.EMPTY);
+      assertThat(c.seek(MDB_FIRST)).isTrue();
+      assertThat(c.key().getInt()).isEqualTo(3);
+      assertThat(c.val().getInt()).isEqualTo(4);
+      c.delete(PutFlags.EMPTY);
+      assertThat(c.seek(MDB_FIRST)).isFalse();
+    }
+  }
+
+  @Test
+  void delete3() {
+    final Dbi<ByteBuffer> db =
+        env.createDbi()
+            .setDbName(DB_1)
+            .withDefaultComparator()
+            .setDbiFlags(MDB_CREATE, MDB_DUPSORT)
+            .open();
+    try (Txn<ByteBuffer> txn = env.txnWrite();
+        Cursor<ByteBuffer> c = db.openCursor(txn)) {
+      c.put(bb(1), bb(2), MDB_NOOVERWRITE);
+      c.put(bb(3), bb(4));
+      assertThat(c.seek(MDB_FIRST)).isTrue();
+      assertThat(c.key().getInt()).isEqualTo(1);
+      assertThat(c.val().getInt()).isEqualTo(2);
+      c.delete((PutFlagSet) null);
+      assertThat(c.seek(MDB_FIRST)).isTrue();
+      assertThat(c.key().getInt()).isEqualTo(3);
+      assertThat(c.val().getInt()).isEqualTo(4);
+      c.delete((PutFlagSet) null);
+      assertThat(c.seek(MDB_FIRST)).isFalse();
+    }
+  }
+
+  @Test
   void getKeyVal() {
     final Dbi<ByteBuffer> db =
         env.createDbi()

@@ -76,17 +76,14 @@ class EnvFlagSetTest extends AbstractFlagSetTest<EnvFlags, EnvFlagSet> {
   }
 
   /**
-   * {@link FlagSet#isSet(MaskedFlag)} on the flag enum is tested in {@link AbstractFlagSetTest} but the coverage check
-   * doesn't seem to notice it.
+   * {@link FlagSet#isSet(MaskedFlag)} on the flag enum is tested in {@link AbstractFlagSetTest} but
+   * the coverage check doesn't seem to notice it.
    */
   @Test
   void testIsSet() {
-    assertThat(EnvFlags.MDB_RDONLY_ENV.isSet(EnvFlags.MDB_RDONLY_ENV))
-        .isTrue();
-    assertThat(EnvFlags.MDB_RDONLY_ENV.isSet(EnvFlags.MDB_WRITEMAP))
-        .isFalse();
+    assertThat(EnvFlags.MDB_RDONLY_ENV.isSet(EnvFlags.MDB_RDONLY_ENV)).isTrue();
+    assertThat(EnvFlags.MDB_RDONLY_ENV.isSet(EnvFlags.MDB_WRITEMAP)).isFalse();
     //noinspection ConstantValue
-    assertThat(EnvFlags.MDB_RDONLY_ENV.isSet(null))
-        .isFalse();
+    assertThat(EnvFlags.MDB_RDONLY_ENV.isSet(null)).isFalse();
   }
 }

@@ -76,17 +76,14 @@ class DbiFlagSetTest extends AbstractFlagSetTest<DbiFlags, DbiFlagSet> {
   }
 
   /**
-   * {@link FlagSet#isSet(MaskedFlag)} on the flag enum is tested in {@link AbstractFlagSetTest} but the coverage check
-   * doesn't seem to notice it.
+   * {@link FlagSet#isSet(MaskedFlag)} on the flag enum is tested in {@link AbstractFlagSetTest} but
+   * the coverage check doesn't seem to notice it.
    */
   @Test
   void testIsSet() {
-    assertThat(DbiFlags.MDB_CREATE.isSet(DbiFlags.MDB_CREATE))
-        .isTrue();
-    assertThat(DbiFlags.MDB_CREATE.isSet(DbiFlags.MDB_REVERSEKEY))
-        .isFalse();
+    assertThat(DbiFlags.MDB_CREATE.isSet(DbiFlags.MDB_CREATE)).isTrue();
+    assertThat(DbiFlags.MDB_CREATE.isSet(DbiFlags.MDB_REVERSEKEY)).isFalse();
     //noinspection ConstantValue
-    assertThat(DbiFlags.MDB_CREATE.isSet(null))
-        .isFalse();
+    assertThat(DbiFlags.MDB_CREATE.isSet(null)).isFalse();
   }
 }

@@ -76,15 +76,13 @@ class TxnFlagSetTest extends AbstractFlagSetTest<TxnFlags, TxnFlagSet> {
   }
 
   /**
-   * {@link FlagSet#isSet(MaskedFlag)} on the flag enum is tested in {@link AbstractFlagSetTest} but the coverage check
-   * doesn't seem to notice it.
+   * {@link FlagSet#isSet(MaskedFlag)} on the flag enum is tested in {@link AbstractFlagSetTest} but
+   * the coverage check doesn't seem to notice it.
    */
   @Test
   void testIsSet() {
-    assertThat(MDB_RDONLY_TXN.isSet(MDB_RDONLY_TXN))
-        .isTrue();
+    assertThat(MDB_RDONLY_TXN.isSet(MDB_RDONLY_TXN)).isTrue();
     //noinspection ConstantValue
-    assertThat(MDB_RDONLY_TXN.isSet(null))
-        .isFalse();
+    assertThat(MDB_RDONLY_TXN.isSet(null)).isFalse();
   }
 }
