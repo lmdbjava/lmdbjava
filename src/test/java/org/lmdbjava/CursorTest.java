@@ -41,6 +41,7 @@ import static org.lmdbjava.TestUtils.bb;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.util.function.Consumer;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -179,7 +180,7 @@ public final class CursorTest {
   }
 
   @Test
-  void count() {
+  void countWithDupsort() {
     final Dbi<ByteBuffer> db =
         env.createDbi()
             .setDbName(DB_1)
@@ -196,6 +197,30 @@ public final class CursorTest {
       c.put(bb(2), bb(1), MDB_APPENDDUP);
       c.put(bb(2), bb(2), MDB_APPENDDUP);
       assertThat(c.count()).isEqualTo(2L);
+    }
+  }
+
+  @Test
+  void countWithoutDupsort() {
+    final Dbi<ByteBuffer> db =
+        env.createDbi().setDbName(DB_1).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
+    try (Txn<ByteBuffer> txn = env.txnWrite();
+        Cursor<ByteBuffer> c = db.openCursor(txn)) {
+      assertThat(c.put(bb(1), bb(2), MDB_NOOVERWRITE)).isTrue();
+      assertThat(c.put(bb(1), bb(4))).isTrue();
+      assertThat(c.put(bb(1), bb(6), PutFlagSet.EMPTY)).isTrue();
+      assertThat(c.put(bb(1), bb(8), MDB_NOOVERWRITE)).isFalse();
+      assertThat(c.put(bb(2), bb(1), MDB_NOOVERWRITE)).isTrue();
+      assertThat(c.put(bb(2), bb(2))).isTrue();
+      Assertions.assertThatThrownBy(
+              () -> {
+                c.put(bb(2), bb(2), (PutFlagSet) null);
+              })
+          .isInstanceOf(NullPointerException.class);
+      assertThat(c.put(bb(2), bb(2))).isTrue();
+
+      final Stat stat = db.stat(txn);
+      assertThat(stat.entries).isEqualTo(2);
     }
   }
 
@@ -377,20 +402,56 @@ public final class CursorTest {
 
   @Test
   void putMultipleWithoutMdbMultipleFlag() {
-    assertThatThrownBy(
-            () -> {
-              final Dbi<ByteBuffer> db =
-                  env.createDbi()
-                      .setDbName(DB_1)
-                      .withDefaultComparator()
-                      .setDbiFlags(MDB_CREATE, MDB_DUPSORT)
-                      .open();
-              try (Txn<ByteBuffer> txn = env.txnWrite();
-                  Cursor<ByteBuffer> c = db.openCursor(txn)) {
+    final Dbi<ByteBuffer> db =
+        env.createDbi()
+            .setDbName(DB_1)
+            .withDefaultComparator()
+            .setDbiFlags(MDB_CREATE, MDB_DUPSORT)
+            .open();
+    try (Txn<ByteBuffer> txn = env.txnWrite();
+        Cursor<ByteBuffer> c = db.openCursor(txn)) {
+      assertThatThrownBy(
+              () -> {
                 c.putMultiple(bb(100), bb(1), 1);
-              }
-            })
-        .isInstanceOf(IllegalArgumentException.class);
+              })
+          .isInstanceOf(IllegalArgumentException.class);
+    }
+  }
+
+  @Test
+  void putMultipleWithoutMdbMultipleFlag2() {
+    final Dbi<ByteBuffer> db =
+        env.createDbi()
+            .setDbName(DB_1)
+            .withDefaultComparator()
+            .setDbiFlags(MDB_CREATE, MDB_DUPSORT)
+            .open();
+    try (Txn<ByteBuffer> txn = env.txnWrite();
+        Cursor<ByteBuffer> c = db.openCursor(txn)) {
+      assertThatThrownBy(
+              () -> {
+                c.putMultiple(bb(100), bb(1), 1, PutFlags.EMPTY);
+              })
+          .isInstanceOf(IllegalArgumentException.class);
+    }
+  }
+
+  @Test
+  void putMultipleWithoutMdbMultipleFlag3() {
+    final Dbi<ByteBuffer> db =
+        env.createDbi()
+            .setDbName(DB_1)
+            .withDefaultComparator()
+            .setDbiFlags(MDB_CREATE, MDB_DUPSORT)
+            .open();
+    try (Txn<ByteBuffer> txn = env.txnWrite();
+        Cursor<ByteBuffer> c = db.openCursor(txn)) {
+      assertThatThrownBy(
+              () -> {
+                c.putMultiple(bb(100), bb(1), 1, (PutFlagSet) null);
+              })
+          .isInstanceOf(NullPointerException.class);
+    }
   }
 
   @Test

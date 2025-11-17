@@ -323,10 +323,12 @@ public final class TxnTest {
 
   @Test
   public void txParent2() {
-    try (Txn<ByteBuffer> txRoot = env.txnWrite();
-        Txn<ByteBuffer> txChild = env.txn(txRoot, (TxnFlagSet) null)) {
-      assertThat(txRoot.getParent()).isNull();
-      assertThat(txChild.getParent()).isEqualTo(txRoot);
+    try (Txn<ByteBuffer> txRoot = env.txnWrite()) {
+      assertThatThrownBy(
+              () -> {
+                env.txn(txRoot, (TxnFlagSet) null);
+              })
+          .isInstanceOf(NullPointerException.class);
     }
   }
 

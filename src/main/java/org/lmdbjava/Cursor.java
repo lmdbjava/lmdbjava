@@ -294,6 +294,7 @@ public final class Cursor<T> implements AutoCloseable {
     if (SHOULD_CHECK) {
       requireNonNull(key);
       requireNonNull(val);
+      requireNonNull(flags);
       env.checkNotClosed();
       checkNotClosed();
       txn.checkReady();
@@ -301,13 +302,11 @@ public final class Cursor<T> implements AutoCloseable {
     }
     final Pointer transientKey = kv.keyIn(key);
     final Pointer transientVal = kv.valIn(val);
-    final PutFlagSet putFlagSet = flags != null ? flags : PutFlagSet.EMPTY;
-    final int rc =
-        LIB.mdb_cursor_put(ptrCursor, kv.pointerKey(), kv.pointerVal(), putFlagSet.getMask());
+    final int rc = LIB.mdb_cursor_put(ptrCursor, kv.pointerKey(), kv.pointerVal(), flags.getMask());
     if (rc == MDB_KEYEXIST) {
-      if (putFlagSet.isSet(MDB_NOOVERWRITE)) {
+      if (flags.isSet(MDB_NOOVERWRITE)) {
         kv.valOut(); // marked as in,out in LMDB C docs
-      } else if (!putFlagSet.isSet(MDB_NODUPDATA)) {
+      } else if (!flags.isSet(MDB_NODUPDATA)) {
         checkRc(rc);
       }
       return false;
@@ -375,15 +374,14 @@ public final class Cursor<T> implements AutoCloseable {
       env.checkNotClosed();
       txn.checkReady();
       txn.checkWritesAllowed();
+      if (!flags.isSet(MDB_MULTIPLE)) {
+        throw new IllegalArgumentException("Must set " + MDB_MULTIPLE + " flag");
+      }
     }
-    final PutFlagSet putFlagSet = flags != null ? flags : PutFlagSet.EMPTY;
-    if (SHOULD_CHECK && !putFlagSet.isSet(MDB_MULTIPLE)) {
-      throw new IllegalArgumentException("Must set " + MDB_MULTIPLE + " flag");
-    }
+
     final Pointer transientKey = txn.kv().keyIn(key);
     final Pointer dataPtr = txn.kv().valInMulti(val, elements);
-    final int rc =
-        LIB.mdb_cursor_put(ptrCursor, txn.kv().pointerKey(), dataPtr, putFlagSet.getMask());
+    final int rc = LIB.mdb_cursor_put(ptrCursor, txn.kv().pointerKey(), dataPtr, flags.getMask());
     checkRc(rc);
     ReferenceUtil.reachabilityFence0(transientKey);
     ReferenceUtil.reachabilityFence0(dataPtr);
@@ -466,6 +464,7 @@ public final class Cursor<T> implements AutoCloseable {
   public T reserve(final T key, final int size, final PutFlagSet flags) {
     if (SHOULD_CHECK) {
       requireNonNull(key);
+      requireNonNull(flags);
       env.checkNotClosed();
       checkNotClosed();
       txn.checkReady();
@@ -473,9 +472,8 @@ public final class Cursor<T> implements AutoCloseable {
     }
     final Pointer transientKey = kv.keyIn(key);
     final Pointer transientVal = kv.valIn(size);
-    final PutFlagSet putFlagSet = flags != null ? flags : PutFlagSet.EMPTY;
     // This is inconsistent with putMultiple which require MDB_MULTIPLE to be in the set.
-    final int flagsMask = putFlagSet.getMaskWith(MDB_RESERVE);
+    final int flagsMask = flags.getMaskWith(MDB_RESERVE);
     checkRc(LIB.mdb_cursor_put(ptrCursor, kv.pointerKey(), kv.pointerVal(), flagsMask));
     kv.valOut();
     ReferenceUtil.reachabilityFence0(transientKey);

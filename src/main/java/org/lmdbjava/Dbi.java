@@ -83,13 +83,14 @@ public final class Dbi<T> {
         throw new IllegalArgumentException("Is nativeCb is true, you must supply a comparator");
       }
       requireNonNull(txn);
+      requireNonNull(dbiFlagSet);
       txn.checkReady();
     }
     this.env = env;
     this.name = name == null ? null : Arrays.copyOf(name, name.length);
     this.proxy = proxy;
     this.comparator = comparator;
-    this.dbiFlagSet = dbiFlagSet == null ? DbiFlagSet.EMPTY : dbiFlagSet;
+    this.dbiFlagSet = dbiFlagSet;
     final Pointer dbiPtr = allocateDirect(RUNTIME, ADDRESS);
     checkRc(LIB.mdb_dbi_open(txn.pointer(), name, this.dbiFlagSet.getMask(), dbiPtr));
     ptr = dbiPtr.getPointer(0);
@@ -457,20 +458,20 @@ public final class Dbi<T> {
       requireNonNull(txn);
       requireNonNull(key);
       requireNonNull(val);
+      requireNonNull(flags);
       env.checkNotClosed();
       txn.checkReady();
       txn.checkWritesAllowed();
     }
-    final PutFlagSet flagSet = flags != null ? flags : PutFlagSet.empty();
     final Pointer transientKey = txn.kv().keyIn(key);
     final Pointer transientVal = txn.kv().valIn(val);
     final int rc =
         LIB.mdb_put(
-            txn.pointer(), ptr, txn.kv().pointerKey(), txn.kv().pointerVal(), flagSet.getMask());
+            txn.pointer(), ptr, txn.kv().pointerKey(), txn.kv().pointerVal(), flags.getMask());
     if (rc == MDB_KEYEXIST) {
-      if (flagSet.isSet(MDB_NOOVERWRITE)) {
+      if (flags.isSet(MDB_NOOVERWRITE)) {
         txn.kv().valOut(); // marked as in,out in LMDB C docs
-      } else if (!flagSet.isSet(MDB_NODUPDATA)) {
+      } else if (!flags.isSet(MDB_NODUPDATA)) {
         checkRc(rc);
       }
       return false;

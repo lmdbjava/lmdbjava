@@ -201,6 +201,7 @@ public final class Env<T> implements AutoCloseable {
    */
   public void copy(final Path path, final CopyFlagSet flags) {
     requireNonNull(path);
+    requireNonNull(flags);
     validatePath(path);
     checkRc(LIB.mdb_env_copy2(ptr, path.toAbsolutePath().toString(), flags.getMask()));
   }
