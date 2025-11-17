@@ -322,6 +322,24 @@ public final class TxnTest {
   }
 
   @Test
+  public void txParent2() {
+    try (Txn<ByteBuffer> txRoot = env.txnWrite();
+         Txn<ByteBuffer> txChild = env.txn(txRoot, (TxnFlagSet) null)) {
+      assertThat(txRoot.getParent()).isNull();
+      assertThat(txChild.getParent()).isEqualTo(txRoot);
+    }
+  }
+
+  @Test
+  public void txParent3() {
+    try (Txn<ByteBuffer> txRoot = env.txnWrite();
+         Txn<ByteBuffer> txChild = env.txn(txRoot, TxnFlagSet.EMPTY)) {
+      assertThat(txRoot.getParent()).isNull();
+      assertThat(txChild.getParent()).isEqualTo(txRoot);
+    }
+  }
+
+  @Test
   void txParentDeniedIfEnvClosed() {
     assertThatThrownBy(
             () -> {
