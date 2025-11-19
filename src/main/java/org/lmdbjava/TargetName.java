@@ -18,6 +18,10 @@ package org.lmdbjava;
 import static java.lang.System.getProperty;
 import static java.util.Locale.ENGLISH;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+
 /**
  * Determines the name of the target LMDB native library.
  *
@@ -160,6 +164,19 @@ public final class TargetName {
   }
 
   private static String resolveToolchain(final String os) {
-    return check(os, "Mac OS") ? "none" : "gnu";
+    if (check(os, "Mac OS")) {
+      return "none";
+    }
+    return isMuslLibc() ? "musl" : "gnu";
+  }
+
+  private static boolean isMuslLibc() {
+    try {
+      return Files.lines(Paths.get("/proc/self/maps"))
+          .filter(line -> line.contains("libc"))
+          .anyMatch(line -> line.contains("musl"));
+    } catch (final IOException e) {
+      return false;
+    }
   }
 }

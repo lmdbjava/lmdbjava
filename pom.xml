@@ -38,7 +38,7 @@
     <jnr-ffi.version>2.2.18</jnr-ffi.version>
     <junit.version>5.14.1</junit.version>
     <license-maven-plugin.version>4.6</license-maven-plugin.version>
-    <lmdbjava-native.version>0.9.33-2</lmdbjava-native.version>
+    <lmdbjava-native.version>0.9.33-3</lmdbjava-native.version>
     <maven-clean-plugin.version>3.5.0</maven-clean-plugin.version>
     <maven-compiler-plugin.version>3.14.1</maven-compiler-plugin.version>
     <maven-dependency-plugin.version>3.9.0</maven-dependency-plugin.version>
