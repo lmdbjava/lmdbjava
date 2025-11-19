@@ -1,17 +1,14 @@
 package org.lmdbjava;
 
-import org.junit.jupiter.api.RepeatedTest;
-
-import java.nio.ByteBuffer;
-import java.nio.file.Path;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.function.Consumer;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
-import static org.lmdbjava.EnvFlags.MDB_NOTLS;
+
+import java.nio.ByteBuffer;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.function.Consumer;
+import org.junit.jupiter.api.RepeatedTest;
 
 public class TestSegfault {
   //  @Test
@@ -22,23 +19,27 @@ public class TestSegfault {
         executor1.execute(makeRunnable(this::txParentDeniedIfEnvClosed));
         executor2.execute(makeRunnable(this::txParentDeniedIfEnvClosed));
         executor1.execute(makeRunnable(this::txParentDeniedIfEnvClosed));
-//        executor2.execute(makeRunnable(this::txParentROChildRWIncompatible));
+        //        executor2.execute(makeRunnable(this::txParentROChildRWIncompatible));
       }
     }
   }
 
   private Runnable makeRunnable(final Consumer<Env<ByteBuffer>> consumer) {
     return () -> {
-      final Path file = FileUtil.createTempFile();
+      try (final TempDir tempDir = new TempDir()) {
         try {
-          try (Env<ByteBuffer> env = Env.create().setMapSize(2_085_760_999).setMaxDbs(1).open(file.toFile(), MDB_NOSUBDIR)) {
+          try (Env<ByteBuffer> env =
+              Env.create()
+                  .setMapSize(2_085_760_999)
+                  .addEnvFlag(MDB_NOSUBDIR)
+                  .setMaxDbs(1)
+                  .open(tempDir.createTempFile())) {
             consumer.accept(env);
           }
         } catch (final Exception e) {
           e.printStackTrace();
-        } finally {
-          FileUtil.delete(file);
         }
+      }
     };
   }
 
@@ -52,7 +53,6 @@ public class TestSegfault {
                 }
               }
             })
-            .isInstanceOf(Env.AlreadyClosedException.class);
+        .isInstanceOf(Env.AlreadyClosedException.class);
   }
 }
-
