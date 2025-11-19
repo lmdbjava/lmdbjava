@@ -16,7 +16,6 @@
 
 package org.lmdbjava;
 
-import static com.jakewharton.byteunits.BinaryByteUnit.KIBIBYTES;
 import static java.nio.ByteBuffer.allocateDirect;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -27,7 +26,6 @@ import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.EnvFlags.MDB_RDONLY_ENV;
 import static org.lmdbjava.KeyRange.closed;
 import static org.lmdbjava.TestUtils.DB_1;
-import static org.lmdbjava.TestUtils.POSIX_MODE;
 import static org.lmdbjava.TestUtils.bb;
 import static org.lmdbjava.Txn.State.DONE;
 import static org.lmdbjava.Txn.State.READY;
@@ -35,7 +33,6 @@ import static org.lmdbjava.Txn.State.RELEASED;
 import static org.lmdbjava.Txn.State.RESET;
 import static org.lmdbjava.TxnFlags.MDB_RDONLY_TXN;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -60,28 +57,37 @@ public final class TxnTest {
   private Path file;
   private Env<ByteBuffer> env;
 
+  private TempDir tempDir;
+
   @BeforeEach
   void beforeEach() {
-    file = FileUtil.createTempFile();
+    tempDir = new TempDir();
+    file = tempDir.createTempFile();
     env =
         create()
-            .setMapSize(KIBIBYTES.toBytes(256))
+            .setMapSize(256, ByteUnit.KIBIBYTES)
             .setMaxReaders(1)
             .setMaxDbs(2)
-            .open(file.toFile(), POSIX_MODE, MDB_NOSUBDIR);
+            .setEnvFlags(MDB_NOSUBDIR)
+            .open(file);
   }
 
   @AfterEach
   void afterEach() {
     env.close();
-    FileUtil.delete(file);
+    tempDir.cleanup();
   }
 
   @Test
-  void largeKeysRejected() throws IOException {
+  void largeKeysRejected() {
     assertThatThrownBy(
             () -> {
-              final Dbi<ByteBuffer> dbi = env.openDbi(DB_1, MDB_CREATE);
+              final Dbi<ByteBuffer> dbi =
+                  env.createDbi()
+                      .setDbName(DB_1)
+                      .withDefaultComparator()
+                      .setDbiFlags(MDB_CREATE)
+                      .open();
               final ByteBuffer key = allocateDirect(env.getMaxKeySize() + 1);
               key.limit(key.capacity());
               dbi.put(key, bb(2));
@@ -91,7 +97,8 @@ public final class TxnTest {
 
   @Test
   void rangeSearch() {
-    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
+    final Dbi<ByteBuffer> db =
+        env.createDbi().setDbName(DB_1).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
 
     final ByteBuffer key = allocateDirect(env.getMaxKeySize());
     key.put("cherry".getBytes(UTF_8)).flip();
@@ -125,9 +132,9 @@ public final class TxnTest {
 
   @Test
   void readOnlyTxnAllowedInReadOnlyEnv() {
-    env.openDbi(DB_1, MDB_CREATE);
+    env.createDbi().setDbName(DB_1).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
     try (Env<ByteBuffer> roEnv =
-        create().setMaxReaders(1).open(file.toFile(), MDB_NOSUBDIR, MDB_RDONLY_ENV)) {
+        create().setMaxReaders(1).setEnvFlags(MDB_NOSUBDIR, MDB_RDONLY_ENV).open(file)) {
       assertThat(roEnv.txnRead()).isNotNull();
     }
   }
@@ -136,10 +143,14 @@ public final class TxnTest {
   void readWriteTxnDeniedInReadOnlyEnv() {
     assertThatThrownBy(
             () -> {
-              env.openDbi(DB_1, MDB_CREATE);
+              env.createDbi()
+                  .setDbName(DB_1)
+                  .withDefaultComparator()
+                  .setDbiFlags(MDB_CREATE)
+                  .open();
               env.close();
               try (Env<ByteBuffer> roEnv =
-                  create().setMaxReaders(1).open(file.toFile(), MDB_NOSUBDIR, MDB_RDONLY_ENV)) {
+                  create().setMaxReaders(1).setEnvFlags(MDB_NOSUBDIR, MDB_RDONLY_ENV).open(file)) {
                 roEnv.txnWrite(); // error
               }
             })
@@ -182,8 +193,8 @@ public final class TxnTest {
 
   @Test
   void testGetId() {
-    final Dbi<ByteBuffer> db = env.openDbi(DB_1, MDB_CREATE);
-
+    final Dbi<ByteBuffer> db =
+        env.createDbi().setDbName(DB_1).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
     final AtomicLong txId1 = new AtomicLong();
     final AtomicLong txId2 = new AtomicLong();
 
@@ -311,6 +322,26 @@ public final class TxnTest {
   }
 
   @Test
+  public void txParent2() {
+    try (Txn<ByteBuffer> txRoot = env.txnWrite()) {
+      assertThatThrownBy(
+              () -> {
+                env.txn(txRoot, (TxnFlagSet) null);
+              })
+          .isInstanceOf(NullPointerException.class);
+    }
+  }
+
+  @Test
+  public void txParent3() {
+    try (Txn<ByteBuffer> txRoot = env.txnWrite();
+        Txn<ByteBuffer> txChild = env.txn(txRoot, TxnFlagSet.EMPTY)) {
+      assertThat(txRoot.getParent()).isNull();
+      assertThat(txChild.getParent()).isEqualTo(txRoot);
+    }
+  }
+
+  @Test
   void txParentDeniedIfEnvClosed() {
     assertThatThrownBy(
             () -> {
@@ -418,7 +449,12 @@ public final class TxnTest {
   void zeroByteKeysRejected() {
     assertThatThrownBy(
             () -> {
-              final Dbi<ByteBuffer> dbi = env.openDbi(DB_1, MDB_CREATE);
+              final Dbi<ByteBuffer> dbi =
+                  env.createDbi()
+                      .setDbName(DB_1)
+                      .withDefaultComparator()
+                      .setDbiFlags(MDB_CREATE)
+                      .open();
               final ByteBuffer key = allocateDirect(4);
               key.putInt(1);
               assertThat(key.remaining()).isEqualTo(0); // because key.flip() skipped

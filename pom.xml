@@ -29,7 +29,6 @@
     <agrona.version>1.22.0</agrona.version>
     <assertj.version>3.27.6</assertj.version>
     <buildnumber-maven-plugin.version>3.2.1</buildnumber-maven-plugin.version>
-    <byteunits.version>0.9.1</byteunits.version>
     <central-publishing-maven-plugin.version>0.9.0</central-publishing-maven-plugin.version>
     <fmt-maven-plugin.version>2.29</fmt-maven-plugin.version>
     <google-java-format.version>1.28.0</google-java-format.version>
@@ -39,7 +38,7 @@
     <jnr-ffi.version>2.2.18</jnr-ffi.version>
     <junit.version>5.14.1</junit.version>
     <license-maven-plugin.version>4.6</license-maven-plugin.version>
-    <lmdbjava-native.version>0.9.33-2</lmdbjava-native.version>
+    <lmdbjava-native.version>0.9.33-3</lmdbjava-native.version>
     <maven-clean-plugin.version>3.5.0</maven-clean-plugin.version>
     <maven-compiler-plugin.version>3.14.1</maven-compiler-plugin.version>
     <maven-dependency-plugin.version>3.9.0</maven-dependency-plugin.version>
@@ -83,12 +82,6 @@
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
       <version>${guava.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.jakewharton.byteunits</groupId>
-      <artifactId>byteunits</artifactId>
-      <version>${byteunits.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -146,6 +139,7 @@
               <excludes>
                 <exclude>LICENSE.txt</exclude>
                 <exclude>**/*.md</exclude>
+                <exclude>**/*.csv</exclude>
                 <exclude>lmdb/**</exclude>
                 <exclude>licenses/**</exclude>
               </excludes>
