@@ -41,9 +41,13 @@ public final class TargetNameTest {
 
   @Test
   void embeddedNameResolution() {
-    embed("aarch64-linux-gnu.so", "aarch64", "Linux");
+    // Note: Linux resolution now detects musl vs glibc at runtime
+    // These tests verify the resolution logic but actual toolchain depends on system
+    final String linuxToolchain = TargetName.resolveFilename(NONE, NONE, "x86_64", "Linux")
+        .contains("-musl.") ? "musl" : "gnu";
+    embed("aarch64-linux-" + linuxToolchain + ".so", "aarch64", "Linux");
     embed("aarch64-macos-none.so", "aarch64", "Mac OS");
-    embed("x86_64-linux-gnu.so", "x86_64", "Linux");
+    embed("x86_64-linux-" + linuxToolchain + ".so", "x86_64", "Linux");
     embed("x86_64-macos-none.so", "x86_64", "Mac OS");
     embed("x86_64-windows-gnu.dll", "x86_64", "Windows");
   }

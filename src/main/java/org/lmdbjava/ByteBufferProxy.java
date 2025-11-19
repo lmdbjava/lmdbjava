@@ -27,6 +27,7 @@ import static org.lmdbjava.UnsafeAccess.UNSAFE;
 import java.lang.reflect.Field;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.ArrayDeque;
 import java.util.Comparator;
 import jnr.ffi.Pointer;
@@ -56,6 +57,8 @@ public final class ByteBufferProxy {
 
   /** The safe, reflective {@link ByteBuffer} proxy for this system. Guaranteed to never be null. */
   public static final BufferProxy<ByteBuffer> PROXY_SAFE;
+
+  private static final ByteOrder NATIVE_ORDER = ByteOrder.nativeOrder();
 
   static {
     PROXY_SAFE = new ReflectiveProxy();
@@ -92,16 +95,6 @@ public final class ByteBufferProxy {
     protected static final String FIELD_NAME_ADDRESS = "address";
     protected static final String FIELD_NAME_CAPACITY = "capacity";
 
-    private static final Comparator<ByteBuffer> signedComparator =
-        (o1, o2) -> {
-          requireNonNull(o1);
-          requireNonNull(o2);
-
-          return o1.compareTo(o2);
-        };
-    private static final Comparator<ByteBuffer> unsignedComparator =
-        AbstractByteBufferProxy::compareBuff;
-
     /**
      * A thread-safe pool for a given length. If the buffer found is valid (ie not of a negative
      * length) then that buffer is used. If no valid buffer is found, a new buffer is created.
@@ -116,7 +109,7 @@ public final class ByteBufferProxy {
      * @param o2 right operand (required)
      * @return as specified by {@link Comparable} interface
      */
-    public static int compareBuff(final ByteBuffer o1, final ByteBuffer o2) {
+    public static int compareLexicographically(final ByteBuffer o1, final ByteBuffer o2) {
       requireNonNull(o1);
       requireNonNull(o2);
 
@@ -144,6 +137,55 @@ public final class ByteBufferProxy {
       }
 
       return o1.remaining() - o2.remaining();
+    }
+
+    /**
+     * Buffer comparator specifically for 4/8 byte keys that are unsigned ints/longs, i.e. when
+     * using MDB_INTEGER_KEY/MDB_INTEGERDUP. Compares the buffers numerically.
+     *
+     * @param o1 left operand (required)
+     * @param o2 right operand (required)
+     * @return as specified by {@link Comparable} interface
+     */
+    public static int compareAsIntegerKeys(final ByteBuffer o1, final ByteBuffer o2) {
+      requireNonNull(o1);
+      requireNonNull(o2);
+      // Both buffers should be same length according to LMDB API.
+      // From the LMDB docs for MDB_INTEGER_KEY
+      // numeric keys in native byte order: either unsigned int or size_t. The keys must all be of
+      // the same size.
+      final int len1 = o1.limit();
+      final int len2 = o2.limit();
+      if (len1 != len2) {
+        throw new RuntimeException(
+            "Length mismatch, len1: "
+                + len1
+                + ", len2: "
+                + len2
+                + ". Lengths must be identical and either 4 or 8 bytes.");
+      }
+      // Keys for MDB_INTEGER_KEY are written in native order so ensure we read them in that order
+      o1.order(NATIVE_ORDER);
+      o2.order(NATIVE_ORDER);
+      // TODO it might be worth the DbiBuilder having a method to capture fixedKeyLength() or -1
+      //  for variable length keys. This can be passed to getComparator(..) so it can return a
+      //  comparator that doesn't need to test the length every time. There may be other benefits
+      //  to the Dbi knowing the key length if it is fixed.
+      if (len1 == 8) {
+        final long lw = o1.getLong(0);
+        final long rw = o2.getLong(0);
+        return Long.compareUnsigned(lw, rw);
+      } else if (len1 == 4) {
+        final int lw = o1.getInt(0);
+        final int rw = o2.getInt(0);
+        return Integer.compareUnsigned(lw, rw);
+      } else {
+        // size_t and int are likely to be 8bytes and 4bytes respectively on 64bit.
+        // If 32bit then would be 4/2 respectively.
+        // Short.compareUnsigned is not available in Java8.
+        // For now just fall back to our standard comparator
+        return compareLexicographically(o1, o2);
+      }
     }
 
     static Field findField(final Class<?> c, final String name) {
@@ -180,13 +222,12 @@ public final class ByteBufferProxy {
     }
 
     @Override
-    protected Comparator<ByteBuffer> getSignedComparator() {
-      return signedComparator;
-    }
-
-    @Override
-    protected Comparator<ByteBuffer> getUnsignedComparator() {
-      return unsignedComparator;
+    public Comparator<ByteBuffer> getComparator(final DbiFlagSet dbiFlagSet) {
+      if (dbiFlagSet.areAnySet(DbiFlagSet.INTEGER_KEY_FLAGS)) {
+        return AbstractByteBufferProxy::compareAsIntegerKeys;
+      } else {
+        return AbstractByteBufferProxy::compareLexicographically;
+      }
     }
 
     @Override
