@@ -402,7 +402,12 @@ public final class Dbi<T> {
     }
     final PointerByReference cursorPtr = new PointerByReference();
     checkRc(LIB.mdb_cursor_open(txn.pointer(), ptr, cursorPtr));
-    return new Cursor<>(cursorPtr.getValue(), txn, env);
+    final Cursor<T> cursor = new Cursor<>(cursorPtr.getValue(), txn, env);
+
+    if (SHOULD_CHECK) {
+      env.incrementOpenItemCounter();
+    }
+    return cursor;
   }
 
   /**

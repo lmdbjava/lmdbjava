@@ -63,18 +63,24 @@ public final class Cursor<T> implements AutoCloseable {
    */
   @Override
   public void close() {
-    if (closed) {
-      return;
-    }
-    kv.close();
-    if (SHOULD_CHECK) {
-      env.checkNotClosed();
-      if (!txn.isReadOnly()) {
-        txn.checkReady();
+    try {
+      if (closed) {
+        return;
+      }
+      kv.close();
+      if (SHOULD_CHECK) {
+        env.checkNotClosed();
+        if (!txn.isReadOnly()) {
+          txn.checkReady();
+        }
+      }
+      LIB.mdb_cursor_close(ptrCursor);
+      closed = true;
+    } finally {
+      if (SHOULD_CHECK) {
+        env.decrementOpenItemCounter();
       }
     }
-    LIB.mdb_cursor_close(ptrCursor);
-    closed = true;
   }
 
   /**

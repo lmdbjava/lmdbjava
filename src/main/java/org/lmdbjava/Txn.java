@@ -86,17 +86,22 @@ public final class Txn<T> implements AutoCloseable {
    */
   @Override
   public void close() {
-    if (SHOULD_CHECK) {
-      env.checkNotClosed();
+    System.out.println(Thread.currentThread().getName() + " - Txn.close()");
+    try {
+      if (SHOULD_CHECK) {
+        env.checkNotClosed();
+      }
+      if (state == RELEASED) {
+        return;
+      }
+      if (state == READY) {
+        LIB.mdb_txn_abort(ptr);
+      }
+      keyVal.close();
+      state = RELEASED;
+    } finally {
+      env.decrementOpenItemCounter();
     }
-    if (state == RELEASED) {
-      return;
-    }
-    if (state == READY) {
-      LIB.mdb_txn_abort(ptr);
-    }
-    keyVal.close();
-    state = RELEASED;
   }
 
   /** Commits this transaction. */

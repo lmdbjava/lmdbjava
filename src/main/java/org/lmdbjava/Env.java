@@ -67,7 +67,8 @@ public final class Env<T> implements AutoCloseable {
    */
   public static final boolean SHOULD_CHECK = !getBoolean(DISABLE_CHECKS_PROP);
 
-  private boolean closed;
+  private static final int ENV_CLOSED_VALUE = Integer.MIN_VALUE;
+
   private final int maxKeySize;
   private final boolean noSubDir;
   private final BufferProxy<T> proxy;
@@ -75,6 +76,9 @@ public final class Env<T> implements AutoCloseable {
   private final boolean readOnly;
   private final Path path;
   private final EnvFlagSet envFlagSet;
+  // 1 represents the Env being open on initialisation
+  //  private final AtomicInteger openCounter = new AtomicInteger(1);
+  private final OpenCounter openCounter = OpenCounter.open();
 
   private Env(
       final BufferProxy<T> proxy,
@@ -130,15 +134,61 @@ public final class Env<T> implements AutoCloseable {
   /**
    * Close the handle.
    *
-   * <p>Will silently return if already closed or never opened.
+   * <p>Will silently return if already closed
    */
   @Override
   public void close() {
-    if (closed) {
-      return;
-    }
-    closed = true;
-    LIB.mdb_env_close(ptr);
+//    System.out.println("Close called");
+    openCounter.close(
+        () -> {
+          LIB.mdb_env_close(ptr);
+//          System.out.println("Marking as closed");
+        });
+
+    //    if (openCounter.getAndUpdate(cnt -> {
+    //      if (cnt)
+    //        if (cnt >= 0) {
+    //          System.out.println("Marking as closing");
+    //          return cnt * -1;
+    //        } else {
+    //          throw
+    //        }
+    //    }) < 0) {
+    //
+    //    }
+    //
+    //    if (SHOULD_CHECK) {
+    //      // Make the counter a negative number to indicate the env is closing. This
+    //      // will stop any new txns being opened
+    //      openCounter.updateAndGet(
+    //          cnt -> {
+    //            if (cnt >= 0) {
+    //              System.out.println("Marking as closing");
+    //              return cnt * -1;
+    //            } else {
+    //              throw
+    //            }
+    //          });
+    //
+    //      // Wait for all open txns to close and decrement the counter
+    //      // Counter is now negative, so decrementTxnCounter() will move back towards zero
+    //      while (openCounter.get() < 0) {
+    //        try {
+    //          System.out.println("Sleeping " + openCounter.get());
+    //          Thread.sleep(50);
+    //        } catch (InterruptedException e) {
+    //          Thread.currentThread().interrupt();
+    //          break;
+    //        }
+    //      }
+    //    }
+    //
+    //    System.out.println("Finished sleep " + openCounter.get());
+    //
+    //    LIB.mdb_env_close(ptr);
+    //    // No SHOULD_CHECK as isClosed() relies on this value
+    //    System.out.println("Marking as closed");
+    //    openCounter.set(ENV_CLOSED_VALUE);
   }
 
   /**
@@ -297,9 +347,7 @@ public final class Env<T> implements AutoCloseable {
    * @return an immutable information object.
    */
   public EnvInfo info() {
-    if (closed) {
-      throw new AlreadyClosedException();
-    }
+    checkNotClosed();
     final MDB_envinfo info = new MDB_envinfo(RUNTIME);
     checkRc(LIB.mdb_env_info(ptr, info));
 
@@ -325,7 +373,8 @@ public final class Env<T> implements AutoCloseable {
    * @return true if closed
    */
   public boolean isClosed() {
-    return closed;
+    return openCounter.isClosed();
+    //    return openCounter.get() < 0;
   }
 
   /**
@@ -499,9 +548,7 @@ public final class Env<T> implements AutoCloseable {
    * @return an immutable statistics object.
    */
   public Stat stat() {
-    if (closed) {
-      throw new AlreadyClosedException();
-    }
+    checkNotClosed();
     final MDB_stat stat = new MDB_stat(RUNTIME);
     checkRc(LIB.mdb_env_stat(ptr, stat));
     return new Stat(
@@ -520,8 +567,8 @@ public final class Env<T> implements AutoCloseable {
    *     set the flushes will be omitted, and with MDB_MAPASYNC they will be asynchronous)
    */
   public void sync(final boolean force) {
-    if (closed) {
-      throw new AlreadyClosedException();
+    if (SHOULD_CHECK) {
+      checkNotClosed();
     }
     final int f = force ? 1 : 0;
     checkRc(LIB.mdb_env_sync(ptr, f));
@@ -536,8 +583,7 @@ public final class Env<T> implements AutoCloseable {
    */
   @Deprecated
   public Txn<T> txn(final Txn<T> parent, final TxnFlags... flags) {
-    checkNotClosed();
-    return new Txn<>(this, parent, proxy, TxnFlagSet.of(flags));
+    return createTxn(parent, TxnFlagSet.of(flags));
   }
 
   /**
@@ -547,8 +593,7 @@ public final class Env<T> implements AutoCloseable {
    * @return a transaction (never null)
    */
   public Txn<T> txn(final Txn<T> parent) {
-    checkNotClosed();
-    return new Txn<>(this, parent, proxy, TxnFlagSet.EMPTY);
+    return createTxn(parent, TxnFlagSet.EMPTY);
   }
 
   /**
@@ -561,8 +606,7 @@ public final class Env<T> implements AutoCloseable {
    * @return a transaction (never null)
    */
   public Txn<T> txn(final Txn<T> parent, final TxnFlagSet flags) {
-    checkNotClosed();
-    return new Txn<>(this, parent, proxy, flags);
+    return createTxn(parent, flags);
   }
 
   /**
@@ -571,8 +615,7 @@ public final class Env<T> implements AutoCloseable {
    * @return a read-only transaction
    */
   public Txn<T> txnRead() {
-    checkNotClosed();
-    return new Txn<>(this, null, proxy, TxnFlags.MDB_RDONLY_TXN);
+    return createTxn(null, TxnFlags.MDB_RDONLY_TXN);
   }
 
   /**
@@ -581,8 +624,22 @@ public final class Env<T> implements AutoCloseable {
    * @return a read-write transaction
    */
   public Txn<T> txnWrite() {
-    checkNotClosed();
-    return new Txn<>(this, null, proxy, TxnFlagSet.EMPTY);
+    return createTxn(null, TxnFlagSet.EMPTY);
+  }
+
+  private Txn<T> createTxn(final Txn<T> parent, final TxnFlagSet flags) {
+    if (SHOULD_CHECK) {
+      openCounter.increment();
+      //      incrementTxnCounter();
+    }
+    try {
+      return new Txn<>(this, parent, proxy, flags);
+    } catch (final Exception e) {
+      if (SHOULD_CHECK) {
+        openCounter.decrement();
+      }
+      throw e;
+    }
   }
 
   Pointer pointer() {
@@ -590,9 +647,44 @@ public final class Env<T> implements AutoCloseable {
   }
 
   void checkNotClosed() {
-    if (closed) {
-      throw new AlreadyClosedException();
-    }
+    openCounter.checkNotClosed();
+    //    if (openCounter.get() < 0) {
+    //      throw new AlreadyClosedException();
+    //    }
+  }
+
+  void incrementOpenItemCounter() {
+    openCounter.increment();
+    //    final int newCnt = openCounter.updateAndGet(
+    //        cnt -> {
+    //          if (cnt >= 0) {
+    //            return cnt + 1;
+    //          } else {
+    //            throw new AlreadyClosedException();
+    //          }
+    //        });
+    //    System.out.println(Thread.currentThread().getName() + " - incrementTxnCounter " + newCnt);
+  }
+
+  void decrementOpenItemCounter() {
+    openCounter.decrement();
+    //    final int newCnt = openCounter.updateAndGet(
+    //        cnt -> {
+    //          if (cnt > 0) {
+    //            // Env is open, decrement the open txn count
+    //            return cnt - 1;
+    //          } else if (cnt == ENV_CLOSED_VALUE) {
+    //            // Env is closed, nothing to do
+    //            return cnt;
+    //          } else if (cnt < 0) {
+    //            // Negative number means env is closing and waiting for us to finish.
+    //            // 'decrement' the open txn count back towards zero.
+    //            return cnt + 1;
+    //          } else {
+    //            throw new RuntimeException("Cannot decrement txn count beyond 0.");
+    //          }
+    //        });
+    //    System.out.println(Thread.currentThread().getName() + " - decrementTxnCounter " + newCnt);
   }
 
   private void validateDirectoryEmpty(final Path path) {
@@ -638,7 +730,7 @@ public final class Env<T> implements AutoCloseable {
   public String toString() {
     return "Env{"
         + "closed="
-        + closed
+        + isClosed()
         + ", maxKeySize="
         + maxKeySize
         + ", noSubDir="
@@ -650,6 +742,23 @@ public final class Env<T> implements AutoCloseable {
         + ", envFlagSet="
         + envFlagSet
         + '}';
+  }
+
+  /** Object has already been closed and the operation is therefore prohibited. */
+  public static final class OpenItemsException extends LmdbException {
+
+    private static final long serialVersionUID = 1L;
+
+    /** Creates a new instance. */
+    public OpenItemsException(final int count) {
+      super(
+          "Environment has "
+              + count
+              + " open item"
+              + (count > 1 ? "s" : "")
+              + " (transactions, cursors, etc.) "
+              + "so cannot be closed.");
+    }
   }
 
   /** Object has already been closed and the operation is therefore prohibited. */

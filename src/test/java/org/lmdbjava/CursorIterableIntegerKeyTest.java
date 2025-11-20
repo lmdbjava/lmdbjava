@@ -100,6 +100,7 @@ public final class CursorIterableIntegerKeyTest {
   public void before() throws IOException {
     tempDir = new TempDir();
     final BufferProxy<ByteBuffer> bufferProxy = ByteBufferProxy.PROXY_OPTIMAL;
+    System.out.println("Creating env");
     env =
         Env.create(bufferProxy)
             .setMapSize(256, ByteUnit.KIBIBYTES)
@@ -122,17 +123,18 @@ public final class CursorIterableIntegerKeyTest {
     final Dbi<ByteBuffer> dbi = dbiFactory.factory.apply(env);
 
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
-      final Cursor<ByteBuffer> c = dbi.openCursor(txn);
-      long i = 1;
-      while (true) {
-        //        System.out.println("putting " + i);
-        c.put(bbNative(i), bb(i + "-long"));
-        final long i2 = i * 10;
-        if (i2 < i) {
-          // Overflowed
-          break;
+      try (Cursor<ByteBuffer> c = dbi.openCursor(txn)) {
+        long i = 1;
+        while (true) {
+          //        System.out.println("putting " + i);
+          c.put(bbNative(i), bb(i + "-long"));
+          final long i2 = i * 10;
+          if (i2 < i) {
+            // Overflowed
+            break;
+          }
+          i = i2;
         }
-        i = i2;
       }
       txn.commit();
     }
@@ -278,12 +280,13 @@ public final class CursorIterableIntegerKeyTest {
   }
 
   private void populateDatabase(final Dbi<ByteBuffer> dbi) {
-    try (Txn<ByteBuffer> txn = env.txnWrite()) {
-      final Cursor<ByteBuffer> c = dbi.openCursor(txn);
-      c.put(bbNative(2), bb(3), MDB_NOOVERWRITE);
-      c.put(bbNative(4), bb(5));
-      c.put(bbNative(6), bb(7));
-      c.put(bbNative(8), bb(9));
+    try (final Txn<ByteBuffer> txn = env.txnWrite()) {
+      try (final Cursor<ByteBuffer> c = dbi.openCursor(txn)) {
+        c.put(bbNative(2), bb(3), MDB_NOOVERWRITE);
+        c.put(bbNative(4), bb(5));
+        c.put(bbNative(6), bb(7));
+        c.put(bbNative(8), bb(9));
+      }
       txn.commit();
     }
   }
