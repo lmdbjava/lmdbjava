@@ -462,4 +462,17 @@ public final class TxnTest {
             })
         .isInstanceOf(BadValueSizeException.class);
   }
+
+  @Test
+  void testCloseTwice() {
+    final Txn<ByteBuffer> txn = env.txnRead();
+
+    assertThat(txn.getState()).isEqualTo(READY);
+    // Closes the txn
+    txn.close();
+    assertThat(txn.getState()).isEqualTo(RELEASED);
+    // no-op
+    txn.close();
+    assertThat(txn.getState()).isEqualTo(RELEASED);
+  }
 }

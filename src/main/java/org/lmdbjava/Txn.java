@@ -68,7 +68,9 @@ public final class Txn<T> implements AutoCloseable {
     state = READY;
   }
 
-  /** Aborts this transaction. */
+  /**
+   * Aborts this transaction.
+   */
   public void abort() {
     if (SHOULD_CHECK) {
       env.checkNotClosed();
@@ -86,14 +88,14 @@ public final class Txn<T> implements AutoCloseable {
    */
   @Override
   public void close() {
-//    System.out.println(Thread.currentThread().getName() + " - Txn.close()");
+    if (SHOULD_CHECK) {
+      env.checkNotClosed();
+    }
+    if (state == RELEASED) {
+      return;
+    }
+
     try {
-      if (SHOULD_CHECK) {
-        env.checkNotClosed();
-      }
-      if (state == RELEASED) {
-        return;
-      }
       if (state == READY) {
         LIB.mdb_txn_abort(ptr);
       }
@@ -104,7 +106,9 @@ public final class Txn<T> implements AutoCloseable {
     }
   }
 
-  /** Commits this transaction. */
+  /**
+   * Commits this transaction.
+   */
   public void commit() {
     if (SHOULD_CHECK) {
       env.checkNotClosed();
@@ -156,7 +160,9 @@ public final class Txn<T> implements AutoCloseable {
     return keyVal.key();
   }
 
-  /** Renews a read-only transaction previously released by {@link #reset()}. */
+  /**
+   * Renews a read-only transaction previously released by {@link #reset()}.
+   */
   public void renew() {
     if (SHOULD_CHECK) {
       env.checkNotClosed();
@@ -236,7 +242,9 @@ public final class Txn<T> implements AutoCloseable {
     return ptr;
   }
 
-  /** Transaction must abort, has a child, or is invalid. */
+  /**
+   * Transaction must abort, has a child, or is invalid.
+   */
   public static final class BadException extends LmdbNativeException {
 
     static final int MDB_BAD_TXN = -30_782;
@@ -247,7 +255,9 @@ public final class Txn<T> implements AutoCloseable {
     }
   }
 
-  /** Invalid reuse of reader locktable slot. */
+  /**
+   * Invalid reuse of reader locktable slot.
+   */
   public static final class BadReaderLockException extends LmdbNativeException {
 
     static final int MDB_BAD_RSLOT = -30_783;
@@ -258,84 +268,114 @@ public final class Txn<T> implements AutoCloseable {
     }
   }
 
-  /** The proposed R-W transaction is incompatible with a R-O Env. */
+  /**
+   * The proposed R-W transaction is incompatible with a R-O Env.
+   */
   public static class EnvIsReadOnly extends LmdbException {
 
     private static final long serialVersionUID = 1L;
 
-    /** Creates a new instance. */
+    /**
+     * Creates a new instance.
+     */
     public EnvIsReadOnly() {
       super("Read-write Txn incompatible with read-only Env");
     }
   }
 
-  /** The proposed transaction is incompatible with its parent transaction. */
+  /**
+   * The proposed transaction is incompatible with its parent transaction.
+   */
   public static class IncompatibleParent extends LmdbException {
 
     private static final long serialVersionUID = 1L;
 
-    /** Creates a new instance. */
+    /**
+     * Creates a new instance.
+     */
     public IncompatibleParent() {
       super("Transaction incompatible with its parent transaction");
     }
   }
 
-  /** Transaction is not in a READY state. */
+  /**
+   * Transaction is not in a READY state.
+   */
   public static final class NotReadyException extends LmdbException {
 
     private static final long serialVersionUID = 1L;
 
-    /** Creates a new instance. */
+    /**
+     * Creates a new instance.
+     */
     public NotReadyException() {
       super("Transaction is not in ready state");
     }
   }
 
-  /** The current transaction has not been reset. */
+  /**
+   * The current transaction has not been reset.
+   */
   public static class NotResetException extends LmdbException {
 
     private static final long serialVersionUID = 1L;
 
-    /** Creates a new instance. */
+    /**
+     * Creates a new instance.
+     */
     public NotResetException() {
       super("Transaction has not been reset");
     }
   }
 
-  /** The current transaction is not a read-only transaction. */
+  /**
+   * The current transaction is not a read-only transaction.
+   */
   public static class ReadOnlyRequiredException extends LmdbException {
 
     private static final long serialVersionUID = 1L;
 
-    /** Creates a new instance. */
+    /**
+     * Creates a new instance.
+     */
     public ReadOnlyRequiredException() {
       super("Not a read-only transaction");
     }
   }
 
-  /** The current transaction is not a read-write transaction. */
+  /**
+   * The current transaction is not a read-write transaction.
+   */
   public static class ReadWriteRequiredException extends LmdbException {
 
     private static final long serialVersionUID = 1L;
 
-    /** Creates a new instance. */
+    /**
+     * Creates a new instance.
+     */
     public ReadWriteRequiredException() {
       super("Not a read-write transaction");
     }
   }
 
-  /** The current transaction has already been reset. */
+  /**
+   * The current transaction has already been reset.
+   */
   public static class ResetException extends LmdbException {
 
     private static final long serialVersionUID = 1L;
 
-    /** Creates a new instance. */
+    /**
+     * Creates a new instance.
+     */
     public ResetException() {
       super("Transaction has already been reset");
     }
   }
 
-  /** Transaction has too many dirty pages. */
+  /**
+   * Transaction has too many dirty pages.
+   */
   public static final class TxFullException extends LmdbNativeException {
 
     static final int MDB_TXN_FULL = -30_788;
@@ -346,7 +386,9 @@ public final class Txn<T> implements AutoCloseable {
     }
   }
 
-  /** Transaction states. */
+  /**
+   * Transaction states.
+   */
   enum State {
     READY,
     DONE,
