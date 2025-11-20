@@ -100,7 +100,7 @@ public final class CursorIterableIntegerKeyTest {
   public void before() throws IOException {
     tempDir = new TempDir();
     final BufferProxy<ByteBuffer> bufferProxy = ByteBufferProxy.PROXY_OPTIMAL;
-    System.out.println("Creating env");
+//    System.out.println("Creating env");
     env =
         Env.create(bufferProxy)
             .setMapSize(256, ByteUnit.KIBIBYTES)

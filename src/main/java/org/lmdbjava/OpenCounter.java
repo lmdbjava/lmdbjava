@@ -56,7 +56,7 @@ public class OpenCounter {
   }
 
   void increment() {
-    final int newCount =
+//    final int newCount =
         counter.updateAndGet(
             count -> {
               if (count >= ONLY_ENV_OPEN) {
@@ -68,11 +68,11 @@ public class OpenCounter {
                 throw new IllegalStateException("Unexpected count " + count);
               }
             });
-    System.out.println(Thread.currentThread().getName() + " - increment " + (newCount - 1) + " => " + newCount);
+//    System.out.println(Thread.currentThread().getName() + " - increment " + (newCount - 1) + " => " + newCount);
   }
 
   void decrement() {
-    final int newCount =
+//    final int newCount =
         counter.updateAndGet(
             count -> {
               if (count > ONLY_ENV_OPEN) {
@@ -84,6 +84,6 @@ public class OpenCounter {
                 throw new IllegalStateException("Unexpected count " + count);
               }
             });
-    System.out.println(Thread.currentThread().getName() + " - decrement " + (newCount + 1) + " => " + newCount);
+//    System.out.println(Thread.currentThread().getName() + " - decrement " + (newCount + 1) + " => " + newCount);
   }
 }

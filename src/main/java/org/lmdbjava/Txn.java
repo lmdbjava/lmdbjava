@@ -86,7 +86,7 @@ public final class Txn<T> implements AutoCloseable {
    */
   @Override
   public void close() {
-    System.out.println(Thread.currentThread().getName() + " - Txn.close()");
+//    System.out.println(Thread.currentThread().getName() + " - Txn.close()");
     try {
       if (SHOULD_CHECK) {
         env.checkNotClosed();
