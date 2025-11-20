@@ -63,10 +63,10 @@ public final class Cursor<T> implements AutoCloseable {
    */
   @Override
   public void close() {
+    if (closed) {
+      return;
+    }
     try {
-      if (closed) {
-        return;
-      }
       kv.close();
       if (SHOULD_CHECK) {
         env.checkNotClosed();
