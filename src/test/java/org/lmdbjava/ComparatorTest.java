@@ -256,30 +256,6 @@ public final class ComparatorTest {
     }
   }
 
-  //  /** Converts an integer result code into its contractual meaning. */
-  //  enum ComparatorResult {
-  //    LESS_THAN,
-  //    EQUAL_TO,
-  //    GREATER_THAN;
-  //
-  //    static ComparatorResult get(final int comparatorResult) {
-  //      if (comparatorResult == 0) {
-  //        return EQUAL_TO;
-  //      }
-  //      return comparatorResult < 0 ? LESS_THAN : GREATER_THAN;
-  //    }
-  //
-  //    ComparatorResult opposite() {
-  //      if (this == LESS_THAN) {
-  //        return GREATER_THAN;
-  //      } else if (this == GREATER_THAN) {
-  //        return LESS_THAN;
-  //      } else {
-  //        return EQUAL_TO;
-  //      }
-  //    }
-  //  }
-
   /** Interface that can test a {@link BufferProxy} <code>compare</code> method. */
   private interface ComparatorRunner extends Comparator<byte[]> {
 
@@ -291,6 +267,7 @@ public final class ComparatorTest {
      * @param o2 rhs buffer content
      * @return as per {@link Comparable}
      */
+    @Override
     int compare(byte[] o1, byte[] o2);
   }
 }
