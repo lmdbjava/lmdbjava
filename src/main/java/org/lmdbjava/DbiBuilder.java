@@ -302,7 +302,8 @@ public final class DbiBuilder<T> {
      * Use the supplied transaction to open the {@link Dbi}.
      *
      * <p>The caller MUST commit the transaction after calling {@link Stage3#open()}, in order to
-     * retain the <code>Dbi</code> in the <code>Env</code>.
+     * retain the <code>Dbi</code> in the <code>Env</code>. The caller is also responsible for
+     * closing the transaction.
      *
      * <p>If you don't call this method to supply a {@link Txn}, a {@link Txn} will be opened for
      * the purpose of creating and opening the {@link Dbi}, then closed. Therefore, if you already
