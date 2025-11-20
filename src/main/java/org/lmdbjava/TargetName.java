@@ -21,6 +21,7 @@ import static java.util.Locale.ENGLISH;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.stream.Stream;
 
 /**
  * Determines the name of the target LMDB native library.
@@ -171,10 +172,8 @@ public final class TargetName {
   }
 
   private static boolean isMuslLibc() {
-    try {
-      return Files.lines(Paths.get("/proc/self/maps"))
-          .filter(line -> line.contains("libc"))
-          .anyMatch(line -> line.contains("musl"));
+    try (Stream<String> lines = Files.lines(Paths.get("/proc/self/maps"))) {
+      return lines.anyMatch(line -> line.contains("/ld-musl"));
     } catch (final IOException e) {
       return false;
     }
