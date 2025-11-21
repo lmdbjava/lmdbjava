@@ -238,7 +238,10 @@ public final class ComparatorTest {
       o1b.writeBytes(o1);
       o2b.writeBytes(o2);
       final Comparator<ByteBuf> c = PROXY_NETTY.getComparator();
-      return c.compare(o1b, o2b);
+      final int res = c.compare(o1b, o2b);
+      o1b.release();
+      o2b.release();
+      return res;
     }
   }
 
