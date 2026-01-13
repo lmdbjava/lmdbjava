@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright © 2016-2025 The LmdbJava Open Source Project
+    Copyright © 2016-2026 The LmdbJava Open Source Project
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -218,19 +218,19 @@
             </goals>
             <configuration>
               <rules>
-                <dependencyConvergence />
+                <dependencyConvergence/>
                 <requireMavenVersion>
                   <version>[${maven.enforcer.mvn},)</version>
                 </requireMavenVersion>
                 <requireJavaVersion>
                   <version>[${maven.enforcer.java},)</version>
                 </requireJavaVersion>
-                <requireNoRepositories />
-                <requirePluginVersions />
+                <requireNoRepositories/>
+                <requirePluginVersions/>
                 <requireReleaseDeps>
                   <onlyWhenRelease>true</onlyWhenRelease>
                 </requireReleaseDeps>
-                <requireUpperBoundDeps />
+                <requireUpperBoundDeps/>
               </rules>
             </configuration>
           </execution>
