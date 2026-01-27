@@ -19,9 +19,7 @@ class StripedRefCounterImpl implements RefCounter {
    * Flag to indicate if {@link RefCounter#close()} has been called.
    * Once set, it means that all subsequent {@link RefCounter#acquire()} will throw.
    */
-//  private final AtomicBoolean closeCalled = new AtomicBoolean(false);
   private final Runnable onClose;
-//  private final AtomicBoolean onCloseCompleted = new AtomicBoolean(false);
   private final AtomicReference<EnvState> stateRef;
 
   StripedRefCounterImpl(Runnable onClose) {
@@ -44,9 +42,7 @@ class StripedRefCounterImpl implements RefCounter {
 
   @Override
   public RefCounterReleaser acquire() {
-//    return doWithOptionalLocking(() -> {
     if (stateRef.get() != EnvState.OPEN) {
-//    if (closeCalled.get()) {
       // Close has been initiated, so acquire() is no longer allowed
 //        System.out.println("Throwing AlreadyClosedException 1");
       throw new Env.AlreadyClosedException();
@@ -58,14 +54,9 @@ class StripedRefCounterImpl implements RefCounter {
     final StripeState stripeState = stripeStates[getStripeIdx()];
     // If we increment the count just before counter is made negative, then close()
     // will have to wait for us to release.
-    final int count = stripeState.counter.updateAndGet(currVal -> {
-      final int newVal;
-      if (currVal < 0) {
-        // Negative means it is in a closed state
-//        System.out.println("Throwing AlreadyClosedException 2");
-//        throw new Env.AlreadyClosedException();
-        newVal = currVal;
-      } else {
+    final int newCount = stripeState.counter.updateAndGet(currVal -> {
+      int newVal = currVal;
+      if (currVal >= 0) {
         newVal = currVal + 1;
 //        System.out.printf("%s - acquire() called, currVal: %s, newVal: %s%n",
 //            Thread.currentThread(), currVal, newVal);
@@ -77,12 +68,11 @@ class StripedRefCounterImpl implements RefCounter {
       return newVal;
     });
 
-    if (count < 0) {
+    if (newCount < 0) {
         throw new Env.AlreadyClosedException();
     }
-    // Return the counter index, so the release call can use it
+    // Return the releaser than knows which stripe to release back to
     return new RefCounterReleaserImpl(this, stripeState);
-//    });
   }
 
   @Override
@@ -98,7 +88,6 @@ class StripedRefCounterImpl implements RefCounter {
   }
 
   private void release(final StripeState stripeState) {
-//    doWithOptionalLocking(() -> {
     stripeState.counter.updateAndGet(currVal -> {
       int newVal;
       if (currVal > 0) {
@@ -116,31 +105,19 @@ class StripedRefCounterImpl implements RefCounter {
 //        System.out.printf("%s - release() called, currVal: %s, newVal: %s%n",
 //            Thread.currentThread(), currVal, newVal);
         if (newVal == 0) {
-          // Reached zero, so set to the magic number
+          // Reached zero, so set to the magic number, so counter stays negative, i.e. closed
           newVal = CLOSED_COUNT;
-          // We have reached zero, so count down the latch so that close() can stop blocking
-//          stripeState.countDownLatch.countDown();
         }
       } else {
-        // currVal == 0
         throw new IllegalStateException("currVal should never be zero on release()");
       }
       return newVal;
     });
-//      return null;
-//    });
   }
 
-//  @Override
-//  public void release(final int counterIdx) {
-//    final StripeState stripeState = stripeStates[counterIdx];
-//    release(stripeState);
-//  }
-
-  private void markClosing() {
+  private void setCountersInClosingState() {
     // Only want to do this once
     if (stateRef.compareAndSet(EnvState.OPEN, EnvState.CLOSING)) {
-//    if (closeCalled.compareAndSet(false, true)) {
 //      System.out.println("close() called");
       // Place each stripe into a closed state
       for (int stripe = 0; stripe < stripes; stripe++) {
@@ -148,7 +125,6 @@ class StripedRefCounterImpl implements RefCounter {
         stripeState.counter.updateAndGet(currVal -> {
           if (currVal == 0) {
             // Count is already at zero so there will be nothing to wait for.
-//            stripeState.countDownLatch.countDown();
             // Ensures any thread that tries to increment will see it as closed
             return CLOSED_COUNT;
           } else if (currVal > 0) {
@@ -168,14 +144,14 @@ class StripedRefCounterImpl implements RefCounter {
 
   @Override
   public void close() {
-    markClosing();
+    // First ensure all counters are marked as closing to stop any new acquire calls
+    setCountersInClosingState();
 
-//    if (!onCloseCompleted.get()) {
+    // At this point, no new acquire calls are possible
     final EnvState envState = stateRef.get();
     if (envState == EnvState.CLOSING) {
-      // TODO This will mark as closed, but then throw if it is still in use, which is not
-      //  ideal.  It ought to throw before marking closed if in use.
 
+      // If any counter is negative then there are still release() calls outstanding
       for (int stripe = 0; stripe < stripes; stripe++) {
         final StripeState stripeState = stripeStates[stripe];
         final int count = stripeState.counter.get();
@@ -191,67 +167,6 @@ class StripedRefCounterImpl implements RefCounter {
     }
   }
 
-//  @Override
-//  public void close(long duration, TimeUnit timeUnit) {
-//    markClosing();
-//
-////    if (!onCloseCompleted.get()) {
-//    final EnvState envState = stateRef.get();
-//    if (envState == EnvState.CLOSING) {
-//      Duration totalWaitTime = Duration.ZERO;
-//      // Now wait for all active threads to finish
-//      for (int stripe = 0; stripe < stripes; stripe++) {
-//        final Instant stripeStartTime = Instant.now();
-//        final StripeState stripeState = stripeStates[stripe];
-//        final AtomicInteger counter = stripeState.counter;
-//        final CountDownLatch latch = stripeState.countDownLatch;
-//
-//        // By this point all counters will be negative, so we need to wait for them ALL to reach 0,
-//        // except the ones with the magic value of CLOSED_COUNT
-//
-//        int count = counter.get();
-//        if (count < 0 && count != CLOSED_COUNT) {
-//          // Non-zero count so we must wait for it to hit 0
-////          System.out.printf("%s - Waiting for closure, stripe: %s, count: %d, latch: %s%n",
-////              Thread.currentThread(), stripe, count, latch.getCount());
-//          try {
-//            // Release will count down when it hits zero
-//            final long latchCount = latch.getCount();
-//            Instant now = Instant.now();
-//            final boolean didCountDown = latch.await(duration, timeUnit);
-//            if (!didCountDown) {
-//              throw new Env.EnvInUseException();
-//            }
-//            count = counter.get();
-//            if (counter.get() != 0) {
-//              throw new IllegalStateException("count " + count
-//                  + " should be zero at this point, latchCount: " + latchCount + ", new latchCount: " + latch.getCount()
-//                  + ", waited: " + Duration.between(now, Instant.now()));
-//            }
-//          } catch (InterruptedException e) {
-//            Thread.currentThread().interrupt();
-//            // Swallow
-//          }
-//        } else if (count > 0) {
-//          throw new IllegalStateException("count " + count + " should not positive");
-//        }
-//
-//        totalWaitTime = totalWaitTime.plus(Duration.between(stripeStartTime, Instant.now()));
-//      }
-////      System.out.printf("%s - Wait complete, waited %s, count: %s%n",
-////          Thread.currentThread(), totalWaitTime, getTotalCount());
-//
-//      // All counters returned to zero
-//      onClose.run();
-//      stateRef.set(EnvState.CLOSED);
-//      onCloseCompleted.set(true);
-////      System.out.printf("%s - onClose completed, waited %s, count: %s%n",
-////          Thread.currentThread(), totalWaitTime, getTotalCount());
-//    } else if (envState == EnvState.OPEN) {
-//      throw new IllegalStateException("EnvState should not be OPEN at this point");
-//    }
-//  }
-
   private int getStripeIdx() {
     // TODO In >= Java19, getId() is deprecated, so change to .threadId()
     final long idx = Thread.currentThread().getId() % stripes;
@@ -260,13 +175,9 @@ class StripedRefCounterImpl implements RefCounter {
 
   @Override
   public boolean isClosed() {
-    // TODO May need a three state approach, i.e.
-    //  OPEN - Open and ready for use.
-    //  CLOSING - Not yet closed, but
-    //  CLOSED -
     // close() has been called, but it may not be fully closed yet, i.e. the close
     // action may not have run/finished.
-//    return closeCalled.get();
+    // TODO should it return ==CLOSED or !=OPEN ?
     return stateRef.get() == EnvState.CLOSED;
   }
 
@@ -277,7 +188,7 @@ class StripedRefCounterImpl implements RefCounter {
 
   @Override
   public void checkNotClosed() {
-//    if (closeCalled.get()) {
+    // TODO should it return ==CLOSED or !=OPEN ?
     if (stateRef.get() !=  EnvState.OPEN) {
       throw new Env.AlreadyClosedException();
     }
@@ -302,12 +213,10 @@ class StripedRefCounterImpl implements RefCounter {
     /**
      * One latch per stripe. Each will start with a value of 1
      */
-//    private final CountDownLatch countDownLatch;
 
     private StripeState(final int index) {
       this.index = index;
       this.counter = new AtomicInteger(0);
-//      this.countDownLatch = new CountDownLatch(1);
     }
 
     int getIndex() {
@@ -318,39 +227,14 @@ class StripedRefCounterImpl implements RefCounter {
       return counter;
     }
 
-//    CountDownLatch getCountDownLatch() {
-//      return countDownLatch;
-//    }
-
     @Override
     public String toString() {
       return "Stripe{" +
           "index=" + index +
           ", counter=" + counter +
-//          ", countDownLatch=" + countDownLatch +
           '}';
     }
   }
-
-//  private <T> T doWithOptionalLocking(final Supplier<T> supplier) {
-//    final State state = stateRef.get();
-//    if (state == State.CLOSED) {
-//      throw new Env.AlreadyClosedException();
-//    } else if (state == State.OPEN) {
-//      return supplier.get();
-//    } else {
-//      synchronized (this) {
-//        final State state2 = stateRef.get();
-//        if (state2 == State.CLOSED) {
-//          throw new Env.AlreadyClosedException();
-//        } else if (state2 == State.OPEN) {
-//          return supplier.get();
-//        } else {
-//          throw new IllegalStateException("Should not be in a sate of CLOSING with the lock held");
-//        }
-//      }
-//    }
-//  }
 
   private static class RefCounterReleaserImpl implements RefCounterReleaser {
 
