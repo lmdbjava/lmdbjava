@@ -44,8 +44,13 @@ public final class Txn<T> implements AutoCloseable {
   private final boolean readOnly;
   private final Env<T> env;
   private State state;
+  private RefCounter.RefCounterReleaser refCounterReleaser;
 
-  Txn(final Env<T> env, final Txn<T> parent, final BufferProxy<T> proxy, final TxnFlagSet flags) {
+  Txn(final Env<T> env,
+      final Txn<T> parent,
+      final BufferProxy<T> proxy,
+      final TxnFlagSet flags) {
+
     if (SHOULD_CHECK) {
       Objects.requireNonNull(flags);
     }
@@ -66,6 +71,8 @@ public final class Txn<T> implements AutoCloseable {
     ptr = txnPtr.getPointer(0);
 
     state = READY;
+    System.out.println("Acquiring for txn");
+    this.refCounterReleaser = env.acquire();
   }
 
   /** Aborts this transaction. */
@@ -97,6 +104,9 @@ public final class Txn<T> implements AutoCloseable {
     }
     keyVal.close();
     state = RELEASED;
+
+    System.out.println("Closing Txn");
+    release();
   }
 
   /** Commits this transaction. */
@@ -137,6 +147,15 @@ public final class Txn<T> implements AutoCloseable {
    */
   public boolean isReadOnly() {
     return readOnly;
+  }
+
+  /**
+   * Whether this transaction is writable (i.e. not read-only).
+   *
+   * @return if writable
+   */
+  public boolean isWritable() {
+    return !readOnly;
   }
 
   /**
@@ -204,6 +223,10 @@ public final class Txn<T> implements AutoCloseable {
     }
   }
 
+  boolean isReady() {
+    return state == READY;
+  }
+
   void checkWritesAllowed() {
     if (readOnly) {
       throw new ReadWriteRequiredException();
@@ -229,6 +252,11 @@ public final class Txn<T> implements AutoCloseable {
 
   Pointer pointer() {
     return ptr;
+  }
+
+  void release() {
+    System.out.printf("%s - Txn.release() called%n", Thread.currentThread());
+    refCounterReleaser.release();
   }
 
   /** Transaction must abort, has a child, or is invalid. */

@@ -30,6 +30,7 @@ import static org.lmdbjava.SeekOp.MDB_LAST;
 import static org.lmdbjava.SeekOp.MDB_NEXT;
 import static org.lmdbjava.SeekOp.MDB_PREV;
 
+import java.util.concurrent.atomic.AtomicBoolean;
 import jnr.ffi.Pointer;
 import jnr.ffi.byref.NativeLongByReference;
 
@@ -40,19 +41,27 @@ import jnr.ffi.byref.NativeLongByReference;
  */
 public final class Cursor<T> implements AutoCloseable {
 
-  private boolean closed;
+  private AtomicBoolean closed;
   private final KeyVal<T> kv;
   private final Pointer ptrCursor;
   private Txn<T> txn;
   private final Env<T> env;
+  private final RefCounter.RefCounterReleaser refCounterReleaser;
 
-  Cursor(final Pointer ptr, final Txn<T> txn, final Env<T> env) {
+  Cursor(final Pointer ptr,
+         final Txn<T> txn,
+         final Env<T> env) {
     requireNonNull(ptr);
     requireNonNull(txn);
+    requireNonNull(env);
     this.ptrCursor = ptr;
     this.txn = txn;
+    // The env needs to track open cursors to prevent env closure before the cursors are closed
+    System.out.println("Acquiring for cursor");
+    this.refCounterReleaser = env.acquire();
     this.kv = txn.newKeyVal();
     this.env = env;
+    this.closed = new AtomicBoolean(false);
   }
 
   /**
@@ -63,18 +72,20 @@ public final class Cursor<T> implements AutoCloseable {
    */
   @Override
   public void close() {
-    if (closed) {
-      return;
-    }
-    kv.close();
-    if (SHOULD_CHECK) {
-      env.checkNotClosed();
-      if (!txn.isReadOnly()) {
-        txn.checkReady();
+    if (closed.compareAndSet(false, true)) {
+      kv.close();
+      if (SHOULD_CHECK) {
+        env.checkNotClosed();
       }
+      // Cannot close the mdb_cursor if the txn is writable and not in a ready state
+      if (txn.isReadOnly() || txn.isReady()) {
+        LIB.mdb_cursor_close(ptrCursor);
+      }
+      System.out.println("Closing cursor");
+      refCounterReleaser.release();
+    } else {
+      System.out.println("Already closed");
     }
-    LIB.mdb_cursor_close(ptrCursor);
-    closed = true;
   }
 
   /**
@@ -518,7 +529,7 @@ public final class Cursor<T> implements AutoCloseable {
   }
 
   private void checkNotClosed() {
-    if (closed) {
+    if (closed.get()) {
       throw new ClosedException();
     }
   }

@@ -44,9 +44,9 @@ import java.util.function.Consumer;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.lmdbjava.Cursor.ClosedException;
-import org.lmdbjava.Env.AlreadyClosedException;
 import org.lmdbjava.Txn.NotReadyException;
 import org.lmdbjava.Txn.ReadOnlyRequiredException;
 
@@ -100,7 +100,7 @@ public final class CursorTest {
             () -> {
               doEnvClosedTest(null, c -> c.seek(MDB_FIRST));
             })
-        .isInstanceOf(AlreadyClosedException.class);
+        .isInstanceOf(Env.EnvInUseException.class);
   }
 
   @Test
@@ -109,7 +109,7 @@ public final class CursorTest {
             () -> {
               doEnvClosedTest(null, c -> c.seek(MDB_LAST));
             })
-        .isInstanceOf(AlreadyClosedException.class);
+        .isInstanceOf(Env.EnvInUseException.class);
   }
 
   @Test
@@ -118,7 +118,7 @@ public final class CursorTest {
             () -> {
               doEnvClosedTest(null, c -> c.seek(MDB_NEXT));
             })
-        .isInstanceOf(AlreadyClosedException.class);
+        .isInstanceOf(Env.EnvInUseException.class);
   }
 
   @Test
@@ -127,7 +127,7 @@ public final class CursorTest {
             () -> {
               doEnvClosedTest(null, Cursor::close);
             })
-        .isInstanceOf(AlreadyClosedException.class);
+        .isInstanceOf(Env.EnvInUseException.class);
   }
 
   @Test
@@ -136,7 +136,7 @@ public final class CursorTest {
             () -> {
               doEnvClosedTest(null, Cursor::first);
             })
-        .isInstanceOf(AlreadyClosedException.class);
+        .isInstanceOf(Env.EnvInUseException.class);
   }
 
   @Test
@@ -145,7 +145,7 @@ public final class CursorTest {
             () -> {
               doEnvClosedTest(null, Cursor::last);
             })
-        .isInstanceOf(AlreadyClosedException.class);
+        .isInstanceOf(Env.EnvInUseException.class);
   }
 
   @Test
@@ -161,7 +161,7 @@ public final class CursorTest {
                   },
                   Cursor::prev);
             })
-        .isInstanceOf(AlreadyClosedException.class);
+        .isInstanceOf(Env.EnvInUseException.class);
   }
 
   @Test
@@ -176,7 +176,7 @@ public final class CursorTest {
                   },
                   Cursor::delete);
             })
-        .isInstanceOf(AlreadyClosedException.class);
+        .isInstanceOf(Env.EnvInUseException.class);
   }
 
   @Test
@@ -224,6 +224,7 @@ public final class CursorTest {
     }
   }
 
+  @Disabled // close() method changed to only do the mdb_cursor_close call if in the right txn state
   @Test
   void cursorCannotCloseIfTransactionCommitted() {
     assertThatThrownBy(
