@@ -22,19 +22,19 @@ public class RefCounterTest {
 
   @Test
   public void perfTest() {
-    IntStream.of(1, 2, 5, 10, 12, 14, 16, 18, 20, 22, threadCount, threadCount * 2, threadCount * 4)
-        .forEach(this::runTest);
+    // Do multiple rounds to let it warm up
+    for (int i = 1; i <= 3; i++) {
+      System.out.println("Round: " + i);
+      IntStream.of(1, 2, 5, 10, 12, 14, 16, 18, 20, 22, threadCount, threadCount * 2, threadCount * 4)
+          .forEach(this::runTest);
+    }
   }
 
   @Test
   public void noOpRefCounter() {
-    System.setProperty(Env.DISABLE_CHECKS_PROP, "true");
-    try {
-      for (int i = 0; i < 20; i++) {
-        doNoOpRefCounter();
-      }
-    } finally {
-      System.clearProperty(Env.DISABLE_CHECKS_PROP);
+    // Do multiple rounds to let it warm up
+    for (int i = 0; i < 20; i++) {
+      doNoOpRefCounter();
     }
   }
 
