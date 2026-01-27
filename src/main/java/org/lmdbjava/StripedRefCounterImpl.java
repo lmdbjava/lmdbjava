@@ -9,6 +9,9 @@ import java.util.concurrent.atomic.AtomicReference;
 
 class StripedRefCounterImpl implements RefCounter {
   private static final int CLOSED_COUNT = Integer.MIN_VALUE;
+  // Golden Ratio constant used for better hash scattering
+  // See https://softwareengineering.stackexchange.com/a/402543
+  private static final long GOLDEN_RATIO = 0x9e3779b9L;
 
   /**
    * Number of stripes used to improve the concurrency
@@ -169,7 +172,7 @@ class StripedRefCounterImpl implements RefCounter {
 
   private int getStripeIdx() {
     // TODO In >= Java19, getId() is deprecated, so change to .threadId()
-    final long idx = Thread.currentThread().getId() % stripes;
+    final long idx = (Thread.currentThread().getId() * GOLDEN_RATIO) % stripes;
     return (int) idx;
   }
 
