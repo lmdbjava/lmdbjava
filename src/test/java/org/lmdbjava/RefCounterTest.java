@@ -26,6 +26,63 @@ public class RefCounterTest {
         .forEach(this::runTest);
   }
 
+  @Test
+  public void noOpRefCounter() {
+    System.setProperty(Env.DISABLE_CHECKS_PROP, "true");
+    try {
+      for (int i = 0; i < 20; i++) {
+        doNoOpRefCounter();
+      }
+    } finally {
+      System.clearProperty(Env.DISABLE_CHECKS_PROP);
+    }
+  }
+
+  private void doNoOpRefCounter() {
+//    System.out.println("Running test for " + stripes + " stripes");
+
+    final AtomicReference<Instant> startTime = new AtomicReference<>(null);
+    final CompletableFuture<?>[] futures = new CompletableFuture[threadCount];
+    final NoOpRefCounter refCounter = new NoOpRefCounter(this::onClose);
+    final CountDownLatch startLatch = new CountDownLatch(threadCount);
+    final ExecutorService executorService = Executors.newFixedThreadPool(threadCount);
+    for (int i = 0; i < threadCount; i++) {
+      futures[i] = CompletableFuture.runAsync(() -> {
+        // Wait for all threads to be ready
+        countDownThenAwait(startLatch);
+
+        // Capture the start time
+        startTime.updateAndGet(currVal -> {
+          if (currVal == null) {
+            return Instant.now();
+          } else {
+            return currVal;
+          }
+        });
+
+        for (int j = 0; j < iterations; j++) {
+          final RefCounter.RefCounterReleaser releaser = refCounter.acquire();
+          try {
+            // Make sure we have an env that is not 'closed'
+            Objects.requireNonNull(env);
+          } finally {
+            releaser.release();
+          }
+        }
+//        System.out.println(Thread.currentThread() + " - Done");
+      }, executorService);
+    }
+    CompletableFuture.allOf(futures).join();
+
+    final Duration duration = Duration.between(startTime.get(), Instant.now());
+    final double iterationsPerSec = (double) iterations / duration.toMillis() * 1000;
+
+    System.out.println("All Finished"
+        + ", threads: " + threadCount
+        + ", duration: " + duration
+        + ", iterationsPerSec: " + iterationsPerSec);
+  }
+
   private void runTest(final int stripes) {
 //    System.out.println("Running test for " + stripes + " stripes");
 

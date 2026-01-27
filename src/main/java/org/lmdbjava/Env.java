@@ -103,7 +103,7 @@ public final class Env<T> implements AutoCloseable {
         this.refCounter = new StripedRefCounterImpl(this::closeMdbEnv);
       }
     } else {
-      this.refCounter = new NoOpRefCounter();
+      this.refCounter = new NoOpRefCounter(this::closeMdbEnv);
     }
   }
 
