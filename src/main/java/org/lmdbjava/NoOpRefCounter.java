@@ -18,11 +18,6 @@ public class NoOpRefCounter implements RefCounter {
     // no-op
   }
 
-//  @Override
-//  public void close(long duration, TimeUnit timeUnit) {
-//    // no-op
-//  }
-
   @Override
   public boolean isClosed() {
     return false;
@@ -35,6 +30,11 @@ public class NoOpRefCounter implements RefCounter {
 
   @Override
   public void checkNotClosed() {
+    // no-op
+  }
+
+  @Override
+  public void checkOpen() {
     // no-op
   }
 }

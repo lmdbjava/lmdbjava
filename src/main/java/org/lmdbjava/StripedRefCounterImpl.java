@@ -175,9 +175,6 @@ class StripedRefCounterImpl implements RefCounter {
 
   @Override
   public boolean isClosed() {
-    // close() has been called, but it may not be fully closed yet, i.e. the close
-    // action may not have run/finished.
-    // TODO should it return ==CLOSED or !=OPEN ?
     return stateRef.get() == EnvState.CLOSED;
   }
 
@@ -189,7 +186,14 @@ class StripedRefCounterImpl implements RefCounter {
   @Override
   public void checkNotClosed() {
     // TODO should it return ==CLOSED or !=OPEN ?
-    if (stateRef.get() !=  EnvState.OPEN) {
+    if (stateRef.get() == EnvState.CLOSED) {
+      throw new Env.AlreadyClosedException();
+    }
+  }
+
+  @Override
+  public void checkOpen() {
+    if (stateRef.get() != EnvState.OPEN) {
       throw new Env.AlreadyClosedException();
     }
   }

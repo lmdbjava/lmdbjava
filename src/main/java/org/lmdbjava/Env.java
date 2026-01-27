@@ -598,6 +598,10 @@ public final class Env<T> implements AutoCloseable {
     refCounter.checkNotClosed();
   }
 
+  void checkOpen() {
+    refCounter.checkOpen();
+  }
+
   private void validateDirectoryEmpty(final Path path) {
     if (!Files.exists(path)) {
       throw new InvalidCopyDestination("Path does not exist");

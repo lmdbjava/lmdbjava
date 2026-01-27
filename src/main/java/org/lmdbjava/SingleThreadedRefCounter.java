@@ -6,8 +6,6 @@ import java.util.Objects;
 public class SingleThreadedRefCounter implements RefCounter {
 
   private final Runnable onClose;
-  private boolean closeCalled = false;
-  private boolean onCloseCompleted = false;
   private int refCount;
   private EnvState envState;
 
@@ -43,23 +41,19 @@ public class SingleThreadedRefCounter implements RefCounter {
 
   @Override
   public void close() {
-    envState = EnvState.CLOSING;
-//    closeCalled = true;
+    if (envState ==  EnvState.OPEN) {
+      envState = EnvState.CLOSING;
+    }
+
     if (refCount > 0) {
       throw new Env.EnvInUseException();
     }
-//    if (!onCloseCompleted) {
+
     if (envState == EnvState.CLOSING) {
       onClose.run();
       envState = EnvState.CLOSED;
-//      onCloseCompleted = true;
     }
   }
-
-//  @Override
-//  public void close(long duration, TimeUnit timeUnit) {
-//    throw new UnsupportedOperationException("Method not supported for single threaded use.");
-//  }
 
   @Override
   public boolean isClosed() {
@@ -73,6 +67,13 @@ public class SingleThreadedRefCounter implements RefCounter {
 
   @Override
   public void checkNotClosed() {
+    if (envState == EnvState.CLOSED) {
+      throw new Env.AlreadyClosedException();
+    }
+  }
+
+  @Override
+  public void checkOpen() {
     if (envState != EnvState.OPEN) {
       throw new Env.AlreadyClosedException();
     }
