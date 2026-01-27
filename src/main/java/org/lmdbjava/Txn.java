@@ -65,14 +65,20 @@ public final class Txn<T> implements AutoCloseable {
     if (parent != null && parent.isReadOnly() != this.readOnly) {
       throw new IncompatibleParent();
     }
-    final Pointer txnPtr = allocateDirect(RUNTIME, ADDRESS);
-    final Pointer txnParentPtr = parent == null ? null : parent.ptr;
-    checkRc(LIB.mdb_txn_begin(env.pointer(), txnParentPtr, flags.getMask(), txnPtr));
-    ptr = txnPtr.getPointer(0);
 
-    state = READY;
     System.out.println("Acquiring for txn");
     this.refCounterReleaser = env.acquire();
+    try {
+      final Pointer txnPtr = allocateDirect(RUNTIME, ADDRESS);
+      final Pointer txnParentPtr = parent == null ? null : parent.ptr;
+      checkRc(LIB.mdb_txn_begin(env.pointer(), txnParentPtr, flags.getMask(), txnPtr));
+      ptr = txnPtr.getPointer(0);
+
+      state = READY;
+    } catch (final Exception e) {
+      this.refCounterReleaser.release();
+      throw e;
+    }
   }
 
   /** Aborts this transaction. */

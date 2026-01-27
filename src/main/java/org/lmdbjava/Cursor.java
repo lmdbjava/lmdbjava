@@ -59,9 +59,15 @@ public final class Cursor<T> implements AutoCloseable {
     // The env needs to track open cursors to prevent env closure before the cursors are closed
     System.out.println("Acquiring for cursor");
     this.refCounterReleaser = env.acquire();
-    this.kv = txn.newKeyVal();
     this.env = env;
     this.closed = new AtomicBoolean(false);
+    try {
+      this.kv = txn.newKeyVal();
+    } catch (final Exception e) {
+      this.refCounterReleaser.release();
+      closed.set(false);
+      throw e;
+    }
   }
 
   /**
