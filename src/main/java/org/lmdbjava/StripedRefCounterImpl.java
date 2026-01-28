@@ -18,6 +18,7 @@ class StripedRefCounterImpl implements RefCounter {
    */
   private final int stripes;
   private final StripeState[] stripeStates;
+  private final AtomicBitSet closedStripesBitSet;
   /**
    * Flag to indicate if {@link RefCounter#close()} has been called.
    * Once set, it means that all subsequent {@link RefCounter#acquire()} will throw.
@@ -37,7 +38,8 @@ class StripedRefCounterImpl implements RefCounter {
     }
     this.stripeStates = new StripeState[stripes];
     this.onClose = requireNonNull(onClose);
-    this.stateRef =  new AtomicReference<>(EnvState.OPEN);
+    this.stateRef = new AtomicReference<>(EnvState.OPEN);
+    this.closedStripesBitSet = new AtomicBitSet(stripes);
     for (int stripeIdx = 0; stripeIdx < stripes; stripeIdx++) {
       stripeStates[stripeIdx] = new StripeState(stripeIdx);
     }
@@ -72,7 +74,7 @@ class StripedRefCounterImpl implements RefCounter {
     });
 
     if (newCount < 0) {
-        throw new Env.AlreadyClosedException();
+      throw new Env.AlreadyClosedException();
     }
     // Return the releaser than knows which stripe to release back to
     return new RefCounterReleaserImpl(this, stripeState);
@@ -91,7 +93,7 @@ class StripedRefCounterImpl implements RefCounter {
   }
 
   private void release(final StripeState stripeState) {
-    stripeState.counter.updateAndGet(currVal -> {
+    final int count = stripeState.counter.updateAndGet(currVal -> {
       int newVal;
       if (currVal > 0) {
         // Positive count, so in an open state, therefore -1 back down towards zero
@@ -116,16 +118,33 @@ class StripedRefCounterImpl implements RefCounter {
       }
       return newVal;
     });
+
+//    if (count == CLOSED_COUNT) {
+//      markStripeAsClosed(stripeState);
+//    }
   }
 
-  private void setCountersInClosingState() {
+  private void markStripeAsClosed(final StripeState stripeState) {
+    // Mark this stripe as closed
+    final int idx = stripeState.index;
+    final long prevVal = closedStripesBitSet.getAndSet(idx);
+    final boolean didChange = !closedStripesBitSet.isSet(prevVal, idx);
+    if (didChange) {
+      if (closedStripesBitSet.countUnSet(prevVal) == 1) {
+        // We closed the last one
+      }
+    }
+  }
+
+  private boolean setCountersInClosingState() {
     // Only want to do this once
-    if (stateRef.compareAndSet(EnvState.OPEN, EnvState.CLOSING)) {
+    final boolean didChange = stateRef.compareAndSet(EnvState.OPEN, EnvState.CLOSING);
+    if (didChange) {
 //      System.out.println("close() called");
       // Place each stripe into a closed state
       for (int stripe = 0; stripe < stripes; stripe++) {
         final StripeState stripeState = stripeStates[stripe];
-        stripeState.counter.updateAndGet(currVal -> {
+        final int count = stripeState.counter.updateAndGet(currVal -> {
           if (currVal == 0) {
             // Count is already at zero so there will be nothing to wait for.
             // Ensures any thread that tries to increment will see it as closed
@@ -141,32 +160,40 @@ class StripedRefCounterImpl implements RefCounter {
             throw new IllegalStateException("currVal should not be zero on close()");
           }
         });
+
+//        if (count == CLOSED_COUNT) {
+//          markStripeAsClosed(stripeState);
+//        }
       }
     }
+    return didChange;
   }
 
   @Override
   public void close() {
     // First ensure all counters are marked as closing to stop any new acquire calls
-    setCountersInClosingState();
+    final boolean didChange = setCountersInClosingState();
 
     // At this point, no new acquire calls are possible
-    final EnvState envState = stateRef.get();
-    if (envState == EnvState.CLOSING) {
+    if (didChange) {
+//      closedStripesArray.
 
       // If any counter is negative then there are still release() calls outstanding
       for (int stripe = 0; stripe < stripes; stripe++) {
         final StripeState stripeState = stripeStates[stripe];
         final int count = stripeState.counter.get();
         if (count < 0 && count != CLOSED_COUNT) {
-          throw new Env.EnvInUseException(getTotalCount());
+          throw new Env.EnvInUseException(getCount());
         }
       }
 
       onClose.run();
       stateRef.set(EnvState.CLOSED);
-    } else if (envState == EnvState.OPEN) {
-      throw new IllegalStateException("EnvState should not be OPEN at this point");
+    } else {
+      final EnvState envState = stateRef.get();
+      if (envState == EnvState.OPEN) {
+        throw new IllegalStateException("EnvState should not be OPEN at this point");
+      }
     }
   }
 
@@ -204,7 +231,8 @@ class StripedRefCounterImpl implements RefCounter {
   /**
    * @return The total number of active users. Not atomic.
    */
-  int getTotalCount() {
+  @Override
+  public int getCount() {
     return Arrays.stream(stripeStates)
         .map(StripeState::getCounter)
         .mapToInt(AtomicInteger::get)
@@ -217,6 +245,7 @@ class StripedRefCounterImpl implements RefCounter {
 
     private final int index;
     private final AtomicInteger counter;
+
     /**
      * One latch per stripe. Each will start with a value of 1
      */
@@ -259,8 +288,9 @@ class StripedRefCounterImpl implements RefCounter {
       // Prevent duplicate release calls
       final StripedRefCounterImpl refCounter = refCounterRef.getAndSet(null);
       if (refCounter != null) {
-          refCounter.release(stripeState);
+        refCounter.release(stripeState);
       }
     }
   }
+
 }

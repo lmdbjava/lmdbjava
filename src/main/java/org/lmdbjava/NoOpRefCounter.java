@@ -45,4 +45,9 @@ public class NoOpRefCounter implements RefCounter {
   public void checkOpen() {
     // no-op
   }
+
+  @Override
+  public int getCount() {
+    return 0;
+  }
 }

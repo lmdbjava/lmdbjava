@@ -79,6 +79,11 @@ public class SingleThreadedRefCounter implements RefCounter {
     }
   }
 
+  @Override
+  public int getCount() {
+    return refCount;
+  }
+
   private static class SingleThreadedReleaser implements RefCounterReleaser {
 
     private final SingleThreadedRefCounter singleThreadedRefCounter;

@@ -1,6 +1,8 @@
 package org.lmdbjava;
 
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
@@ -24,9 +26,14 @@ public class RefCounterTest {
   public void perfTest() {
     // Do multiple rounds to let it warm up
     for (int i = 1; i <= 3; i++) {
-      System.out.println("Round: " + i);
-      IntStream.of(1, 2, 5, 10, 12, 14, 16, 18, 20, 22, threadCount, threadCount * 2, threadCount * 4)
-          .forEach(this::runTest);
+      System.out.println("Round: " + i + " StripedRefCounterImpl");
+
+      IntStream.of(1, 2, 4, 8, threadCount, threadCount * 2)
+          .forEach(stripes -> runTest(stripes, new StripedRefCounterImpl(stripes, this::onClose)));
+
+      System.out.println("Round: " + i + " StripedCounter");
+      IntStream.of(1, 2, 4, 8, threadCount, threadCount * 2)
+          .forEach(stripes -> runTest(stripes, new StampedLockRefCounterImpl(stripes)));
     }
   }
 
@@ -83,12 +90,12 @@ public class RefCounterTest {
         + ", iterationsPerSec: " + iterationsPerSec);
   }
 
-  private void runTest(final int stripes) {
+  private void runTest(int stripes, final RefCounter refCounter) {
 //    System.out.println("Running test for " + stripes + " stripes");
 
     final AtomicReference<Instant> startTime = new AtomicReference<>(null);
     final CompletableFuture<?>[] futures = new CompletableFuture[threadCount];
-    final StripedRefCounterImpl refCounter = new StripedRefCounterImpl(stripes, this::onClose);
+//    final RefCounter refCounter = new StripedRefCounterImpl(stripes, this::onClose);
     final CountDownLatch startLatch = new CountDownLatch(threadCount);
     final ExecutorService executorService = Executors.newFixedThreadPool(threadCount);
     for (int i = 0; i < threadCount; i++) {
@@ -119,8 +126,8 @@ public class RefCounterTest {
     }
     CompletableFuture.allOf(futures).join();
 
-    if (refCounter.getTotalCount() != 0) {
-      throw new IllegalStateException("Ref count is " + refCounter.getTotalCount());
+    if (refCounter.getCount() != 0) {
+      throw new IllegalStateException("Ref count is " + refCounter.getCount());
     }
 
     final Duration duration = Duration.between(startTime.get(), Instant.now());
@@ -203,8 +210,8 @@ public class RefCounterTest {
 
       System.out.println("Acquire call count: " + Arrays.stream(counts).sum());
 
-      if (refCounter.getTotalCount() != 0) {
-        throw new IllegalStateException("Ref count is " + refCounter.getTotalCount());
+      if (refCounter.getCount() != 0) {
+        throw new IllegalStateException("Ref count is " + refCounter.getCount());
       }
 
       if (!refCounter.isClosed()) {
@@ -228,5 +235,97 @@ public class RefCounterTest {
     env = null;
     System.out.println(Thread.currentThread() + " - Finishing onClose runnable");
   }
+
+  @Test
+  void testBits() {
+    long val = 0;
+    val = val | (1L << 0);
+    val = val | (1L << 3);
+    val = val | (1L << 63);
+
+    System.out.println("val: " + val + ", bits: " + Long.toBinaryString(val));
+
+    for (int i = 0; i < 64; i++) {
+      System.out.println("i: " + i + ", bit: " + getBit(val, i));
+    }
+  }
+
+  @Test
+  void testAtomicBitSet() {
+    final int size = 16;
+    final AtomicBitSet bitSet = new AtomicBitSet(16);
+
+    assertThat(bitSet.isSet(3))
+        .isEqualTo(false);
+    assertThat(bitSet.countSet())
+        .isEqualTo(0);
+    assertThat(bitSet.flip(3))
+        .isEqualTo(true);
+    assertThat(bitSet.countSet())
+        .isEqualTo(1);
+    assertThat(bitSet.flip(3))
+        .isEqualTo(false);
+    assertThat(bitSet.countSet())
+        .isEqualTo(0);
+
+    bitSet.setAndGet(3);
+    bitSet.setAndGet(10);
+    assertThat(bitSet.countSet())
+        .isEqualTo(2);
+    bitSet.setAndGet(10);
+    assertThat(bitSet.countSet())
+        .isEqualTo(2);
+    bitSet.unset(10);
+    assertThat(bitSet.countSet())
+        .isEqualTo(1);
+    bitSet.unset(10);
+    assertThat(bitSet.countSet())
+        .isEqualTo(1);
+
+    bitSet.unSetAll();
+    assertThat(bitSet.countSet())
+        .isEqualTo(0);
+
+    System.out.println("val: " + bitSet.asLong() + ", bits: " + bitSet);
+    for (int i = 0; i < size; i++) {
+      bitSet.setAndGet(i);
+    }
+    System.out.println("val: " + bitSet.asLong() + ", bits: " + bitSet);
+
+    bitSet.setAll();
+    assertThat(bitSet.countSet())
+        .isEqualTo(size);
+    System.out.println("val: " + bitSet.asLong() + ", bits: " + bitSet);
+
+    bitSet.unSetAll();
+    long asLong = bitSet.asLong();
+    assertThat(bitSet.getAndSet(5))
+        .isEqualTo(asLong);
+    assertThat(bitSet.getAndSet(5))
+        .isNotEqualTo(asLong);
+
+    bitSet.unSetAll();
+    assertThat(bitSet.countSet())
+        .isEqualTo(0);
+    assertThat(bitSet.countUnSet())
+        .isEqualTo(size);
+
+    bitSet.unSetAll();
+    bitSet.setAndGet(3);
+    bitSet.setAndGet(10);
+    assertThat(bitSet.countSet())
+        .isEqualTo(2);
+    assertThat(bitSet.countUnSet())
+        .isEqualTo(size - 2);
+  }
+
+  private String longAsBits(long val) {
+    return Long.toBinaryString(val);
+  }
+
+  private long getBit(final long val, final long idx) {
+    return (val >> idx) & 1;
+  }
+
 
 }

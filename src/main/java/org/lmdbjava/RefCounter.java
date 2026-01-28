@@ -43,6 +43,8 @@ interface RefCounter {
    */
   void checkOpen();
 
+  int getCount();
+
   @FunctionalInterface
   interface RefCounterReleaser {
 
