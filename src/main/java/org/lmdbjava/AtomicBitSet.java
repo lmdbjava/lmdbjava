@@ -3,6 +3,9 @@ package org.lmdbjava;
 
 import java.util.concurrent.atomic.AtomicLong;
 
+/**
+ * A bit set that can be mutated
+ */
 public class AtomicBitSet {
   private static final int MAX_SIZE = (Long.BYTES * 8);
 

@@ -19,6 +19,7 @@ public class SingleThreadedRefCounter implements RefCounter {
     if (envState != EnvState.OPEN) {
       throw new Env.AlreadyClosedException();
     }
+    refCount++;
     return new SingleThreadedReleaser(this);
   }
 

@@ -26,14 +26,19 @@ public class RefCounterTest {
   public void perfTest() {
     // Do multiple rounds to let it warm up
     for (int i = 1; i <= 3; i++) {
-      System.out.println("Round: " + i + " StripedRefCounterImpl");
-
-      IntStream.of(1, 2, 4, 8, threadCount, threadCount * 2)
+      System.out.println("Round: " + i + " " + StripedRefCounterImpl.class.getSimpleName());
+      IntStream.of(1, 2, 4, 8, 16, 32, 64)
           .forEach(stripes -> runTest(stripes, new StripedRefCounterImpl(stripes, this::onClose)));
 
-      System.out.println("Round: " + i + " StripedCounter");
-      IntStream.of(1, 2, 4, 8, threadCount, threadCount * 2)
+      System.out.println("Round: " + i + " " + StampedLockRefCounterImpl.class.getSimpleName());
+      IntStream.of(1, 2, 4, 8, 16, 32, 64, 128)
           .forEach(stripes -> runTest(stripes, new StampedLockRefCounterImpl(stripes)));
+
+      System.out.println("Round: " + i + " " + SimpleRefCounterImpl.class.getSimpleName());
+      runTest(0, new SimpleRefCounterImpl());
+
+      System.out.println("Round: " + i + " " + SingleThreadedRefCounter.class.getSimpleName());
+      runTest(0, 1, new SingleThreadedRefCounter(this::onClose));
     }
   }
 
@@ -91,6 +96,10 @@ public class RefCounterTest {
   }
 
   private void runTest(int stripes, final RefCounter refCounter) {
+    runTest(stripes, threadCount, refCounter);
+  }
+
+  private void runTest(int stripes, final int threadCount, final RefCounter refCounter) {
 //    System.out.println("Running test for " + stripes + " stripes");
 
     final AtomicReference<Instant> startTime = new AtomicReference<>(null);
@@ -154,7 +163,8 @@ public class RefCounterTest {
 
       // Reset the env
       env = new Object();
-      final StripedRefCounterImpl refCounter = new StripedRefCounterImpl(12, this::onClose);
+//      final StripedRefCounterImpl refCounter = new StripedRefCounterImpl(12, this::onClose);
+      final RefCounter refCounter = new StampedLockRefCounterImpl(12);
       final CountDownLatch startLatch = new CountDownLatch(threadCount);
       final CompletableFuture<?>[] futures = new CompletableFuture[threadCount];
       final long[] counts = new long[threadCount];
@@ -198,7 +208,8 @@ public class RefCounterTest {
 
       while (true) {
         try {
-          refCounter.close();
+//          refCounter.close();
+          refCounter.doWhenIdle(this::onClose);
           break;
         } catch (Env.EnvInUseException e) {
           Thread.sleep(100);
@@ -220,6 +231,83 @@ public class RefCounterTest {
     }
   }
 
+  @Test
+  void testGetCount() throws InterruptedException {
+    final Random random = new Random();
+    final int threadCount = this.threadCount - 1;
+    final ExecutorService executorService = Executors.newFixedThreadPool(threadCount);
+    final int rounds = 5;
+    final int iterations = 1_000_000;
+
+    for (int k = 0; k < rounds; k++) {
+      final int round = k;
+      System.out.printf("Round %s ----------------------------------------%n", round);
+
+      // Reset the env
+      env = new Object();
+//      final StripedRefCounterImpl refCounter = new StripedRefCounterImpl(12, this::onClose);
+      final RefCounter refCounter = new StampedLockRefCounterImpl();
+      final CountDownLatch startLatch = new CountDownLatch(threadCount);
+      final CompletableFuture<?>[] futures = new CompletableFuture[threadCount];
+      final long[] counts = new long[threadCount];
+
+      for (int i = 0; i < threadCount; i++) {
+        final int threadIdx = i;
+        futures[threadIdx] = CompletableFuture.runAsync(() -> {
+          // Wait for all threads to be ready
+          countDownThenAwait(startLatch);
+//        System.out.println(Thread.currentThread() + " - Starting");
+
+          for (int j = 0; j < iterations; j++) {
+            final RefCounter.RefCounterReleaser releaser;
+            try {
+              releaser = refCounter.acquire();
+              counts[threadIdx]++;
+            } catch (Env.AlreadyClosedException e) {
+//              System.out.println(Thread.currentThread() + ", round: " + round + ", Env closed, aborting");
+              break;
+            }
+            try {
+              // Make the work between acquire and release take some time
+              Thread.sleep(random.nextInt(1));
+              // env is null after closure
+              Objects.requireNonNull(env, "Attempt to use a null env");
+            } catch (InterruptedException e) {
+              throw new RuntimeException(e);
+            } finally {
+              releaser.release();
+            }
+          }
+//        System.out.println(Thread.currentThread() + " - Done");
+        }, executorService);
+      }
+
+      // Wait for all threads to start using the ref counter
+      startLatch.await();
+
+      // Give the other threads a chance to get underway
+      Thread.sleep(100 + random.nextInt(200));
+
+      for (int i = 0; i < 10; i++) {
+        try {
+//          refCounter.close();
+          System.out.println("count: " + refCounter.getCount());
+        } catch (Env.EnvInUseException e) {
+          Thread.sleep(100 + random.nextInt(1000));
+        }
+      }
+
+      // Wait for all workers to finish
+      CompletableFuture.allOf(futures).join();
+
+      System.out.println("Acquire call count: " + Arrays.stream(counts).sum());
+
+      if (refCounter.getCount() != 0) {
+        throw new IllegalStateException("Ref count is " + refCounter.getCount());
+      }
+    }
+  }
+
   private void countDownThenAwait(final CountDownLatch latch) {
     latch.countDown();
     try {
@@ -234,20 +322,6 @@ public class RefCounterTest {
     System.out.println(Thread.currentThread() + " - Starting onClose runnable");
     env = null;
     System.out.println(Thread.currentThread() + " - Finishing onClose runnable");
-  }
-
-  @Test
-  void testBits() {
-    long val = 0;
-    val = val | (1L << 0);
-    val = val | (1L << 3);
-    val = val | (1L << 63);
-
-    System.out.println("val: " + val + ", bits: " + Long.toBinaryString(val));
-
-    for (int i = 0; i < 64; i++) {
-      System.out.println("i: " + i + ", bit: " + getBit(val, i));
-    }
   }
 
   @Test

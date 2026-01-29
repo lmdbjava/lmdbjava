@@ -26,6 +26,10 @@ interface RefCounter {
    */
   void close();
 
+  default void doWhenIdle(final Runnable runnable) {
+
+  }
+
   /**
    * @return True if {@link RefCounter} is in a state of {@link EnvState#CLOSED}
    */
