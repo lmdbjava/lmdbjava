@@ -1,11 +1,9 @@
 package org.lmdbjava;
 
-
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.StampedLock;
 
 class StripedRefCounter implements RefCounter {
   private static final int MAGIC_ZERO_VALUE = Integer.MIN_VALUE;
@@ -13,7 +11,6 @@ class StripedRefCounter implements RefCounter {
   private static final int DEFAULT_STRIPES = 64;
   private static final int MAX_STRIPES = 256;
 
-  private final StampedLock stampedLock;
   private final AtomicInteger[] counters;
   private final AtomicBoolean isClosed = new AtomicBoolean(false);
   /**
@@ -22,12 +19,11 @@ class StripedRefCounter implements RefCounter {
    */
   private final int stripeMask;
 
-  public StripedRefCounter() {
+  StripedRefCounter() {
     this(DEFAULT_STRIPES);
   }
 
-  public StripedRefCounter(final int stripeCount) {
-    this.stampedLock = new StampedLock();
+  StripedRefCounter(final int stripeCount) {
     validateStripeCount(stripeCount);
     this.stripeMask = stripeCount - 1;
     this.counters = new AtomicInteger[stripeCount];
@@ -169,7 +165,7 @@ class StripedRefCounter implements RefCounter {
     }
   }
 
-  private int validateStripeCount(final int stripeCount) {
+  private void validateStripeCount(final int stripeCount) {
     if (stripeCount <= 0) {
       throw new IllegalArgumentException(
           "Stripe count must be positive, got: " + stripeCount);
@@ -183,7 +179,6 @@ class StripedRefCounter implements RefCounter {
       throw new IllegalArgumentException(
           "Stripe count must be power of 2, got: " + stripeCount);
     }
-    return stripeCount;
   }
 
   /**

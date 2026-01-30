@@ -135,7 +135,9 @@ public final class TxnTest {
     env.createDbi().setDbName(DB_1).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
     try (Env<ByteBuffer> roEnv =
         create().setMaxReaders(1).setEnvFlags(MDB_NOSUBDIR, MDB_RDONLY_ENV).open(file)) {
-      assertThat(roEnv.txnRead()).isNotNull();
+      try (Txn<ByteBuffer> readTxn = roEnv.txnRead()) {
+        assertThat(readTxn).isNotNull();
+      }
     }
   }
 

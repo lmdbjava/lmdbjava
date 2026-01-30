@@ -57,7 +57,6 @@ public final class Cursor<T> implements AutoCloseable {
     this.ptrCursor = ptr;
     this.txn = txn;
     // The env needs to track open cursors to prevent env closure before the cursors are closed
-    System.out.println("Acquiring for cursor");
     this.refCounterReleaser = env.acquire();
     this.env = env;
     this.closed = new AtomicBoolean(false);
@@ -87,10 +86,7 @@ public final class Cursor<T> implements AutoCloseable {
       if (txn.isReadOnly() || txn.isReady()) {
         LIB.mdb_cursor_close(ptrCursor);
       }
-      System.out.println("Closing cursor");
       refCounterReleaser.release();
-    } else {
-      System.out.println("Already closed");
     }
   }
 

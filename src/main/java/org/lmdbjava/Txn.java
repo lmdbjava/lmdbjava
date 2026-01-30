@@ -66,7 +66,6 @@ public final class Txn<T> implements AutoCloseable {
       throw new IncompatibleParent();
     }
 
-    System.out.println("Acquiring for txn");
     this.refCounterReleaser = env.acquire();
     try {
       final Pointer txnPtr = allocateDirect(RUNTIME, ADDRESS);
@@ -111,7 +110,6 @@ public final class Txn<T> implements AutoCloseable {
     keyVal.close();
     state = RELEASED;
 
-    System.out.println("Closing Txn");
     release();
   }
 
@@ -261,7 +259,6 @@ public final class Txn<T> implements AutoCloseable {
   }
 
   void release() {
-    System.out.printf("%s - Txn.release() called%n", Thread.currentThread());
     refCounterReleaser.release();
   }
 

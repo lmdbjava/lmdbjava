@@ -286,6 +286,7 @@ public final class TutorialTest {
     tx2.renew();
     c.seek(MDB_LAST);
 
+    c.close();
     tx2.close();
     env.close();
   }

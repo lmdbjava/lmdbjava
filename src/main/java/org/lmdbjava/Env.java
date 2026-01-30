@@ -154,7 +154,6 @@ public final class Env<T> implements AutoCloseable {
    */
   @Override
   public void close() {
-//    System.out.println("Closing Env");
     refCounter.close(this::closeMdbEnv);
   }
 
@@ -355,6 +354,15 @@ public final class Env<T> implements AutoCloseable {
    */
   public boolean isReadOnly() {
     return readOnly;
+  }
+
+  /**
+   * Indicates if this environment is intended for use by a single thread for its
+   * entire life.
+   * @return True if single-threaded
+   */
+  public boolean isSingleThreaded() {
+    return isSingleThreaded;
   }
 
   /**
@@ -681,7 +689,7 @@ public final class Env<T> implements AutoCloseable {
     }
 
     public EnvInUseException(final int count) {
-      super("Environment has open " + count + " transactions/cursors so cannot be closed.");
+      super("Environment has " + count + " open transaction/cursor(s) so cannot be closed.");
     }
   }
 
@@ -974,7 +982,8 @@ public final class Env<T> implements AutoCloseable {
     }
 
     /**
-     * If set the the {@link Env} will only be used by the same thread for its entire life.
+     * If set, the caller is asserting that the Env will only be used by a single thread
+     * throughout its entire life.
      * This allows the {@link Env} to make minor optimisations that are not thread-safe, e.g.
      * using primitives rather than thread-safe objects.
      * By default, an Env is considered thread-safe.
