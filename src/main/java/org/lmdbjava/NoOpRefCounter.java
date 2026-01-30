@@ -1,19 +1,14 @@
 package org.lmdbjava;
 
 
-import java.util.Objects;
-
 public class NoOpRefCounter implements RefCounter {
 
-  private final Runnable onClose;
-
-  public NoOpRefCounter(final Runnable onClose) {
-    this.onClose = Objects.requireNonNull(onClose);
+  public NoOpRefCounter() {
   }
 
   @Override
   public RefCounterReleaser acquire() {
-    return RefCounterReleaser.NO_OP_RELEASER;
+    return RefCounter.NO_OP_RELEASER;
   }
 
   @Override
@@ -22,7 +17,8 @@ public class NoOpRefCounter implements RefCounter {
   }
 
   @Override
-  public void close() {
+  public void close(Runnable onClose) {
+    // Close with no checks
     onClose.run();
   }
 
@@ -32,17 +28,7 @@ public class NoOpRefCounter implements RefCounter {
   }
 
   @Override
-  public EnvState getState() {
-    return null;
-  }
-
-  @Override
   public void checkNotClosed() {
-    // no-op
-  }
-
-  @Override
-  public void checkOpen() {
     // no-op
   }
 
@@ -50,4 +36,5 @@ public class NoOpRefCounter implements RefCounter {
   public int getCount() {
     return 0;
   }
+
 }

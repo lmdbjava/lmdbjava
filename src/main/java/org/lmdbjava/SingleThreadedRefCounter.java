@@ -5,18 +5,16 @@ import java.util.Objects;
 
 public class SingleThreadedRefCounter implements RefCounter {
 
-  private final Runnable onClose;
   private int refCount;
+  private boolean isClosed = false;
   private EnvState envState;
 
-  public SingleThreadedRefCounter(final Runnable onClose) {
-    this.onClose = Objects.requireNonNull(onClose);
-    this.envState = EnvState.OPEN;
+  public SingleThreadedRefCounter() {
   }
 
   @Override
   public RefCounterReleaser acquire() {
-    if (envState != EnvState.OPEN) {
+    if (isClosed) {
       throw new Env.AlreadyClosedException();
     }
     refCount++;
@@ -41,43 +39,22 @@ public class SingleThreadedRefCounter implements RefCounter {
   }
 
   @Override
-  public void close() {
-    if (envState ==  EnvState.OPEN) {
-      envState = EnvState.CLOSING;
-    }
-
-    if (refCount > 0) {
-      throw new Env.EnvInUseException();
-    }
-
-    if (envState == EnvState.CLOSING) {
-      onClose.run();
-      envState = EnvState.CLOSED;
+  public void close(final Runnable onClose) {
+    Objects.requireNonNull(onClose);
+    if (!isClosed) {
+      final int count = getCount();
+      if (count == 0) {
+        isClosed = true;
+        onClose.run();
+      } else {
+        throw new Env.EnvInUseException(count);
+      }
     }
   }
 
   @Override
   public boolean isClosed() {
-    return envState == EnvState.CLOSED;
-  }
-
-  @Override
-  public EnvState getState() {
-    return envState;
-  }
-
-  @Override
-  public void checkNotClosed() {
-    if (envState == EnvState.CLOSED) {
-      throw new Env.AlreadyClosedException();
-    }
-  }
-
-  @Override
-  public void checkOpen() {
-    if (envState != EnvState.OPEN) {
-      throw new Env.AlreadyClosedException();
-    }
+    return isClosed;
   }
 
   @Override

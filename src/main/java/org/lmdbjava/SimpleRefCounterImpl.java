@@ -1,13 +1,14 @@
 package org.lmdbjava;
 
 
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
 class SimpleRefCounterImpl implements RefCounter {
   private final AtomicInteger counter;
-  private final AtomicBoolean closed = new AtomicBoolean(false);
+  private final AtomicBoolean isClosed = new AtomicBoolean(false);
   private final AtomicBoolean preventAcquire = new AtomicBoolean(false);
 
   public SimpleRefCounterImpl() {
@@ -15,62 +16,8 @@ class SimpleRefCounterImpl implements RefCounter {
   }
 
   @Override
-  public void use(Runnable runnable) {
-    acquire();
-    try {
-      runnable.run();
-    } finally {
-      release();
-    }
-  }
-
-  @Override
-  public void close() {
-    while (true) {
-      final int count = getCount();
-      if (count == 0) {
-        break;
-      }
-    }
-  }
-
-  @Override
-  public void doWhenIdle(final Runnable runnable) {
-    while (true) {
-      final int count = getCount();
-//        System.out.printf("%s - doWhenIdle() under writeLock, count: %s%n",
-//            Thread.currentThread(), count);
-      if (count == 0) {
-        System.out.printf("%s - doWhenIdle() under writeLock, count: %s%n",
-            Thread.currentThread(), count);
-        if (closed.compareAndSet(false, true)) {
-          runnable.run();
-        }
-        break;
-      } else {
-        preventAcquire.compareAndSet(false, true);
-      }
-    }
-  }
-
-  @Override
   public boolean isClosed() {
-    return closed.get();
-  }
-
-  @Override
-  public EnvState getState() {
-    return null;
-  }
-
-  @Override
-  public void checkNotClosed() {
-
-  }
-
-  @Override
-  public void checkOpen() {
-
+    return isClosed.get();
   }
 
   public <R> R acquire(final Supplier<R> supplier) {
@@ -90,12 +37,28 @@ class SimpleRefCounterImpl implements RefCounter {
     return this::release;
   }
 
+  @Override
+  public void close(final Runnable onClose) {
+    Objects.requireNonNull(onClose);
+    if (!isClosed.get()) {
+      final int count = getCount();
+      if (count == 0) {
+        if (isClosed.compareAndSet(false, true)) {
+          onClose.run();
+        }
+      } else {
+        throw new Env.EnvInUseException(count);
+      }
+    }
+  }
+
   private void release() {
     // Increment if greater than 0.
     counter.decrementAndGet();
   }
 
+  @Override
   public int getCount() {
-    return  counter.get();
+    return counter.get();
   }
 }

@@ -96,15 +96,21 @@ public final class Env<T> implements AutoCloseable {
     this.path = path;
     this.envFlagSet = envFlagSet;
     this.isSingleThreaded = isSingleThreaded;
+    this.refCounter = initRefCounter(isSingleThreaded);
+  }
+
+  private RefCounter initRefCounter(boolean isSingleThreaded) {
+    final RefCounter refCounter;
     if (SHOULD_CHECK) {
       if (isSingleThreaded) {
-        this.refCounter = new SingleThreadedRefCounter(this::closeMdbEnv);
+        refCounter = new SingleThreadedRefCounter();
       } else {
-        this.refCounter = new StripedRefCounterImpl(this::closeMdbEnv);
+        refCounter = new StripedRefCounter();
       }
     } else {
-      this.refCounter = new NoOpRefCounter(this::closeMdbEnv);
+      refCounter = new NoOpRefCounter();
     }
+    return refCounter;
   }
 
   /**
@@ -148,8 +154,8 @@ public final class Env<T> implements AutoCloseable {
    */
   @Override
   public void close() {
-    System.out.println("Closing Env");
-    refCounter.close();
+//    System.out.println("Closing Env");
+    refCounter.close(this::closeMdbEnv);
   }
 
   private void closeMdbEnv() {
@@ -596,10 +602,6 @@ public final class Env<T> implements AutoCloseable {
 
   void checkNotClosed() {
     refCounter.checkNotClosed();
-  }
-
-  void checkOpen() {
-    refCounter.checkOpen();
   }
 
   private void validateDirectoryEmpty(final Path path) {

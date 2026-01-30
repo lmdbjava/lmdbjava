@@ -1,8 +1,6 @@
 package org.lmdbjava;
 
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
@@ -12,11 +10,13 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 
 public class RefCounterTest {
+  private static final long GOLDEN_RATIO = 0x9e3779b9L;
 
   private final int iterations = 1_000_000;
   private final int threadCount = Runtime.getRuntime().availableProcessors();
@@ -26,19 +26,31 @@ public class RefCounterTest {
   public void perfTest() {
     // Do multiple rounds to let it warm up
     for (int i = 1; i <= 3; i++) {
-      System.out.println("Round: " + i + " " + StripedRefCounterImpl.class.getSimpleName());
-      IntStream.of(1, 2, 4, 8, 16, 32, 64)
-          .forEach(stripes -> runTest(stripes, new StripedRefCounterImpl(stripes, this::onClose)));
+      System.out.println("Multi-threaded tests ---------------------------------");
 
-      System.out.println("Round: " + i + " " + StampedLockRefCounterImpl.class.getSimpleName());
+      System.out.println("Round: " + i + " " + StripedRefCounter.class.getSimpleName());
       IntStream.of(1, 2, 4, 8, 16, 32, 64, 128)
-          .forEach(stripes -> runTest(stripes, new StampedLockRefCounterImpl(stripes)));
+          .forEach(stripes -> runTest(stripes, new StripedRefCounter(stripes)));
 
       System.out.println("Round: " + i + " " + SimpleRefCounterImpl.class.getSimpleName());
       runTest(0, new SimpleRefCounterImpl());
 
+      System.out.println("Round: " + i + " " + NoOpRefCounter.class.getSimpleName());
+      runTest(0, new NoOpRefCounter());
+
+      System.out.println("Single-threaded tests ---------------------------------");
+
+      System.out.println("Round: " + i + " " + StripedRefCounter.class.getSimpleName());
+      runTest(1, 1, new StripedRefCounter(1));
+
+      System.out.println("Round: " + i + " " + SimpleRefCounterImpl.class.getSimpleName());
+      runTest(0, 1, new SimpleRefCounterImpl());
+
+      System.out.println("Round: " + i + " " + NoOpRefCounter.class.getSimpleName());
+      runTest(0, 1, new NoOpRefCounter());
+
       System.out.println("Round: " + i + " " + SingleThreadedRefCounter.class.getSimpleName());
-      runTest(0, 1, new SingleThreadedRefCounter(this::onClose));
+      runTest(0, 1, new SingleThreadedRefCounter());
     }
   }
 
@@ -50,12 +62,27 @@ public class RefCounterTest {
     }
   }
 
+  private int goldenRatioStripeIdx(final int stripes) {
+    // TODO In >= Java19, getId() is deprecated, so change to .threadId()
+    final long idx = (Thread.currentThread().getId() * GOLDEN_RATIO) % stripes;
+    return (int) idx;
+  }
+
+  private int threadLocalRandom(final int stripes) {
+    // TODO In >= Java19, getId() is deprecated, so change to .threadId()
+    if (stripes <= 0) {
+      return -1;
+    } else {
+      return ThreadLocalRandom.current().nextInt(stripes);
+    }
+  }
+
   private void doNoOpRefCounter() {
 //    System.out.println("Running test for " + stripes + " stripes");
 
     final AtomicReference<Instant> startTime = new AtomicReference<>(null);
     final CompletableFuture<?>[] futures = new CompletableFuture[threadCount];
-    final NoOpRefCounter refCounter = new NoOpRefCounter(this::onClose);
+    final NoOpRefCounter refCounter = new NoOpRefCounter();
     final CountDownLatch startLatch = new CountDownLatch(threadCount);
     final ExecutorService executorService = Executors.newFixedThreadPool(threadCount);
     for (int i = 0; i < threadCount; i++) {
@@ -109,6 +136,16 @@ public class RefCounterTest {
     final ExecutorService executorService = Executors.newFixedThreadPool(threadCount);
     for (int i = 0; i < threadCount; i++) {
       futures[i] = CompletableFuture.runAsync(() -> {
+//        if (refCounter instanceof StampedLockRefCounterImpl) {
+//          final int stripeIdx = ((StampedLockRefCounterImpl) refCounter).getStripeIdx();
+//          System.out.printf("stripes: %s, threadId: %s, stripeIdx: %s, goldenRatioStripe: %s, threadLocalRandom: %s%n",
+//              stripes,
+//              Thread.currentThread().getId(),
+//              stripeIdx,
+//              goldenRatioStripeIdx(stripes),
+//              threadLocalRandom(stripeIdx));
+//        }
+
         // Wait for all threads to be ready
         countDownThenAwait(startLatch);
 
@@ -164,7 +201,7 @@ public class RefCounterTest {
       // Reset the env
       env = new Object();
 //      final StripedRefCounterImpl refCounter = new StripedRefCounterImpl(12, this::onClose);
-      final RefCounter refCounter = new StampedLockRefCounterImpl(12);
+      final RefCounter refCounter = new StripedRefCounter(12);
       final CountDownLatch startLatch = new CountDownLatch(threadCount);
       final CompletableFuture<?>[] futures = new CompletableFuture[threadCount];
       final long[] counts = new long[threadCount];
@@ -209,7 +246,7 @@ public class RefCounterTest {
       while (true) {
         try {
 //          refCounter.close();
-          refCounter.doWhenIdle(this::onClose);
+//          refCounter.doWhenIdle(this::onClose);
           break;
         } catch (Env.EnvInUseException e) {
           Thread.sleep(100);
@@ -240,13 +277,13 @@ public class RefCounterTest {
     final int iterations = 1_000_000;
 
     for (int k = 0; k < rounds; k++) {
-      final int round = k;
-      System.out.printf("Round %s ----------------------------------------%n", round);
+//      final int round = k;
+      System.out.printf("Round %s ----------------------------------------%n", k);
 
       // Reset the env
       env = new Object();
 //      final StripedRefCounterImpl refCounter = new StripedRefCounterImpl(12, this::onClose);
-      final RefCounter refCounter = new StampedLockRefCounterImpl();
+      final RefCounter refCounter = new StripedRefCounter();
       final CountDownLatch startLatch = new CountDownLatch(threadCount);
       final CompletableFuture<?>[] futures = new CompletableFuture[threadCount];
       final long[] counts = new long[threadCount];
@@ -323,83 +360,4 @@ public class RefCounterTest {
     env = null;
     System.out.println(Thread.currentThread() + " - Finishing onClose runnable");
   }
-
-  @Test
-  void testAtomicBitSet() {
-    final int size = 16;
-    final AtomicBitSet bitSet = new AtomicBitSet(16);
-
-    assertThat(bitSet.isSet(3))
-        .isEqualTo(false);
-    assertThat(bitSet.countSet())
-        .isEqualTo(0);
-    assertThat(bitSet.flip(3))
-        .isEqualTo(true);
-    assertThat(bitSet.countSet())
-        .isEqualTo(1);
-    assertThat(bitSet.flip(3))
-        .isEqualTo(false);
-    assertThat(bitSet.countSet())
-        .isEqualTo(0);
-
-    bitSet.setAndGet(3);
-    bitSet.setAndGet(10);
-    assertThat(bitSet.countSet())
-        .isEqualTo(2);
-    bitSet.setAndGet(10);
-    assertThat(bitSet.countSet())
-        .isEqualTo(2);
-    bitSet.unset(10);
-    assertThat(bitSet.countSet())
-        .isEqualTo(1);
-    bitSet.unset(10);
-    assertThat(bitSet.countSet())
-        .isEqualTo(1);
-
-    bitSet.unSetAll();
-    assertThat(bitSet.countSet())
-        .isEqualTo(0);
-
-    System.out.println("val: " + bitSet.asLong() + ", bits: " + bitSet);
-    for (int i = 0; i < size; i++) {
-      bitSet.setAndGet(i);
-    }
-    System.out.println("val: " + bitSet.asLong() + ", bits: " + bitSet);
-
-    bitSet.setAll();
-    assertThat(bitSet.countSet())
-        .isEqualTo(size);
-    System.out.println("val: " + bitSet.asLong() + ", bits: " + bitSet);
-
-    bitSet.unSetAll();
-    long asLong = bitSet.asLong();
-    assertThat(bitSet.getAndSet(5))
-        .isEqualTo(asLong);
-    assertThat(bitSet.getAndSet(5))
-        .isNotEqualTo(asLong);
-
-    bitSet.unSetAll();
-    assertThat(bitSet.countSet())
-        .isEqualTo(0);
-    assertThat(bitSet.countUnSet())
-        .isEqualTo(size);
-
-    bitSet.unSetAll();
-    bitSet.setAndGet(3);
-    bitSet.setAndGet(10);
-    assertThat(bitSet.countSet())
-        .isEqualTo(2);
-    assertThat(bitSet.countUnSet())
-        .isEqualTo(size - 2);
-  }
-
-  private String longAsBits(long val) {
-    return Long.toBinaryString(val);
-  }
-
-  private long getBit(final long val, final long idx) {
-    return (val >> idx) & 1;
-  }
-
-
 }
