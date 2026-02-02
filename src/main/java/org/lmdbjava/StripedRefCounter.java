@@ -142,15 +142,20 @@ class StripedRefCounter implements RefCounter {
   }
 
   private void addToCounter(final AtomicInteger counter, final int delta) {
-    counter.accumulateAndGet(delta, (currVal, delta2) -> {
-      if (currVal == MAGIC_CLOSED_VALUE) {
-        throw new Env.AlreadyClosedException();
-      } else if (currVal < 0) {
-        throw new CountInProgressException();
+    final int newVal = counter.accumulateAndGet(delta, (currVal, delta2) -> {
+      if (currVal == MAGIC_CLOSED_VALUE || currVal < 0) {
+        // Leave unchanged so we can throw once accumulateAndGet returns
+        return currVal;
       } else {
         return currVal + delta2;
       }
     });
+
+    if (newVal == MAGIC_CLOSED_VALUE) {
+      throw new Env.AlreadyClosedException();
+    } else if (newVal < 0) {
+      throw new CountInProgressException();
+    }
 //    System.out.println("delta: " + delta + ", counters: " + Arrays.stream(counters)
 //        .map(AtomicInteger::get)
 //        .map(String::valueOf)

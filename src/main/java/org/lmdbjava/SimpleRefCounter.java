@@ -14,13 +14,13 @@ class SimpleRefCounter implements RefCounter {
   }
 
   public RefCounterReleaser acquire() {
-    counter.updateAndGet(currVal -> {
-      if (currVal == CLOSED_VALUE) {
-        throw new Env.AlreadyClosedException();
-      } else {
-        return currVal + 1;
-      }
-    });
+    final int newVal = counter.updateAndGet(currVal ->
+        currVal == CLOSED_VALUE
+            ? currVal
+            : currVal + 1);
+    if (newVal == CLOSED_VALUE) {
+      throw new Env.AlreadyClosedException();
+    }
     return this::release;
   }
 
@@ -38,13 +38,13 @@ class SimpleRefCounter implements RefCounter {
   }
 
   private void release() {
-    counter.updateAndGet(currVal -> {
-      if (currVal == CLOSED_VALUE) {
-        throw new Env.AlreadyClosedException();
-      } else {
-        return currVal - 1;
-      }
-    });
+    final int newVal = counter.updateAndGet(currVal ->
+        currVal == CLOSED_VALUE
+            ? currVal
+            : currVal - 1);
+    if (newVal == CLOSED_VALUE) {
+      throw new Env.AlreadyClosedException();
+    }
   }
 
   @Override

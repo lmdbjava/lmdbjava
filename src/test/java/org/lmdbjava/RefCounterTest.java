@@ -14,9 +14,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 public class RefCounterTest {
-  private static final long GOLDEN_RATIO = 0x9e3779b9L;
-
-  private final int iterations = 1_000_000;
+  private final int iterations = 20_000_000;
   private final int threadCount = Runtime.getRuntime().availableProcessors();
   private volatile Object env = new Object();
 
@@ -35,10 +33,13 @@ public class RefCounterTest {
       System.out.println("Round: " + round + " " + SimpleRefCounter.class.getSimpleName());
       runPerfTest(0, new SimpleRefCounter());
 
+      System.out.println("Round: " + round + " " + SynchronisedRefCounter.class.getSimpleName());
+      runPerfTest(0, new SynchronisedRefCounter());
+
       System.out.println("Round: " + round + " " + NoOpRefCounter.class.getSimpleName());
       runPerfTest(0, new NoOpRefCounter());
 
-      IntStream.of(8, 4, 2)
+      IntStream.of(16, 8, 4, 2)
           .forEach(threads -> {
             System.out.println("Multi-threaded (" + threads + " threads) tests ---------------------------------");
 
@@ -48,6 +49,9 @@ public class RefCounterTest {
 
             System.out.println("Round: " + round + " " + SimpleRefCounter.class.getSimpleName());
             runPerfTest(0, threads, new SimpleRefCounter());
+
+            System.out.println("Round: " + round + " " + SynchronisedRefCounter.class.getSimpleName());
+            runPerfTest(0, threads, new SynchronisedRefCounter());
 
             System.out.println("Round: " + round + " " + NoOpRefCounter.class.getSimpleName());
             runPerfTest(0, threads, new NoOpRefCounter());
@@ -61,6 +65,9 @@ public class RefCounterTest {
 
       System.out.println("Round: " + round + " " + SimpleRefCounter.class.getSimpleName());
       runPerfTest(0, 1, new SimpleRefCounter());
+
+      System.out.println("Round: " + round + " " + SynchronisedRefCounter.class.getSimpleName());
+      runPerfTest(0, 1, new SynchronisedRefCounter());
 
       System.out.println("Round: " + round + " " + NoOpRefCounter.class.getSimpleName());
       runPerfTest(0, 1, new NoOpRefCounter());
@@ -90,6 +97,7 @@ public class RefCounterTest {
     final NoOpRefCounter refCounter = new NoOpRefCounter();
     final CountDownLatch startLatch = new CountDownLatch(threadCount);
     final ExecutorService executorService = Executors.newFixedThreadPool(threadCount);
+    final int iterationsPerThread = iterations / threadCount;
     for (int i = 0; i < threadCount; i++) {
       futures[i] = CompletableFuture.runAsync(() -> {
         // Wait for all threads to be ready
@@ -104,7 +112,7 @@ public class RefCounterTest {
           }
         });
 
-        for (int j = 0; j < iterations; j++) {
+        for (int j = 0; j < iterationsPerThread; j++) {
           final RefCounter.RefCounterReleaser releaser = refCounter.acquire();
           try {
             // Make sure we have an env that is not 'closed'
@@ -123,6 +131,7 @@ public class RefCounterTest {
 
     System.out.println("All Finished"
         + ", threads: " + threadCount
+        + ", iterationsPerThread: " + iterationsPerThread
         + ", duration: " + duration
         + ", iterationsPerSec: " + iterationsPerSec);
   }
@@ -136,6 +145,7 @@ public class RefCounterTest {
     final CompletableFuture<?>[] futures = new CompletableFuture[threadCount];
     final CountDownLatch startLatch = new CountDownLatch(threadCount);
     final ExecutorService executorService = Executors.newFixedThreadPool(threadCount);
+    final int iterationsPerThread = iterations / threadCount;
     for (int i = 0; i < threadCount; i++) {
       futures[i] = CompletableFuture.runAsync(() -> {
         // Wait for all threads to be ready
@@ -149,7 +159,7 @@ public class RefCounterTest {
           }
         });
 
-        for (int j = 0; j < iterations; j++) {
+        for (int j = 0; j < iterationsPerThread; j++) {
           final RefCounter.RefCounterReleaser releaser = refCounter.acquire();
           releaser.release();
         }
@@ -167,6 +177,7 @@ public class RefCounterTest {
     System.out.println("All Finished"
         + ", stripes: " + stripes
         + ", threads: " + threadCount
+        + ", iterationsPerThread: " + iterationsPerThread
         + ", duration: " + duration
         + ", iterationsPerSec: " + iterationsPerSec);
   }
