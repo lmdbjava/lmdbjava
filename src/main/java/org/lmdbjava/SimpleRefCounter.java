@@ -4,28 +4,14 @@ package org.lmdbjava;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Supplier;
 
 class SimpleRefCounter implements RefCounter {
-  private final AtomicInteger counter;
+  private final AtomicInteger counter = new AtomicInteger(0);
   private final AtomicBoolean isClosed = new AtomicBoolean(false);
-
-  public SimpleRefCounter() {
-    this.counter = new AtomicInteger(0);
-  }
 
   @Override
   public boolean isClosed() {
     return isClosed.get();
-  }
-
-  public <R> R acquire(final Supplier<R> supplier) {
-    acquire();
-    try {
-      return supplier.get();
-    } finally {
-      release();
-    }
   }
 
   public RefCounterReleaser acquire() {
