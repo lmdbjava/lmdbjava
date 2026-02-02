@@ -26,7 +26,7 @@ public class RefCounterTest {
     // Do multiple rounds to let it warm up
     for (int i = 1; i <= 3; i++) {
       final int round = i;
-      System.out.println("Multi-threaded (all cores) tests ---------------------------------");
+      System.out.println("Multi-threaded (" + threadCount + " threads) tests ---------------------------------");
 
       System.out.println("Round: " + round + " " + StripedRefCounter.class.getSimpleName());
       IntStream.of(1, 2, 4, 8, 16, 32, 64, 128)
@@ -38,7 +38,7 @@ public class RefCounterTest {
       System.out.println("Round: " + round + " " + NoOpRefCounter.class.getSimpleName());
       runPerfTest(0, new NoOpRefCounter());
 
-      IntStream.of(2, 4, 8)
+      IntStream.of(8, 4, 2)
           .forEach(threads -> {
             System.out.println("Multi-threaded (" + threads + " threads) tests ---------------------------------");
 

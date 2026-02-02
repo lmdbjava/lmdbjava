@@ -73,7 +73,7 @@ public final class Cursor<T> implements AutoCloseable {
    * Close a cursor handle.
    *
    * <p>The cursor handle will be freed and must not be used again after this call. Its transaction
-   * must still be live if it is a write-transaction.
+   * must still be live (i.e. not committed) if it is a write-transaction.
    */
   @Override
   public void close() {
@@ -81,11 +81,17 @@ public final class Cursor<T> implements AutoCloseable {
       kv.close();
       if (SHOULD_CHECK) {
         env.checkNotClosed();
+        if (!txn.isReadOnly()) {
+          // TODO Rather than throwing if the txn is not in the right state to close
+          //  we could check the txn state and only call mdb_cursor_close if the state is appropriate,
+          //  i.e. (txn.isReadOnly() || txn.isReady())
+          //  This would make using try-with-resources less likely to fail
+
+          // Cannot close the mdb_cursor if the txn is writable and not in a ready state
+          txn.checkReady();
+        }
       }
-      // Cannot close the mdb_cursor if the txn is writable and not in a ready state
-      if (txn.isReadOnly() || txn.isReady()) {
-        LIB.mdb_cursor_close(ptrCursor);
-      }
+      LIB.mdb_cursor_close(ptrCursor);
       refCounterReleaser.release();
     }
   }
