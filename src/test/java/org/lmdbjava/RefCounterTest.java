@@ -27,7 +27,7 @@ public class RefCounterTest {
       System.out.println("Multi-threaded (" + threadCount + " threads) tests ---------------------------------");
 
       System.out.println("Round: " + round + " " + StripedRefCounter.class.getSimpleName());
-      IntStream.of(1, 2, 4, 8, 16, 32, 64, 128)
+      IntStream.of(1, 16, 64)
           .forEach(stripes -> runPerfTest(stripes, new StripedRefCounter(stripes)));
 
       System.out.println("Round: " + round + " " + SimpleRefCounter.class.getSimpleName());
@@ -44,7 +44,7 @@ public class RefCounterTest {
             System.out.println("Multi-threaded (" + threads + " threads) tests ---------------------------------");
 
             System.out.println("Round: " + round + " " + StripedRefCounter.class.getSimpleName());
-            IntStream.of(1, 2, 4, 8, 16, 32, 64, 128)
+            IntStream.of(1, 16, 64)
                 .forEach(stripes -> runPerfTest(stripes, threads, new StripedRefCounter(stripes)));
 
             System.out.println("Round: " + round + " " + SimpleRefCounter.class.getSimpleName());
@@ -60,8 +60,7 @@ public class RefCounterTest {
       System.out.println("Single-threaded tests ---------------------------------");
 
       System.out.println("Round: " + round + " " + StripedRefCounter.class.getSimpleName());
-      IntStream.of(1, 2, 4, 8, 16, 32, 64, 128)
-          .forEach(stripes -> runPerfTest(stripes, 1, new StripedRefCounter(stripes)));
+      runPerfTest(1, 1, new StripedRefCounter());
 
       System.out.println("Round: " + round + " " + SimpleRefCounter.class.getSimpleName());
       runPerfTest(0, 1, new SimpleRefCounter());
