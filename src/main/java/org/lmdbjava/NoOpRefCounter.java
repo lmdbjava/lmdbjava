@@ -1,8 +1,10 @@
 package org.lmdbjava;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 public class NoOpRefCounter implements RefCounter {
 
-  private boolean isClosed = false;
+  private final AtomicBoolean isClosed = new AtomicBoolean(false);
 
   @Override
   public RefCounterReleaser acquire() {
@@ -16,14 +18,15 @@ public class NoOpRefCounter implements RefCounter {
 
   @Override
   public void close(Runnable onClose) {
-    isClosed = true;
-    // Close with no checks
-    onClose.run();
+    if (isClosed.compareAndSet(false, true)) {
+      // Close with no checks
+      onClose.run();
+    }
   }
 
   @Override
   public boolean isClosed() {
-    return isClosed;
+    return isClosed.get();
   }
 
   @Override

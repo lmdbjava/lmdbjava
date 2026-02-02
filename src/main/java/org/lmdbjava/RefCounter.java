@@ -6,8 +6,12 @@ package org.lmdbjava;
  */
 interface RefCounter {
 
-  RefCounterReleaser NO_OP_RELEASER = () -> {
-    // No-op
+  @SuppressWarnings("Convert2Lambda")
+  RefCounterReleaser NO_OP_RELEASER = new RefCounterReleaser() {
+    @Override
+    public void release() {
+      // No-op
+    }
   };
 
   /**
