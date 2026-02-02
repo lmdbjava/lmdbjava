@@ -45,7 +45,11 @@ class StripedRefCounter implements RefCounter {
       // Counting is in progress so we need to get a lock which will likely block
       // until the count is complete
       synchronized (this) {
-        addToCounter(counter, 1);
+        try {
+          addToCounter(counter, 1);
+        } catch (CountInProgressException ex) {
+          throw new IllegalStateException("Should not happen here as we hold the lock", ex);
+        }
       }
     }
     return new RefCounterReleaserImpl(this, counter);
@@ -73,8 +77,15 @@ class StripedRefCounter implements RefCounter {
         // will fail, then attempt to get the lock, so will have to wait for us to complete
         // the count.
         markCountersAsCountInProgress(); // 0=>MAGIC_ZERO_VALUE else i=>i*-1
+
+//        System.out.println("counters BEFORE: " + Arrays.stream(counters)
+//            .map(AtomicInteger::get)
+//            .map(String::valueOf)
+//            .collect(Collectors.joining(", ")));
+
         try {
           final int totalCount = sumCounters();
+//          System.out.println("totalCount: " + totalCount);
           if (totalCount == 0) {
             if (isClosed.compareAndSet(false, true)) {
               onClose.run();
@@ -91,6 +102,11 @@ class StripedRefCounter implements RefCounter {
             // Return all counters to their original positive values so
             // acquire/release can resume as normal
             markCountersAsNoCountInProgress(); // MAGIC_ZERO_VALUE=>0 else i=>i*-1
+
+//            System.out.println("counters AFTER: " + Arrays.stream(counters)
+//                .map(AtomicInteger::get)
+//                .map(String::valueOf)
+//                .collect(Collectors.joining(", ")));
           }
         }
       }
@@ -135,6 +151,10 @@ class StripedRefCounter implements RefCounter {
         return currVal + delta2;
       }
     });
+//    System.out.println("delta: " + delta + ", counters: " + Arrays.stream(counters)
+//        .map(AtomicInteger::get)
+//        .map(String::valueOf)
+//        .collect(Collectors.joining(", ")));
   }
 
   private void markCountersAsNoCountInProgress() {
@@ -142,7 +162,7 @@ class StripedRefCounter implements RefCounter {
       // Multiply value by -1 so we can indicate to other threads that a count is in progress
       // while maintaining the count. Have to use a special replacement value for zero.
       counter.updateAndGet(currVal -> {
-        if (MAGIC_ZERO_VALUE == 0) {
+        if (currVal == MAGIC_ZERO_VALUE) {
           return 0;
         } else {
           return Math.abs(currVal);

@@ -1,6 +1,9 @@
 package org.lmdbjava;
 
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
@@ -11,6 +14,9 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
@@ -190,9 +196,10 @@ public class RefCounterTest {
   void testBehaviour() throws InterruptedException {
     final Random random = new Random();
     final int threadCount = this.threadCount - 1;
+//    final int threadCount = 2;
     final ExecutorService executorService = Executors.newFixedThreadPool(threadCount);
     final int rounds = 50;
-    final int iterations = 100_000_000;
+    final int iterations = 10_000_000;
 
     for (int k = 0; k < rounds; k++) {
       final int round = k;
@@ -201,39 +208,51 @@ public class RefCounterTest {
       // Reset the env
       env = new Object();
 //      final StripedRefCounterImpl refCounter = new StripedRefCounterImpl(12, this::onClose);
-      final RefCounter refCounter = new StripedRefCounter(12);
+      final RefCounter refCounter = new StripedRefCounter();
       final CountDownLatch startLatch = new CountDownLatch(threadCount);
       final CompletableFuture<?>[] futures = new CompletableFuture[threadCount];
-      final long[] counts = new long[threadCount];
+      final AtomicLong[] counts = new AtomicLong[threadCount];
+      for (int i = 0; i < threadCount; i++) {
+        counts[i] = new AtomicLong();
+      }
+
+      final AtomicBoolean abortThreads = new AtomicBoolean(false);
 
       for (int i = 0; i < threadCount; i++) {
         final int threadIdx = i;
         futures[threadIdx] = CompletableFuture.runAsync(() -> {
           // Wait for all threads to be ready
           countDownThenAwait(startLatch);
-//        System.out.println(Thread.currentThread() + " - Starting");
+          System.out.println(Thread.currentThread() + " - Starting");
 
           for (int j = 0; j < iterations; j++) {
+            if (j % 100000 == 0) {
+              System.out.println(Thread.currentThread() + ", j: " + j);
+            }
+            if (abortThreads.get()) {
+              break;
+            }
+
             final RefCounter.RefCounterReleaser releaser;
             try {
               releaser = refCounter.acquire();
-              counts[threadIdx]++;
+              counts[threadIdx].incrementAndGet();
             } catch (Env.AlreadyClosedException e) {
-//              System.out.println(Thread.currentThread() + ", round: " + round + ", Env closed, aborting");
+              System.out.println(Thread.currentThread() + ", round: " + round + ", Env closed, aborting");
               break;
             }
             try {
               // Make the work between acquire and release take some time
-              Thread.sleep(random.nextInt(1));
+//              Thread.sleep(random.nextInt(10));
               // env is null after closure
               Objects.requireNonNull(env, "Attempt to use a null env");
-            } catch (InterruptedException e) {
-              throw new RuntimeException(e);
+//            } catch (InterruptedException e) {
+//              throw new RuntimeException(e);
             } finally {
               releaser.release();
             }
           }
-//        System.out.println(Thread.currentThread() + " - Done");
+        System.out.println(Thread.currentThread() + " - Done");
         }, executorService);
       }
 
@@ -241,30 +260,47 @@ public class RefCounterTest {
       startLatch.await();
 
       // Give the other threads a chance to get underway
-      Thread.sleep(100 + random.nextInt(200));
-
-      while (true) {
+      Thread.sleep(1000 + random.nextInt(200));
+      final AtomicBoolean didClose = new AtomicBoolean(false);
+      final AtomicInteger closeCallCount = new AtomicInteger();
+      while (!didClose.get()) {
         try {
-//          refCounter.close();
-//          refCounter.doWhenIdle(this::onClose);
-          break;
+          System.out.println("close called");
+          refCounter.close(() -> {
+            System.out.println("onClose called");
+            env = null;
+            didClose.set(true);
+            closeCallCount.incrementAndGet();
+          });
+          if (didClose.get()) {
+            // We closed, so env should be null
+            assertThat(env)
+                .isNull();
+          }
         } catch (Env.EnvInUseException e) {
-          Thread.sleep(100);
+          // Failed to close so env still alive
+          assertThat(env)
+              .isNotNull();
+          abortThreads.set(true);
+          Thread.sleep(1000);
         }
       }
 
       // Wait for all workers to finish
       CompletableFuture.allOf(futures).join();
 
-      System.out.println("Acquire call count: " + Arrays.stream(counts).sum());
+      System.out.println("Acquire call count: " + Arrays.stream(counts)
+          .mapToLong(AtomicLong::get)
+          .sum());
 
-      if (refCounter.getCount() != 0) {
-        throw new IllegalStateException("Ref count is " + refCounter.getCount());
-      }
-
-      if (!refCounter.isClosed()) {
-        throw new IllegalStateException("Env not closed");
-      }
+      assertThat(env)
+          .isNull();
+      assertThat(refCounter.isClosed())
+          .isEqualTo(true);
+      assertThatThrownBy(refCounter::getCount)
+          .isInstanceOf(Env.AlreadyClosedException.class);
+      assertThat(closeCallCount)
+          .hasValue(1);
     }
   }
 

@@ -3,7 +3,11 @@ package org.lmdbjava;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 import org.assertj.core.api.Assertions;
@@ -77,6 +81,54 @@ class StripedRefCounterTest {
       assertThat(callCount)
           .hasValue(iterations);
     }
+  }
+
+  @Test
+  void multipleThreads_delayedRelease() {
+    final StripedRefCounter stripedRefCounter = new StripedRefCounter();
+    final int threads = Runtime.getRuntime().availableProcessors() - 2;
+    final int iterations = 100;
+    final ExecutorService executor = Executors.newFixedThreadPool(threads);
+    final ExecutorService executor2 = Executors.newFixedThreadPool(1);
+    final AtomicInteger[] callCounts = new AtomicInteger[threads];
+    for (int i = 0; i < threads; i++) {
+      callCounts[i] = new AtomicInteger();
+    }
+
+    final Queue<RefCounter.RefCounterReleaser> releasers = new ConcurrentLinkedQueue<>();
+    final Queue<CompletableFuture<?>> futures = new ConcurrentLinkedQueue<>();
+
+    IntStream.range(0, threads)
+        .boxed()
+        .map(i -> CompletableFuture.runAsync(() -> {
+          for (int j = 0; j < iterations; j++) {
+            final RefCounter.RefCounterReleaser releaser = stripedRefCounter.acquire();
+            releasers.add(releaser);
+            callCounts[i].getAndIncrement();
+            futures.add(CompletableFuture.runAsync(() -> {
+              final int count = stripedRefCounter.getCount();
+//              System.out.println(Thread.currentThread() + " - getting count: " + count);
+              assertThat(count)
+                  .isNotEqualTo(0);
+            }, executor2));
+          }
+        }, executor))
+        .forEach(CompletableFuture::join);
+
+    assertThat(stripedRefCounter.getCount())
+        .isEqualTo(threads * iterations);
+
+    for (AtomicInteger callCount : callCounts) {
+      assertThat(callCount)
+          .hasValue(iterations);
+    }
+
+    releasers.forEach(RefCounter.RefCounterReleaser::release);
+
+    futures.forEach(CompletableFuture::join);
+
+    assertThat(stripedRefCounter.getCount())
+        .isEqualTo(0);
   }
 
   @Test
