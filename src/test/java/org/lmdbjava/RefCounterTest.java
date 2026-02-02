@@ -44,14 +44,14 @@ public class RefCounterTest {
 
             System.out.println("Round: " + round + " " + StripedRefCounter.class.getSimpleName());
             IntStream.of(1, 2, 4, 8, 16, 32, 64, 128)
-                .forEach(stripes -> runPerfTest(stripes, new StripedRefCounter(stripes)));
+                .forEach(stripes -> runPerfTest(stripes, threads, new StripedRefCounter(stripes)));
 
             System.out.println("Round: " + round + " " + SimpleRefCounter.class.getSimpleName());
-            runPerfTest(0, new SimpleRefCounter());
+            runPerfTest(0, threads, new SimpleRefCounter());
 
             System.out.println("Round: " + round + " " + NoOpRefCounter.class.getSimpleName());
-            runPerfTest(0, new NoOpRefCounter());
-              });
+            runPerfTest(0, threads, new NoOpRefCounter());
+          });
 
       System.out.println("Single-threaded tests ---------------------------------");
 

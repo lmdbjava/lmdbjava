@@ -2,24 +2,23 @@ package org.lmdbjava;
 
 
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 class SimpleRefCounter implements RefCounter {
+  private static final int CLOSED_VALUE = Integer.MIN_VALUE;
   private final AtomicInteger counter = new AtomicInteger(0);
-  private final AtomicBoolean isClosed = new AtomicBoolean(false);
 
   @Override
   public boolean isClosed() {
-    return isClosed.get();
+    return counter.get() == CLOSED_VALUE;
   }
 
   public RefCounterReleaser acquire() {
-    if (isClosed.get()) {
+    if (counter.get() == CLOSED_VALUE) {
       throw new Env.AlreadyClosedException();
     }
     counter.updateAndGet(currVal -> {
-      if (currVal < 0) {
+      if (currVal == CLOSED_VALUE) {
         throw new Env.AlreadyClosedException();
       } else {
         return currVal + 1;
@@ -31,12 +30,10 @@ class SimpleRefCounter implements RefCounter {
   @Override
   public void close(final Runnable onClose) {
     Objects.requireNonNull(onClose);
-    if (!isClosed.get()) {
-      // Set to -1 to indicate closure, if the count is 0
-      if (counter.compareAndSet(0, -1)) {
-        if (isClosed.compareAndSet(false, true)) {
-          onClose.run();
-        }
+    if (counter.get() != CLOSED_VALUE) {
+      // Set to CLOSED_VALUE to indicate closure, if the count is 0
+      if (counter.compareAndSet(0, CLOSED_VALUE)) {
+        onClose.run();
       } else {
         throw new Env.EnvInUseException(getCount());
       }
@@ -44,7 +41,7 @@ class SimpleRefCounter implements RefCounter {
   }
 
   private void release() {
-    if (isClosed.get()) {
+    if (counter.get() == CLOSED_VALUE) {
       throw new Env.AlreadyClosedException();
     }
     counter.decrementAndGet();
@@ -52,6 +49,6 @@ class SimpleRefCounter implements RefCounter {
 
   @Override
   public int getCount() {
-    return counter.get();
+    return Math.max(0, counter.get());
   }
 }
