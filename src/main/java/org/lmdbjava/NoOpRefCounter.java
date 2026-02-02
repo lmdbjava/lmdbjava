@@ -1,10 +1,8 @@
 package org.lmdbjava;
 
-
 public class NoOpRefCounter implements RefCounter {
 
-  public NoOpRefCounter() {
-  }
+  private boolean isClosed = false;
 
   @Override
   public RefCounterReleaser acquire() {
@@ -18,23 +16,18 @@ public class NoOpRefCounter implements RefCounter {
 
   @Override
   public void close(Runnable onClose) {
+    isClosed = true;
     // Close with no checks
     onClose.run();
   }
 
   @Override
   public boolean isClosed() {
-    return false;
-  }
-
-  @Override
-  public void checkNotClosed() {
-    // no-op
+    return isClosed;
   }
 
   @Override
   public int getCount() {
     return 0;
   }
-
 }

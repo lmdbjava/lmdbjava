@@ -6,12 +6,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
-class SimpleRefCounterImpl implements RefCounter {
+class SimpleRefCounter implements RefCounter {
   private final AtomicInteger counter;
   private final AtomicBoolean isClosed = new AtomicBoolean(false);
   private final AtomicBoolean preventAcquire = new AtomicBoolean(false);
 
-  public SimpleRefCounterImpl() {
+  public SimpleRefCounter() {
     this.counter = new AtomicInteger(0);
   }
 

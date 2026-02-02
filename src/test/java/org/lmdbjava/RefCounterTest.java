@@ -38,8 +38,8 @@ public class RefCounterTest {
       IntStream.of(1, 2, 4, 8, 16, 32, 64, 128)
           .forEach(stripes -> runTest(stripes, new StripedRefCounter(stripes)));
 
-      System.out.println("Round: " + i + " " + SimpleRefCounterImpl.class.getSimpleName());
-      runTest(0, new SimpleRefCounterImpl());
+      System.out.println("Round: " + i + " " + SimpleRefCounter.class.getSimpleName());
+      runTest(0, new SimpleRefCounter());
 
       System.out.println("Round: " + i + " " + NoOpRefCounter.class.getSimpleName());
       runTest(0, new NoOpRefCounter());
@@ -49,8 +49,8 @@ public class RefCounterTest {
       System.out.println("Round: " + i + " " + StripedRefCounter.class.getSimpleName());
       runTest(1, 1, new StripedRefCounter(1));
 
-      System.out.println("Round: " + i + " " + SimpleRefCounterImpl.class.getSimpleName());
-      runTest(0, 1, new SimpleRefCounterImpl());
+      System.out.println("Round: " + i + " " + SimpleRefCounter.class.getSimpleName());
+      runTest(0, 1, new SimpleRefCounter());
 
       System.out.println("Round: " + i + " " + NoOpRefCounter.class.getSimpleName());
       runTest(0, 1, new NoOpRefCounter());
