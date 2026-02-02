@@ -10,6 +10,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.IntStream;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 public class RefCounterTest {
@@ -19,35 +20,57 @@ public class RefCounterTest {
   private final int threadCount = Runtime.getRuntime().availableProcessors();
   private volatile Object env = new Object();
 
+  @Disabled // Manual performance test
   @Test
   public void perfTest() {
     // Do multiple rounds to let it warm up
     for (int i = 1; i <= 3; i++) {
-      System.out.println("Multi-threaded tests ---------------------------------");
+      final int round = i;
+      System.out.println("Multi-threaded (all cores) tests ---------------------------------");
 
-      System.out.println("Round: " + i + " " + StripedRefCounter.class.getSimpleName());
+      System.out.println("Round: " + round + " " + StripedRefCounter.class.getSimpleName());
       IntStream.of(1, 2, 4, 8, 16, 32, 64, 128)
           .forEach(stripes -> runPerfTest(stripes, new StripedRefCounter(stripes)));
 
-      System.out.println("Round: " + i + " " + SimpleRefCounter.class.getSimpleName());
+      System.out.println("Round: " + round + " " + SimpleRefCounter.class.getSimpleName());
       runPerfTest(0, new SimpleRefCounter());
 
-      System.out.println("Round: " + i + " " + NoOpRefCounter.class.getSimpleName());
+      System.out.println("Round: " + round + " " + NoOpRefCounter.class.getSimpleName());
       runPerfTest(0, new NoOpRefCounter());
+
+      IntStream.of(2, 4, 8)
+          .forEach(threads -> {
+            System.out.println("Multi-threaded (" + threads + " threads) tests ---------------------------------");
+
+            System.out.println("Round: " + round + " " + StripedRefCounter.class.getSimpleName());
+            IntStream.of(1, 2, 4, 8, 16, 32, 64, 128)
+                .forEach(stripes -> runPerfTest(stripes, new StripedRefCounter(stripes)));
+
+            System.out.println("Round: " + round + " " + SimpleRefCounter.class.getSimpleName());
+            runPerfTest(0, new SimpleRefCounter());
+
+            System.out.println("Round: " + round + " " + NoOpRefCounter.class.getSimpleName());
+            runPerfTest(0, new NoOpRefCounter());
+              });
 
       System.out.println("Single-threaded tests ---------------------------------");
 
-      System.out.println("Round: " + i + " " + StripedRefCounter.class.getSimpleName());
-      runPerfTest(1, 1, new StripedRefCounter(1));
+      System.out.println("Round: " + round + " " + StripedRefCounter.class.getSimpleName());
+      IntStream.of(1, 2, 4, 8, 16, 32, 64, 128)
+          .forEach(stripes -> runPerfTest(stripes, 1, new StripedRefCounter(stripes)));
 
-      System.out.println("Round: " + i + " " + SimpleRefCounter.class.getSimpleName());
+      System.out.println("Round: " + round + " " + SimpleRefCounter.class.getSimpleName());
       runPerfTest(0, 1, new SimpleRefCounter());
 
-      System.out.println("Round: " + i + " " + NoOpRefCounter.class.getSimpleName());
+      System.out.println("Round: " + round + " " + NoOpRefCounter.class.getSimpleName());
       runPerfTest(0, 1, new NoOpRefCounter());
 
-      System.out.println("Round: " + i + " " + SingleThreadedRefCounter.class.getSimpleName());
+      System.out.println("Round: " + round + " " + SingleThreadedRefCounter.class.getSimpleName());
       runPerfTest(0, 1, new SingleThreadedRefCounter());
+
+
+      System.out.println("--------------------------------------------------------------------------------");
+      System.out.println();
     }
   }
 
@@ -109,28 +132,14 @@ public class RefCounterTest {
   }
 
   private void runPerfTest(int stripes, final int threadCount, final RefCounter refCounter) {
-//    System.out.println("Running test for " + stripes + " stripes");
-
     final AtomicReference<Instant> startTime = new AtomicReference<>(null);
     final CompletableFuture<?>[] futures = new CompletableFuture[threadCount];
-//    final RefCounter refCounter = new StripedRefCounterImpl(stripes, this::onClose);
     final CountDownLatch startLatch = new CountDownLatch(threadCount);
     final ExecutorService executorService = Executors.newFixedThreadPool(threadCount);
     for (int i = 0; i < threadCount; i++) {
       futures[i] = CompletableFuture.runAsync(() -> {
-//        if (refCounter instanceof StampedLockRefCounterImpl) {
-//          final int stripeIdx = ((StampedLockRefCounterImpl) refCounter).getStripeIdx();
-//          System.out.printf("stripes: %s, threadId: %s, stripeIdx: %s, goldenRatioStripe: %s, threadLocalRandom: %s%n",
-//              stripes,
-//              Thread.currentThread().getId(),
-//              stripeIdx,
-//              goldenRatioStripeIdx(stripes),
-//              threadLocalRandom(stripeIdx));
-//        }
-
         // Wait for all threads to be ready
         countDownThenAwait(startLatch);
-
         // Capture the start time
         startTime.updateAndGet(currVal -> {
           if (currVal == null) {
@@ -142,14 +151,8 @@ public class RefCounterTest {
 
         for (int j = 0; j < iterations; j++) {
           final RefCounter.RefCounterReleaser releaser = refCounter.acquire();
-          try {
-            // Make sure we have an env that is not 'closed'
-            Objects.requireNonNull(env);
-          } finally {
-            releaser.release();
-          }
+          releaser.release();
         }
-//        System.out.println(Thread.currentThread() + " - Done");
       }, executorService);
     }
     CompletableFuture.allOf(futures).join();
