@@ -7,7 +7,6 @@ public class SingleThreadedRefCounter implements RefCounter {
 
   private int refCount;
   private boolean isClosed = false;
-  private EnvState envState;
 
   public SingleThreadedRefCounter() {
   }

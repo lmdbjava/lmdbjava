@@ -45,7 +45,7 @@ interface RefCounter {
   void close(final Runnable onClose);
 
   /**
-   * @return True if {@link RefCounter} is in a state of {@link EnvState#CLOSED}
+   * @return True if {@link RefCounter} has been closed.
    */
   boolean isClosed();
 
