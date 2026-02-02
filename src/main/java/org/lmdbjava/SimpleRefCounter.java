@@ -46,18 +46,13 @@ class SimpleRefCounter implements RefCounter {
   public void close(final Runnable onClose) {
     Objects.requireNonNull(onClose);
     if (!isClosed.get()) {
-      final int count = getCount();
-      if (count == 0) {
-        // Set to -1 to indicate closure
-        if (counter.compareAndSet(count, -1)) {
-          if (isClosed.compareAndSet(false, true)) {
-            onClose.run();
-          }
-        } else {
-          throw new Env.EnvInUseException(getCount());
+      // Set to -1 to indicate closure, if the count is 0
+      if (counter.compareAndSet(0, -1)) {
+        if (isClosed.compareAndSet(false, true)) {
+          onClose.run();
         }
       } else {
-        throw new Env.EnvInUseException(count);
+        throw new Env.EnvInUseException(getCount());
       }
     }
   }
