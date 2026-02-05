@@ -134,10 +134,12 @@ public final class TargetName {
     return reason
         + " (please set system property "
         + LMDB_NATIVE_LIB_PROP
-        + " to the path of an external LMDB native library or property "
+        + " to the path of an external LMDB native library,"
+        + " or simply 'lmdb' if LMDB is installed in standard system paths;"
+        + " alternatively set property "
         + LMDB_EMBEDDED_LIB_PROP
-        + " to the name of an LmdbJava embedded"
-        + " library; os.arch='"
+        + " to the name of an LmdbJava embedded library;"
+        + " os.arch='"
         + ARCH
         + "' os.name='"
         + OS
