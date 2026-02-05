@@ -3,6 +3,7 @@ name: Maven Build and Deployment
 on:
   push:
     branches: [ master ]
+    tags: [ 'lmdbjava-*' ]
   pull_request:
     branches: [ master ]
 
@@ -84,7 +85,14 @@ jobs:
         gpg-private-key: ${{ secrets.gpg_private_key }}
         gpg-passphrase: MAVEN_GPG_PASSPHRASE
 
+    - name: Get project version
+      id: version
+      run: echo "version=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)" >> $GITHUB_OUTPUT
+
     - name: Publish Maven package
+      if: |
+        (github.ref_type == 'branch' && contains(steps.version.outputs.version, '-SNAPSHOT')) ||
+        (github.ref_type == 'tag' && !contains(steps.version.outputs.version, '-SNAPSHOT'))
       run: mvn -B -Pcentral-deploy deploy -DskipTests
       env:
         MAVEN_GPG_PASSPHRASE: ${{ secrets.gpg_passphrase }}
