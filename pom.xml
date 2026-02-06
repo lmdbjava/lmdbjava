@@ -20,7 +20,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.lmdbjava</groupId>
   <artifactId>lmdbjava</artifactId>
-  <version>0.9.2</version>
+  <version>0.9.3-SNAPSHOT</version>
   <packaging>jar</packaging>
   <name>LmdbJava</name>
   <description>Low latency Java API for the ultra-fast, embedded Symas Lightning Database (LMDB)</description>
@@ -39,7 +39,7 @@
     <jnr-ffi.version>2.2.18</jnr-ffi.version>
     <junit.version>5.14.1</junit.version>
     <license-maven-plugin.version>4.6</license-maven-plugin.version>
-    <lmdbjava-native.version>0.9.33-2</lmdbjava-native.version>
+    <lmdbjava-native.version>0.9.33-5</lmdbjava-native.version>
     <maven-clean-plugin.version>3.5.0</maven-clean-plugin.version>
     <maven-compiler-plugin.version>3.14.1</maven-compiler-plugin.version>
     <maven-dependency-plugin.version>3.9.0</maven-dependency-plugin.version>
