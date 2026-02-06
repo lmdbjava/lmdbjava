@@ -135,4 +135,23 @@ public abstract class BufferProxy<T> {
   final Key<T> key() {
     return new Key<>(this);
   }
+
+  /**
+   * Test if a supplied buffer contains the supplied prefix buffer.
+   *
+   * @param buffer The buffer to test.
+   * @param prefixBuffer The prefix to find.
+   * @return True if the key contains the prefix;
+   */
+  abstract boolean containsPrefix(T buffer, T prefixBuffer);
+
+  /**
+   * Make a buffer that is one bit greater than the supplied buffer by incrementing the least
+   * significant byte that is not already 255. This is useful in situations where we want to move
+   * past a key range before iterating backward.
+   *
+   * @param buffer The buffer to increment.
+   * @return The incremented buffer or null if the buffer is already at max value.
+   */
+  abstract T incrementLeastSignificantByte(T buffer);
 }

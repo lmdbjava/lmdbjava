@@ -18,6 +18,7 @@ package org.lmdbjava;
 import static java.lang.ThreadLocal.withInitial;
 import static java.nio.ByteBuffer.allocateDirect;
 import static java.nio.ByteOrder.BIG_ENDIAN;
+import static java.nio.ByteOrder.LITTLE_ENDIAN;
 import static java.util.Objects.requireNonNull;
 import static org.lmdbjava.UnsafeAccess.UNSAFE;
 
@@ -65,7 +66,6 @@ public final class DirectBufferProxy extends BufferProxy<DirectBuffer> {
   public static int compareLexicographically(final DirectBuffer o1, final DirectBuffer o2) {
     requireNonNull(o1);
     requireNonNull(o2);
-
     final int minLength = Math.min(o1.capacity(), o2.capacity());
     final int minWords = minLength / Long.BYTES;
 
@@ -88,6 +88,41 @@ public final class DirectBufferProxy extends BufferProxy<DirectBuffer> {
     }
 
     return o1.capacity() - o2.capacity();
+  }
+
+  /**
+   * Lexicographically compare two buffers up to a common length.
+   *
+   * @param o1 left operand (required)
+   * @param o2 right operand (required)
+   * @param length The length of each buffer to compare.
+   * @return as specified by {@link Comparable} interface
+   */
+  public static int compareLexicographically(
+      final DirectBuffer o1, final DirectBuffer o2, final int length) {
+    requireNonNull(o1);
+    requireNonNull(o2);
+    final int minWords = length / Long.BYTES;
+
+    for (int i = 0; i < minWords * Long.BYTES; i += Long.BYTES) {
+      final long lw = o1.getLong(i, BIG_ENDIAN);
+      final long rw = o2.getLong(i, BIG_ENDIAN);
+      final int diff = Long.compareUnsigned(lw, rw);
+      if (diff != 0) {
+        return diff;
+      }
+    }
+
+    for (int i = minWords * Long.BYTES; i < length; i++) {
+      final int lw = Byte.toUnsignedInt(o1.getByte(i));
+      final int rw = Byte.toUnsignedInt(o2.getByte(i));
+      final int result = Integer.compareUnsigned(lw, rw);
+      if (result != 0) {
+        return result;
+      }
+    }
+
+    return 0;
   }
 
   /**
@@ -192,5 +227,57 @@ public final class DirectBufferProxy extends BufferProxy<DirectBuffer> {
     final long size = UNSAFE.getLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE);
     buffer.wrap(addr, (int) size);
     return buffer;
+  }
+
+  @Override
+  boolean containsPrefix(final DirectBuffer buffer, final DirectBuffer prefixBuffer) {
+    if (buffer.capacity() < prefixBuffer.capacity()) {
+      return false;
+    }
+
+    // We don't care about signed or unsigned since we are checking for equality.
+    return compareLexicographically(buffer, prefixBuffer, prefixBuffer.capacity()) == 0;
+  }
+
+  @Override
+  DirectBuffer incrementLeastSignificantByte(final DirectBuffer directBuffer) {
+    if (directBuffer == null || directBuffer.capacity() == 0) {
+      return null;
+    }
+
+    final ByteBuffer buffer = directBuffer.byteBuffer();
+    if (LITTLE_ENDIAN.equals(buffer.order())) {
+      // Start from the least significant byte (closest to start)
+      for (int i = buffer.position(); i < buffer.limit(); i++) {
+        final byte b = buffer.get(i);
+
+        // Check if byte is not at max unsigned value (0xFF = 255 = -1 in signed)
+        if (b != (byte) 0xFF) {
+          final ByteBuffer oneBigger = ByteBuffer.allocateDirect(buffer.remaining());
+          oneBigger.put(buffer.duplicate());
+          oneBigger.flip();
+          oneBigger.put(i - buffer.position(), (byte) (b + 1));
+          return new UnsafeBuffer(oneBigger);
+        }
+      }
+
+    } else {
+      // Start from the least significant byte (closest to limit)
+      for (int i = buffer.limit() - 1; i >= buffer.position(); i--) {
+        final byte b = buffer.get(i);
+
+        // Check if byte is not at max unsigned value (0xFF = 255 = -1 in signed)
+        if (b != (byte) 0xFF) {
+          final ByteBuffer oneBigger = ByteBuffer.allocateDirect(buffer.remaining());
+          oneBigger.put(buffer.duplicate());
+          oneBigger.flip();
+          oneBigger.put(i - buffer.position(), (byte) (b + 1));
+          return new UnsafeBuffer(oneBigger);
+        }
+      }
+    }
+
+    // All bytes are at maximum value
+    return null;
   }
 }

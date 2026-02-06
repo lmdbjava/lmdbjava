@@ -65,6 +65,29 @@ public final class ByteArrayProxy extends BufferProxy<byte[]> {
     return o1.length - o2.length;
   }
 
+  /**
+   * Lexicographically compare two byte arrays up to a common length.
+   *
+   * @param o1 left operand (required)
+   * @param o2 right operand (required)
+   * @param length The length of each buffer to compare.
+   * @return as specified by {@link Comparable} interface
+   */
+  public static int compareLexicographically(final byte[] o1, final byte[] o2, final int length) {
+    requireNonNull(o1);
+    requireNonNull(o2);
+    for (int i = 0; i < length; i++) {
+      final int lw = Byte.toUnsignedInt(o1[i]);
+      final int rw = Byte.toUnsignedInt(o2[i]);
+      final int result = Integer.compareUnsigned(lw, rw);
+      if (result != 0) {
+        return result;
+      }
+    }
+
+    return 0;
+  }
+
   @Override
   protected byte[] allocate() {
     return new byte[0];
@@ -108,5 +131,38 @@ public final class ByteArrayProxy extends BufferProxy<byte[]> {
     final byte[] bytes = new byte[size];
     pointer.get(0, bytes, 0, size);
     return bytes;
+  }
+
+  @Override
+  boolean containsPrefix(final byte[] buffer, final byte[] prefixBuffer) {
+    if (buffer.length < prefixBuffer.length) {
+      return false;
+    }
+
+    // We don't care about signed or unsigned since we are checking for equality.
+    return compareLexicographically(buffer, prefixBuffer, prefixBuffer.length) == 0;
+  }
+
+  @Override
+  byte[] incrementLeastSignificantByte(final byte[] buffer) {
+    if (buffer == null || buffer.length == 0) {
+      return null;
+    }
+
+    // Start from the least significant byte (closest to limit)
+    for (int i = buffer.length - 1; i >= 0; i--) {
+      final byte b = buffer[i];
+
+      // Check if byte is not at max unsigned value (0xFF = 255 = -1 in signed)
+      if (b != (byte) 0xFF) {
+        final byte[] oneBigger = new byte[buffer.length];
+        System.arraycopy(buffer, 0, oneBigger, 0, buffer.length);
+        oneBigger[i] = (byte) (b + 1);
+        return oneBigger;
+      }
+    }
+
+    // All bytes are at maximum value
+    return null;
   }
 }

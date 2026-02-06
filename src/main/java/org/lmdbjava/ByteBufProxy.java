@@ -221,4 +221,36 @@ public final class ByteBufProxy extends BufferProxy<ByteBuf> {
     buffer.clear().writerIndex((int) size);
     return buffer;
   }
+
+  @Override
+  boolean containsPrefix(final ByteBuf buffer, final ByteBuf prefixBuffer) {
+    if (buffer.capacity() < prefixBuffer.capacity()) {
+      return false;
+    }
+    return buffer.slice(0, prefixBuffer.capacity()).compareTo(prefixBuffer) == 0;
+  }
+
+  @Override
+  ByteBuf incrementLeastSignificantByte(final ByteBuf buffer) {
+    if (buffer == null || buffer.capacity() == 0) {
+      return null;
+    }
+
+    // TODO : Endianness isn't known so we will need a different way to do this for LE systems,
+    //  e.g. when using MDB_INTEGERKEY.
+    // Start from the least significant byte (closest to limit)
+    for (int i = buffer.capacity() - 1; i >= 0; i--) {
+      final byte b = buffer.getByte(i);
+
+      // Check if byte is not at max unsigned value (0xFF = 255 = -1 in signed)
+      if (b != (byte) 0xFF) {
+        final ByteBuf oneBigger = buffer.copy();
+        oneBigger.setByte(i, (byte) (b + 1));
+        return oneBigger;
+      }
+    }
+
+    // All bytes are at maximum value
+    return null;
+  }
 }
