@@ -28,9 +28,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 /**
- * Reproduces lmdbjava#215: {@code ByteBuf.nioBuffer()} on a value returned via {@link
- * ByteBufProxy#PROXY_NETTY} does not reflect the stored data (it views Netty's separate,
- * chunk-shared backing buffer, which the zero-copy read path never repoints).
+ * Reproduces lmdbjava#215 and covers {@link ByteBufProxy#nioBufferView(ByteBuf)}, a zero-copy NIO
+ * view over the LMDB memory of a value returned via {@link ByteBufProxy#PROXY_NETTY}.
  */
 final class ByteBufNioBufferTest {
 
@@ -70,6 +69,30 @@ final class ByteBufNioBufferTest {
     return dst;
   }
 
+  /** Zero-copy view reflects the stored bytes (read inside the txn). */
+  @Test
+  void nioBufferView_reflectsStoredData() {
+    try (Env<ByteBuf> env = openEnv()) {
+      final Dbi<ByteBuf> db = openDb(env);
+      final ByteBuf key = PooledByteBufAllocator.DEFAULT.directBuffer(env.getMaxKeySize());
+      final ByteBuf value = PooledByteBufAllocator.DEFAULT.directBuffer(64);
+      try {
+        key.writeCharSequence("greeting", UTF_8);
+        value.writeCharSequence(VALUE, UTF_8);
+        db.put(key, value);
+        try (Txn<ByteBuf> txn = env.txnRead()) {
+          final ByteBuf found = db.get(txn, key);
+          assertThat(found).isNotNull();
+          assertThat(readable(found)).isEqualTo(VALUE_BYTES); // sanity
+          assertThat(drain(ByteBufProxy.nioBufferView(found))).isEqualTo(VALUE_BYTES);
+        }
+      } finally {
+        key.release();
+        value.release();
+      }
+    }
+  }
+
   /**
    * Documents the lmdbjava#215 limitation: the raw {@link ByteBuf#nioBuffer()} does NOT reflect the
    * LMDB data, even though the {@link ByteBuf}'s own accessors do.
@@ -87,8 +110,8 @@ final class ByteBufNioBufferTest {
         try (Txn<ByteBuf> txn = env.txnRead()) {
           final ByteBuf found = db.get(txn, key);
           assertThat(found).isNotNull();
-          assertThat(readable(found)).isEqualTo(VALUE_BYTES); // ByteBuf accessors are correct
-          assertThat(drain(found.nioBuffer())).isNotEqualTo(VALUE_BYTES); // nioBuffer() is not
+          assertThat(readable(found)).isEqualTo(VALUE_BYTES);
+          assertThat(drain(found.nioBuffer())).isNotEqualTo(VALUE_BYTES);
         }
       } finally {
         key.release();
