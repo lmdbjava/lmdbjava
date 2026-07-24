@@ -18,6 +18,7 @@ package org.lmdbjava;
 import static io.netty.buffer.PooledByteBufAllocator.DEFAULT;
 import static java.lang.Class.forName;
 import static java.util.Objects.requireNonNull;
+import static org.lmdbjava.Library.RUNTIME;
 import static org.lmdbjava.UnsafeAccess.UNSAFE;
 
 import io.netty.buffer.ByteBuf;
@@ -26,6 +27,7 @@ import java.lang.reflect.Field;
 import java.nio.ByteOrder;
 import java.util.Comparator;
 import jnr.ffi.Pointer;
+import jnr.ffi.provider.MemoryManager;
 
 /**
  * A buffer proxy backed by Netty's {@link ByteBuf}.
@@ -45,6 +47,7 @@ public final class ByteBufProxy extends BufferProxy<ByteBuf> {
   private static final String FIELD_NAME_ADDRESS = "memoryAddress";
   private static final String FIELD_NAME_LENGTH = "length";
   private static final String NAME = "io.netty.buffer.PooledUnsafeDirectByteBuf";
+  private static final MemoryManager MEM_MGR = RUNTIME.getMemoryManager();
   private final long lengthOffset;
   private final long addressOffset;
 
@@ -195,20 +198,46 @@ public final class ByteBufProxy extends BufferProxy<ByteBuf> {
 
   @Override
   protected Pointer in(final ByteBuf buffer, final Pointer ptr) {
-    final long ptrAddr = ptr.address();
-    UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE, buffer.writerIndex() - buffer.readerIndex());
-    UNSAFE.putLong(
-        ptrAddr + STRUCT_FIELD_OFFSET_DATA, buffer.memoryAddress() + buffer.readerIndex());
-    return null;
+    final int size = buffer.writerIndex() - buffer.readerIndex();
+    if (buffer.hasMemoryAddress()) {
+      // Fast path: the buffer is direct, so point the MDB_val straight at its memory (zero copy).
+      final long ptrAddr = ptr.address();
+      UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE, size);
+      UNSAFE.putLong(
+          ptrAddr + STRUCT_FIELD_OFFSET_DATA, buffer.memoryAddress() + buffer.readerIndex());
+      return null;
+    }
+    // Address-less buffer (any heap ByteBuf, incl. a heap-backed Netty 4.2 AdaptiveByteBuf):
+    // buffer.memoryAddress() would throw UnsupportedOperationException (lmdbjava#261). Copy the
+    // readable bytes into native scratch and point the MDB_val there — the same approach
+    // ByteArrayProxy uses. The returned Pointer keeps that scratch reachable for the native call.
+    return copyToNative(buffer, size, ptr);
   }
 
   @Override
   protected Pointer in(final ByteBuf buffer, final int size, final Pointer ptr) {
+    if (!buffer.hasMemoryAddress()) {
+      // The reserve path repoints the caller's buffer at LMDB-owned memory via out()'s field swap,
+      // which only works on a direct PooledUnsafeDirectByteBuf. A heap buffer cannot be repointed,
+      // so fail with a clear message instead of an opaque UnsupportedOperationException.
+      throw new LmdbException(
+          "ByteBuf reserve requires a direct buffer (hasMemoryAddress()==true)");
+    }
     final long ptrAddr = ptr.address();
     UNSAFE.putLong(ptrAddr + STRUCT_FIELD_OFFSET_SIZE, size);
     UNSAFE.putLong(
         ptrAddr + STRUCT_FIELD_OFFSET_DATA, buffer.memoryAddress() + buffer.readerIndex());
     return null;
+  }
+
+  private static Pointer copyToNative(final ByteBuf buffer, final int size, final Pointer ptr) {
+    final Pointer pointer = MEM_MGR.allocateDirect(size);
+    final byte[] bytes = new byte[size];
+    buffer.getBytes(buffer.readerIndex(), bytes);
+    pointer.put(0, bytes, 0, size);
+    ptr.putLong(STRUCT_FIELD_OFFSET_SIZE, size);
+    ptr.putAddress(STRUCT_FIELD_OFFSET_DATA, pointer.address());
+    return pointer;
   }
 
   @Override
