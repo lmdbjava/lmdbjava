@@ -28,8 +28,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 /**
- * Reproduces lmdbjava#215 and covers {@link ByteBufProxy#nioBufferView(ByteBuf)}, a zero-copy NIO
- * view over the LMDB memory of a value returned via {@link ByteBufProxy#PROXY_NETTY}.
+ * Reproduces and fixes lmdbjava#215: {@code ByteBuf.nioBuffer()} on a value returned via {@link
+ * ByteBufProxy#PROXY_NETTY} yields zeros. Two complementary helpers are offered:
+ *
+ * <ul>
+ *   <li>{@link ByteBufProxy#nioBufferView(ByteBuf)} — zero-copy, valid only within the txn.
+ *   <li>{@link ByteBufProxy#nioBufferCopy(ByteBuf)} — an independent copy that outlives the txn.
+ * </ul>
  */
 final class ByteBufNioBufferTest {
 
@@ -93,9 +98,57 @@ final class ByteBufNioBufferTest {
     }
   }
 
+  /** Copy reflects the stored bytes. */
+  @Test
+  void nioBufferCopy_reflectsStoredData() {
+    try (Env<ByteBuf> env = openEnv()) {
+      final Dbi<ByteBuf> db = openDb(env);
+      final ByteBuf key = PooledByteBufAllocator.DEFAULT.directBuffer(env.getMaxKeySize());
+      final ByteBuf value = PooledByteBufAllocator.DEFAULT.directBuffer(64);
+      try {
+        key.writeCharSequence("greeting", UTF_8);
+        value.writeCharSequence(VALUE, UTF_8);
+        db.put(key, value);
+        try (Txn<ByteBuf> txn = env.txnRead()) {
+          final ByteBuf found = db.get(txn, key);
+          assertThat(found).isNotNull();
+          assertThat(drain(ByteBufProxy.nioBufferCopy(found))).isEqualTo(VALUE_BYTES);
+        }
+      } finally {
+        key.release();
+        value.release();
+      }
+    }
+  }
+
+  /** The discriminator: a copy taken inside the txn is still valid after txn AND env are closed. */
+  @Test
+  void nioBufferCopy_survivesTxnAndEnvClose() {
+    final Env<ByteBuf> env = openEnv();
+    final ByteBuf key = PooledByteBufAllocator.DEFAULT.directBuffer(env.getMaxKeySize());
+    final ByteBuf value = PooledByteBufAllocator.DEFAULT.directBuffer(64);
+    ByteBuffer copy = null;
+    try {
+      final Dbi<ByteBuf> db = openDb(env);
+      key.writeCharSequence("greeting", UTF_8);
+      value.writeCharSequence(VALUE, UTF_8);
+      db.put(key, value);
+      try (Txn<ByteBuf> txn = env.txnRead()) {
+        copy = ByteBufProxy.nioBufferCopy(db.get(txn, key));
+      }
+    } finally {
+      key.release();
+      value.release();
+      env.close(); // both txn and env are now closed
+    }
+    assertThat(copy).isNotNull();
+    assertThat(drain(copy)).isEqualTo(VALUE_BYTES); // copy is independent of LMDB memory
+  }
+
   /**
    * Documents the lmdbjava#215 limitation: the raw {@link ByteBuf#nioBuffer()} does NOT reflect the
-   * LMDB data, even though the {@link ByteBuf}'s own accessors do.
+   * LMDB data (it views Netty's separate, never-repointed chunk buffer). This is why the two
+   * helpers exist.
    */
   @Test
   void rawByteBufNioBuffer_doesNotReflectStoredData() {

@@ -242,7 +242,7 @@ public final class ByteBufProxy extends BufferProxy<ByteBuf> {
    * It is valid ONLY while the owning read {@link Txn} remains open and unmodified, exactly like
    * {@link Txn#val()}. Using it after that transaction (or the {@link Env}) is closed, or after a
    * write to the same slot, is undefined behaviour that may crash the JVM (SIGSEGV). If you need
-   * the bytes to outlive the transaction, copy them out (e.g. into a heap {@link ByteBuffer}).
+   * the bytes to outlive the transaction, use {@link #nioBufferCopy(ByteBuf)} instead.
    *
    * @param buffer a {@link ByteBuf} whose readable region points at LMDB memory (required)
    * @return a read-only NIO view over the same memory (never null)
@@ -259,6 +259,35 @@ public final class ByteBufProxy extends BufferProxy<ByteBuf> {
     UNSAFE.putInt(view, NioBufferField.CAPACITY_OFFSET, buffer.readableBytes());
     view.clear();
     return view.asReadOnlyBuffer();
+  }
+
+  /**
+   * Returns a direct NIO {@link ByteBuffer} holding an independent <b>copy</b> of the readable
+   * region of {@code buffer} — typically a {@link ByteBuf} just returned from a read using {@link
+   * #PROXY_NETTY}.
+   *
+   * <p>This is the safe counterpart to {@link #nioBufferView(ByteBuf)}. It addresses the same
+   * lmdbjava#215 problem (a get-returned {@code ByteBuf} whose {@link ByteBuf#nioBuffer()} yields
+   * zeros), but by copying the bytes out via the {@code ByteBuf}'s own (correct) accessor rather
+   * than aliasing LMDB memory. The copy therefore uses no {@code Unsafe}/reflection, needs no
+   * {@code --add-opens}, and — crucially — <b>remains valid after the transaction (or {@link Env})
+   * is closed</b>. Prefer this unless you specifically need zero copy and can guarantee the
+   * returned buffer is consumed before the owning transaction closes.
+   *
+   * <p>The returned buffer is a freshly allocated direct buffer, flipped and ready to read ({@code
+   * position=0}, {@code limit=size}). The caller owns it.
+   *
+   * @param buffer a {@link ByteBuf} whose readable region holds the bytes to copy (required)
+   * @return a new direct NIO buffer containing a copy of those bytes (never null)
+   */
+  public static ByteBuffer nioBufferCopy(final ByteBuf buffer) {
+    requireNonNull(buffer);
+    final ByteBuffer copy = ByteBuffer.allocateDirect(buffer.readableBytes());
+    // getBytes reads through the ByteBuf's (LMDB-repointed) memoryAddress, so it copies the real
+    // stored bytes — not the zeros seen via ByteBuf.nioBuffer().
+    buffer.getBytes(buffer.readerIndex(), copy);
+    copy.flip();
+    return copy;
   }
 
   /**
