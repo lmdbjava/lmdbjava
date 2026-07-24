@@ -244,7 +244,9 @@ public final class ByteBufProxy extends BufferProxy<ByteBuf> {
 
       // Check if byte is not at max unsigned value (0xFF = 255 = -1 in signed)
       if (b != (byte) 0xFF) {
-        final ByteBuf oneBigger = buffer.copy();
+        // Copy up to and including index i, dropping any trailing 0xFF bytes, then increment.
+        // This yields the tight prefix successor (e.g. {0x01,0xFF} -> {0x02}, not {0x02,0xFF}).
+        final ByteBuf oneBigger = buffer.copy(0, i + 1);
         oneBigger.setByte(i, (byte) (b + 1));
         return oneBigger;
       }

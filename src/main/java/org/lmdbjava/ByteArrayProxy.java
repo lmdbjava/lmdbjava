@@ -155,8 +155,11 @@ public final class ByteArrayProxy extends BufferProxy<byte[]> {
 
       // Check if byte is not at max unsigned value (0xFF = 255 = -1 in signed)
       if (b != (byte) 0xFF) {
-        final byte[] oneBigger = new byte[buffer.length];
-        System.arraycopy(buffer, 0, oneBigger, 0, buffer.length);
+        // Copy up to and including index i, dropping any trailing 0xFF bytes, then increment.
+        // This yields the tight prefix successor (e.g. {0x01,0xFF} -> {0x02}, not {0x02,0xFF}),
+        // so a reverse prefix scan does not over-shoot onto an unrelated higher key.
+        final byte[] oneBigger = new byte[i + 1];
+        System.arraycopy(buffer, 0, oneBigger, 0, i + 1);
         oneBigger[i] = (byte) (b + 1);
         return oneBigger;
       }

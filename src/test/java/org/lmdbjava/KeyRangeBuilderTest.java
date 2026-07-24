@@ -128,14 +128,31 @@ final class KeyRangeBuilderTest {
   }
 
   @Test
-  void builderAndPrefixRangesHaveNullType() {
-    // NOTE: documents current (surprising) behaviour. The private constructors used by builder()
-    // and prefix() never set `type`, so getType() is null for these ranges. The new
-    // LmdbIterable/LmdbStream paths only read directionForward/getPrefix/getStart/getStop, so this
-    // is currently harmless, but passing such a range to the legacy CursorIterable (Dbi.iterate),
-    // which calls getType(), would NPE. This assertion will flag the day that changes.
-    assertThat(KeyRange.builder().startInclusive(2).stopExclusive(8).build().getType()).isNull();
-    assertThat(KeyRange.builder().build().getType()).isNull();
+  void builderRangesExposeDerivedType() {
+    // Builder ranges now derive the equivalent KeyRangeType (previously getType() was null, which
+    // would NPE the legacy CursorIterable path).
+    assertThat(KeyRange.builder().startInclusive(2).stopExclusive(8).build().getType())
+        .isEqualTo(KeyRangeType.FORWARD_CLOSED_OPEN);
+    assertThat(KeyRange.builder().build().getType()).isEqualTo(KeyRangeType.FORWARD_ALL);
+    assertThat(
+            KeyRange.<Integer>builder()
+                .startExclusive(2)
+                .reverse()
+                .stopInclusive(8)
+                .build()
+                .getType())
+        .isEqualTo(KeyRangeType.BACKWARD_OPEN_CLOSED);
+    assertThat(KeyRange.<Integer>builder().startInclusive(2).build().getType())
+        .isEqualTo(KeyRangeType.FORWARD_AT_LEAST);
+    assertThat(KeyRange.<Integer>builder().stopExclusive(8).build().getType())
+        .isEqualTo(KeyRangeType.FORWARD_LESS_THAN);
+  }
+
+  @Test
+  void prefixRangesStillHaveNullType() {
+    // NOTE: prefix ranges have no equivalent KeyRangeType, so getType() remains null. They are only
+    // consumed by the new LmdbIterable/LmdbStream paths (which read directionForward/getPrefix),
+    // never the legacy CursorIterable path. This documents the remaining gap.
     assertThat(KeyRange.prefix(5).getType()).isNull();
     assertThat(KeyRange.prefixBackward(5).getType()).isNull();
   }

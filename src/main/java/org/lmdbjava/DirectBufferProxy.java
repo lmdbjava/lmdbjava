@@ -268,10 +268,15 @@ public final class DirectBufferProxy extends BufferProxy<DirectBuffer> {
 
         // Check if byte is not at max unsigned value (0xFF = 255 = -1 in signed)
         if (b != (byte) 0xFF) {
-          final ByteBuffer oneBigger = ByteBuffer.allocateDirect(buffer.remaining());
-          oneBigger.put(buffer.duplicate());
+          // Copy up to and including index i, dropping any trailing 0xFF bytes, then increment.
+          // This yields the tight prefix successor (e.g. {0x01,0xFF} -> {0x02}, not {0x02,0xFF}).
+          final int len = i - buffer.position() + 1;
+          final ByteBuffer src = buffer.duplicate();
+          src.limit(i + 1);
+          final ByteBuffer oneBigger = ByteBuffer.allocateDirect(len);
+          oneBigger.put(src);
           oneBigger.flip();
-          oneBigger.put(i - buffer.position(), (byte) (b + 1));
+          oneBigger.put(len - 1, (byte) (b + 1));
           return new UnsafeBuffer(oneBigger);
         }
       }

@@ -95,13 +95,14 @@ final class BufferProxyPrefixTest {
 
   @ParameterizedTest
   @MethodSource("proxies")
-  void incrementCarriesOverTrailing0xFf(final Adapter adapter) {
-    // The trailing 0xFF byte is at its max, so the next non-0xFF byte to its left is incremented.
-    // NOTE: current behaviour KEEPS the trailing 0xFF bytes ({0x01,0xFF} -> {0x02,0xFF}) rather
-    // than truncating to the tight prefix-successor ({0x02}). This is consistent across all
-    // proxies; documented here so any future change to the successor semantics is caught.
-    assertThat(adapter.increment(bytes(0x01, 0xFF))).containsExactly(bytes(0x02, 0xFF));
-    assertThat(adapter.increment(bytes(0x01, 0xFF, 0xFF))).containsExactly(bytes(0x02, 0xFF, 0xFF));
+  void incrementTruncatesTrailing0xFfToTightSuccessor(final Adapter adapter) {
+    // When the least significant byte(s) are 0xFF, the next non-0xFF byte to the left is
+    // incremented and the trailing 0xFF bytes are dropped, giving the tight prefix successor.
+    // e.g. {0x01,0xFF} -> {0x02} (not {0x02,0xFF}); this prevents reverse prefix iteration from
+    // over-shooting onto an unrelated higher key.
+    assertThat(adapter.increment(bytes(0x01, 0xFF))).containsExactly(bytes(0x02));
+    assertThat(adapter.increment(bytes(0x01, 0xFF, 0xFF))).containsExactly(bytes(0x02));
+    assertThat(adapter.increment(bytes(0x12, 0xFF))).containsExactly(bytes(0x13));
   }
 
   @ParameterizedTest
