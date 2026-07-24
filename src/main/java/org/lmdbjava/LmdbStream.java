@@ -62,7 +62,6 @@ public class LmdbStream {
             new LmdbRangeSpliterator<>(
                 cursor,
                 rangeComparator,
-                createEntryComparator(rangeComparator),
                 keyRange.getStart(),
                 keyRange.getStop(),
                 keyRange.isStartKeyInclusive(),
@@ -72,7 +71,6 @@ public class LmdbStream {
             new LmdbRangeReversedSpliterator<>(
                 cursor,
                 rangeComparator,
-                createReversedEntryComparator(rangeComparator),
                 keyRange.getStart(),
                 keyRange.getStop(),
                 keyRange.isStartKeyInclusive(),
@@ -80,12 +78,9 @@ public class LmdbStream {
       }
     } else {
       if (keyRange.directionForward) {
-        spliterator =
-            new LmdbSpliterator<>(cursor, rangeComparator, createEntryComparator(rangeComparator));
+        spliterator = new LmdbSpliterator<>(cursor, rangeComparator);
       } else {
-        spliterator =
-            new LmdbReversedSpliterator<>(
-                cursor, rangeComparator, createReversedEntryComparator(rangeComparator));
+        spliterator = new LmdbReversedSpliterator<>(cursor, rangeComparator);
       }
     }
     return spliterator;
@@ -97,15 +92,10 @@ public class LmdbStream {
     Boolean isFound;
     final KeyVal<T> entry = new KeyVal<>();
     final RangeComparator rangeComparator;
-    final Comparator<KeyVal<T>> entryComparator;
 
-    private LmdbSpliterator(
-        final Cursor<T> cursor,
-        final RangeComparator rangeComparator,
-        final Comparator<KeyVal<T>> entryComparator) {
+    private LmdbSpliterator(final Cursor<T> cursor, final RangeComparator rangeComparator) {
       this.cursor = cursor;
       this.rangeComparator = rangeComparator;
-      this.entryComparator = entryComparator;
     }
 
     @Override
@@ -152,34 +142,25 @@ public class LmdbStream {
 
     @Override
     public final int characteristics() {
-      return Spliterator.ORDERED | Spliterator.DISTINCT | Spliterator.SORTED | Spliterator.NONNULL;
+      // Entries are produced in the DB's key order, but we do not expose a KeyVal comparator, so we
+      // must not advertise SORTED: a SORTED spliterator with a null getComparator() implies the
+      // elements use natural ordering, yet KeyVal does not implement Comparable. DISTINCT is also
+      // dropped because DUPSORT databases can yield multiple entries sharing the same key.
+      return Spliterator.ORDERED | Spliterator.NONNULL;
     }
 
     @Override
     public Comparator<? super KeyVal<T>> getComparator() {
-      return entryComparator;
+      // This spliterator does not report SORTED, so per the Spliterator contract getComparator()
+      // must throw rather than return null.
+      throw new IllegalStateException("Spliterator is ORDERED but not SORTED");
     }
-  }
-
-  private static <T> Comparator<KeyVal<T>> createEntryComparator(
-      final RangeComparator rangeComparator) {
-    return null;
-    //    return (o1, o2) -> comparator.compare(o1.key(), o2.key());
-  }
-
-  private static <T> Comparator<KeyVal<T>> createReversedEntryComparator(
-      final RangeComparator rangeComparator) {
-    return null;
-    //    return (o1, o2) -> comparator.compare(o1.key(), o2.key());
   }
 
   private static class LmdbReversedSpliterator<T> extends LmdbSpliterator<T> {
 
-    private LmdbReversedSpliterator(
-        final Cursor<T> cursor,
-        final RangeComparator rangeComparator,
-        final Comparator<KeyVal<T>> entryComparator) {
-      super(cursor, rangeComparator, entryComparator);
+    private LmdbReversedSpliterator(final Cursor<T> cursor, final RangeComparator rangeComparator) {
+      super(cursor, rangeComparator);
     }
 
     @Override
@@ -190,11 +171,6 @@ public class LmdbStream {
         isFound = cursor.prev();
       }
       return isFound;
-    }
-
-    @Override
-    public Comparator<? super KeyVal<T>> getComparator() {
-      return entryComparator;
     }
   }
 
@@ -209,12 +185,11 @@ public class LmdbStream {
     private LmdbRangeSpliterator(
         final Cursor<T> cursor,
         final RangeComparator rangeComparator,
-        final Comparator<KeyVal<T>> entryComparator,
         final T start,
         final T stop,
         final boolean startInclusive,
         final boolean stopInclusive) {
-      super(cursor, rangeComparator, entryComparator);
+      super(cursor, rangeComparator);
       this.rangeComparator = rangeComparator;
       this.start = start;
       this.stop = stop;
@@ -262,12 +237,11 @@ public class LmdbStream {
     private LmdbRangeReversedSpliterator(
         final Cursor<T> cursor,
         final RangeComparator rangeComparator,
-        final Comparator<KeyVal<T>> entryComparator,
         final T start,
         final T stop,
         final boolean startInclusive,
         final boolean stopInclusive) {
-      super(cursor, rangeComparator, entryComparator);
+      super(cursor, rangeComparator);
       this.rangeComparator = rangeComparator;
       this.start = start;
       this.stop = stop;
@@ -334,7 +308,7 @@ public class LmdbStream {
         final RangeComparator rangeComparator,
         final BufferProxy<T> proxy,
         final T prefix) {
-      super(cursor, rangeComparator, createEntryComparator(rangeComparator));
+      super(cursor, rangeComparator);
       this.proxy = proxy;
       this.prefix = prefix;
     }
@@ -366,7 +340,7 @@ public class LmdbStream {
         final RangeComparator rangeComparator,
         final BufferProxy<T> proxy,
         final T prefix) {
-      super(cursor, rangeComparator, createReversedEntryComparator(rangeComparator));
+      super(cursor, rangeComparator);
       this.proxy = proxy;
       this.prefix = prefix;
 

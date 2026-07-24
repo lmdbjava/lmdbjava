@@ -22,7 +22,7 @@ import jnr.ffi.Pointer;
 
 /**
  * Calls down to mdb_cmp to make use of the comparator that LMDB uses for insertion order. Has a
- * very slight overhead as compared to {@link CursorIterable.JavaRangeComparator}.
+ * very slight overhead as compared to {@link JavaRangeComparator}.
  */
 class LmdbRangeComparator<T> implements RangeComparator {
 

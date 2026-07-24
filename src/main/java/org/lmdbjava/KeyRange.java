@@ -79,6 +79,42 @@ public final class KeyRange<T> {
     this.startKeyInclusive = startKeyInclusive;
     this.stopKeyInclusive = stopKeyInclusive;
     this.directionForward = directionForward;
+    // Derive the equivalent KeyRangeType so getType() is never null for builder-created ranges
+    // (a null type would NPE the legacy CursorIterable path).
+    this.type = deriveType(start, stop, startKeyInclusive, stopKeyInclusive, directionForward);
+  }
+
+  private static KeyRangeType deriveType(
+      final Object start,
+      final Object stop,
+      final boolean startInclusive,
+      final boolean stopInclusive,
+      final boolean forward) {
+    if (start == null && stop == null) {
+      return forward ? FORWARD_ALL : BACKWARD_ALL;
+    }
+    if (stop == null) {
+      if (forward) {
+        return startInclusive ? KeyRangeType.FORWARD_AT_LEAST : KeyRangeType.FORWARD_GREATER_THAN;
+      }
+      return startInclusive ? KeyRangeType.BACKWARD_AT_LEAST : KeyRangeType.BACKWARD_GREATER_THAN;
+    }
+    if (start == null) {
+      if (forward) {
+        return stopInclusive ? KeyRangeType.FORWARD_AT_MOST : KeyRangeType.FORWARD_LESS_THAN;
+      }
+      return stopInclusive ? KeyRangeType.BACKWARD_AT_MOST : KeyRangeType.BACKWARD_LESS_THAN;
+    }
+    if (forward) {
+      if (startInclusive) {
+        return stopInclusive ? KeyRangeType.FORWARD_CLOSED : KeyRangeType.FORWARD_CLOSED_OPEN;
+      }
+      return stopInclusive ? KeyRangeType.FORWARD_OPEN_CLOSED : KeyRangeType.FORWARD_OPEN;
+    }
+    if (startInclusive) {
+      return stopInclusive ? KeyRangeType.BACKWARD_CLOSED : KeyRangeType.BACKWARD_CLOSED_OPEN;
+    }
+    return stopInclusive ? KeyRangeType.BACKWARD_OPEN_CLOSED : KeyRangeType.BACKWARD_OPEN;
   }
 
   private KeyRange(final T prefix) {

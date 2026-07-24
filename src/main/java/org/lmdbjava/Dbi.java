@@ -290,22 +290,17 @@ public final class Dbi<T> {
    * Obtains the name of this database, using the supplied {@link Charset}.
    *
    * @param charset The {@link Charset} to use when converting the DB from a byte[] to a {@link
-   *     String}.
+   *     String} (not null). Unmappable bytes are replaced, as per {@link String#String(byte[],
+   *     Charset)}.
    * @return The name of the database. If this is the unnamed database an empty string will be
    *     returned.
-   * @throws RuntimeException if the name can't be decoded.
    */
   public String getNameAsString(final Charset charset) {
+    requireNonNull(charset);
     if (name == null) {
       return "";
-    } else {
-      // Assume a UTF8 encoding as we don't know, thus swallow if it fails
-      try {
-        return new String(name, requireNonNull(charset));
-      } catch (Exception e) {
-        throw new RuntimeException("Unable to decode database name using charset " + charset);
-      }
     }
+    return new String(name, charset);
   }
 
   private RangeComparator createRangeComparator(
@@ -353,10 +348,29 @@ public final class Dbi<T> {
     }
   }
 
+  /**
+   * Iterate all entries in this database, forwards. See {@link #newIterate(Txn, KeyRange)} for
+   * important notes on single-use, closing, and the reused entry holder.
+   *
+   * @param txn transaction handle (not null; not committed)
+   * @return a single-use, closeable iterable (never null)
+   */
   public LmdbIterable<T> newIterate(final Txn<T> txn) {
     return newIterate(txn, KeyRange.all());
   }
 
+  /**
+   * Iterate the entries in this database over the given {@link KeyRange}.
+   *
+   * <p>The returned {@link LmdbIterable} may be iterated only once and holds a cursor open, so it
+   * MUST be closed (use try-with-resources). As with {@link CursorIterable}, each returned {@link
+   * CursorIterable.KeyVal} is a single reused holder whose contents change as iteration advances;
+   * copy the key/value out if you need to retain it beyond the current step.
+   *
+   * @param txn transaction handle (not null; not committed)
+   * @param keyRange range of keys to iterate (not null)
+   * @return a single-use, closeable iterable (never null)
+   */
   public LmdbIterable<T> newIterate(final Txn<T> txn, final KeyRange<T> keyRange) {
     if (SHOULD_CHECK) {
       requireNonNull(txn);
@@ -393,10 +407,34 @@ public final class Dbi<T> {
     }
   }
 
+  /**
+   * Stream all entries in this database, forwards. See {@link #stream(Txn, KeyRange)} for important
+   * notes on the reused entry holder and closing the stream.
+   *
+   * @param txn transaction handle (not null; not committed)
+   * @return a closeable stream of key/value holders (never null)
+   */
   public Stream<CursorIterable.KeyVal<T>> stream(final Txn<T> txn) {
     return stream(txn, KeyRange.all());
   }
 
+  /**
+   * Stream the entries in this database over the given {@link KeyRange}.
+   *
+   * <p><strong>Important:</strong> the stream emits a single, reused {@link CursorIterable.KeyVal}
+   * holder — every element is the same object, mutated as the cursor advances. This is safe for
+   * one-at-a-time terminal operations (e.g. {@code forEach}), but any operation that retains or
+   * buffers more than one element (e.g. {@code collect(toList())}, {@code sorted()}, {@code
+   * distinct()}) will observe aliased entries. Extract the key/value into your own object within
+   * the pipeline if you need to retain them. The stream is {@code ORDERED} but not {@code SORTED}.
+   *
+   * <p>The returned stream holds a cursor open and MUST be closed; use it in a try-with-resources
+   * block. Valid only for the life of the passed read {@link Txn}.
+   *
+   * @param txn transaction handle (not null; not committed)
+   * @param keyRange range of keys to stream (not null)
+   * @return a closeable stream of key/value holders (never null)
+   */
   public Stream<CursorIterable.KeyVal<T>> stream(final Txn<T> txn, final KeyRange<T> keyRange) {
     if (SHOULD_CHECK) {
       requireNonNull(txn);
