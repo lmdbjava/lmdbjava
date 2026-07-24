@@ -67,7 +67,16 @@ public final class Env<T> implements AutoCloseable {
    */
   public static final boolean SHOULD_CHECK = !getBoolean(DISABLE_CHECKS_PROP);
 
-  private boolean closed;
+  // volatile: close() may run on a different thread than the readers that call checkNotClosed().
+  // Without it there is no happens-before between the write here and those reads, so a reader could
+  // indefinitely observe a stale false (the JIT may even hoist the check out of a hot loop) and
+  // proceed into a native call on a freed env. This does NOT make close() atomic w.r.t. an
+  // in-flight
+  // txnRead()/txnWrite() (the check-then-mdb_txn_begin window in those methods remains); it removes
+  // the pure visibility bug and turns more of those races into a clean AlreadyClosedException
+  // rather
+  // than a JVM crash. See close() for the full lifecycle contract.
+  private volatile boolean closed;
   private final int maxKeySize;
   private final boolean noSubDir;
   private final BufferProxy<T> proxy;
@@ -131,6 +140,31 @@ public final class Env<T> implements AutoCloseable {
    * Close the handle.
    *
    * <p>Will silently return if already closed or never opened.
+   *
+   * <p><strong>Thread-safety / lifecycle contract.</strong> This method is <em>not</em>
+   * synchronized and (consistent with the package-level policy that LmdbJava provides no
+   * concurrency guarantees) it does not coordinate with other threads. Before and during this call
+   * the caller MUST ensure that:
+   *
+   * <ul>
+   *   <li>every {@link Txn}, {@link Cursor} and {@link Dbi} obtained from this environment has
+   *       already been closed; and
+   *   <li>no other thread is executing <em>any</em> operation on this environment or on a handle
+   *       derived from it — including {@link #txnRead()} / {@link #txnWrite()} and reads such as
+   *       {@code Dbi.get}.
+   * </ul>
+   *
+   * <p>Violating this contract is <strong>undefined behaviour that can crash the whole JVM</strong>
+   * ({@code SIGSEGV} on Linux/macOS, {@code EXCEPTION_ACCESS_VIOLATION 0xC0000005} on Windows); it
+   * does <em>not</em> raise a Java exception. The underlying {@code mdb_env_close} unmaps the
+   * memory map, so a transaction still being started or used on another thread then dereferences
+   * freed memory — typically observed as a native crash in {@code mdb_txn_renew0} / {@code
+   * mdb_txn_begin}.
+   *
+   * <p>If you must close an environment while reader threads may still be active, serialise the
+   * close against those readers in application code: e.g. a read/write lock where each reader holds
+   * the read lock for the entire duration of its transaction and {@code close()} holds the write
+   * lock, so the map is never unmapped while a read is in flight.
    */
   @Override
   public void close() {
@@ -568,7 +602,12 @@ public final class Env<T> implements AutoCloseable {
   /**
    * Obtain a read-only transaction.
    *
+   * <p>Must not race a concurrent {@link #close()} on another thread: the closed-check and the
+   * native transaction start are not atomic, so a close occurring between them can crash the JVM
+   * (see {@link #close()}).
+   *
    * @return a read-only transaction
+   * @throws Env.AlreadyClosedException if this environment has already been closed
    */
   public Txn<T> txnRead() {
     checkNotClosed();
@@ -578,7 +617,12 @@ public final class Env<T> implements AutoCloseable {
   /**
    * Obtain a read-write transaction.
    *
+   * <p>Must not race a concurrent {@link #close()} on another thread: the closed-check and the
+   * native transaction start are not atomic, so a close occurring between them can crash the JVM
+   * (see {@link #close()}).
+   *
    * @return a read-write transaction
+   * @throws Env.AlreadyClosedException if this environment has already been closed
    */
   public Txn<T> txnWrite() {
     checkNotClosed();
