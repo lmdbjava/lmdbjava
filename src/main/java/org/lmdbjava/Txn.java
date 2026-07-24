@@ -97,6 +97,9 @@ public final class Txn<T> implements AutoCloseable {
     }
     keyVal.close();
     state = RELEASED;
+    // Balance the registration performed by Env's txn factory when safe close is enabled. No-op
+    // otherwise. Runs once, since the RELEASED guard above makes close() idempotent.
+    env.afterTxnClosed();
   }
 
   /** Commits this transaction. */

@@ -30,6 +30,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -37,6 +38,8 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.LockSupport;
 import java.util.stream.Collectors;
 import jnr.ffi.Pointer;
 import jnr.ffi.byref.IntByReference;
@@ -77,6 +80,16 @@ public final class Env<T> implements AutoCloseable {
   // rather
   // than a JVM crash. See close() for the full lifecycle contract.
   private volatile boolean closed;
+
+  // Opt-in "safe close" (see Builder#setSafeClose). When enabled, live transactions are tracked so
+  // close(Duration) can drain in-flight readers before unmapping instead of risking the JVM crash
+  // documented on close(). All three fields are inert unless safeClose is true, so the default hot
+  // path is byte-for-byte unchanged: liveTxns is null and never touched, and the tracking branches
+  // are guarded by the final safeClose flag.
+  private final boolean safeClose;
+  private volatile boolean closing;
+  private final AtomicInteger liveTxns;
+
   private final int maxKeySize;
   private final boolean noSubDir;
   private final BufferProxy<T> proxy;
@@ -91,7 +104,8 @@ public final class Env<T> implements AutoCloseable {
       final boolean readOnly,
       final boolean noSubDir,
       final Path path,
-      final EnvFlagSet envFlagSet) {
+      final EnvFlagSet envFlagSet,
+      final boolean safeClose) {
     this.proxy = proxy;
     this.readOnly = readOnly;
     this.noSubDir = noSubDir;
@@ -100,6 +114,8 @@ public final class Env<T> implements AutoCloseable {
     this.maxKeySize = LIB.mdb_env_get_maxkeysize(ptr);
     this.path = path;
     this.envFlagSet = envFlagSet;
+    this.safeClose = safeClose;
+    this.liveTxns = safeClose ? new AtomicInteger() : null;
   }
 
   /**
@@ -173,6 +189,89 @@ public final class Env<T> implements AutoCloseable {
     }
     closed = true;
     LIB.mdb_env_close(ptr);
+  }
+
+  /**
+   * Close the handle, first draining any in-flight transactions ("safe close").
+   *
+   * <p>This is the opt-in, thread-safe counterpart to {@link #close()} and requires the environment
+   * to have been built with {@link Builder#setSafeClose(boolean) setSafeClose(true)} (otherwise an
+   * {@link IllegalStateException} is thrown). Unlike {@link #close()} it will <em>not</em> unmap
+   * the memory map while a transaction is still live, so it does not risk the JVM crash described
+   * on {@link #close()}.
+   *
+   * <p>On entry it stops new {@link #txnRead()} / {@link #txnWrite()} calls (they throw {@link
+   * AlreadyClosedException}), then waits up to {@code timeout} for every transaction obtained from
+   * this environment to be closed before calling the native close. If the timeout elapses with
+   * transactions still open it throws {@link CloseTimeoutException} and does <em>not</em> unmap
+   * (leaked or stuck transactions are a caller bug; forcing the unmap would reintroduce the crash).
+   *
+   * <p>Idempotent: returns immediately if the environment is already closed. This method only
+   * tracks transactions created <em>after</em> the environment was opened with safe close enabled;
+   * it cannot police direct native misuse or handles shared across processes.
+   *
+   * @param timeout maximum time to wait for in-flight transactions to drain
+   * @throws IllegalStateException if this environment was not built with safe close enabled
+   * @throws CloseTimeoutException if transactions remain open after {@code timeout}
+   */
+  public void close(final Duration timeout) {
+    requireNonNull(timeout);
+    if (!safeClose) {
+      throw new IllegalStateException(
+          "close(Duration) requires Env.Builder.setSafeClose(true); use close() otherwise");
+    }
+    if (closed) {
+      return;
+    }
+    // Publish "closing" before reading the live count. A reader increments liveTxns before reading
+    // closing (see beforeTxnBeginIfTracked); with both being volatile/atomic this handshake ensures
+    // that if the drain below observes zero live txns, any concurrent reader will observe closing
+    // and back out before it starts a native transaction. So the map is never unmapped under a live
+    // or about-to-start read.
+    closing = true;
+    final long deadlineNanos = System.nanoTime() + timeout.toNanos();
+    while (liveTxns.get() > 0) {
+      if (System.nanoTime() - deadlineNanos >= 0L) {
+        throw new CloseTimeoutException(liveTxns.get());
+      }
+      LockSupport.parkNanos(500_000L); // 0.5 ms; close is rare, so a short poll is fine
+    }
+    closed = true;
+    LIB.mdb_env_close(ptr);
+  }
+
+  /**
+   * Registers a soon-to-begin transaction when safe close is enabled, and returns whether tracking
+   * happened so the caller can balance the count if {@code mdb_txn_begin} then fails. Must be
+   * called before the native transaction start so a concurrent {@link #close(Duration)} cannot
+   * unmap between the check and the begin.
+   */
+  private boolean beforeTxnBeginIfTracked() {
+    if (!safeClose) {
+      return false;
+    }
+    liveTxns.incrementAndGet();
+    if (closing || closed) {
+      liveTxns.decrementAndGet();
+      throw new AlreadyClosedException();
+    }
+    return true;
+  }
+
+  /** Balances {@link #beforeTxnBeginIfTracked()} when a tracked transaction is closed. */
+  void afterTxnClosed() {
+    if (safeClose) {
+      liveTxns.decrementAndGet();
+    }
+  }
+
+  /**
+   * Indicates whether this environment was built with the opt-in safe close enabled.
+   *
+   * @return true if {@link Builder#setSafeClose(boolean)} was set
+   */
+  public boolean isSafeClose() {
+    return safeClose;
   }
 
   /**
@@ -571,7 +670,15 @@ public final class Env<T> implements AutoCloseable {
   @Deprecated
   public Txn<T> txn(final Txn<T> parent, final TxnFlags... flags) {
     checkNotClosed();
-    return new Txn<>(this, parent, proxy, TxnFlagSet.of(flags));
+    final boolean tracked = beforeTxnBeginIfTracked();
+    try {
+      return new Txn<>(this, parent, proxy, TxnFlagSet.of(flags));
+    } catch (final RuntimeException e) {
+      if (tracked) {
+        liveTxns.decrementAndGet();
+      }
+      throw e;
+    }
   }
 
   /**
@@ -582,7 +689,15 @@ public final class Env<T> implements AutoCloseable {
    */
   public Txn<T> txn(final Txn<T> parent) {
     checkNotClosed();
-    return new Txn<>(this, parent, proxy, TxnFlagSet.EMPTY);
+    final boolean tracked = beforeTxnBeginIfTracked();
+    try {
+      return new Txn<>(this, parent, proxy, TxnFlagSet.EMPTY);
+    } catch (final RuntimeException e) {
+      if (tracked) {
+        liveTxns.decrementAndGet();
+      }
+      throw e;
+    }
   }
 
   /**
@@ -596,7 +711,15 @@ public final class Env<T> implements AutoCloseable {
    */
   public Txn<T> txn(final Txn<T> parent, final TxnFlagSet flags) {
     checkNotClosed();
-    return new Txn<>(this, parent, proxy, flags);
+    final boolean tracked = beforeTxnBeginIfTracked();
+    try {
+      return new Txn<>(this, parent, proxy, flags);
+    } catch (final RuntimeException e) {
+      if (tracked) {
+        liveTxns.decrementAndGet();
+      }
+      throw e;
+    }
   }
 
   /**
@@ -611,7 +734,15 @@ public final class Env<T> implements AutoCloseable {
    */
   public Txn<T> txnRead() {
     checkNotClosed();
-    return new Txn<>(this, null, proxy, TxnFlags.MDB_RDONLY_TXN);
+    final boolean tracked = beforeTxnBeginIfTracked();
+    try {
+      return new Txn<>(this, null, proxy, TxnFlags.MDB_RDONLY_TXN);
+    } catch (final RuntimeException e) {
+      if (tracked) {
+        liveTxns.decrementAndGet();
+      }
+      throw e;
+    }
   }
 
   /**
@@ -626,7 +757,15 @@ public final class Env<T> implements AutoCloseable {
    */
   public Txn<T> txnWrite() {
     checkNotClosed();
-    return new Txn<>(this, null, proxy, TxnFlagSet.EMPTY);
+    final boolean tracked = beforeTxnBeginIfTracked();
+    try {
+      return new Txn<>(this, null, proxy, TxnFlagSet.EMPTY);
+    } catch (final RuntimeException e) {
+      if (tracked) {
+        liveTxns.decrementAndGet();
+      }
+      throw e;
+    }
   }
 
   Pointer pointer() {
@@ -707,6 +846,23 @@ public final class Env<T> implements AutoCloseable {
     }
   }
 
+  /**
+   * {@link Env#close(Duration)} timed out because transactions were still open. The environment has
+   * <em>not</em> been closed (its memory map is still mapped); the caller should ensure the
+   * offending transactions are closed and retry, rather than forcing an unsafe {@link Env#close()}.
+   */
+  public static final class CloseTimeoutException extends LmdbException {
+
+    private static final long serialVersionUID = 1L;
+
+    CloseTimeoutException(final int openTransactions) {
+      super(
+          "close(Duration) timed out while "
+              + openTransactions
+              + " transaction(s) were still open");
+    }
+  }
+
   /** Object has already been opened and the operation is therefore prohibited. */
   public static final class AlreadyOpenException extends LmdbException {
 
@@ -735,6 +891,7 @@ public final class Env<T> implements AutoCloseable {
     private boolean opened;
     private final BufferProxy<T> proxy;
     private int mode = POSIX_MODE_DEFAULT;
+    private boolean safeClose;
     private final AbstractFlagSet.Builder<EnvFlags, EnvFlagSet> flagSetBuilder =
         EnvFlagSet.builder();
 
@@ -810,7 +967,7 @@ public final class Env<T> implements AutoCloseable {
         final boolean readOnly = flags.isSet(MDB_RDONLY_ENV);
         final boolean noSubDir = flags.isSet(MDB_NOSUBDIR);
         checkRc(LIB.mdb_env_open(ptr, path.toAbsolutePath().toString(), flags.getMask(), mode));
-        return new Env<>(proxy, ptr, readOnly, noSubDir, path, flags);
+        return new Env<>(proxy, ptr, readOnly, noSubDir, path, flags, safeClose);
       } catch (final LmdbNativeException e) {
         LIB.mdb_env_close(ptr);
         throw e;
@@ -874,6 +1031,27 @@ public final class Env<T> implements AutoCloseable {
         throw new AlreadyOpenException();
       }
       this.maxReaders = readers;
+      return this;
+    }
+
+    /**
+     * Enables the opt-in "safe close" for the resulting {@link Env}.
+     *
+     * <p>When enabled, the environment tracks its live transactions so {@link Env#close(Duration)}
+     * can drain in-flight readers before unmapping, instead of risking the JVM crash described on
+     * {@link Env#close()}. This adds a small amount of bookkeeping on transaction start/close; it
+     * is <strong>disabled by default</strong> so applications that already manage their own
+     * threading (the common low-latency case) pay nothing. It does not change the behaviour of the
+     * no-arg {@link Env#close()}.
+     *
+     * @param safeClose true to enable transaction tracking and {@link Env#close(Duration)}
+     * @return the builder
+     */
+    public Builder<T> setSafeClose(final boolean safeClose) {
+      if (opened) {
+        throw new AlreadyOpenException();
+      }
+      this.safeClose = safeClose;
       return this;
     }
 
