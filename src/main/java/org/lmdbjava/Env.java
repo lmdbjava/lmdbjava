@@ -77,6 +77,9 @@ public final class Env<T> implements AutoCloseable {
   private final boolean readOnly;
   private final Path path;
   private final EnvFlagSet envFlagSet;
+  /**
+   * True if this Env has been created on the basis of only ever being used by a single thread.
+   */
   private final boolean isSingleThreaded;
 
   private Env(
@@ -144,21 +147,24 @@ public final class Env<T> implements AutoCloseable {
    */
   @Deprecated
   public static Env<ByteBuffer> open(final File path, final int size, final EnvFlags... flags) {
-    return new Builder<>(PROXY_OPTIMAL).setMapSize(size, ByteUnit.MEBIBYTES).open(path, flags);
+    return new Builder<>(PROXY_OPTIMAL)
+        .setMapSize(size, ByteUnit.MEBIBYTES)
+        .setEnvFlags(flags)
+        .open(path, flags);
   }
 
   /**
    * Close the handle.
    *
    * <p>Will silently return if already closed or never opened.
+   *
+   * @throws EnvInUseException if a {@link Txn}, {@link Cursor} or {@link Dbi} is still open on this
+   *                           {@link Env}.
    */
   @Override
   public void close() {
-    refCounter.close(this::closeMdbEnv);
-  }
-
-  private void closeMdbEnv() {
-    LIB.mdb_env_close(ptr);
+    refCounter.close(() ->
+        LIB.mdb_env_close(ptr));
   }
 
   /**
@@ -359,6 +365,7 @@ public final class Env<T> implements AutoCloseable {
   /**
    * Indicates if this environment is intended for use by a single thread for its
    * entire life.
+   *
    * @return True if single-threaded
    */
   public boolean isSingleThreaded() {
@@ -646,6 +653,14 @@ public final class Env<T> implements AutoCloseable {
     return resultPtr.intValue();
   }
 
+  /**
+   * Acquire a permit to use this {@link Env}.
+   * Holding the permit will prevent the {@link Env} from being closed before it is released.
+   *
+   * @return A {@link org.lmdbjava.RefCounter.RefCounterReleaser} for releasing the permit once the use
+   * of this {@link Env} is complete.
+   * @throws AlreadyClosedException if this Env is already closed.
+   */
   RefCounter.RefCounterReleaser acquire() {
     return refCounter.acquire();
   }
@@ -987,6 +1002,7 @@ public final class Env<T> implements AutoCloseable {
      * This allows the {@link Env} to make minor optimisations that are not thread-safe, e.g.
      * using primitives rather than thread-safe objects.
      * By default, an Env is considered thread-safe.
+     *
      * @return this builder instance.
      */
     public Builder<T> singleThreaded() {

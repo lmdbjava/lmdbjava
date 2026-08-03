@@ -88,6 +88,8 @@ public final class Txn<T> implements AutoCloseable {
     checkReady();
     state = DONE;
     LIB.mdb_txn_abort(ptr);
+
+    // TODO It is not clear whether this method should call refCounterReleaser.release() like close does
   }
 
   /**
@@ -110,7 +112,7 @@ public final class Txn<T> implements AutoCloseable {
     keyVal.close();
     state = RELEASED;
 
-    release();
+    refCounterReleaser.release();
   }
 
   /** Commits this transaction. */
@@ -256,10 +258,6 @@ public final class Txn<T> implements AutoCloseable {
 
   Pointer pointer() {
     return ptr;
-  }
-
-  void release() {
-    refCounterReleaser.release();
   }
 
   /** Transaction must abort, has a child, or is invalid. */

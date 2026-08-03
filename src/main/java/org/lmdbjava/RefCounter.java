@@ -66,6 +66,9 @@ interface RefCounter {
   @FunctionalInterface
   interface RefCounterReleaser {
 
+    /**
+     * Call this after using the {@link RefCounter} controlled object.
+     */
     void release();
   }
 }
