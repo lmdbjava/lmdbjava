@@ -6,8 +6,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 class StripedRefCounter implements RefCounter {
+  private static final int PROCESSOR_COUNT = Runtime.getRuntime().availableProcessors();
   private static final int MAGIC_ZERO_VALUE = Integer.MIN_VALUE;
   private static final int MAGIC_CLOSED_VALUE = Integer.MAX_VALUE;
+  private static final int MAX_COUNTER_VALUE = Integer.MAX_VALUE - 1;
   private static final int DEFAULT_STRIPES = 64;
   private static final int MAX_STRIPES = 256;
 
@@ -20,7 +22,7 @@ class StripedRefCounter implements RefCounter {
   private final int stripeMask;
 
   StripedRefCounter() {
-    this(DEFAULT_STRIPES);
+    this(Math.min(lowestPowerOfTwoGreaterThanOrEqualTo(PROCESSOR_COUNT), DEFAULT_STRIPES));
   }
 
   StripedRefCounter(final int stripeCount) {
@@ -32,89 +34,126 @@ class StripedRefCounter implements RefCounter {
     }
   }
 
+  public int getStripeCount() {
+    return counters.length;
+  }
+
   @Override
   public boolean isClosed() {
     return isClosed.get();
   }
 
+  @Override
   public RefCounterReleaser acquire() {
     final AtomicInteger counter = counters[getStripeIdx()];
-    try {
-      addToCounter(counter, 1);
-    } catch (final CountInProgressException e) {
-      // Counting is in progress so we need to get a lock which will likely block
+    if (!addToCounter(counter, Delta.PLUS_ONE)) {
+      // Counting is in progress, so we need to get a lock which will likely block
       // until the count is complete
       synchronized (this) {
-        try {
-          addToCounter(counter, 1);
-        } catch (CountInProgressException ex) {
-          throw new IllegalStateException("Should not happen here as we hold the lock", ex);
+        if (!addToCounter(counter, Delta.PLUS_ONE)) {
+          throw new IllegalStateException("Count should not be in progress while we hold the lock");
         }
       }
     }
     return new RefCounterReleaserImpl(this, counter);
   }
 
+  private static int getDefaultStripeCount() {
+    return Math.min(
+        MAX_STRIPES,
+        Math.max(
+            lowestPowerOfTwoGreaterThanOrEqualTo(PROCESSOR_COUNT * 2),
+            DEFAULT_STRIPES));
+  }
+
+  // Pkg private for testing
+
+  /**
+   * Returns the highest power of two that is less than or equal to {@code value}.
+   *
+   * @param value input value, must be positive
+   * @return highest power of two <= value
+   * @throws IllegalArgumentException if {@code value <= 0}
+   */
+  static int highestPowerOfTwoLessThanOrEqualTo(final int value) {
+    if (value <= 0) {
+      throw new IllegalArgumentException("Value must be positive, got: " + value);
+    }
+    return Integer.highestOneBit(value);
+  }
+
+  /**
+   * Returns the lowest power of two that is greater than or equal to {@code value}.
+   *
+   * @param value input value, must be positive
+   * @return lowest power of two >= value
+   * @throws IllegalArgumentException if {@code value <= 0} or the result would overflow an int
+   */
+  static int lowestPowerOfTwoGreaterThanOrEqualTo(final int value) {
+    if (value <= 0) {
+      throw new IllegalArgumentException("Value must be positive, got: " + value);
+    }
+    if (value > (1 << 30)) {
+      throw new IllegalArgumentException(
+          "Value is too large to round up to a positive int power of two, got: " + value);
+    }
+    return value == 1 ? 1 : Integer.highestOneBit(value - 1) << 1;
+  }
+
   private void release(final AtomicInteger counter) {
-    try {
-      addToCounter(counter, -1);
-    } catch (final CountInProgressException e) {
-      // Counting is in progress so we need to get a lock which will likely block
-      // until the count is complete
+    if (!addToCounter(counter, Delta.MINUS_ONE)) {
       synchronized (this) {
-        addToCounter(counter, -1);
+        if (!addToCounter(counter, Delta.MINUS_ONE)) {
+          throw new IllegalStateException("Count should not be in progress while we hold the lock");
+        }
       }
     }
   }
 
   @Override
   public void close(final Runnable onClose) {
-    if (!isClosed.get()) {
-      Objects.requireNonNull(onClose);
+    Objects.requireNonNull(onClose);
 
-      synchronized (this) {
-        // Once we have marked all counters, any threads trying to mutate the counters
-        // will fail, then attempt to get the lock, so will have to wait for us to complete
-        // the count.
-        markCountersAsCountInProgress(); // 0=>MAGIC_ZERO_VALUE else i=>i*-1
+    // close is idempotent so silently drop out
+    if (isClosed.get()) {
+      return;
+    }
 
-//        System.out.println("counters BEFORE: " + Arrays.stream(counters)
-//            .map(AtomicInteger::get)
-//            .map(String::valueOf)
-//            .collect(Collectors.joining(", ")));
+    synchronized (this) {
+      if (isClosed.get()) {
+        return;
+      }
 
-        try {
-          final int totalCount = sumCounters();
-//          System.out.println("totalCount: " + totalCount);
-          if (totalCount == 0) {
-            if (isClosed.compareAndSet(false, true)) {
-              onClose.run();
-              // Mark all counters as closed to prevent any future acquire calls
-              for (AtomicInteger counter : counters) {
-                counter.set(MAGIC_CLOSED_VALUE);
-              }
-            }
-          } else {
-            throw new Env.EnvInUseException(totalCount);
+      // Once we have marked all counters, any threads trying to mutate the counters
+      // will fail, then attempt to get the lock, so will have to wait for us to complete
+      // the count.
+      markCountersAsCountInProgress(); // 0=>MAGIC_ZERO_VALUE else i=>i*-1
+
+      try {
+        final long totalCount = sumCounters();
+        if (totalCount == 0) {
+          // Only mark as closed if the runnable succeeds.
+          onClose.run();
+          isClosed.set(true);
+          // Mark all counters as closed to prevent any future acquire() calls
+          for (AtomicInteger counter : counters) {
+            counter.set(MAGIC_CLOSED_VALUE);
           }
-        } finally {
-          if (!isClosed.get()) {
-            // Return all counters to their original positive values so
-            // acquire/release can resume as normal
-            markCountersAsNoCountInProgress(); // MAGIC_ZERO_VALUE=>0 else i=>i*-1
-
-//            System.out.println("counters AFTER: " + Arrays.stream(counters)
-//                .map(AtomicInteger::get)
-//                .map(String::valueOf)
-//                .collect(Collectors.joining(", ")));
-          }
+        } else {
+          throw new Env.EnvInUseException(totalCount);
+        }
+      } finally {
+        if (!isClosed.get()) {
+          // Return all counters to their original positive values so
+          // acquire/release can resume as normal
+          markCountersAsNoCountInProgress(); // MAGIC_ZERO_VALUE=>0 else i=>i*-1
         }
       }
     }
   }
 
-  private int sumCounters() {
-    int totalCount = 0;
+  private long sumCounters() {
+    long totalCount = 0;
     for (AtomicInteger counter : counters) {
       int count = counter.get();
       if (count == MAGIC_CLOSED_VALUE) {  // Integer.MAX_VALUE
@@ -128,9 +167,11 @@ class StripedRefCounter implements RefCounter {
     return totalCount;
   }
 
-  public int getCount() {
+  @Override
+  public long getCount() {
     checkNotClosed();
     synchronized (this) {
+      checkNotClosed();
       // This will stop any other thread from incrementing/decrementing the counter
       markCountersAsCountInProgress();
       try {
@@ -141,27 +182,36 @@ class StripedRefCounter implements RefCounter {
     }
   }
 
-  private void addToCounter(final AtomicInteger counter, final int delta) {
-    final int newVal = counter.accumulateAndGet(delta, (currVal, delta2) -> {
-      if (currVal == MAGIC_CLOSED_VALUE || currVal < 0) {
-        // Leave unchanged so we can throw once accumulateAndGet returns
-        return currVal;
-      } else {
-        return currVal + delta2;
-      }
-    });
+  /**
+   * @return False if a count is in progress, else true
+   * @throws Env.AlreadyClosedException If this {@link RefCounter} has already been
+   *                                    successfully closed.
+   */
+  private boolean addToCounter(final AtomicInteger counter, final Delta delta) {
+    while (true) {
+      final int currVal = counter.get();
 
-    if (newVal == MAGIC_CLOSED_VALUE) {
-      throw new Env.AlreadyClosedException();
-    } else if (newVal < 0) {
-      throw new CountInProgressException();
+      if (currVal == MAGIC_CLOSED_VALUE) {
+        throw new Env.AlreadyClosedException();
+      } else if (currVal < 0) {
+        // A count is in progress
+        return false;
+      } else if (currVal == MAX_COUNTER_VALUE && delta == Delta.PLUS_ONE) {
+        throw new IllegalStateException("Reference count overflow");
+      } else if (currVal == 0 && delta == Delta.MINUS_ONE) {
+        throw new IllegalStateException("Reference count underflow");
+      }
+
+      final int newVal = currVal + delta.deltaValue;
+      if (counter.compareAndSet(currVal, newVal)) {
+        return true;
+      }
     }
-//    System.out.println("delta: " + delta + ", counters: " + Arrays.stream(counters)
-//        .map(AtomicInteger::get)
-//        .map(String::valueOf)
-//        .collect(Collectors.joining(", ")));
   }
 
+  /**
+   * Must be called while holding the lock on this object.
+   */
   private void markCountersAsNoCountInProgress() {
     for (AtomicInteger counter : counters) {
       // Multiply value by -1 so we can indicate to other threads that a count is in progress
@@ -169,6 +219,10 @@ class StripedRefCounter implements RefCounter {
       counter.updateAndGet(currVal -> {
         if (currVal == MAGIC_ZERO_VALUE) {
           return 0;
+        } else if (currVal == MAGIC_CLOSED_VALUE) {
+          // If this method is used correctly under lock, we should never see this value, but preserve the
+          // closed state just in case
+          return MAGIC_CLOSED_VALUE;
         } else {
           return Math.abs(currVal);
         }
@@ -176,12 +230,19 @@ class StripedRefCounter implements RefCounter {
     }
   }
 
+  /**
+   * Must be called while holding the lock on this object.
+   */
   private void markCountersAsCountInProgress() {
     for (AtomicInteger counter : counters) {
       counter.updateAndGet(currVal -> {
         if (currVal == 0) {
-          // Use a magic value to mark this zero value counter as having a count in progress
+          // Use a magic value to mark this zero-value counter as having a count in progress
           return MAGIC_ZERO_VALUE;
+        } else if (currVal == MAGIC_CLOSED_VALUE) {
+          // If this method is used correctly under lock, we should never see this value, but preserve the
+          // closed state just in case
+          return MAGIC_CLOSED_VALUE;
         } else {
           // Make the value negative to indicate a count in progress
           return Math.abs(currVal) * -1;
@@ -255,11 +316,15 @@ class StripedRefCounter implements RefCounter {
     }
   }
 
-  /**
-   * Thrown when an attempt is made to mutate a counter while a sum of all counters
-   * is being taken.
-   */
-  private static class CountInProgressException extends RuntimeException {
+  private enum Delta {
+    PLUS_ONE(1),
+    MINUS_ONE(-1),
+    ;
 
+    private final int deltaValue;
+
+    Delta(int deltaValue) {
+      this.deltaValue = deltaValue;
+    }
   }
 }

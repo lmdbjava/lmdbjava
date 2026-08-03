@@ -53,7 +53,7 @@ class SynchronisedRefCounter implements RefCounter {
   }
 
   @Override
-  public int getCount() {
+  public long getCount() {
     synchronized (this) {
       return counter;
     }

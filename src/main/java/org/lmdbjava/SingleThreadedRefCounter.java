@@ -41,7 +41,7 @@ public class SingleThreadedRefCounter implements RefCounter {
   public void close(final Runnable onClose) {
     Objects.requireNonNull(onClose);
     if (!isClosed) {
-      final int count = getCount();
+      final long count = getCount();
       if (count == 0) {
         isClosed = true;
         onClose.run();
@@ -57,7 +57,7 @@ public class SingleThreadedRefCounter implements RefCounter {
   }
 
   @Override
-  public int getCount() {
+  public long getCount() {
     return refCount;
   }
 

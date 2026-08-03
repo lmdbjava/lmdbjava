@@ -38,9 +38,8 @@ interface RefCounter {
    * If the reference count is zero, onClose will be called. This {@link RefCounter} will be marked
    * as closed so all future calls to acquire will throw a {@link org.lmdbjava.Env.AlreadyClosedException}.
    * If the count is non-zero, {@link org.lmdbjava.Env.EnvInUseException} will be thrown.
+   * If already closed, this is a no-op.
    * @throws org.lmdbjava.Env.EnvInUseException If the {@link Env} has open transactions/cursors.
-   * @throws org.lmdbjava.Env.AlreadyClosedException If this {@link RefCounter} has already been
-   * successfully closed.
    */
   void close(final Runnable onClose);
 
@@ -62,7 +61,7 @@ interface RefCounter {
    * @return The current count of items in use.
    * @throws org.lmdbjava.Env.AlreadyClosedException If called after it has been successfully closed.
    */
-  int getCount();
+  long getCount();
 
   @FunctionalInterface
   interface RefCounterReleaser {

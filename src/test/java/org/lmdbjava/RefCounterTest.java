@@ -1,6 +1,7 @@
 package org.lmdbjava;
 
 
+import java.text.NumberFormat;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
@@ -14,8 +15,9 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 public class RefCounterTest {
+  private static final int PROCESSOR_COUNT = Runtime.getRuntime().availableProcessors();
   private final int iterations = 20_000_000;
-  private final int threadCount = Runtime.getRuntime().availableProcessors();
+  private final int threadCount = PROCESSOR_COUNT;
   private volatile Object env = new Object();
 
   @Disabled // Manual performance test
@@ -24,11 +26,15 @@ public class RefCounterTest {
     // Do multiple rounds to let it warm up
     for (int i = 1; i <= 3; i++) {
       final int round = i;
+      // Run tests with all available processors
       System.out.println("Multi-threaded (" + threadCount + " threads) tests ---------------------------------");
 
       System.out.println("Round: " + round + " " + StripedRefCounter.class.getSimpleName());
-      IntStream.of(1, 16, 64)
+      IntStream.of(1, 16, 32, 64, 128, 256)
           .forEach(stripes -> runPerfTest(stripes, new StripedRefCounter(stripes)));
+
+      final StripedRefCounter defaultStripedRefCounter = new StripedRefCounter();
+      runPerfTest(defaultStripedRefCounter.getStripeCount(), defaultStripedRefCounter);
 
       System.out.println("Round: " + round + " " + SimpleRefCounter.class.getSimpleName());
       runPerfTest(0, new SimpleRefCounter());
@@ -39,12 +45,15 @@ public class RefCounterTest {
       System.out.println("Round: " + round + " " + NoOpRefCounter.class.getSimpleName());
       runPerfTest(0, new NoOpRefCounter());
 
-      IntStream.of(16, 8, 4, 2)
+
+
+      // Run tests with set numbers of worker threads
+      IntStream.of(32, 16, 8, 4, 2)
           .forEach(threads -> {
             System.out.println("Multi-threaded (" + threads + " threads) tests ---------------------------------");
 
             System.out.println("Round: " + round + " " + StripedRefCounter.class.getSimpleName());
-            IntStream.of(1, 16, 64)
+            IntStream.of(1, 16, 32, 64, 128, 256)
                 .forEach(stripes -> runPerfTest(stripes, threads, new StripedRefCounter(stripes)));
 
             System.out.println("Round: " + round + " " + SimpleRefCounter.class.getSimpleName());
@@ -56,6 +65,8 @@ public class RefCounterTest {
             System.out.println("Round: " + round + " " + NoOpRefCounter.class.getSimpleName());
             runPerfTest(0, threads, new NoOpRefCounter());
           });
+
+
 
       System.out.println("Single-threaded tests ---------------------------------");
 
@@ -126,13 +137,13 @@ public class RefCounterTest {
     CompletableFuture.allOf(futures).join();
 
     final Duration duration = Duration.between(startTime.get(), Instant.now());
-    final double iterationsPerSec = (double) iterations / duration.toMillis() * 1000;
+    final long iterationsPerSec = Math.round((double) iterations / duration.toMillis() * 1000);
 
     System.out.println("All Finished"
         + ", threads: " + threadCount
         + ", iterationsPerThread: " + iterationsPerThread
         + ", duration: " + duration
-        + ", iterationsPerSec: " + iterationsPerSec);
+        + ", iterationsPerSec: " + NumberFormat.getInstance().format(iterationsPerSec));
   }
 
   private void runPerfTest(int stripes, final RefCounter refCounter) {
@@ -171,14 +182,15 @@ public class RefCounterTest {
     }
 
     final Duration duration = Duration.between(startTime.get(), Instant.now());
-    final double iterationsPerSec = (double) iterations / duration.toMillis() * 1000;
+    final long iterationsPerSec = Math.round((double) iterations / duration.toMillis() * 1000);
+
 
     System.out.println("All Finished"
         + ", stripes: " + stripes
         + ", threads: " + threadCount
         + ", iterationsPerThread: " + iterationsPerThread
         + ", duration: " + duration
-        + ", iterationsPerSec: " + iterationsPerSec);
+        + ", iterationsPerSec: " + NumberFormat.getInstance().format(iterationsPerSec));
   }
 
   private void countDownThenAwait(final CountDownLatch latch) {

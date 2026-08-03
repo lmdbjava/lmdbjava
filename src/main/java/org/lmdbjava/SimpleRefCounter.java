@@ -48,7 +48,7 @@ class SimpleRefCounter implements RefCounter {
   }
 
   @Override
-  public int getCount() {
+  public long getCount() {
     return Math.max(0, counter.get());
   }
 }

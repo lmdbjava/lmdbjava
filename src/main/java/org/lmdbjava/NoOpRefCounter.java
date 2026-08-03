@@ -30,7 +30,7 @@ public class NoOpRefCounter implements RefCounter {
   }
 
   @Override
-  public int getCount() {
+  public long getCount() {
     return 0;
   }
 }

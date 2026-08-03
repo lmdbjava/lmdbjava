@@ -140,7 +140,7 @@ class StripedRefCounterTest {
             releasers.add(releaser);
             callCounts[i].getAndIncrement();
             futures.add(CompletableFuture.runAsync(() -> {
-              final int count = stripedRefCounter.getCount();
+              final long count = stripedRefCounter.getCount();
 //              System.out.println(Thread.currentThread() + " - getting count: " + count);
               assertThat(count)
                   .isNotEqualTo(0);
@@ -150,7 +150,7 @@ class StripedRefCounterTest {
         .forEach(CompletableFuture::join);
 
     assertThat(stripedRefCounter.getCount())
-        .isEqualTo(threads * iterations);
+        .isEqualTo((long) threads * iterations);
 
     for (AtomicInteger callCount : callCounts) {
       assertThat(callCount)
@@ -397,6 +397,131 @@ class StripedRefCounterTest {
         throw new IllegalStateException("Ref count is " + refCounter.getCount());
       }
     }
+  }
+
+  @Test
+  void getCountRacingWithCloseDoesNotReturnZeroAfterClose() {
+    final StripedRefCounter refCounter = new StripedRefCounter();
+    final AtomicInteger onCloseCallCount = new AtomicInteger();
+
+    refCounter.close(onCloseCallCount::incrementAndGet);
+
+    assertThatThrownBy(refCounter::getCount)
+        .isInstanceOf(Env.AlreadyClosedException.class);
+  }
+
+  @Test
+  void failedOnCloseDoesNotCloseOrCorruptCounter() {
+    final StripedRefCounter refCounter = new StripedRefCounter();
+
+    assertThatThrownBy(() -> refCounter.close(() -> {
+      throw new RuntimeException("boom");
+    })).isInstanceOf(RuntimeException.class);
+
+    assertThat(refCounter.isClosed()).isFalse();
+
+    final RefCounter.RefCounterReleaser releaser = refCounter.acquire();
+    assertThat(refCounter.getCount()).isEqualTo(1);
+    releaser.release();
+    assertThat(refCounter.getCount()).isEqualTo(0);
+  }
+
+  @Test
+  void concurrentCloseIsIdempotent() {
+    final StripedRefCounter refCounter = new StripedRefCounter();
+    final AtomicInteger onCloseCallCount = new AtomicInteger();
+
+    final CountDownLatch startLatch = new CountDownLatch(2);
+
+    final CompletableFuture<Void> first = CompletableFuture.runAsync(() -> {
+      countDownThenAwait(startLatch);
+      refCounter.close(onCloseCallCount::incrementAndGet);
+    });
+    final CompletableFuture<Void> second = CompletableFuture.runAsync(() -> {
+      countDownThenAwait(startLatch);
+      refCounter.close(onCloseCallCount::incrementAndGet);
+    });
+
+    CompletableFuture.allOf(first, second).join();
+
+    assertThat(onCloseCallCount).hasValue(1);
+    assertThat(refCounter.isClosed()).isTrue();
+    assertThatThrownBy(refCounter::acquire)
+        .isInstanceOf(Env.AlreadyClosedException.class);
+  }
+
+  @Test
+  void highestPowerOfTwoLessThanOrEqualTo() {
+    // Test powers of two
+    assertThat(StripedRefCounter.highestPowerOfTwoLessThanOrEqualTo(1))
+        .isEqualTo(1);
+    assertThat(StripedRefCounter.highestPowerOfTwoLessThanOrEqualTo(2))
+        .isEqualTo(2);
+    assertThat(StripedRefCounter.highestPowerOfTwoLessThanOrEqualTo(4))
+        .isEqualTo(4);
+    assertThat(StripedRefCounter.highestPowerOfTwoLessThanOrEqualTo(8))
+        .isEqualTo(8);
+    assertThat(StripedRefCounter.highestPowerOfTwoLessThanOrEqualTo(16))
+        .isEqualTo(16);
+    assertThat(StripedRefCounter.highestPowerOfTwoLessThanOrEqualTo(1024))
+        .isEqualTo(1024);
+
+    // Test non-powers of two
+    assertThat(StripedRefCounter.highestPowerOfTwoLessThanOrEqualTo(3))
+        .isEqualTo(2);
+    assertThat(StripedRefCounter.highestPowerOfTwoLessThanOrEqualTo(5))
+        .isEqualTo(4);
+    assertThat(StripedRefCounter.highestPowerOfTwoLessThanOrEqualTo(7))
+        .isEqualTo(4);
+    assertThat(StripedRefCounter.highestPowerOfTwoLessThanOrEqualTo(15))
+        .isEqualTo(8);
+    assertThat(StripedRefCounter.highestPowerOfTwoLessThanOrEqualTo(100))
+        .isEqualTo(64);
+    assertThat(StripedRefCounter.highestPowerOfTwoLessThanOrEqualTo(1000))
+        .isEqualTo(512);
+
+    // Test edge cases
+    assertThat(StripedRefCounter.highestPowerOfTwoLessThanOrEqualTo(Integer.MAX_VALUE))
+        .isEqualTo(1073741824);
+  }
+
+  @Test
+  void lowestPowerOfTwoGreaterThanOrEqualTo() {
+    // Test powers of two
+    assertThat(StripedRefCounter.lowestPowerOfTwoGreaterThanOrEqualTo(1))
+        .isEqualTo(1);
+    assertThat(StripedRefCounter.lowestPowerOfTwoGreaterThanOrEqualTo(2))
+        .isEqualTo(2);
+    assertThat(StripedRefCounter.lowestPowerOfTwoGreaterThanOrEqualTo(4))
+        .isEqualTo(4);
+    assertThat(StripedRefCounter.lowestPowerOfTwoGreaterThanOrEqualTo(8))
+        .isEqualTo(8);
+    assertThat(StripedRefCounter.lowestPowerOfTwoGreaterThanOrEqualTo(16))
+        .isEqualTo(16);
+    assertThat(StripedRefCounter.lowestPowerOfTwoGreaterThanOrEqualTo(1024))
+        .isEqualTo(1024);
+
+    // Test non-powers of two
+    assertThat(StripedRefCounter.lowestPowerOfTwoGreaterThanOrEqualTo(3))
+        .isEqualTo(4);
+    assertThat(StripedRefCounter.lowestPowerOfTwoGreaterThanOrEqualTo(5))
+        .isEqualTo(8);
+    assertThat(StripedRefCounter.lowestPowerOfTwoGreaterThanOrEqualTo(7))
+        .isEqualTo(8);
+    assertThat(StripedRefCounter.lowestPowerOfTwoGreaterThanOrEqualTo(15))
+        .isEqualTo(16);
+    assertThat(StripedRefCounter.lowestPowerOfTwoGreaterThanOrEqualTo(24))
+        .isEqualTo(32);
+    assertThat(StripedRefCounter.lowestPowerOfTwoGreaterThanOrEqualTo(100))
+        .isEqualTo(128);
+    assertThat(StripedRefCounter.lowestPowerOfTwoGreaterThanOrEqualTo(1000))
+        .isEqualTo(1024);
+
+    // Test edge cases
+    assertThat(StripedRefCounter.lowestPowerOfTwoGreaterThanOrEqualTo(536870912))
+        .isEqualTo(536870912);
+    assertThat(StripedRefCounter.lowestPowerOfTwoGreaterThanOrEqualTo(536870913))
+        .isEqualTo(1073741824);
   }
 
   private void countDownThenAwait(final CountDownLatch latch) {
