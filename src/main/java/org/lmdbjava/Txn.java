@@ -93,7 +93,7 @@ public final class Txn<T> implements AutoCloseable {
   }
 
   /**
-   * Closes this transaction by aborting if not already committed.
+   * Closes this transaction. Any uncommitted work will be aborted first.
    *
    * <p>Closing the transaction will invoke {@link BufferProxy#deallocate(java.lang.Object)} for
    * each read-only buffer (ie the key and value).
@@ -311,7 +311,8 @@ public final class Txn<T> implements AutoCloseable {
 
     /** Creates a new instance. */
     public NotReadyException() {
-      super("Transaction is not in ready state");
+      super("Transaction is not in ready state, i.e. it has been closed/committed/aborted/reset. " +
+          "You may see this if have you tried to close a cursor after committing the transaction?");
     }
   }
 

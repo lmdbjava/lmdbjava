@@ -38,6 +38,8 @@ import org.lmdbjava.KeyRangeType.IteratorOp;
  *
  * <p>An instance will create and close its own cursor.
  *
+ * <p>Not thread safe.</p>
+ *
  * @param <T> buffer type
  */
 public final class CursorIterable<T> implements Iterable<CursorIterable.KeyVal<T>>, AutoCloseable {

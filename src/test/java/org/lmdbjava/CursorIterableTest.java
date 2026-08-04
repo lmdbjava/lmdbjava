@@ -115,12 +115,13 @@ public final class CursorIterableTest {
   }
 
   private void populateDatabase(final Dbi<ByteBuffer> dbi) {
-    try (Txn<ByteBuffer> txn = env.txnWrite();
-         final Cursor<ByteBuffer> cursor = dbi.openCursor(txn)) {
-      cursor.put(bb(2), bb(3), MDB_NOOVERWRITE);
-      cursor.put(bb(4), bb(5));
-      cursor.put(bb(6), bb(7));
-      cursor.put(bb(8), bb(9));
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
+      try (final Cursor<ByteBuffer> cursor = dbi.openCursor(txn)) {
+        cursor.put(bb(2), bb(3), MDB_NOOVERWRITE);
+        cursor.put(bb(4), bb(5));
+        cursor.put(bb(6), bb(7));
+        cursor.put(bb(8), bb(9));
+      }
       txn.commit();
     }
   }

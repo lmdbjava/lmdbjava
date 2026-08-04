@@ -6,16 +6,13 @@ package org.lmdbjava;
  */
 interface RefCounter {
 
-  @SuppressWarnings("Convert2Lambda")
-  RefCounterReleaser NO_OP_RELEASER = new RefCounterReleaser() {
-    @Override
-    public void release() {
-      // No-op
-    }
+  RefCounterReleaser NO_OP_RELEASER = () -> {
+    // No-op
   };
 
   /**
    * Call this before using the {@link RefCounter} controlled object.
+   *
    * @return A {@link RefCounterReleaser} to release once the work is complete
    */
   RefCounterReleaser acquire();
@@ -28,7 +25,7 @@ interface RefCounter {
       final RefCounterReleaser releaser = acquire();
       try {
         runnable.run();
-      }  finally {
+      } finally {
         releaser.release();
       }
     }
@@ -39,6 +36,7 @@ interface RefCounter {
    * as closed so all future calls to acquire will throw a {@link org.lmdbjava.Env.AlreadyClosedException}.
    * If the count is non-zero, {@link org.lmdbjava.Env.EnvInUseException} will be thrown.
    * If already closed, this is a no-op.
+   *
    * @throws org.lmdbjava.Env.EnvInUseException If the {@link Env} has open transactions/cursors.
    */
   void close(final Runnable onClose);

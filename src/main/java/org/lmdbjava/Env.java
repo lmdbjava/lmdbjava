@@ -739,7 +739,8 @@ public final class Env<T> implements AutoCloseable {
     }
 
     public EnvInUseException(final long count) {
-      super("Environment has " + count + " open transaction(s)/cursor(s) so cannot be closed.");
+      super("Environment has " + count + " open transaction(s)/cursor(s) so cannot be closed. " +
+          "Close them then retry.");
     }
   }
 

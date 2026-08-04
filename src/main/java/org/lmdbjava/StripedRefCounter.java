@@ -3,7 +3,6 @@ package org.lmdbjava;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 
 class StripedRefCounter implements RefCounter {
   private static final int PROCESSOR_COUNT = Runtime.getRuntime().availableProcessors();
@@ -26,7 +25,7 @@ class StripedRefCounter implements RefCounter {
    */
   private static final int MAX_STRIPES = 256;
 
-  private final AtomicInteger[] counters;
+  private final Stripe[] counters;
   private final AtomicBoolean isClosed = new AtomicBoolean(false);
   /**
    * Bit mask for fast stripe index calculation. Equal to (stripeCount - 1).
@@ -41,9 +40,9 @@ class StripedRefCounter implements RefCounter {
   StripedRefCounter(final int stripeCount) {
     validateStripeCount(stripeCount);
     this.stripeMask = stripeCount - 1;
-    this.counters = new AtomicInteger[stripeCount];
+    this.counters = new Stripe[stripeCount];
     for (int i = 0; i < stripeCount; i++) {
-      counters[i] = new AtomicInteger(0);
+      counters[i] = new Stripe(this);
     }
   }
 
@@ -56,9 +55,18 @@ class StripedRefCounter implements RefCounter {
     return isClosed.get();
   }
 
+  private AtomicInteger getCounterForThisThread() {
+    return counters[getStripeIdx()].counter;
+  }
+
+  private Stripe getStripeForThisThread() {
+    return counters[getStripeIdx()];
+  }
+
   @Override
   public RefCounterReleaser acquire() {
-    final AtomicInteger counter = counters[getStripeIdx()];
+    final Stripe stripe = getStripeForThisThread();
+    final AtomicInteger counter = stripe.counter;
     if (!addToCounter(counter, Delta.PLUS_ONE)) {
       // Counting is in progress, so we need to get a lock which will likely block
       // until the count is complete
@@ -68,7 +76,7 @@ class StripedRefCounter implements RefCounter {
         }
       }
     }
-    return new RefCounterReleaserImpl(this, counter);
+    return stripe.createReleaser();
   }
 
   private static int getDefaultStripeCount() {
@@ -141,8 +149,8 @@ class StripedRefCounter implements RefCounter {
           // Only mark as closed if the runnable succeeds.
           isClosed.set(true);
           // Mark all counters as closed to prevent any future acquire() calls
-          for (final AtomicInteger counter : counters) {
-            counter.set(MAGIC_CLOSED_VALUE);
+          for (final Stripe stripe : counters) {
+            stripe.counter.set(MAGIC_CLOSED_VALUE);
           }
         } else {
           throw new Env.EnvInUseException(totalCount);
@@ -163,8 +171,8 @@ class StripedRefCounter implements RefCounter {
    */
   private long sumCounters() {
     long totalCount = 0;
-    for (AtomicInteger counter : counters) {
-      int count = counter.get();
+    for (Stripe stripe : counters) {
+      int count = stripe.counter.get();
       if (count == MAGIC_CLOSED_VALUE) {  // Integer.MAX_VALUE
         throw new Env.AlreadyClosedException();
       } else if (count != MAGIC_ZERO_VALUE) {  // Integer.MIN_VALUE
@@ -234,10 +242,10 @@ class StripedRefCounter implements RefCounter {
    * Must be called while holding the lock on this object.
    */
   private void markCountersAsNoCountInProgress() {
-    for (AtomicInteger counter : counters) {
+    for (Stripe stripe : counters) {
       // Multiply value by -1 so we can indicate to other threads that a count is in progress
       // while maintaining the count. Have to use a special replacement value for zero.
-      counter.updateAndGet(currVal -> {
+      stripe.counter.updateAndGet(currVal -> {
         if (currVal == MAGIC_ZERO_VALUE) {
           return 0;
         } else if (currVal == MAGIC_CLOSED_VALUE) {
@@ -261,8 +269,8 @@ class StripedRefCounter implements RefCounter {
     // We will then get a sum that includes the increment from their acquire() call.
     // They will be blocked from calling release() until markCountersAsNoCountInProgress() has
     // been called by us.
-    for (AtomicInteger counter : counters) {
-      counter.updateAndGet(currVal -> {
+    for (final Stripe stripe : counters) {
+      stripe.counter.updateAndGet(currVal -> {
         if (currVal == 0) {
           // Use a magic value to mark this zero-value counter as having a count in progress
           return MAGIC_ZERO_VALUE;
@@ -322,27 +330,6 @@ class StripedRefCounter implements RefCounter {
     return (int) ((threadId ^ (threadId >>> 31)) & stripeMask);
   }
 
-  private static class RefCounterReleaserImpl implements RefCounterReleaser {
-
-    private final AtomicReference<StripedRefCounter> refCounterRef;
-    private final AtomicInteger counter;
-
-    private RefCounterReleaserImpl(final StripedRefCounter refCounter,
-                                   final AtomicInteger counter) {
-      this.refCounterRef = new AtomicReference<>(refCounter);
-      this.counter = counter;
-    }
-
-    @Override
-    public void release() {
-      // Prevent duplicate release calls
-      final StripedRefCounter refCounter = refCounterRef.getAndSet(null);
-      if (refCounter != null) {
-        refCounter.release(counter);
-      }
-    }
-  }
-
   private enum Delta {
     PLUS_ONE(1),
     MINUS_ONE(-1),
@@ -356,12 +343,22 @@ class StripedRefCounter implements RefCounter {
   }
 
   private static class Stripe {
-    private final StripedRefCounter stRefCounter;
+    private final StripedRefCounter stripedRefCounter;
     private final AtomicInteger counter;
 
-    Stripe(StripedRefCounter stRefCounter) {
-      this.stRefCounter = stRefCounter;
+    Stripe(StripedRefCounter stripedRefCounter) {
+      this.stripedRefCounter = stripedRefCounter;
       this.counter = new AtomicInteger();
+    }
+
+    RefCounterReleaser createReleaser() {
+      final AtomicBoolean hasReleased = new AtomicBoolean(false);
+      return () -> {
+        // Prevent duplicate release calls
+        if (hasReleased.compareAndSet(false, true)) {
+          stripedRefCounter.release(counter);
+        }
+      };
     }
   }
 }

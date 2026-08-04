@@ -304,8 +304,8 @@ class StripedRefCounterTest {
           .hasNullValue();
       assertThat(refCounter.isClosed())
           .isEqualTo(true);
-      assertThatThrownBy(refCounter::getCount)
-          .isInstanceOf(Env.AlreadyClosedException.class);
+      assertThat(refCounter.getCount())
+          .isZero();
       assertThatThrownBy(refCounter::acquire)
           .isInstanceOf(Env.AlreadyClosedException.class);
       assertThat(onCloseCallCount)
@@ -406,8 +406,8 @@ class StripedRefCounterTest {
 
     refCounter.close(onCloseCallCount::incrementAndGet);
 
-    assertThatThrownBy(refCounter::getCount)
-        .isInstanceOf(Env.AlreadyClosedException.class);
+    assertThat(refCounter.getCount())
+        .isZero();
   }
 
   @Test

@@ -47,10 +47,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.lmdbjava.Cursor.ClosedException;
-import org.lmdbjava.Txn.NotReadyException;
 import org.lmdbjava.Txn.ReadOnlyRequiredException;
 
-/** Test {@link Cursor}. */
+/**
+ * Test {@link Cursor}.
+ */
 public final class CursorTest {
 
   private Env<ByteBuffer> env;
@@ -60,13 +61,13 @@ public final class CursorTest {
   void beforeEach() {
     tempDir = new TempDir();
     Path file = tempDir.createTempFile();
-    env =
-        create(PROXY_OPTIMAL)
-            .setMapSize(1, ByteUnit.MEBIBYTES)
-            .setMaxReaders(1)
-            .setMaxDbs(1)
-            .setEnvFlags(MDB_NOSUBDIR)
-            .open(file);
+    env = create(PROXY_OPTIMAL)
+        .setMapSize(1, ByteUnit.MEBIBYTES)
+        .setMaxReaders(1)
+        .setMaxDbs(1)
+        .setEnvFlags(MDB_NOSUBDIR)
+        .setSafeClose()
+        .open(file);
   }
 
   @AfterEach
@@ -78,104 +79,104 @@ public final class CursorTest {
   @Test
   void closedCursorRejectsSubsequentGets() {
     assertThatThrownBy(
-            () -> {
-              final Dbi<ByteBuffer> db =
-                  env.createDbi()
-                      .setDbName(DB_1)
-                      .withDefaultComparator()
-                      .setDbiFlags(MDB_CREATE)
-                      .open();
-              try (Txn<ByteBuffer> txn = env.txnWrite()) {
-                final Cursor<ByteBuffer> c = db.openCursor(txn);
-                c.close();
-                c.seek(MDB_FIRST);
-              }
-            })
+        () -> {
+          final Dbi<ByteBuffer> db =
+              env.createDbi()
+                  .setDbName(DB_1)
+                  .withDefaultComparator()
+                  .setDbiFlags(MDB_CREATE)
+                  .open();
+          try (Txn<ByteBuffer> txn = env.txnWrite()) {
+            final Cursor<ByteBuffer> c = db.openCursor(txn);
+            c.close();
+            c.seek(MDB_FIRST);
+          }
+        })
         .isInstanceOf(ClosedException.class);
   }
 
   @Test
   void closedEnvRejectsSeekFirstCall() {
     assertThatThrownBy(
-            () -> {
-              doEnvClosedTest(null, c -> c.seek(MDB_FIRST));
-            })
+        () -> {
+          doEnvClosedTest(null, c -> c.seek(MDB_FIRST));
+        })
         .isInstanceOf(Env.EnvInUseException.class);
   }
 
   @Test
   void closedEnvRejectsSeekLastCall() {
     assertThatThrownBy(
-            () -> {
-              doEnvClosedTest(null, c -> c.seek(MDB_LAST));
-            })
+        () -> {
+          doEnvClosedTest(null, c -> c.seek(MDB_LAST));
+        })
         .isInstanceOf(Env.EnvInUseException.class);
   }
 
   @Test
   void closedEnvRejectsSeekNextCall() {
     assertThatThrownBy(
-            () -> {
-              doEnvClosedTest(null, c -> c.seek(MDB_NEXT));
-            })
+        () -> {
+          doEnvClosedTest(null, c -> c.seek(MDB_NEXT));
+        })
         .isInstanceOf(Env.EnvInUseException.class);
   }
 
   @Test
   void closedEnvRejectsCloseCall() {
     assertThatThrownBy(
-            () -> {
-              doEnvClosedTest(null, Cursor::close);
-            })
+        () -> {
+          doEnvClosedTest(null, Cursor::close);
+        })
         .isInstanceOf(Env.EnvInUseException.class);
   }
 
   @Test
   void closedEnvRejectsFirstCall() {
     assertThatThrownBy(
-            () -> {
-              doEnvClosedTest(null, Cursor::first);
-            })
+        () -> {
+          doEnvClosedTest(null, Cursor::first);
+        })
         .isInstanceOf(Env.EnvInUseException.class);
   }
 
   @Test
   void closedEnvRejectsLastCall() {
     assertThatThrownBy(
-            () -> {
-              doEnvClosedTest(null, Cursor::last);
-            })
+        () -> {
+          doEnvClosedTest(null, Cursor::last);
+        })
         .isInstanceOf(Env.EnvInUseException.class);
   }
 
   @Test
   void closedEnvRejectsPrevCall() {
     assertThatThrownBy(
-            () -> {
-              doEnvClosedTest(
-                  c -> {
-                    c.first();
-                    assertThat(c.key().getInt()).isEqualTo(1);
-                    assertThat(c.val().getInt()).isEqualTo(10);
-                    c.next();
-                  },
-                  Cursor::prev);
-            })
+        () -> {
+          doEnvClosedTest(
+              c -> {
+                c.first();
+                assertThat(c.key().getInt()).isEqualTo(1);
+                assertThat(c.val().getInt()).isEqualTo(10);
+                c.next();
+              },
+              Cursor::prev);
+        })
         .isInstanceOf(Env.EnvInUseException.class);
   }
 
   @Test
   void closedEnvRejectsDeleteCall() {
     assertThatThrownBy(
-            () -> {
-              doEnvClosedTest(
-                  c -> {
-                    c.first();
-                    assertThat(c.key().getInt()).isEqualTo(1);
-                    assertThat(c.val().getInt()).isEqualTo(10);
-                  },
-                  Cursor::delete);
-            })
+        () -> {
+          doEnvClosedTest(
+              c -> {
+                c.first();
+                assertThat(c.key().getInt()).isEqualTo(1);
+                assertThat(c.val().getInt()).isEqualTo(10);
+              },
+              Cursor::delete);
+        })
         .isInstanceOf(Env.EnvInUseException.class);
   }
 
@@ -188,7 +189,7 @@ public final class CursorTest {
             .setDbiFlags(MDB_CREATE, MDB_DUPSORT)
             .open();
     try (Txn<ByteBuffer> txn = env.txnWrite();
-        Cursor<ByteBuffer> c = db.openCursor(txn)) {
+         Cursor<ByteBuffer> c = db.openCursor(txn)) {
       c.put(bb(1), bb(2), MDB_APPENDDUP);
       assertThat(c.count()).isEqualTo(1L);
       c.put(bb(1), bb(4), MDB_APPENDDUP);
@@ -205,7 +206,7 @@ public final class CursorTest {
     final Dbi<ByteBuffer> db =
         env.createDbi().setDbName(DB_1).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
     try (Txn<ByteBuffer> txn = env.txnWrite();
-        Cursor<ByteBuffer> c = db.openCursor(txn)) {
+         Cursor<ByteBuffer> c = db.openCursor(txn)) {
       assertThat(c.put(bb(1), bb(2), MDB_NOOVERWRITE)).isTrue();
       assertThat(c.put(bb(1), bb(4))).isTrue();
       assertThat(c.put(bb(1), bb(6), PutFlagSet.EMPTY)).isTrue();
@@ -224,28 +225,38 @@ public final class CursorTest {
     }
   }
 
-  @Disabled // close() method changed to only do the mdb_cursor_close call if in the right txn state
+  @Disabled // Disabled because we have no way to close the env in afterEach() because we
+  // can't close the cursor. This is trying to test something that you shouldn't do and that
+  // leaves
   @Test
   void cursorCannotCloseIfTransactionCommitted() {
-    assertThatThrownBy(
-            () -> {
-              final Dbi<ByteBuffer> db =
-                  env.createDbi()
-                      .setDbName(DB_1)
-                      .withDefaultComparator()
-                      .setDbiFlags(MDB_CREATE, MDB_DUPSORT)
-                      .open();
-              try (Txn<ByteBuffer> txn = env.txnWrite()) {
-                try (Cursor<ByteBuffer> c = db.openCursor(txn); ) {
-                  c.put(bb(1), bb(2), MDB_APPENDDUP);
-                  assertThat(c.count()).isEqualTo(1L);
-                  c.put(bb(1), bb(4), MDB_APPENDDUP);
-                  assertThat(c.count()).isEqualTo(2L);
-                  txn.commit();
-                }
-              }
-            })
-        .isInstanceOf(NotReadyException.class);
+    final Dbi<ByteBuffer> db =
+        env.createDbi()
+            .setDbName(DB_1)
+            .withDefaultComparator()
+            .setDbiFlags(MDB_CREATE, MDB_DUPSORT)
+            .open();
+
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
+      Cursor<ByteBuffer> c = db.openCursor(txn);
+      c.put(bb(1), bb(2), MDB_APPENDDUP);
+      assertThat(c.count()).isEqualTo(1L);
+      c.put(bb(1), bb(4), MDB_APPENDDUP);
+      assertThat(c.count()).isEqualTo(2L);
+
+      assertThat(txn.isReady())
+          .isTrue();
+
+      txn.commit();
+
+      assertThat(txn.isReady())
+          .isFalse();
+
+      // Cursor is not in a ready state to be closed because we have committed
+      // This makes it impossible to close the cursor and thus the env
+      assertThatThrownBy(c::close)
+          .isInstanceOf(Txn.NotReadyException.class);
+    }
   }
 
   @Test
@@ -253,7 +264,7 @@ public final class CursorTest {
     final Dbi<ByteBuffer> db =
         env.createDbi().setDbName(DB_1).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
     try (Txn<ByteBuffer> txn = env.txnWrite();
-        Cursor<ByteBuffer> c = db.openCursor(txn)) {
+         Cursor<ByteBuffer> c = db.openCursor(txn)) {
       c.put(bb(1), bb(2), MDB_NOOVERWRITE);
       c.put(bb(3), bb(4));
       c.put(bb(5), bb(6));
@@ -287,7 +298,7 @@ public final class CursorTest {
             .setDbiFlags(MDB_CREATE, MDB_DUPSORT)
             .open();
     try (Txn<ByteBuffer> txn = env.txnWrite();
-        Cursor<ByteBuffer> c = db.openCursor(txn)) {
+         Cursor<ByteBuffer> c = db.openCursor(txn)) {
       c.put(bb(1), bb(2), MDB_NOOVERWRITE);
       c.put(bb(3), bb(4));
       assertThat(c.seek(MDB_FIRST)).isTrue();
@@ -311,7 +322,7 @@ public final class CursorTest {
             .setDbiFlags(MDB_CREATE, MDB_DUPSORT)
             .open();
     try (Txn<ByteBuffer> txn = env.txnWrite();
-        Cursor<ByteBuffer> c = db.openCursor(txn)) {
+         Cursor<ByteBuffer> c = db.openCursor(txn)) {
       c.put(bb(1), bb(2), MDB_NOOVERWRITE);
       c.put(bb(3), bb(4));
       assertThat(c.seek(MDB_FIRST)).isTrue();
@@ -335,7 +346,7 @@ public final class CursorTest {
             .setDbiFlags(MDB_CREATE, MDB_DUPSORT)
             .open();
     try (Txn<ByteBuffer> txn = env.txnWrite();
-        Cursor<ByteBuffer> c = db.openCursor(txn)) {
+         Cursor<ByteBuffer> c = db.openCursor(txn)) {
       c.put(bb(1), bb(2), MDB_NOOVERWRITE);
       c.put(bb(3), bb(4));
       assertThat(c.seek(MDB_FIRST)).isTrue();
@@ -359,7 +370,7 @@ public final class CursorTest {
             .setDbiFlags(MDB_CREATE, MDB_DUPSORT)
             .open();
     try (Txn<ByteBuffer> txn = env.txnWrite();
-        Cursor<ByteBuffer> c = db.openCursor(txn)) {
+         Cursor<ByteBuffer> c = db.openCursor(txn)) {
       c.put(bb(1), bb(2), MDB_APPENDDUP);
       c.put(bb(1), bb(4), MDB_APPENDDUP);
       c.put(bb(1), bb(6), MDB_APPENDDUP);
@@ -395,7 +406,7 @@ public final class CursorTest {
     final int key = 100;
     final ByteBuffer k = bb(key);
     try (Txn<ByteBuffer> txn = env.txnWrite();
-        Cursor<ByteBuffer> c = db.openCursor(txn)) {
+         Cursor<ByteBuffer> c = db.openCursor(txn)) {
       c.putMultiple(k, values, elemCount, MDB_MULTIPLE);
       assertThat(c.count()).isEqualTo((long) elemCount);
     }
@@ -410,11 +421,11 @@ public final class CursorTest {
             .setDbiFlags(MDB_CREATE, MDB_DUPSORT)
             .open();
     try (Txn<ByteBuffer> txn = env.txnWrite();
-        Cursor<ByteBuffer> c = db.openCursor(txn)) {
+         Cursor<ByteBuffer> c = db.openCursor(txn)) {
       assertThatThrownBy(
-              () -> {
-                c.putMultiple(bb(100), bb(1), 1);
-              })
+          () -> {
+            c.putMultiple(bb(100), bb(1), 1);
+          })
           .isInstanceOf(IllegalArgumentException.class);
     }
   }
@@ -428,11 +439,11 @@ public final class CursorTest {
             .setDbiFlags(MDB_CREATE, MDB_DUPSORT)
             .open();
     try (Txn<ByteBuffer> txn = env.txnWrite();
-        Cursor<ByteBuffer> c = db.openCursor(txn)) {
+         Cursor<ByteBuffer> c = db.openCursor(txn)) {
       assertThatThrownBy(
-              () -> {
-                c.putMultiple(bb(100), bb(1), 1, PutFlags.EMPTY);
-              })
+          () -> {
+            c.putMultiple(bb(100), bb(1), 1, PutFlags.EMPTY);
+          })
           .isInstanceOf(IllegalArgumentException.class);
     }
   }
@@ -446,11 +457,11 @@ public final class CursorTest {
             .setDbiFlags(MDB_CREATE, MDB_DUPSORT)
             .open();
     try (Txn<ByteBuffer> txn = env.txnWrite();
-        Cursor<ByteBuffer> c = db.openCursor(txn)) {
+         Cursor<ByteBuffer> c = db.openCursor(txn)) {
       assertThatThrownBy(
-              () -> {
-                c.putMultiple(bb(100), bb(1), 1, (PutFlagSet) null);
-              })
+          () -> {
+            c.putMultiple(bb(100), bb(1), 1, (PutFlagSet) null);
+          })
           .isInstanceOf(NullPointerException.class);
     }
   }
@@ -477,21 +488,21 @@ public final class CursorTest {
   @Test
   void renewTxRw() {
     assertThatThrownBy(
-            () -> {
-              final Dbi<ByteBuffer> db =
-                  env.createDbi()
-                      .setDbName(DB_1)
-                      .withDefaultComparator()
-                      .setDbiFlags(MDB_CREATE)
-                      .open();
-              try (Txn<ByteBuffer> txn = env.txnWrite()) {
-                assertThat(txn.isReadOnly()).isFalse();
+        () -> {
+          final Dbi<ByteBuffer> db =
+              env.createDbi()
+                  .setDbName(DB_1)
+                  .withDefaultComparator()
+                  .setDbiFlags(MDB_CREATE)
+                  .open();
+          try (Txn<ByteBuffer> txn = env.txnWrite()) {
+            assertThat(txn.isReadOnly()).isFalse();
 
-                try (Cursor<ByteBuffer> c = db.openCursor(txn)) {
-                  c.renew(txn);
-                }
-              }
-            })
+            try (Cursor<ByteBuffer> c = db.openCursor(txn)) {
+              c.renew(txn);
+            }
+          }
+        })
         .isInstanceOf(ReadOnlyRequiredException.class);
   }
 
@@ -540,7 +551,7 @@ public final class CursorTest {
             .setDbiFlags(MDB_CREATE, MDB_DUPSORT)
             .open();
     try (Txn<ByteBuffer> txn = env.txnWrite();
-        Cursor<ByteBuffer> c = db.openCursor(txn)) {
+         Cursor<ByteBuffer> c = db.openCursor(txn)) {
       // ok
       assertThat(c.put(bb(5), bb(6), MDB_NODUPDATA)).isTrue();
       assertThat(c.put(bb(5), bb(7), MDB_NODUPDATA)).isTrue();
@@ -553,7 +564,7 @@ public final class CursorTest {
     final Dbi<ByteBuffer> db =
         env.createDbi().setDbName(DB_1).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
     try (Txn<ByteBuffer> txn = env.txnWrite();
-        Cursor<ByteBuffer> c = db.openCursor(txn)) {
+         Cursor<ByteBuffer> c = db.openCursor(txn)) {
       // ok
       assertThat(c.put(bb(5), bb(6), MDB_NOOVERWRITE)).isTrue();
       // fails, but gets exist val
@@ -596,7 +607,11 @@ public final class CursorTest {
       final Consumer<Cursor<ByteBuffer>> workBeforeEnvClosed,
       final Consumer<Cursor<ByteBuffer>> workAfterEnvClose) {
     final Dbi<ByteBuffer> db =
-        env.createDbi().setDbName(DB_1).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
+        env.createDbi()
+            .setDbName(DB_1)
+            .withDefaultComparator()
+            .setDbiFlags(MDB_CREATE)
+            .open();
 
     db.put(bb(1), bb(10));
     db.put(bb(2), bb(20));

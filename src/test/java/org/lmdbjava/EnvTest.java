@@ -752,6 +752,7 @@ public final class EnvTest {
         .setMaxDbs(1)
         .setMaxReaders(1)
         .setEnvFlags(MDB_NOSUBDIR)
+        .setSafeClose()
         .open(file);
 
     // Open but don't close
@@ -759,6 +760,9 @@ public final class EnvTest {
 
     Assertions.assertThatThrownBy(env::close)
         .isInstanceOf(Env.EnvInUseException.class);
+
+    readTxn.close();
+    env.close();
   }
 
   @Test
@@ -769,6 +773,7 @@ public final class EnvTest {
         .setMaxDbs(1)
         .setMaxReaders(1)
         .setEnvFlags(MDB_NOSUBDIR)
+        .setSafeClose()
         .open(file);
 
     // Open but don't close
@@ -776,5 +781,8 @@ public final class EnvTest {
 
     Assertions.assertThatThrownBy(env::close)
         .isInstanceOf(Env.EnvInUseException.class);
+
+    writeTxn.close();
+    env.close();
   }
 }
