@@ -1,3 +1,18 @@
+/*
+ * Copyright © 2016-2026 The LmdbJava Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.lmdbjava;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -122,32 +137,37 @@ class StripedRefCounterTest {
     final StripedRefCounter stripedRefCounter = new StripedRefCounter();
     final int threads = Runtime.getRuntime().availableProcessors() - 2;
     final int iterations = 100;
-    final ExecutorService executor = Executors.newFixedThreadPool(threads);
-    final ExecutorService executor2 = Executors.newFixedThreadPool(1);
-    final AtomicInteger[] callCounts = new AtomicInteger[threads];
-    for (int i = 0; i < threads; i++) {
-      callCounts[i] = new AtomicInteger();
+    final AtomicInteger[] callCounts;
+    final Queue<RefCounter.RefCounterReleaser> releasers;
+    final Queue<CompletableFuture<?>> futures;
+    try (ExecutorService executor = Executors.newFixedThreadPool(threads)) {
+      try (ExecutorService executor2 = Executors.newFixedThreadPool(1)) {
+        callCounts = new AtomicInteger[threads];
+        for (int i = 0; i < threads; i++) {
+          callCounts[i] = new AtomicInteger();
+        }
+
+        releasers = new ConcurrentLinkedQueue<>();
+        futures = new ConcurrentLinkedQueue<>();
+
+        IntStream.range(0, threads)
+            .boxed()
+            .map(i -> CompletableFuture.runAsync(() -> {
+              for (int j = 0; j < iterations; j++) {
+                final RefCounter.RefCounterReleaser releaser = stripedRefCounter.acquire();
+                releasers.add(releaser);
+                callCounts[i].getAndIncrement();
+                futures.add(CompletableFuture.runAsync(() -> {
+                  final long count = stripedRefCounter.getCount();
+                  //              System.out.println(Thread.currentThread() + " - getting count: " + count);
+                  assertThat(count)
+                      .isNotEqualTo(0);
+                }, executor2));
+              }
+            }, executor))
+            .forEach(CompletableFuture::join);
+      }
     }
-
-    final Queue<RefCounter.RefCounterReleaser> releasers = new ConcurrentLinkedQueue<>();
-    final Queue<CompletableFuture<?>> futures = new ConcurrentLinkedQueue<>();
-
-    IntStream.range(0, threads)
-        .boxed()
-        .map(i -> CompletableFuture.runAsync(() -> {
-          for (int j = 0; j < iterations; j++) {
-            final RefCounter.RefCounterReleaser releaser = stripedRefCounter.acquire();
-            releasers.add(releaser);
-            callCounts[i].getAndIncrement();
-            futures.add(CompletableFuture.runAsync(() -> {
-              final long count = stripedRefCounter.getCount();
-//              System.out.println(Thread.currentThread() + " - getting count: " + count);
-              assertThat(count)
-                  .isNotEqualTo(0);
-            }, executor2));
-          }
-        }, executor))
-        .forEach(CompletableFuture::join);
 
     assertThat(stripedRefCounter.getCount())
         .isEqualTo((long) threads * iterations);

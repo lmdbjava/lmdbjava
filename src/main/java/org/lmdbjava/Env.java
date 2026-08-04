@@ -1,5 +1,5 @@
 /*
- * Copyright © 2016-2025 The LmdbJava Open Source Project
+ * Copyright © 2016-2026 The LmdbJava Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,7 +30,6 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -191,11 +190,8 @@ public final class Env<T> implements AutoCloseable {
    */
   @Override
   public void close() {
-    refCounter.close(this::closeEnv);
-  }
-
-  public void closeEnv() {
-    LIB.mdb_env_close(ptr);
+    refCounter.close(() ->
+        LIB.mdb_env_close(ptr));
   }
 
   /**
@@ -307,6 +303,7 @@ public final class Env<T> implements AutoCloseable {
    *
    * <p>This method must not be called from concurrent threads.
    *
+   * @param charset the charset to use when converting byte arrays to strings
    * @return a list of DBI names (never null)
    */
   public List<String> getDbiNames(final Charset charset) {
@@ -727,6 +724,9 @@ public final class Env<T> implements AutoCloseable {
         + '}';
   }
 
+  /**
+   * Indicates that one or more transactions or cursors are in use on the {@link Env}.
+   */
   public static final class EnvInUseException extends LmdbException {
 
     private static final long serialVersionUID = 1L;
@@ -738,8 +738,12 @@ public final class Env<T> implements AutoCloseable {
       super("Environment has open transactions/cursors so cannot be closed.");
     }
 
+    /**
+     * Creates a new instance.
+     * @param count The number of open transactions/cursors.
+     */
     public EnvInUseException(final long count) {
-      super("Environment has " + count + " open transaction(s)/cursor(s) so cannot be closed. " +
+      super("Environment has " + count + " open transactions/cursors so cannot be closed. " +
           "Close them then retry.");
     }
   }
@@ -1059,6 +1063,7 @@ public final class Env<T> implements AutoCloseable {
      * using primitives rather than thread-safe objects.
      * By default, an Env is considered thread-safe.
      *
+     * @param singleThreaded Set to true if the Env will only ever be used by a single thread.
      * @return this builder instance.
      */
     public Builder<T> singleThreaded(final boolean singleThreaded) {
@@ -1085,7 +1090,7 @@ public final class Env<T> implements AutoCloseable {
      * When enabled, {@link Env#close()} will throw a {@link EnvInUseException} if transactions or
      * cursors are active.
      *
-     * @param safeClose true to enable transaction tracking and {@link Env#close(Duration)}
+     * @param safeClose true to enable cursor/transaction tracking.
      * @return the builder
      */
     public Builder<T> setSafeClose(final boolean safeClose) {
