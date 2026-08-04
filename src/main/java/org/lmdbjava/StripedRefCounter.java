@@ -21,30 +21,29 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 class StripedRefCounter implements RefCounter {
   private static final int PROCESSOR_COUNT = Runtime.getRuntime().availableProcessors();
+
   /**
-   * Counter value used to indicate a count of zero while a sum of all counters is being
-   * performed.
+   * Counter value used to indicate a count of zero while a sum of all counters is being performed.
    */
   private static final int MAGIC_ZERO_VALUE = Integer.MIN_VALUE;
-  /**
-   * Counter value used to indicate that this RefCounter has been closed.
-   */
+
+  /** Counter value used to indicate that this RefCounter has been closed. */
   private static final int MAGIC_CLOSED_VALUE = Integer.MAX_VALUE;
-  /**
-   * The maximum possible count value on one stripe.
-   */
+
+  /** The maximum possible count value on one stripe. */
   private static final int MAX_COUNTER_VALUE = Integer.MAX_VALUE - 1;
+
   private static final int DEFAULT_STRIPES = 64;
-  /**
-   * Maximum number of stripes.
-   */
+
+  /** Maximum number of stripes. */
   private static final int MAX_STRIPES = 256;
 
   private final Stripe[] counters;
   private final AtomicBoolean isClosed = new AtomicBoolean(false);
+
   /**
-   * Bit mask for fast stripe index calculation. Equal to (stripeCount - 1).
-   * Used with bitwise AND for O(1) hashing with no modulo operation.
+   * Bit mask for fast stripe index calculation. Equal to (stripeCount - 1). Used with bitwise AND
+   * for O(1) hashing with no modulo operation.
    */
   private final int stripeMask;
 
@@ -97,9 +96,7 @@ class StripedRefCounter implements RefCounter {
   private static int getDefaultStripeCount() {
     return Math.min(
         MAX_STRIPES,
-        Math.max(
-            lowestPowerOfTwoGreaterThanOrEqualTo(PROCESSOR_COUNT * 2),
-            DEFAULT_STRIPES));
+        Math.max(lowestPowerOfTwoGreaterThanOrEqualTo(PROCESSOR_COUNT * 2), DEFAULT_STRIPES));
   }
 
   /**
@@ -117,9 +114,7 @@ class StripedRefCounter implements RefCounter {
       throw new IllegalArgumentException(
           "Value is too large to round up to a positive int power of two, got: " + value);
     }
-    return value == 1
-        ? 1
-        : Integer.highestOneBit(value - 1) << 1;
+    return value == 1 ? 1 : Integer.highestOneBit(value - 1) << 1;
   }
 
   private void release(final AtomicInteger counter) {
@@ -146,16 +141,21 @@ class StripedRefCounter implements RefCounter {
         return;
       }
 
-      // Once we have marked all counters as count-in-progress, any threads trying to mutate the counters
+      // Once we have marked all counters as count-in-progress, any threads trying to mutate the
+      // counters
       // will fail, then re-attempt under lock, so will have to wait for us to complete the count.
-      // Marking all the counters is a non-atomic operation, so another thread may increment a counter
-      // while we are in the middle of marking them, however, once all are marked, threads will be blocked
-      // from decrementing until we have called markCountersAsNoCountInProgress(), thus we will get a non-zero
+      // Marking all the counters is a non-atomic operation, so another thread may increment a
+      // counter
+      // while we are in the middle of marking them, however, once all are marked, threads will be
+      // blocked
+      // from decrementing until we have called markCountersAsNoCountInProgress(), thus we will get
+      // a non-zero
       // count and throw an EnvInUseException.
 
       markCountersAsCountInProgress(); // 0=>MAGIC_ZERO_VALUE else i=>i*-1
 
-      // At this point, no other thread can mutate the counters, so we are safe to use a sum of all the counters.
+      // At this point, no other thread can mutate the counters, so we are safe to use a sum of all
+      // the counters.
       try {
         final long totalCount = sumCounters();
         if (totalCount == 0) {
@@ -181,16 +181,17 @@ class StripedRefCounter implements RefCounter {
   }
 
   /**
-   * MUST be called after {@link StripedRefCounter#markCountersAsCountInProgress()} has been called and under
-   * lock. Once complete, {@link StripedRefCounter#markCountersAsNoCountInProgress()} must be called.
+   * MUST be called after {@link StripedRefCounter#markCountersAsCountInProgress()} has been called
+   * and under lock. Once complete, {@link StripedRefCounter#markCountersAsNoCountInProgress()} must
+   * be called.
    */
   private long sumCounters() {
     long totalCount = 0;
     for (Stripe stripe : counters) {
       int count = stripe.counter.get();
-      if (count == MAGIC_CLOSED_VALUE) {  // Integer.MAX_VALUE
+      if (count == MAGIC_CLOSED_VALUE) { // Integer.MAX_VALUE
         throw new Env.AlreadyClosedException();
-      } else if (count != MAGIC_ZERO_VALUE) {  // Integer.MIN_VALUE
+      } else if (count != MAGIC_ZERO_VALUE) { // Integer.MIN_VALUE
         // count should be negative at this point
         if (count > 0) {
           throw new IllegalStateException("Count should be negative at this point, got: " + count);
@@ -224,8 +225,8 @@ class StripedRefCounter implements RefCounter {
 
   /**
    * @return False if a count is in progress, else true
-   * @throws Env.AlreadyClosedException If this {@link RefCounter} has already been
-   *                                    successfully closed.
+   * @throws Env.AlreadyClosedException If this {@link RefCounter} has already been successfully
+   *     closed.
    */
   private boolean addToCounter(final AtomicInteger counter, final Delta delta) {
     // Use a while loop with get() and compareAndSet(), rather than throwing exceptions inside
@@ -253,30 +254,28 @@ class StripedRefCounter implements RefCounter {
     }
   }
 
-  /**
-   * Must be called while holding the lock on this object.
-   */
+  /** Must be called while holding the lock on this object. */
   private void markCountersAsNoCountInProgress() {
     for (Stripe stripe : counters) {
       // Multiply value by -1 so we can indicate to other threads that a count is in progress
       // while maintaining the count. Have to use a special replacement value for zero.
-      stripe.counter.updateAndGet(currVal -> {
-        if (currVal == MAGIC_ZERO_VALUE) {
-          return 0;
-        } else if (currVal == MAGIC_CLOSED_VALUE) {
-          // If this method is used correctly under lock, we should never see this value, but preserve the
-          // closed state just in case
-          return MAGIC_CLOSED_VALUE;
-        } else {
-          return Math.abs(currVal);
-        }
-      });
+      stripe.counter.updateAndGet(
+          currVal -> {
+            if (currVal == MAGIC_ZERO_VALUE) {
+              return 0;
+            } else if (currVal == MAGIC_CLOSED_VALUE) {
+              // If this method is used correctly under lock, we should never see this value, but
+              // preserve the
+              // closed state just in case
+              return MAGIC_CLOSED_VALUE;
+            } else {
+              return Math.abs(currVal);
+            }
+          });
     }
   }
 
-  /**
-   * Must be called while holding the lock on this object.
-   */
+  /** Must be called while holding the lock on this object. */
   private void markCountersAsCountInProgress() {
     // It is possible that another thread will call acquire() while we are mid-loop.
     // If that thread uses a counter that has not yet been marked as count-in-progress, they will
@@ -285,54 +284,54 @@ class StripedRefCounter implements RefCounter {
     // They will be blocked from calling release() until markCountersAsNoCountInProgress() has
     // been called by us.
     for (final Stripe stripe : counters) {
-      stripe.counter.updateAndGet(currVal -> {
-        if (currVal == 0) {
-          // Use a magic value to mark this zero-value counter as having a count in progress
-          return MAGIC_ZERO_VALUE;
-        } else if (currVal == MAGIC_CLOSED_VALUE) {
-          // If this method is used correctly under lock, we should never see this value, but preserve the
-          // closed state just in case
-          return MAGIC_CLOSED_VALUE;
-        } else {
-          // Make the value negative to indicate a count in progress
-          return Math.abs(currVal) * -1;
-        }
-      });
+      stripe.counter.updateAndGet(
+          currVal -> {
+            if (currVal == 0) {
+              // Use a magic value to mark this zero-value counter as having a count in progress
+              return MAGIC_ZERO_VALUE;
+            } else if (currVal == MAGIC_CLOSED_VALUE) {
+              // If this method is used correctly under lock, we should never see this value, but
+              // preserve the
+              // closed state just in case
+              return MAGIC_CLOSED_VALUE;
+            } else {
+              // Make the value negative to indicate a count in progress
+              return Math.abs(currVal) * -1;
+            }
+          });
     }
   }
 
   private void validateStripeCount(final int stripeCount) {
     if (stripeCount <= 0) {
-      throw new IllegalArgumentException(
-          "Stripe count must be positive, got: " + stripeCount);
+      throw new IllegalArgumentException("Stripe count must be positive, got: " + stripeCount);
     }
     if (stripeCount > MAX_STRIPES) {
       throw new IllegalArgumentException(
-          "Stripe count exceeds maximum. Got: " + stripeCount +
-              ", max: " + MAX_STRIPES);
+          "Stripe count exceeds maximum. Got: " + stripeCount + ", max: " + MAX_STRIPES);
     }
     if ((stripeCount & (stripeCount - 1)) != 0) {
-      throw new IllegalArgumentException(
-          "Stripe count must be power of 2, got: " + stripeCount);
+      throw new IllegalArgumentException("Stripe count must be power of 2, got: " + stripeCount);
     }
   }
 
   /**
    * Computes the stripe index for the current thread using Stafford variant 13 mixing.
-   * <p>
-   * This method applies a high-quality 64-bit hash function (MurmurHash3 finalizer)
-   * to the thread ID before masking to the stripe count. This provides:
+   *
+   * <p>This method applies a high-quality 64-bit hash function (MurmurHash3 finalizer) to the
+   * thread ID before masking to the stripe count. This provides:
+   *
    * <ul>
-   *   <li>Excellent distribution for sequential thread IDs</li>
-   *   <li>Same thread always maps to same stripe (deterministic)</li>
-   *   <li>Strong avalanche properties (input bit changes affect all output bits)</li>
-   *   <li>O(1) performance</li>
+   *   <li>Excellent distribution for sequential thread IDs
+   *   <li>Same thread always maps to same stripe (deterministic)
+   *   <li>Strong avalanche properties (input bit changes affect all output bits)
+   *   <li>O(1) performance
    * </ul>
-   * <p>
-   * The Stafford13 mixing function is used internally by {@link java.util.SplittableRandom}
-   * for seed initialization. See:
-   * <a href="http://zimbry.blogspot.com/2011/09/better-bit-mixing-improving-on.html">
-   * Better Bit Mixing</a>
+   *
+   * <p>The Stafford13 mixing function is used internally by {@link java.util.SplittableRandom} for
+   * seed initialization. See: <a
+   * href="http://zimbry.blogspot.com/2011/09/better-bit-mixing-improving-on.html">Better Bit
+   * Mixing</a>
    *
    * @return stripe index from 0 to stripeCount - 1 (inclusive)
    */

@@ -48,9 +48,7 @@ public final class Cursor<T> implements AutoCloseable {
   private final Env<T> env;
   private final RefCounter.RefCounterReleaser refCounterReleaser;
 
-  Cursor(final Pointer ptr,
-         final Txn<T> txn,
-         final Env<T> env) {
+  Cursor(final Pointer ptr, final Txn<T> txn, final Env<T> env) {
     requireNonNull(ptr);
     requireNonNull(txn);
     requireNonNull(env);
@@ -83,7 +81,8 @@ public final class Cursor<T> implements AutoCloseable {
         env.checkNotClosed();
         if (!txn.isReadOnly()) {
           // TODO Rather than throwing if the txn is not in the right state to close
-          //  we could check the txn state and only call mdb_cursor_close if the state is appropriate,
+          //  we could check the txn state and only call mdb_cursor_close if the state is
+          // appropriate,
           //  i.e. (txn.isReadOnly() || txn.isReady())
           //  This would make using try-with-resources less likely to fail
 

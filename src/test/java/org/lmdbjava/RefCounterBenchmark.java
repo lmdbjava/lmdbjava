@@ -15,7 +15,6 @@
  */
 package org.lmdbjava;
 
-
 import org.jspecify.annotations.NonNull;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -84,7 +83,6 @@ public class RefCounterBenchmark {
     blackhole.consume(releaser);
     releaser.release();
   }
-
 
   @Benchmark
   @BenchmarkMode(Mode.Throughput)

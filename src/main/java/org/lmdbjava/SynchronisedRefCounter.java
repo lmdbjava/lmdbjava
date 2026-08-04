@@ -15,7 +15,6 @@
  */
 package org.lmdbjava;
 
-
 import java.util.Objects;
 
 class SynchronisedRefCounter implements RefCounter {

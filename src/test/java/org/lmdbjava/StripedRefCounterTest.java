@@ -44,11 +44,9 @@ class StripedRefCounterTest {
     final StripedRefCounter stripedRefCounter = new StripedRefCounter();
     // Acquire twice
     final RefCounter.RefCounterReleaser releaser1 = stripedRefCounter.acquire();
-    assertThat(stripedRefCounter.getCount())
-        .isEqualTo(1);
+    assertThat(stripedRefCounter.getCount()).isEqualTo(1);
     final RefCounter.RefCounterReleaser releaser2 = stripedRefCounter.acquire();
-    assertThat(stripedRefCounter.getCount())
-        .isEqualTo(2);
+    assertThat(stripedRefCounter.getCount()).isEqualTo(2);
 
     final AtomicInteger onCloseCallCount = new AtomicInteger();
 
@@ -59,13 +57,11 @@ class StripedRefCounterTest {
             })
         .isInstanceOf(Env.EnvInUseException.class)
         .hasMessageContaining(" 2 ");
-    assertThat(onCloseCallCount)
-        .hasValue(0);
+    assertThat(onCloseCallCount).hasValue(0);
 
     // Release 1st releaser
     releaser1.release();
-    assertThat(stripedRefCounter.getCount())
-        .isEqualTo(1);
+    assertThat(stripedRefCounter.getCount()).isEqualTo(1);
 
     // Close not called as 1 un-released
     Assertions.assertThatThrownBy(
@@ -74,33 +70,27 @@ class StripedRefCounterTest {
             })
         .isInstanceOf(Env.EnvInUseException.class)
         .hasMessageContaining(" 1 ");
-    assertThat(onCloseCallCount)
-        .hasValue(0);
+    assertThat(onCloseCallCount).hasValue(0);
 
     // Release 2nd releaser
     releaser2.release();
-    assertThat(stripedRefCounter.getCount())
-        .isEqualTo(0);
+    assertThat(stripedRefCounter.getCount()).isEqualTo(0);
 
     // no-op if already released
     releaser1.release();
-    assertThat(stripedRefCounter.getCount())
-        .isEqualTo(0);
+    assertThat(stripedRefCounter.getCount()).isEqualTo(0);
 
     // no-op if already released
     releaser2.release();
-    assertThat(stripedRefCounter.getCount())
-        .isEqualTo(0);
+    assertThat(stripedRefCounter.getCount()).isEqualTo(0);
 
     // onClose is called now
     stripedRefCounter.close(onCloseCallCount::incrementAndGet);
-    assertThat(onCloseCallCount)
-        .hasValue(1);
+    assertThat(onCloseCallCount).hasValue(1);
 
     // no-op as onClose already called
     stripedRefCounter.close(onCloseCallCount::incrementAndGet);
-    assertThat(onCloseCallCount)
-        .hasValue(1);
+    assertThat(onCloseCallCount).hasValue(1);
   }
 
   @Test
@@ -114,21 +104,22 @@ class StripedRefCounterTest {
 
     IntStream.range(0, threadCount)
         .boxed()
-        .map(i -> CompletableFuture.runAsync(() -> {
-          for (int j = 0; j < iterations; j++) {
-            final RefCounter.RefCounterReleaser releaser = stripedRefCounter.acquire();
-            callCounts[i].getAndIncrement();
-            releaser.release();
-          }
-        }))
+        .map(
+            i ->
+                CompletableFuture.runAsync(
+                    () -> {
+                      for (int j = 0; j < iterations; j++) {
+                        final RefCounter.RefCounterReleaser releaser = stripedRefCounter.acquire();
+                        callCounts[i].getAndIncrement();
+                        releaser.release();
+                      }
+                    }))
         .forEach(CompletableFuture::join);
 
-    assertThat(stripedRefCounter.getCount())
-        .isEqualTo(0);
+    assertThat(stripedRefCounter.getCount()).isEqualTo(0);
 
     for (AtomicInteger callCount : callCounts) {
-      assertThat(callCount)
-          .hasValue(iterations);
+      assertThat(callCount).hasValue(iterations);
     }
   }
 
@@ -152,72 +143,71 @@ class StripedRefCounterTest {
 
         IntStream.range(0, threads)
             .boxed()
-            .map(i -> CompletableFuture.runAsync(() -> {
-              for (int j = 0; j < iterations; j++) {
-                final RefCounter.RefCounterReleaser releaser = stripedRefCounter.acquire();
-                releasers.add(releaser);
-                callCounts[i].getAndIncrement();
-                futures.add(CompletableFuture.runAsync(() -> {
-                  final long count = stripedRefCounter.getCount();
-                  //              System.out.println(Thread.currentThread() + " - getting count: " + count);
-                  assertThat(count)
-                      .isNotEqualTo(0);
-                }, executor2));
-              }
-            }, executor))
+            .map(
+                i ->
+                    CompletableFuture.runAsync(
+                        () -> {
+                          for (int j = 0; j < iterations; j++) {
+                            final RefCounter.RefCounterReleaser releaser =
+                                stripedRefCounter.acquire();
+                            releasers.add(releaser);
+                            callCounts[i].getAndIncrement();
+                            futures.add(
+                                CompletableFuture.runAsync(
+                                    () -> {
+                                      final long count = stripedRefCounter.getCount();
+                                      //              System.out.println(Thread.currentThread() + "
+                                      // - getting count: " + count);
+                                      assertThat(count).isNotEqualTo(0);
+                                    },
+                                    executor2));
+                          }
+                        },
+                        executor))
             .forEach(CompletableFuture::join);
       }
     }
 
-    assertThat(stripedRefCounter.getCount())
-        .isEqualTo((long) threads * iterations);
+    assertThat(stripedRefCounter.getCount()).isEqualTo((long) threads * iterations);
 
     for (AtomicInteger callCount : callCounts) {
-      assertThat(callCount)
-          .hasValue(iterations);
+      assertThat(callCount).hasValue(iterations);
     }
 
     releasers.forEach(RefCounter.RefCounterReleaser::release);
 
     futures.forEach(CompletableFuture::join);
 
-    assertThat(stripedRefCounter.getCount())
-        .isEqualTo(0);
+    assertThat(stripedRefCounter.getCount()).isEqualTo(0);
   }
 
   @Test
   void testImmediateClose() {
     final StripedRefCounter stripedRefCounter = new StripedRefCounter();
-    assertThat(stripedRefCounter.isClosed())
-        .isEqualTo(false);
+    assertThat(stripedRefCounter.isClosed()).isEqualTo(false);
     final AtomicInteger onCloseCallCount = new AtomicInteger();
 
     stripedRefCounter.close(onCloseCallCount::incrementAndGet);
-    assertThat(onCloseCallCount)
-        .hasValue(1);
-    assertThat(stripedRefCounter.isClosed())
-        .isEqualTo(true);
+    assertThat(onCloseCallCount).hasValue(1);
+    assertThat(stripedRefCounter.isClosed()).isEqualTo(true);
 
     assertThatThrownBy(stripedRefCounter::checkNotClosed)
         .isInstanceOf(Env.AlreadyClosedException.class);
 
     // Check again as idempotent
     stripedRefCounter.close(onCloseCallCount::incrementAndGet);
-    assertThat(onCloseCallCount)
-        .hasValue(1);
-    assertThat(stripedRefCounter.isClosed())
-        .isEqualTo(true);
+    assertThat(onCloseCallCount).hasValue(1);
+    assertThat(stripedRefCounter.isClosed()).isEqualTo(true);
 
     assertThatThrownBy(stripedRefCounter::checkNotClosed)
         .isInstanceOf(Env.AlreadyClosedException.class);
   }
 
   /**
-   * Lots of threads all doing acquire/release in a loop, then the main thread
-   * tries to call refCounter.close(...), which will throw an
-   * {@link org.lmdbjava.Env.EnvInUseException}. It then makes all worker threads
-   * stop their looping and calls refCounter.close(...) again, successfully this
-   * time.
+   * Lots of threads all doing acquire/release in a loop, then the main thread tries to call
+   * refCounter.close(...), which will throw an {@link org.lmdbjava.Env.EnvInUseException}. It then
+   * makes all worker threads stop their looping and calls refCounter.close(...) again, successfully
+   * this time.
    */
   @Test
   void testBehaviour() throws InterruptedException {
@@ -246,34 +236,38 @@ class StripedRefCounterTest {
 
       for (int i = 0; i < threadCount; i++) {
         final int threadIdx = i;
-        futures[threadIdx] = CompletableFuture.runAsync(() -> {
-          // Wait for all threads to be ready
-          countDownThenAwait(startLatch);
-//          System.out.println(Thread.currentThread() + " - Starting");
-          for (int j = 0; j < iterations; j++) {
-            if (abortThreads.get()) {
-              break;
-            }
+        futures[threadIdx] =
+            CompletableFuture.runAsync(
+                () -> {
+                  // Wait for all threads to be ready
+                  countDownThenAwait(startLatch);
+                  //          System.out.println(Thread.currentThread() + " - Starting");
+                  for (int j = 0; j < iterations; j++) {
+                    if (abortThreads.get()) {
+                      break;
+                    }
 
-            final RefCounter.RefCounterReleaser releaser;
-            try {
-              releaser = refCounter.acquire();
-              counts[threadIdx].incrementAndGet();
-            } catch (Env.AlreadyClosedException e) {
-              System.out.println(Thread.currentThread() + ", round: " + round + ", Env closed, aborting");
-              break;
-            }
-            try {
-              // Make the work between acquire and release take some time
-              sleep(random.nextInt(5));
-              // env is null after closure
-              Objects.requireNonNull(mockEnv.get(), "Attempt to use a null env");
-            } finally {
-              releaser.release();
-            }
-          }
-//          System.out.println(Thread.currentThread() + " - Done");
-        }, executorService);
+                    final RefCounter.RefCounterReleaser releaser;
+                    try {
+                      releaser = refCounter.acquire();
+                      counts[threadIdx].incrementAndGet();
+                    } catch (Env.AlreadyClosedException e) {
+                      System.out.println(
+                          Thread.currentThread() + ", round: " + round + ", Env closed, aborting");
+                      break;
+                    }
+                    try {
+                      // Make the work between acquire and release take some time
+                      sleep(random.nextInt(5));
+                      // env is null after closure
+                      Objects.requireNonNull(mockEnv.get(), "Attempt to use a null env");
+                    } finally {
+                      releaser.release();
+                    }
+                  }
+                  //          System.out.println(Thread.currentThread() + " - Done");
+                },
+                executorService);
       }
 
       // Wait for all threads to start using the ref counter
@@ -286,25 +280,23 @@ class StripedRefCounterTest {
       final AtomicInteger onCloseCallCount = new AtomicInteger();
       while (!didClose.get()) {
         try {
-          assertThat(mockEnv.get())
-              .isNotNull();
+          assertThat(mockEnv.get()).isNotNull();
           System.out.println("close called " + ++closeCallCount);
-          refCounter.close(() -> {
-            onCloseCallCount.incrementAndGet();
-            System.out.println("onClose called " + onCloseCallCount.get());
-            // Imitate closing the env
-            mockEnv.set(null);
-            didClose.set(true);
-          });
+          refCounter.close(
+              () -> {
+                onCloseCallCount.incrementAndGet();
+                System.out.println("onClose called " + onCloseCallCount.get());
+                // Imitate closing the env
+                mockEnv.set(null);
+                didClose.set(true);
+              });
           if (didClose.get()) {
             // We closed, so env should be null
-            assertThat(mockEnv)
-                .hasNullValue();
+            assertThat(mockEnv).hasNullValue();
           }
         } catch (Env.EnvInUseException e) {
           // Failed to close as there are un-released items, so env still alive
-          assertThat(mockEnv.get())
-              .isNotNull();
+          assertThat(mockEnv.get()).isNotNull();
           // Now poke all the treads to make them cleanly finish what they are doing so we
           // can try close() again
           abortThreads.set(true);
@@ -315,27 +307,20 @@ class StripedRefCounterTest {
       // Wait for all workers to finish
       CompletableFuture.allOf(futures).join();
 
-      System.out.println("Acquire call count: " + Arrays.stream(counts)
-          .mapToLong(AtomicLong::get)
-          .sum());
+      System.out.println(
+          "Acquire call count: " + Arrays.stream(counts).mapToLong(AtomicLong::get).sum());
 
       // Make sure the mock env is all closed down
-      assertThat(mockEnv)
-          .hasNullValue();
-      assertThat(refCounter.isClosed())
-          .isEqualTo(true);
-      assertThat(refCounter.getCount())
-          .isZero();
-      assertThatThrownBy(refCounter::acquire)
-          .isInstanceOf(Env.AlreadyClosedException.class);
-      assertThat(onCloseCallCount)
-          .hasValue(1);
+      assertThat(mockEnv).hasNullValue();
+      assertThat(refCounter.isClosed()).isEqualTo(true);
+      assertThat(refCounter.getCount()).isZero();
+      assertThatThrownBy(refCounter::acquire).isInstanceOf(Env.AlreadyClosedException.class);
+      assertThat(onCloseCallCount).hasValue(1);
     }
   }
 
   /**
-   * Ensure we can call getCount when multiple threads are all calling acquire/release
-   * in a loop.
+   * Ensure we can call getCount when multiple threads are all calling acquire/release in a loop.
    */
   @Test
   void testGetCount() throws InterruptedException {
@@ -348,7 +333,7 @@ class StripedRefCounterTest {
     final AtomicBoolean abortThreads = new AtomicBoolean(false);
 
     for (int k = 0; k < rounds; k++) {
-//      final int round = k;
+      //      final int round = k;
       System.out.printf("Round %s ----------------------------------------%n", k);
 
       // Reset the env
@@ -361,37 +346,41 @@ class StripedRefCounterTest {
 
       for (int i = 0; i < threadCount; i++) {
         final int threadIdx = i;
-        futures[threadIdx] = CompletableFuture.runAsync(() -> {
-          // Wait for all threads to be ready
-          countDownThenAwait(startLatch);
-//        System.out.println(Thread.currentThread() + " - Starting");
+        futures[threadIdx] =
+            CompletableFuture.runAsync(
+                () -> {
+                  // Wait for all threads to be ready
+                  countDownThenAwait(startLatch);
+                  //        System.out.println(Thread.currentThread() + " - Starting");
 
-          for (int j = 0; j < iterations; j++) {
-            if (abortThreads.get()) {
-              break;
-            }
-            final RefCounter.RefCounterReleaser releaser;
-            try {
-              releaser = refCounter.acquire();
-              counts[threadIdx]++;
-            } catch (Env.AlreadyClosedException e) {
-//              System.out.println(Thread.currentThread() + ", round: " + round + ", Env closed, aborting");
-              break;
-            }
-            try {
-              // Make the work between acquire and release take some time
-              sleep(random.nextInt(5));
-              // env is null after closure
-              Objects.requireNonNull(mockEnv.get(), "Attempt to use a null env");
-            } finally {
-              releaser.release();
-            }
-            // Random sleep after releasing so there is a time when the thread
-            // is not using the 'env'
-            sleep(5 + random.nextInt(5));
-          }
-//        System.out.println(Thread.currentThread() + " - Done");
-        }, executorService);
+                  for (int j = 0; j < iterations; j++) {
+                    if (abortThreads.get()) {
+                      break;
+                    }
+                    final RefCounter.RefCounterReleaser releaser;
+                    try {
+                      releaser = refCounter.acquire();
+                      counts[threadIdx]++;
+                    } catch (Env.AlreadyClosedException e) {
+                      //              System.out.println(Thread.currentThread() + ", round: " +
+                      // round + ", Env closed, aborting");
+                      break;
+                    }
+                    try {
+                      // Make the work between acquire and release take some time
+                      sleep(random.nextInt(5));
+                      // env is null after closure
+                      Objects.requireNonNull(mockEnv.get(), "Attempt to use a null env");
+                    } finally {
+                      releaser.release();
+                    }
+                    // Random sleep after releasing so there is a time when the thread
+                    // is not using the 'env'
+                    sleep(5 + random.nextInt(5));
+                  }
+                  //        System.out.println(Thread.currentThread() + " - Done");
+                },
+                executorService);
       }
 
       // Wait for all threads to start using the ref counter
@@ -426,17 +415,20 @@ class StripedRefCounterTest {
 
     refCounter.close(onCloseCallCount::incrementAndGet);
 
-    assertThat(refCounter.getCount())
-        .isZero();
+    assertThat(refCounter.getCount()).isZero();
   }
 
   @Test
   void failedOnCloseDoesNotCloseOrCorruptCounter() {
     final StripedRefCounter refCounter = new StripedRefCounter();
 
-    assertThatThrownBy(() -> refCounter.close(() -> {
-      throw new RuntimeException("boom");
-    })).isInstanceOf(RuntimeException.class);
+    assertThatThrownBy(
+            () ->
+                refCounter.close(
+                    () -> {
+                      throw new RuntimeException("boom");
+                    }))
+        .isInstanceOf(RuntimeException.class);
 
     assertThat(refCounter.isClosed()).isFalse();
 
@@ -453,54 +445,44 @@ class StripedRefCounterTest {
 
     final CountDownLatch startLatch = new CountDownLatch(2);
 
-    final CompletableFuture<Void> first = CompletableFuture.runAsync(() -> {
-      countDownThenAwait(startLatch);
-      refCounter.close(onCloseCallCount::incrementAndGet);
-    });
-    final CompletableFuture<Void> second = CompletableFuture.runAsync(() -> {
-      countDownThenAwait(startLatch);
-      refCounter.close(onCloseCallCount::incrementAndGet);
-    });
+    final CompletableFuture<Void> first =
+        CompletableFuture.runAsync(
+            () -> {
+              countDownThenAwait(startLatch);
+              refCounter.close(onCloseCallCount::incrementAndGet);
+            });
+    final CompletableFuture<Void> second =
+        CompletableFuture.runAsync(
+            () -> {
+              countDownThenAwait(startLatch);
+              refCounter.close(onCloseCallCount::incrementAndGet);
+            });
 
     CompletableFuture.allOf(first, second).join();
 
     assertThat(onCloseCallCount).hasValue(1);
     assertThat(refCounter.isClosed()).isTrue();
-    assertThatThrownBy(refCounter::acquire)
-        .isInstanceOf(Env.AlreadyClosedException.class);
+    assertThatThrownBy(refCounter::acquire).isInstanceOf(Env.AlreadyClosedException.class);
   }
 
   @Test
   void lowestPowerOfTwoGreaterThanOrEqualTo() {
     // Test powers of two
-    assertThat(StripedRefCounter.lowestPowerOfTwoGreaterThanOrEqualTo(1))
-        .isEqualTo(1);
-    assertThat(StripedRefCounter.lowestPowerOfTwoGreaterThanOrEqualTo(2))
-        .isEqualTo(2);
-    assertThat(StripedRefCounter.lowestPowerOfTwoGreaterThanOrEqualTo(4))
-        .isEqualTo(4);
-    assertThat(StripedRefCounter.lowestPowerOfTwoGreaterThanOrEqualTo(8))
-        .isEqualTo(8);
-    assertThat(StripedRefCounter.lowestPowerOfTwoGreaterThanOrEqualTo(16))
-        .isEqualTo(16);
-    assertThat(StripedRefCounter.lowestPowerOfTwoGreaterThanOrEqualTo(1024))
-        .isEqualTo(1024);
+    assertThat(StripedRefCounter.lowestPowerOfTwoGreaterThanOrEqualTo(1)).isEqualTo(1);
+    assertThat(StripedRefCounter.lowestPowerOfTwoGreaterThanOrEqualTo(2)).isEqualTo(2);
+    assertThat(StripedRefCounter.lowestPowerOfTwoGreaterThanOrEqualTo(4)).isEqualTo(4);
+    assertThat(StripedRefCounter.lowestPowerOfTwoGreaterThanOrEqualTo(8)).isEqualTo(8);
+    assertThat(StripedRefCounter.lowestPowerOfTwoGreaterThanOrEqualTo(16)).isEqualTo(16);
+    assertThat(StripedRefCounter.lowestPowerOfTwoGreaterThanOrEqualTo(1024)).isEqualTo(1024);
 
     // Test non-powers of two
-    assertThat(StripedRefCounter.lowestPowerOfTwoGreaterThanOrEqualTo(3))
-        .isEqualTo(4);
-    assertThat(StripedRefCounter.lowestPowerOfTwoGreaterThanOrEqualTo(5))
-        .isEqualTo(8);
-    assertThat(StripedRefCounter.lowestPowerOfTwoGreaterThanOrEqualTo(7))
-        .isEqualTo(8);
-    assertThat(StripedRefCounter.lowestPowerOfTwoGreaterThanOrEqualTo(15))
-        .isEqualTo(16);
-    assertThat(StripedRefCounter.lowestPowerOfTwoGreaterThanOrEqualTo(24))
-        .isEqualTo(32);
-    assertThat(StripedRefCounter.lowestPowerOfTwoGreaterThanOrEqualTo(100))
-        .isEqualTo(128);
-    assertThat(StripedRefCounter.lowestPowerOfTwoGreaterThanOrEqualTo(1000))
-        .isEqualTo(1024);
+    assertThat(StripedRefCounter.lowestPowerOfTwoGreaterThanOrEqualTo(3)).isEqualTo(4);
+    assertThat(StripedRefCounter.lowestPowerOfTwoGreaterThanOrEqualTo(5)).isEqualTo(8);
+    assertThat(StripedRefCounter.lowestPowerOfTwoGreaterThanOrEqualTo(7)).isEqualTo(8);
+    assertThat(StripedRefCounter.lowestPowerOfTwoGreaterThanOrEqualTo(15)).isEqualTo(16);
+    assertThat(StripedRefCounter.lowestPowerOfTwoGreaterThanOrEqualTo(24)).isEqualTo(32);
+    assertThat(StripedRefCounter.lowestPowerOfTwoGreaterThanOrEqualTo(100)).isEqualTo(128);
+    assertThat(StripedRefCounter.lowestPowerOfTwoGreaterThanOrEqualTo(1000)).isEqualTo(1024);
 
     // Test edge cases
     assertThat(StripedRefCounter.lowestPowerOfTwoGreaterThanOrEqualTo(536870912))

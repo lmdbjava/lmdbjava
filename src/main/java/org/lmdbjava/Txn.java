@@ -46,10 +46,7 @@ public final class Txn<T> implements AutoCloseable {
   private State state;
   private RefCounter.RefCounterReleaser refCounterReleaser;
 
-  Txn(final Env<T> env,
-      final Txn<T> parent,
-      final BufferProxy<T> proxy,
-      final TxnFlagSet flags) {
+  Txn(final Env<T> env, final Txn<T> parent, final BufferProxy<T> proxy, final TxnFlagSet flags) {
 
     if (SHOULD_CHECK) {
       Objects.requireNonNull(flags);
@@ -89,7 +86,8 @@ public final class Txn<T> implements AutoCloseable {
     state = DONE;
     LIB.mdb_txn_abort(ptr);
 
-    // TODO It is not clear whether this method should call refCounterReleaser.release() like close does
+    // TODO It is not clear whether this method should call refCounterReleaser.release() like close
+    // does
   }
 
   /**
@@ -311,8 +309,9 @@ public final class Txn<T> implements AutoCloseable {
 
     /** Creates a new instance. */
     public NotReadyException() {
-      super("Transaction is not in ready state, i.e. it has been closed/committed/aborted/reset. " +
-          "You may see this if have you tried to close a cursor after committing the transaction?");
+      super(
+          "Transaction is not in ready state, i.e. it has been closed/committed/aborted/reset. "
+              + "You may see this if have you tried to close a cursor after committing the transaction?");
     }
   }
 

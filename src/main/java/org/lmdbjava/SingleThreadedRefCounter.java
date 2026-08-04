@@ -15,19 +15,15 @@
  */
 package org.lmdbjava;
 
-
 import java.util.Objects;
 
-/**
- * A {@link RefCounter} intented for use only in single threaded environments.
- */
+/** A {@link RefCounter} intented for use only in single threaded environments. */
 public class SingleThreadedRefCounter implements RefCounter {
 
   private int refCount;
   private boolean isClosed = false;
 
-  public SingleThreadedRefCounter() {
-  }
+  public SingleThreadedRefCounter() {}
 
   @Override
   public RefCounterReleaser acquire() {

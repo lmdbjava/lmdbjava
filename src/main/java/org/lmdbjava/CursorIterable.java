@@ -38,7 +38,7 @@ import org.lmdbjava.KeyRangeType.IteratorOp;
  *
  * <p>An instance will create and close its own cursor.
  *
- * <p>Not thread safe.</p>
+ * <p>Not thread safe.
  *
  * @param <T> buffer type
  */

@@ -15,7 +15,6 @@
  */
 package org.lmdbjava;
 
-
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -29,10 +28,8 @@ class SimpleRefCounter implements RefCounter {
   }
 
   public RefCounterReleaser acquire() {
-    final int newVal = counter.updateAndGet(currVal ->
-        currVal == CLOSED_VALUE
-            ? currVal
-            : currVal + 1);
+    final int newVal =
+        counter.updateAndGet(currVal -> currVal == CLOSED_VALUE ? currVal : currVal + 1);
     if (newVal == CLOSED_VALUE) {
       throw new Env.AlreadyClosedException();
     }
@@ -53,10 +50,8 @@ class SimpleRefCounter implements RefCounter {
   }
 
   private void release() {
-    final int newVal = counter.updateAndGet(currVal ->
-        currVal == CLOSED_VALUE
-            ? currVal
-            : currVal - 1);
+    final int newVal =
+        counter.updateAndGet(currVal -> currVal == CLOSED_VALUE ? currVal : currVal - 1);
     if (newVal == CLOSED_VALUE) {
       throw new Env.AlreadyClosedException();
     }

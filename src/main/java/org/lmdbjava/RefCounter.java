@@ -15,10 +15,7 @@
  */
 package org.lmdbjava;
 
-/**
- * Used to prevent the closure of a thing while other threads are actively
- * using that thing.
- */
+/** Used to prevent the closure of a thing while other threads are actively using that thing. */
 interface RefCounter {
 
   /**
@@ -29,7 +26,8 @@ interface RefCounter {
   RefCounterReleaser acquire();
 
   /**
-   * Calls {@link RefCounter#acquire()}, runs runnable, then calls {@link RefCounterReleaser#release()}
+   * Calls {@link RefCounter#acquire()}, runs runnable, then calls {@link
+   * RefCounterReleaser#release()}
    */
   default void use(final Runnable runnable) {
     if (runnable != null) {
@@ -44,9 +42,9 @@ interface RefCounter {
 
   /**
    * If the reference count is zero, onClose will be called. This {@link RefCounter} will be marked
-   * as closed so all future calls to acquire will throw a {@link org.lmdbjava.Env.AlreadyClosedException}.
-   * If the count is non-zero, {@link org.lmdbjava.Env.EnvInUseException} will be thrown.
-   * If already closed, this is a no-op.
+   * as closed so all future calls to acquire will throw a {@link
+   * org.lmdbjava.Env.AlreadyClosedException}. If the count is non-zero, {@link
+   * org.lmdbjava.Env.EnvInUseException} will be thrown. If already closed, this is a no-op.
    *
    * @throws org.lmdbjava.Env.EnvInUseException If the {@link Env} has open transactions/cursors.
    */
@@ -57,9 +55,7 @@ interface RefCounter {
    */
   boolean isClosed();
 
-  /**
-   * If it is in a CLOSED state, throw a {@link org.lmdbjava.Env.AlreadyClosedException}
-   */
+  /** If it is in a CLOSED state, throw a {@link org.lmdbjava.Env.AlreadyClosedException} */
   default void checkNotClosed() {
     if (isClosed()) {
       throw new Env.AlreadyClosedException();
@@ -67,17 +63,14 @@ interface RefCounter {
   }
 
   /**
-   * @return The current count of items in use.
-   * It will return 0 if already closed.
+   * @return The current count of items in use. It will return 0 if already closed.
    */
   long getCount();
 
   @FunctionalInterface
   interface RefCounterReleaser {
 
-    /**
-     * Call this after using the {@link RefCounter} controlled object.
-     */
+    /** Call this after using the {@link RefCounter} controlled object. */
     void release();
   }
 }

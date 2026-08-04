@@ -18,17 +18,16 @@ package org.lmdbjava;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * Preforms no reference counting at all, but will throw an Env.AlreadyClosedException
- * if the {@link Env} is closed when {@link NoOpRefCounter#acquire()} is called.
+ * Preforms no reference counting at all, but will throw an Env.AlreadyClosedException if the {@link
+ * Env} is closed when {@link NoOpRefCounter#acquire()} is called.
  */
 public class NoOpRefCounter implements RefCounter {
 
-  /**
-   * A {@link RefCounterReleaser} that does nothing.
-   */
-  private static final RefCounterReleaser NO_OP_RELEASER = () -> {
-    // No-op
-  };
+  /** A {@link RefCounterReleaser} that does nothing. */
+  private static final RefCounterReleaser NO_OP_RELEASER =
+      () -> {
+        // No-op
+      };
 
   private final AtomicBoolean isClosed = new AtomicBoolean(false);
 
