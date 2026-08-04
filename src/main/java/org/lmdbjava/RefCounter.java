@@ -59,7 +59,7 @@ interface RefCounter {
 
   /**
    * @return The current count of items in use.
-   * @throws org.lmdbjava.Env.AlreadyClosedException If called after it has been successfully closed.
+   * It will return 0 if already closed.
    */
   long getCount();
 

@@ -30,6 +30,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -81,6 +82,7 @@ public final class Env<T> implements AutoCloseable {
    * True if this Env has been created on the basis of only ever being used by a single thread.
    */
   private final boolean isSingleThreaded;
+  private final boolean safeClose;
 
   private Env(
       final BufferProxy<T> proxy,
@@ -89,7 +91,8 @@ public final class Env<T> implements AutoCloseable {
       final boolean noSubDir,
       final Path path,
       final EnvFlagSet envFlagSet,
-      final boolean isSingleThreaded) {
+      final boolean isSingleThreaded,
+      final boolean safeClose) {
     this.proxy = proxy;
     this.readOnly = readOnly;
     this.noSubDir = noSubDir;
@@ -99,12 +102,13 @@ public final class Env<T> implements AutoCloseable {
     this.path = path;
     this.envFlagSet = envFlagSet;
     this.isSingleThreaded = isSingleThreaded;
+    this.safeClose = safeClose;
     this.refCounter = initRefCounter(isSingleThreaded);
   }
 
   private RefCounter initRefCounter(boolean isSingleThreaded) {
     final RefCounter refCounter;
-    if (SHOULD_CHECK) {
+    if (safeClose) {
       if (isSingleThreaded) {
         refCounter = new SingleThreadedRefCounter();
       } else {
@@ -158,13 +162,40 @@ public final class Env<T> implements AutoCloseable {
    *
    * <p>Will silently return if already closed or never opened.
    *
-   * @throws EnvInUseException if a {@link Txn}, {@link Cursor} or {@link Dbi} is still open on this
-   *                           {@link Env}.
+   * <p>Before and during this call, the caller MUST ensure that:
+   *
+   * <ul>
+   *   <li>every {@link Txn}, {@link Cursor} obtained from this environment has
+   *       already been closed; and
+   *   <li>no other thread is executing <em>any</em> operation on this environment or on a handle
+   *       derived from it — including {@link #txnRead()} / {@link #txnWrite()} and reads such as
+   *       {@code Dbi.get}.
+   * </ul>
+   *
+   * <p>Violating this contract is <strong>undefined behaviour that can crash the whole JVM</strong>
+   * ({@code SIGSEGV} on Linux/macOS, {@code EXCEPTION_ACCESS_VIOLATION 0xC0000005} on Windows); it
+   * does <em>not</em> raise a Java exception. The underlying {@code mdb_env_close} unmaps the
+   * memory map, so a transaction still being started or used on another thread then dereferences
+   * freed memory — typically observed as a native crash in {@code mdb_txn_renew0} / {@code
+   * mdb_txn_begin}.
+   *
+   * <p>If you must close an environment while reader threads may still be active, serialise the
+   * close against those readers in application code: e.g. a read/write lock where each reader holds
+   * the read lock for the entire duration of its transaction and {@code close()} holds the write
+   * lock, so the map is never unmapped while a read is in flight.
+   *
+   * <p>If safeClose has been enabled, {@link Env#close()} will throw a {@link EnvInUseException} if
+   * transactions or cursors are still active.
+   *
+   * @throws EnvInUseException if a {@link Txn} or {@link Cursor} is still open on this {@link Env}.
    */
   @Override
   public void close() {
-    refCounter.close(() ->
-        LIB.mdb_env_close(ptr));
+    refCounter.close(this::closeEnv);
+  }
+
+  public void closeEnv() {
+    LIB.mdb_env_close(ptr);
   }
 
   /**
@@ -370,6 +401,10 @@ public final class Env<T> implements AutoCloseable {
    */
   public boolean isSingleThreaded() {
     return isSingleThreaded;
+  }
+
+  boolean isSafeClose() {
+    return safeClose;
   }
 
   /**
@@ -752,16 +787,23 @@ public final class Env<T> implements AutoCloseable {
     private long mapSize = MAP_SIZE_DEFAULT;
     private int maxDbs = 1;
     private int maxReaders = MAX_READERS_DEFAULT;
-    private boolean opened;
+    private boolean opened = false;
     private final BufferProxy<T> proxy;
     private int mode = POSIX_MODE_DEFAULT;
     private boolean singleThreaded = false;
+    private boolean safeClose = false;
     private final AbstractFlagSet.Builder<EnvFlags, EnvFlagSet> flagSetBuilder =
         EnvFlagSet.builder();
 
     Builder(final BufferProxy<T> proxy) {
       requireNonNull(proxy);
       this.proxy = proxy;
+    }
+
+    private void checkEnvNotOpened() {
+      if (opened) {
+        throw new AlreadyOpenException();
+      }
     }
 
     /**
@@ -831,7 +873,7 @@ public final class Env<T> implements AutoCloseable {
         final boolean readOnly = flags.isSet(MDB_RDONLY_ENV);
         final boolean noSubDir = flags.isSet(MDB_NOSUBDIR);
         checkRc(LIB.mdb_env_open(ptr, path.toAbsolutePath().toString(), flags.getMask(), mode));
-        return new Env<>(proxy, ptr, readOnly, noSubDir, path, flags, singleThreaded);
+        return new Env<>(proxy, ptr, readOnly, noSubDir, path, flags, singleThreaded, safeClose);
       } catch (final LmdbNativeException e) {
         LIB.mdb_env_close(ptr);
         throw e;
@@ -845,9 +887,7 @@ public final class Env<T> implements AutoCloseable {
      * @return the builder
      */
     public Builder<T> setMapSize(final long mapSize) {
-      if (opened) {
-        throw new AlreadyOpenException();
-      }
+      checkEnvNotOpened();
       if (mapSize < 0) {
         throw new IllegalArgumentException("Negative value; overflow?");
       }
@@ -877,9 +917,7 @@ public final class Env<T> implements AutoCloseable {
      * @return the builder
      */
     public Builder<T> setMaxDbs(final int dbs) {
-      if (opened) {
-        throw new AlreadyOpenException();
-      }
+      checkEnvNotOpened();
       this.maxDbs = dbs;
       return this;
     }
@@ -891,9 +929,7 @@ public final class Env<T> implements AutoCloseable {
      * @return the builder
      */
     public Builder<T> setMaxReaders(final int readers) {
-      if (opened) {
-        throw new AlreadyOpenException();
-      }
+      checkEnvNotOpened();
       this.maxReaders = readers;
       return this;
     }
@@ -906,9 +942,7 @@ public final class Env<T> implements AutoCloseable {
      * @return the builder
      */
     public Builder<T> setFilePermissions(final int mode) {
-      if (opened) {
-        throw new AlreadyOpenException();
-      }
+      checkEnvNotOpened();
       this.mode = mode;
       return this;
     }
@@ -921,6 +955,7 @@ public final class Env<T> implements AutoCloseable {
      * @return this builder instance.
      */
     public Builder<T> setEnvFlags(final Collection<EnvFlags> envFlags) {
+      checkEnvNotOpened();
       flagSetBuilder.clear();
       if (envFlags != null) {
         envFlags.stream().filter(Objects::nonNull).forEach(flagSetBuilder::addFlag);
@@ -936,6 +971,7 @@ public final class Env<T> implements AutoCloseable {
      * @return this builder instance.
      */
     public Builder<T> setEnvFlags(final EnvFlags... envFlags) {
+      checkEnvNotOpened();
       flagSetBuilder.clear();
       if (envFlags != null) {
         Arrays.stream(envFlags).filter(Objects::nonNull).forEach(this.flagSetBuilder::addFlag);
@@ -951,6 +987,7 @@ public final class Env<T> implements AutoCloseable {
      * @return this builder instance.
      */
     public Builder<T> setEnvFlags(final EnvFlagSet envFlagSet) {
+      checkEnvNotOpened();
       flagSetBuilder.clear();
       if (envFlagSet != null) {
         this.flagSetBuilder.setFlags(envFlagSet.getFlags());
@@ -965,6 +1002,7 @@ public final class Env<T> implements AutoCloseable {
      * @return this builder instance.
      */
     public Builder<T> addEnvFlag(final EnvFlags envFlag) {
+      checkEnvNotOpened();
       this.flagSetBuilder.addFlag(envFlag);
       return this;
     }
@@ -976,6 +1014,7 @@ public final class Env<T> implements AutoCloseable {
      * @return this builder instance.
      */
     public Builder<T> addEnvFlags(final EnvFlagSet envFlagSet) {
+      checkEnvNotOpened();
       if (envFlagSet != null) {
         flagSetBuilder.addFlags(envFlagSet.getFlags());
       }
@@ -990,6 +1029,7 @@ public final class Env<T> implements AutoCloseable {
      * @return this builder instance.
      */
     public Builder<T> addEnvFlags(final Collection<EnvFlags> envFlags) {
+      checkEnvNotOpened();
       if (envFlags != null) {
         flagSetBuilder.addFlags(envFlags);
       }
@@ -1006,7 +1046,50 @@ public final class Env<T> implements AutoCloseable {
      * @return this builder instance.
      */
     public Builder<T> singleThreaded() {
+      checkEnvNotOpened();
       singleThreaded = true;
+      return this;
+    }
+
+    /**
+     * If set to true, the caller is asserting that the Env will only be used by a single thread
+     * throughout its entire life.
+     * This allows the {@link Env} to make minor optimisations that are not thread-safe, e.g.
+     * using primitives rather than thread-safe objects.
+     * By default, an Env is considered thread-safe.
+     *
+     * @return this builder instance.
+     */
+    public Builder<T> singleThreaded(final boolean singleThreaded) {
+      checkEnvNotOpened();
+      this.singleThreaded = singleThreaded;
+      return this;
+    }
+
+    /**
+     * See {@link Env.Builder#setSafeClose(boolean)}
+     */
+    public Builder<T> setSafeClose() {
+      checkEnvNotOpened();
+      return setSafeClose(true);
+    }
+
+    /**
+     * Enables the opt-in "safe close" for the resulting {@link Env}.
+     *
+     * <p>When enabled, the environment tracks its live transactions and cursors so that closure of the
+     * {@link Env} is prevented if transactions or cursors are active. This adds a small amount of
+     * bookkeeping on transaction start/close; it is <strong>disabled by default</strong> so
+     * applications that already manage their own threading (the common low-latency case) pay nothing.
+     * When enabled, {@link Env#close()} will throw a {@link EnvInUseException} if transactions or
+     * cursors are active.
+     *
+     * @param safeClose true to enable transaction tracking and {@link Env#close(Duration)}
+     * @return the builder
+     */
+    public Builder<T> setSafeClose(final boolean safeClose) {
+      checkEnvNotOpened();
+      this.safeClose = safeClose;
       return this;
     }
   }

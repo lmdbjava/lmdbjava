@@ -451,41 +451,6 @@ class StripedRefCounterTest {
   }
 
   @Test
-  void highestPowerOfTwoLessThanOrEqualTo() {
-    // Test powers of two
-    assertThat(StripedRefCounter.highestPowerOfTwoLessThanOrEqualTo(1))
-        .isEqualTo(1);
-    assertThat(StripedRefCounter.highestPowerOfTwoLessThanOrEqualTo(2))
-        .isEqualTo(2);
-    assertThat(StripedRefCounter.highestPowerOfTwoLessThanOrEqualTo(4))
-        .isEqualTo(4);
-    assertThat(StripedRefCounter.highestPowerOfTwoLessThanOrEqualTo(8))
-        .isEqualTo(8);
-    assertThat(StripedRefCounter.highestPowerOfTwoLessThanOrEqualTo(16))
-        .isEqualTo(16);
-    assertThat(StripedRefCounter.highestPowerOfTwoLessThanOrEqualTo(1024))
-        .isEqualTo(1024);
-
-    // Test non-powers of two
-    assertThat(StripedRefCounter.highestPowerOfTwoLessThanOrEqualTo(3))
-        .isEqualTo(2);
-    assertThat(StripedRefCounter.highestPowerOfTwoLessThanOrEqualTo(5))
-        .isEqualTo(4);
-    assertThat(StripedRefCounter.highestPowerOfTwoLessThanOrEqualTo(7))
-        .isEqualTo(4);
-    assertThat(StripedRefCounter.highestPowerOfTwoLessThanOrEqualTo(15))
-        .isEqualTo(8);
-    assertThat(StripedRefCounter.highestPowerOfTwoLessThanOrEqualTo(100))
-        .isEqualTo(64);
-    assertThat(StripedRefCounter.highestPowerOfTwoLessThanOrEqualTo(1000))
-        .isEqualTo(512);
-
-    // Test edge cases
-    assertThat(StripedRefCounter.highestPowerOfTwoLessThanOrEqualTo(Integer.MAX_VALUE))
-        .isEqualTo(1073741824);
-  }
-
-  @Test
   void lowestPowerOfTwoGreaterThanOrEqualTo() {
     // Test powers of two
     assertThat(StripedRefCounter.lowestPowerOfTwoGreaterThanOrEqualTo(1))

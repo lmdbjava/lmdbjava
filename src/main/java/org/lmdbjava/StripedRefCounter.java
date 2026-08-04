@@ -7,10 +7,23 @@ import java.util.concurrent.atomic.AtomicReference;
 
 class StripedRefCounter implements RefCounter {
   private static final int PROCESSOR_COUNT = Runtime.getRuntime().availableProcessors();
+  /**
+   * Counter value used to indicate a count of zero while a sum of all counters is being
+   * performed.
+   */
   private static final int MAGIC_ZERO_VALUE = Integer.MIN_VALUE;
+  /**
+   * Counter value used to indicate that this RefCounter has been closed.
+   */
   private static final int MAGIC_CLOSED_VALUE = Integer.MAX_VALUE;
+  /**
+   * The maximum possible count value on one stripe.
+   */
   private static final int MAX_COUNTER_VALUE = Integer.MAX_VALUE - 1;
   private static final int DEFAULT_STRIPES = 64;
+  /**
+   * Maximum number of stripes.
+   */
   private static final int MAX_STRIPES = 256;
 
   private final AtomicInteger[] counters;
@@ -22,7 +35,7 @@ class StripedRefCounter implements RefCounter {
   private final int stripeMask;
 
   StripedRefCounter() {
-    this(Math.min(lowestPowerOfTwoGreaterThanOrEqualTo(PROCESSOR_COUNT), DEFAULT_STRIPES));
+    this(getDefaultStripeCount());
   }
 
   StripedRefCounter(final int stripeCount) {
@@ -66,22 +79,6 @@ class StripedRefCounter implements RefCounter {
             DEFAULT_STRIPES));
   }
 
-  // Pkg private for testing
-
-  /**
-   * Returns the highest power of two that is less than or equal to {@code value}.
-   *
-   * @param value input value, must be positive
-   * @return highest power of two <= value
-   * @throws IllegalArgumentException if {@code value <= 0}
-   */
-  static int highestPowerOfTwoLessThanOrEqualTo(final int value) {
-    if (value <= 0) {
-      throw new IllegalArgumentException("Value must be positive, got: " + value);
-    }
-    return Integer.highestOneBit(value);
-  }
-
   /**
    * Returns the lowest power of two that is greater than or equal to {@code value}.
    *
@@ -97,7 +94,9 @@ class StripedRefCounter implements RefCounter {
       throw new IllegalArgumentException(
           "Value is too large to round up to a positive int power of two, got: " + value);
     }
-    return value == 1 ? 1 : Integer.highestOneBit(value - 1) << 1;
+    return value == 1
+        ? 1
+        : Integer.highestOneBit(value - 1) << 1;
   }
 
   private void release(final AtomicInteger counter) {
@@ -124,19 +123,25 @@ class StripedRefCounter implements RefCounter {
         return;
       }
 
-      // Once we have marked all counters, any threads trying to mutate the counters
-      // will fail, then attempt to get the lock, so will have to wait for us to complete
-      // the count.
+      // Once we have marked all counters as count-in-progress, any threads trying to mutate the counters
+      // will fail, then re-attempt under lock, so will have to wait for us to complete the count.
+      // Marking all the counters is a non-atomic operation, so another thread may increment a counter
+      // while we are in the middle of marking them, however, once all are marked, threads will be blocked
+      // from decrementing until we have called markCountersAsNoCountInProgress(), thus we will get a non-zero
+      // count and throw an EnvInUseException.
+
       markCountersAsCountInProgress(); // 0=>MAGIC_ZERO_VALUE else i=>i*-1
 
+      // At this point, no other thread can mutate the counters, so we are safe to use a sum of all the counters.
       try {
         final long totalCount = sumCounters();
         if (totalCount == 0) {
-          // Only mark as closed if the runnable succeeds.
+          // No permits on loan so safe to close.
           onClose.run();
+          // Only mark as closed if the runnable succeeds.
           isClosed.set(true);
           // Mark all counters as closed to prevent any future acquire() calls
-          for (AtomicInteger counter : counters) {
+          for (final AtomicInteger counter : counters) {
             counter.set(MAGIC_CLOSED_VALUE);
           }
         } else {
@@ -152,6 +157,10 @@ class StripedRefCounter implements RefCounter {
     }
   }
 
+  /**
+   * MUST be called after {@link StripedRefCounter#markCountersAsCountInProgress()} has been called and under
+   * lock. Once complete, {@link StripedRefCounter#markCountersAsNoCountInProgress()} must be called.
+   */
   private long sumCounters() {
     long totalCount = 0;
     for (AtomicInteger counter : counters) {
@@ -159,6 +168,10 @@ class StripedRefCounter implements RefCounter {
       if (count == MAGIC_CLOSED_VALUE) {  // Integer.MAX_VALUE
         throw new Env.AlreadyClosedException();
       } else if (count != MAGIC_ZERO_VALUE) {  // Integer.MIN_VALUE
+        // count should be negative at this point
+        if (count > 0) {
+          throw new IllegalStateException("Count should be negative at this point, got: " + count);
+        }
         totalCount += count;
       }
     }
@@ -169,9 +182,13 @@ class StripedRefCounter implements RefCounter {
 
   @Override
   public long getCount() {
-    checkNotClosed();
+    if (isClosed()) {
+      return 0;
+    }
     synchronized (this) {
-      checkNotClosed();
+      if (isClosed()) {
+        return 0;
+      }
       // This will stop any other thread from incrementing/decrementing the counter
       markCountersAsCountInProgress();
       try {
@@ -188,15 +205,19 @@ class StripedRefCounter implements RefCounter {
    *                                    successfully closed.
    */
   private boolean addToCounter(final AtomicInteger counter, final Delta delta) {
+    // Use a while loop with get() and compareAndSet(), rather than throwing exceptions inside
+    // updateAndGet().
     while (true) {
       final int currVal = counter.get();
 
       if (currVal == MAGIC_CLOSED_VALUE) {
+        // Once MAGIC_CLOSED_VALUE is set, it is never mutated again.
         throw new Env.AlreadyClosedException();
       } else if (currVal < 0) {
-        // A count is in progress
+        // A count is in progress, so we can drop out and try again under lock
         return false;
       } else if (currVal == MAX_COUNTER_VALUE && delta == Delta.PLUS_ONE) {
+        // This implies we have a LOT of txns/cursors open, should never happen
         throw new IllegalStateException("Reference count overflow");
       } else if (currVal == 0 && delta == Delta.MINUS_ONE) {
         throw new IllegalStateException("Reference count underflow");
@@ -234,6 +255,12 @@ class StripedRefCounter implements RefCounter {
    * Must be called while holding the lock on this object.
    */
   private void markCountersAsCountInProgress() {
+    // It is possible that another thread will call acquire() while we are mid-loop.
+    // If that thread uses a counter that has not yet been marked as count-in-progress, they will
+    // succeed with incrementing the counter.
+    // We will then get a sum that includes the increment from their acquire() call.
+    // They will be blocked from calling release() until markCountersAsNoCountInProgress() has
+    // been called by us.
     for (AtomicInteger counter : counters) {
       counter.updateAndGet(currVal -> {
         if (currVal == 0) {
@@ -325,6 +352,16 @@ class StripedRefCounter implements RefCounter {
 
     Delta(int deltaValue) {
       this.deltaValue = deltaValue;
+    }
+  }
+
+  private static class Stripe {
+    private final StripedRefCounter stRefCounter;
+    private final AtomicInteger counter;
+
+    Stripe(StripedRefCounter stRefCounter) {
+      this.stRefCounter = stRefCounter;
+      this.counter = new AtomicInteger();
     }
   }
 }
