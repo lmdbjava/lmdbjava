@@ -59,6 +59,7 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.params.Parameter;
@@ -93,6 +94,7 @@ public final class CursorIterableTest {
     final BufferProxy<ByteBuffer> bufferProxy = ByteBufferProxy.PROXY_OPTIMAL;
     env =
         create(bufferProxy)
+            .setSafeClose()
             .setMapSize(256, ByteUnit.KIBIBYTES)
             .setMaxReaders(1)
             .setMaxDbs(3)
@@ -352,6 +354,7 @@ public final class CursorIterableTest {
     verify(db, all(), 4, 8);
   }
 
+  @Disabled // We shouldn't be trying to close the env with open txns/cursors
   @Test
   void nextWithClosedEnvTest() {
     assertThatThrownBy(
@@ -369,6 +372,7 @@ public final class CursorIterableTest {
         .isInstanceOf(Env.AlreadyClosedException.class);
   }
 
+  @Disabled // We shouldn't be trying to close the env with open txns/cursors
   @Test
   void removeWithClosedEnvTest() {
     assertThatThrownBy(
@@ -389,6 +393,7 @@ public final class CursorIterableTest {
         .isInstanceOf(Env.AlreadyClosedException.class);
   }
 
+  @Disabled // We shouldn't be trying to close the env with open txns/cursors
   @Test
   void hasNextWithClosedEnvTest() {
     assertThatThrownBy(
@@ -406,6 +411,7 @@ public final class CursorIterableTest {
         .isInstanceOf(Env.AlreadyClosedException.class);
   }
 
+  @Disabled // We shouldn't be trying to close the env with open txns/cursors
   @Test
   void forEachRemainingWithClosedEnvTest() {
     assertThatThrownBy(

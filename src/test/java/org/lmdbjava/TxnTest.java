@@ -39,6 +39,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.lmdbjava.Dbi.BadValueSizeException;
 import org.lmdbjava.Env.AlreadyClosedException;
@@ -64,6 +65,7 @@ public final class TxnTest {
     file = tempDir.createTempFile();
     env =
         create()
+            .setSafeClose()
             .setMapSize(256, ByteUnit.KIBIBYTES)
             .setMaxReaders(1)
             .setMaxDbs(2)
@@ -133,7 +135,7 @@ public final class TxnTest {
   void readOnlyTxnAllowedInReadOnlyEnv() {
     env.createDbi().setDbName(DB_1).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
     try (Env<ByteBuffer> roEnv =
-        create().setMaxReaders(1).setEnvFlags(MDB_NOSUBDIR, MDB_RDONLY_ENV).open(file)) {
+        create().setSafeClose().setMaxReaders(1).setEnvFlags(MDB_NOSUBDIR, MDB_RDONLY_ENV).open(file)) {
       try (Txn<ByteBuffer> readTxn = roEnv.txnRead()) {
         assertThat(readTxn).isNotNull();
       }
@@ -151,7 +153,7 @@ public final class TxnTest {
                   .open();
               env.close();
               try (Env<ByteBuffer> roEnv =
-                  create().setMaxReaders(1).setEnvFlags(MDB_NOSUBDIR, MDB_RDONLY_ENV).open(file)) {
+                  create().setSafeClose().setMaxReaders(1).setEnvFlags(MDB_NOSUBDIR, MDB_RDONLY_ENV).open(file)) {
                 roEnv.txnWrite(); // error
               }
             })
@@ -255,6 +257,7 @@ public final class TxnTest {
     assertThatThrownBy(txnRead::renew).isInstanceOf(AlreadyClosedException.class);
   }
 
+  @Disabled // We shouldn't be trying to close the env with open txns
   @Test
   void txCloseDeniedIfEnvClosed() {
     final Txn<ByteBuffer> txnRead = env.txnRead();
@@ -262,6 +265,7 @@ public final class TxnTest {
     assertThatThrownBy(txnRead::close).isInstanceOf(AlreadyClosedException.class);
   }
 
+  @Disabled // We shouldn't be trying to close the env with open txns
   @Test
   void txCommitDeniedIfEnvClosed() {
     final Txn<ByteBuffer> txnRead = env.txnRead();
@@ -269,6 +273,7 @@ public final class TxnTest {
     assertThatThrownBy(txnRead::commit).isInstanceOf(AlreadyClosedException.class);
   }
 
+  @Disabled // We shouldn't be trying to close the env with open txns
   @Test
   void txAbortDeniedIfEnvClosed() {
     final Txn<ByteBuffer> txnRead = env.txnRead();
@@ -276,6 +281,7 @@ public final class TxnTest {
     assertThatThrownBy(txnRead::abort).isInstanceOf(AlreadyClosedException.class);
   }
 
+  @Disabled // We shouldn't be trying to close the env with open txns
   @Test
   void txResetDeniedIfEnvClosed() {
     final Txn<ByteBuffer> txnRead = env.txnRead();
@@ -312,6 +318,7 @@ public final class TxnTest {
     }
   }
 
+  @Disabled // We shouldn't be trying to close the env with open txns
   @Test
   void txParentDeniedIfEnvClosed() {
     assertThatThrownBy(

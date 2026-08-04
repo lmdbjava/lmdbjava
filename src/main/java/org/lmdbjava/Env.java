@@ -118,20 +118,20 @@ public final class Env<T> implements AutoCloseable {
   }
 
   /**
-   * Create an {@link Env} using the {@link ByteBufferProxy#PROXY_OPTIMAL}.
+   * Create an {@link Env.Builder} using the {@link ByteBufferProxy#PROXY_OPTIMAL}.
    *
-   * @return the environment (never null)
+   * @return the builder for creating an environment.
    */
   public static Builder<ByteBuffer> create() {
     return new Builder<>(PROXY_OPTIMAL);
   }
 
   /**
-   * Create an {@link Env} using the passed {@link BufferProxy}.
+   * Create an {@link Env.Builder} using the passed {@link BufferProxy}.
    *
    * @param <T> buffer type
    * @param proxy the proxy to use (required)
-   * @return the environment (never null)
+   * @return the builder for creating an environment.
    */
   public static <T> Builder<T> create(final BufferProxy<T> proxy) {
     return new Builder<>(proxy);
@@ -159,10 +159,10 @@ public final class Env<T> implements AutoCloseable {
    *
    * <p>Will silently return if already closed or never opened.
    *
-   * <p>Before and during this call, the caller MUST ensure that:
+   * <p>Before and during this call, the caller <strong>MUST</strong> ensure that:
    *
    * <ul>
-   *   <li>every {@link Txn}, {@link Cursor} obtained from this environment has already been closed;
+   *   <li>every {@link Txn} and {@link Cursor} obtained from this environment has already been closed;
    *       and
    *   <li>no other thread is executing <em>any</em> operation on this environment or on a handle
    *       derived from it — including {@link #txnRead()} / {@link #txnWrite()} and reads such as
@@ -181,10 +181,11 @@ public final class Env<T> implements AutoCloseable {
    * the read lock for the entire duration of its transaction and {@code close()} holds the write
    * lock, so the map is never unmapped while a read is in flight.
    *
-   * <p>If safeClose has been enabled, {@link Env#close()} will throw a {@link EnvInUseException} if
-   * transactions or cursors are still active.
+   * <p>If safeClose has been enabled on the {@link Env}, then this method will throw a
+   * {@link EnvInUseException} if transactions or cursors are still active.
    *
-   * @throws EnvInUseException if a {@link Txn} or {@link Cursor} is still open on this {@link Env}.
+   * @throws EnvInUseException If safeClose has been set and {@link Txn} or {@link Cursor} is still
+   * open on this {@link Env}
    */
   @Override
   public void close() {
@@ -1056,7 +1057,18 @@ public final class Env<T> implements AutoCloseable {
       return this;
     }
 
-    /** See {@link Env.Builder#setSafeClose(boolean)} */
+    /**
+     * Enables the opt-in "safe close" for the resulting {@link Env}.
+     *
+     * <p>When enabled, the environment tracks its live transactions and cursors so that closure of
+     * the {@link Env} is prevented if transactions or cursors are active. This adds a small amount
+     * of bookkeeping on transaction start/close; it is <strong>disabled by default</strong> so
+     * applications that already manage their own threading (the common low-latency case) pay
+     * nothing. When enabled, {@link Env#close()} will throw a {@link EnvInUseException} if
+     * transactions or cursors are active.
+     *
+     * @return the builder
+     */
     public Builder<T> setSafeClose() {
       checkEnvNotOpened();
       return setSafeClose(true);

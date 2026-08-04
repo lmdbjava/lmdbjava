@@ -1,5 +1,5 @@
 /*
- * Copyright © 2016-2025 The LmdbJava Open Source Project
+ * Copyright © 2016-2026 The LmdbJava Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.lmdbjava;
 
 import static java.lang.Long.BYTES;
@@ -92,7 +91,7 @@ public final class CursorParamTest {
 
     @Override
     public final void execute(final Path tmp) {
-      try (Env<T> env = env(tmp)) {
+      try (final Env<T> env = env(tmp)) {
         assertThat(env.getDbiNames()).isEmpty();
         final Dbi<T> db =
             env.createDbi()
@@ -170,6 +169,7 @@ public final class CursorParamTest {
 
     private Env<T> env(final Path tmp) {
       return create(proxy)
+          .setSafeClose()
           .setMapSize(1, ByteUnit.MEBIBYTES)
           .setMaxReaders(1)
           .setMaxDbs(1)

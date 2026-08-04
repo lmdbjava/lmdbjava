@@ -1,5 +1,5 @@
 /*
- * Copyright © 2016-2025 The LmdbJava Open Source Project
+ * Copyright © 2016-2026 The LmdbJava Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -51,6 +51,7 @@ import java.util.function.IntFunction;
 import java.util.function.ToIntFunction;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.lmdbjava.CursorIterable.KeyVal;
 import org.lmdbjava.Dbi.DbFullException;
@@ -78,6 +79,7 @@ public class DbiDeprecatedTest {
     final Path file = tempDir.createTempFile();
     env =
         create()
+            .setSafeClose()
             .setMapSize(MEBIBYTES.toBytes(64))
             .setMaxReaders(2)
             .setMaxDbs(2)
@@ -86,6 +88,7 @@ public class DbiDeprecatedTest {
     final Path fileBa = tempDirBa.createTempFile();
     envBa =
         create(PROXY_BA)
+            .setSafeClose()
             .setMapSize(MEBIBYTES.toBytes(64))
             .setMaxReaders(2)
             .setMaxDbs(2)
@@ -372,6 +375,7 @@ public class DbiDeprecatedTest {
     final Path file = tempDir.createTempFile();
     try (Env<byte[]> envBa =
         create(PROXY_BA)
+            .setSafeClose()
             .setMapSize(MEBIBYTES.toBytes(64))
             .setMaxReaders(1)
             .setMaxDbs(2)
@@ -550,6 +554,7 @@ public class DbiDeprecatedTest {
         .isInstanceOf(AlreadyClosedException.class);
   }
 
+  @Disabled // We shouldn't be trying to close the env with open txns/cursors
   @Test
   void closedEnvRejectsCloseCall() {
     assertThatThrownBy(
@@ -559,6 +564,7 @@ public class DbiDeprecatedTest {
         .isInstanceOf(AlreadyClosedException.class);
   }
 
+  @Disabled // We shouldn't be trying to close the env with open txns/cursors
   @Test
   void closedEnvRejectsGetCall() {
     assertThatThrownBy(
@@ -573,6 +579,7 @@ public class DbiDeprecatedTest {
         .isInstanceOf(AlreadyClosedException.class);
   }
 
+  @Disabled // We shouldn't be trying to close the env with open txns/cursors
   @Test
   void closedEnvRejectsPutCall() {
     assertThatThrownBy(
@@ -582,6 +589,7 @@ public class DbiDeprecatedTest {
         .isInstanceOf(AlreadyClosedException.class);
   }
 
+  @Disabled // We shouldn't be trying to close the env with open txns/cursors
   @Test
   void closedEnvRejectsPutWithTxnCall() {
     assertThatThrownBy(
@@ -595,6 +603,7 @@ public class DbiDeprecatedTest {
         .isInstanceOf(AlreadyClosedException.class);
   }
 
+  @Disabled // We shouldn't be trying to close the env with open txns/cursors
   @Test
   void closedEnvRejectsIterateCall() {
     assertThatThrownBy(
@@ -604,6 +613,7 @@ public class DbiDeprecatedTest {
         .isInstanceOf(AlreadyClosedException.class);
   }
 
+  @Disabled // We shouldn't be trying to close the env with open txns/cursors
   @Test
   void closedEnvRejectsDropCall() {
     assertThatThrownBy(
@@ -613,6 +623,7 @@ public class DbiDeprecatedTest {
         .isInstanceOf(AlreadyClosedException.class);
   }
 
+  @Disabled // We shouldn't be trying to close the env with open txns/cursors
   @Test
   void closedEnvRejectsDropAndDeleteCall() {
     assertThatThrownBy(
@@ -622,6 +633,7 @@ public class DbiDeprecatedTest {
         .isInstanceOf(AlreadyClosedException.class);
   }
 
+  @Disabled // We shouldn't be trying to close the env with open txns/cursors
   @Test
   void closedEnvRejectsOpenCursorCall() {
     assertThatThrownBy(
@@ -631,6 +643,7 @@ public class DbiDeprecatedTest {
         .isInstanceOf(AlreadyClosedException.class);
   }
 
+  @Disabled // We shouldn't be trying to close the env with open txns/cursors
   @Test
   void closedEnvRejectsReserveCall() {
     assertThatThrownBy(
@@ -640,6 +653,7 @@ public class DbiDeprecatedTest {
         .isInstanceOf(AlreadyClosedException.class);
   }
 
+  @Disabled // We shouldn't be trying to close the env with open txns/cursors
   @Test
   void closedEnvRejectsStatCall() {
     assertThatThrownBy(

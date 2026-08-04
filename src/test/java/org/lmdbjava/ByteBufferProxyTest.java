@@ -1,5 +1,5 @@
 /*
- * Copyright © 2016-2025 The LmdbJava Open Source Project
+ * Copyright © 2016-2026 The LmdbJava Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.lmdbjava;
 
 import static java.lang.Integer.BYTES;
@@ -63,7 +62,7 @@ public final class ByteBufferProxyTest {
             () -> {
               try (final TempDir tempDir = new TempDir()) {
                 final Path dir = tempDir.createTempDir();
-                try (Env<ByteBuffer> env = create().setMaxReaders(1).open(dir)) {
+                try (Env<ByteBuffer> env = create().setSafeClose().setSafeClose().setMaxReaders(1).open(dir)) {
                   final Dbi<ByteBuffer> db =
                       env.createDbi()
                           .setDbName(DB_1)

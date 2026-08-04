@@ -60,6 +60,7 @@ public final class CursorTest {
     Path file = tempDir.createTempFile();
     env =
         create(PROXY_OPTIMAL)
+            .setSafeClose()
             .setMapSize(1, ByteUnit.MEBIBYTES)
             .setMaxReaders(1)
             .setMaxDbs(1)
@@ -73,6 +74,7 @@ public final class CursorTest {
     env.close();
     tempDir.cleanup();
   }
+
 
   @Test
   void closedCursorRejectsSubsequentGets() {

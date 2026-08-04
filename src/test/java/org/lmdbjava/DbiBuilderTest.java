@@ -1,5 +1,5 @@
 /*
- * Copyright © 2016-2025 The LmdbJava Open Source Project
+ * Copyright © 2016-2026 The LmdbJava Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,6 +42,7 @@ class DbiBuilderTest {
     tempDir = new TempDir();
     env =
         create()
+            .setSafeClose()
             .setMapSize(64, ByteUnit.MEBIBYTES)
             .setMaxReaders(2)
             .setMaxDbs(2)

@@ -1,5 +1,5 @@
 /*
- * Copyright © 2016-2025 The LmdbJava Open Source Project
+ * Copyright © 2016-2026 The LmdbJava Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.lmdbjava;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -261,6 +260,7 @@ public final class CursorIterableRangeTest {
       final Path file = tempDir.createTempFile();
       try (final Env<ByteBuffer> env =
           create()
+              .setSafeClose()
               .setMapSize(256, ByteUnit.KIBIBYTES)
               .setMaxReaders(1)
               .setMaxDbs(1)
@@ -329,13 +329,14 @@ public final class CursorIterableRangeTest {
   private BiConsumer<Env<ByteBuffer>, Dbi<ByteBuffer>> createBasicDBPopulator() {
     return (env, dbi) -> {
       try (Txn<ByteBuffer> txn = env.txnWrite()) {
-        final Cursor<ByteBuffer> c = dbi.openCursor(txn);
-        c.put(bb(0), bb(1));
-        c.put(bb(2), bb(3));
-        c.put(bb(4), bb(5));
-        c.put(bb(6), bb(7));
-        c.put(bb(8), bb(9));
-        c.put(bb(-2), bb(-1));
+        try (Cursor<ByteBuffer> c = dbi.openCursor(txn)) {
+          c.put(bb(0), bb(1));
+          c.put(bb(2), bb(3));
+          c.put(bb(4), bb(5));
+          c.put(bb(6), bb(7));
+          c.put(bb(8), bb(9));
+          c.put(bb(-2), bb(-1));
+        }
         txn.commit();
       }
     };
@@ -344,14 +345,15 @@ public final class CursorIterableRangeTest {
   private BiConsumer<Env<ByteBuffer>, Dbi<ByteBuffer>> createMultiDBPopulator(final int copies) {
     return (env, dbi) -> {
       try (Txn<ByteBuffer> txn = env.txnWrite()) {
-        final Cursor<ByteBuffer> c = dbi.openCursor(txn);
-        for (int i = 0; i < copies; i++) {
-          c.put(bb(0), bb(1 + i));
-          c.put(bb(2), bb(3 + i));
-          c.put(bb(4), bb(5 + i));
-          c.put(bb(6), bb(7 + i));
-          c.put(bb(8), bb(9 + i));
-          c.put(bb(-2), bb(-1 + i));
+        try (Cursor<ByteBuffer> c = dbi.openCursor(txn)) {
+          for (int i = 0; i < copies; i++) {
+            c.put(bb(0), bb(1 + i));
+            c.put(bb(2), bb(3 + i));
+            c.put(bb(4), bb(5 + i));
+            c.put(bb(6), bb(7 + i));
+            c.put(bb(8), bb(9 + i));
+            c.put(bb(-2), bb(-1 + i));
+          }
         }
         txn.commit();
       }
@@ -362,14 +364,15 @@ public final class CursorIterableRangeTest {
       final int copies) {
     return (env, dbi) -> {
       try (Txn<ByteBuffer> txn = env.txnWrite()) {
-        final Cursor<ByteBuffer> c = dbi.openCursor(txn);
-        for (int i = 0; i < copies; i++) {
-          c.put(bbNative(0), bb(1 + i));
-          c.put(bbNative(2), bb(3 + i));
-          c.put(bbNative(4), bb(5 + i));
-          c.put(bbNative(6), bb(7 + i));
-          c.put(bbNative(8), bb(9 + i));
-          c.put(bbNative(-2), bb(-1 + i));
+        try (Cursor<ByteBuffer> c = dbi.openCursor(txn)) {
+          for (int i = 0; i < copies; i++) {
+            c.put(bbNative(0), bb(1 + i));
+            c.put(bbNative(2), bb(3 + i));
+            c.put(bbNative(4), bb(5 + i));
+            c.put(bbNative(6), bb(7 + i));
+            c.put(bbNative(8), bb(9 + i));
+            c.put(bbNative(-2), bb(-1 + i));
+          }
         }
         txn.commit();
       }
@@ -380,14 +383,15 @@ public final class CursorIterableRangeTest {
       final int copies) {
     return (env, dbi) -> {
       try (Txn<ByteBuffer> txn = env.txnWrite()) {
-        final Cursor<ByteBuffer> c = dbi.openCursor(txn);
-        for (int i = 0; i < copies; i++) {
-          c.put(bbNative(0L), bb(1 + i));
-          c.put(bbNative(2L), bb(3 + i));
-          c.put(bbNative(4L), bb(5 + i));
-          c.put(bbNative(6L), bb(7 + i));
-          c.put(bbNative(8L), bb(9 + i));
-          c.put(bbNative(-2L), bb(-1 + i));
+        try (Cursor<ByteBuffer> c = dbi.openCursor(txn)) {
+          for (int i = 0; i < copies; i++) {
+            c.put(bbNative(0L), bb(1 + i));
+            c.put(bbNative(2L), bb(3 + i));
+            c.put(bbNative(4L), bb(5 + i));
+            c.put(bbNative(6L), bb(7 + i));
+            c.put(bbNative(8L), bb(9 + i));
+            c.put(bbNative(-2L), bb(-1 + i));
+          }
         }
         txn.commit();
       }
@@ -397,12 +401,13 @@ public final class CursorIterableRangeTest {
   private BiConsumer<Env<ByteBuffer>, Dbi<ByteBuffer>> createIntegerDBPopulator() {
     return (env, dbi) -> {
       try (Txn<ByteBuffer> txn = env.txnWrite()) {
-        final Cursor<ByteBuffer> c = dbi.openCursor(txn);
-        c.put(bbNative(0), bb(1));
-        c.put(bbNative(1000), bb(2));
-        c.put(bbNative(1000000), bb(3));
-        c.put(bbNative(-1000000), bb(4));
-        c.put(bbNative(-1000), bb(5));
+        try (Cursor<ByteBuffer> c = dbi.openCursor(txn)) {
+          c.put(bbNative(0), bb(1));
+          c.put(bbNative(1000), bb(2));
+          c.put(bbNative(1000000), bb(3));
+          c.put(bbNative(-1000000), bb(4));
+          c.put(bbNative(-1000), bb(5));
+        }
         txn.commit();
       }
     };
@@ -411,12 +416,13 @@ public final class CursorIterableRangeTest {
   private BiConsumer<Env<ByteBuffer>, Dbi<ByteBuffer>> createLongDBPopulator() {
     return (env, dbi) -> {
       try (Txn<ByteBuffer> txn = env.txnWrite()) {
-        final Cursor<ByteBuffer> c = dbi.openCursor(txn);
-        c.put(bbNative(0L), bb(1));
-        c.put(bbNative(1000L), bb(2));
-        c.put(bbNative(1000000L), bb(3));
-        c.put(bbNative(-1000000L), bb(4));
-        c.put(bbNative(-1000L), bb(5));
+        try (Cursor<ByteBuffer> c = dbi.openCursor(txn)) {
+          c.put(bbNative(0L), bb(1));
+          c.put(bbNative(1000L), bb(2));
+          c.put(bbNative(1000000L), bb(3));
+          c.put(bbNative(-1000000L), bb(4));
+          c.put(bbNative(-1000L), bb(5));
+        }
         txn.commit();
       }
     };

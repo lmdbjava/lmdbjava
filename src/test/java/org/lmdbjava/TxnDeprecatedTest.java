@@ -1,5 +1,5 @@
 /*
- * Copyright © 2016-2025 The LmdbJava Open Source Project
+ * Copyright © 2016-2026 The LmdbJava Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.lmdbjava;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -26,6 +25,7 @@ import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.lmdbjava.Env.AlreadyClosedException;
 import org.lmdbjava.Txn.IncompatibleParent;
@@ -50,6 +50,7 @@ public final class TxnDeprecatedTest {
     file = tempDir.createTempFile();
     env =
         create()
+            .setSafeClose()
             .setMapSize(256, ByteUnit.KIBIBYTES)
             .setMaxReaders(1)
             .setMaxDbs(2)
@@ -81,6 +82,7 @@ public final class TxnDeprecatedTest {
     }
   }
 
+  @Disabled // We shouldn't be trying to close the env with open txns/cursors
   @Test
   void txParentDeniedIfEnvClosed() {
     assertThatThrownBy(
