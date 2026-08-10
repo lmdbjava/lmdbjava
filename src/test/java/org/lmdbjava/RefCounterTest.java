@@ -537,6 +537,8 @@ public class RefCounterTest {
     final AtomicInteger onCloseCallCount = new AtomicInteger();
     refCounter.close(onCloseCallCount::incrementAndGet);
     assertThat(refCounter.getCount()).isZero();
+    assertThat(refCounter.isClosed()).isTrue();
+    assertThatThrownBy(refCounter::checkNotClosed).isInstanceOf(Env.AlreadyClosedException.class);
     assertThat(onCloseCallCount.get()).isEqualTo(1);
   }
 

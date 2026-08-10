@@ -142,6 +142,8 @@ public final class TxnTest {
             .open(file)) {
       try (Txn<ByteBuffer> readTxn = roEnv.txnRead()) {
         assertThat(readTxn).isNotNull();
+        assertThat(readTxn.isReadOnly()).isTrue();
+        assertThat(readTxn.isWritable()).isFalse();
       }
     }
   }
@@ -387,6 +389,7 @@ public final class TxnTest {
     assertThat(txn.getParent()).isNull();
     assertThat(txn.getState()).isEqualTo(READY);
     assertThat(txn.isReadOnly()).isFalse();
+    assertThat(txn.isWritable()).isTrue();
     txn.checkReady();
     txn.checkWritesAllowed();
     txn.commit();
