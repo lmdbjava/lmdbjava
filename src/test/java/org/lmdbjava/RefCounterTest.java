@@ -564,6 +564,23 @@ public class RefCounterTest {
 
   @ParameterizedTest
   @MethodSource("allRefCounterProvider")
+  void countAfterClose(final RefCounter refCounter) {
+    final AtomicInteger onCloseCallCount = new AtomicInteger();
+    assertThat(refCounter.getCount()).isZero();
+    final RefCounter.RefCounterReleaser releaser = refCounter.acquire();
+    if (!(refCounter instanceof NoOpRefCounter)) {
+      assertThat(refCounter.getCount()).isEqualTo(1);
+    }
+    // Need to release to allow the close
+    releaser.release();
+    refCounter.close(onCloseCallCount::incrementAndGet);
+    assertThat(onCloseCallCount.get()).isEqualTo(1);
+
+    assertThat(refCounter.getCount()).isZero();
+  }
+
+  @ParameterizedTest
+  @MethodSource("allRefCounterProvider")
   void use(final RefCounter refCounter) {
     final AtomicInteger onCloseCallCount = new AtomicInteger();
     final AtomicInteger useCallCount = new AtomicInteger();
@@ -593,6 +610,7 @@ public class RefCounterTest {
     refCounter.close(onCloseCallCount::incrementAndGet);
     assertThat(onCloseCallCount.get()).isEqualTo(1);
 
+    // use after close
     if (!(refCounter instanceof NoOpRefCounter)) {
       assertThatThrownBy(() -> refCounter.use(useCallCount::incrementAndGet))
           .isInstanceOf(Env.AlreadyClosedException.class);

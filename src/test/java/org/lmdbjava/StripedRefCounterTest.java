@@ -16,6 +16,7 @@
 package org.lmdbjava;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.jupiter.api.Test;
 
@@ -45,5 +46,41 @@ class StripedRefCounterTest {
         .isEqualTo(536870912);
     assertThat(StripedRefCounter.lowestPowerOfTwoGreaterThanOrEqualTo(536870913))
         .isEqualTo(1073741824);
+  }
+
+  @Test
+  void getStripeCount() {
+    final StripedRefCounter stripedRefCounter = new StripedRefCounter();
+    assertThat(stripedRefCounter.getStripeCount()).isGreaterThan(1);
+  }
+
+  @Test
+  void getStripeCount2() {
+    final StripedRefCounter stripedRefCounter = new StripedRefCounter(16);
+    assertThat(stripedRefCounter.getStripeCount()).isEqualTo(16);
+  }
+
+  @Test
+  void getStripeCount3() {
+    final StripedRefCounter stripedRefCounter = new StripedRefCounter(15);
+    assertThat(stripedRefCounter.getStripeCount()).isEqualTo(16);
+  }
+
+  @Test
+  void getStripeCount4() {
+    assertThatThrownBy(() -> new StripedRefCounter(99999999))
+        .isInstanceOf(IllegalArgumentException.class);
+  }
+
+  @Test
+  void getStripeCount5() {
+    assertThatThrownBy(() -> new StripedRefCounter(0))
+        .isInstanceOf(IllegalArgumentException.class);
+  }
+
+  @Test
+  void getStripeCount6() {
+    assertThatThrownBy(() -> new StripedRefCounter(-1))
+        .isInstanceOf(IllegalArgumentException.class);
   }
 }

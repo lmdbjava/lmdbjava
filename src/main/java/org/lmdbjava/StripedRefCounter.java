@@ -63,10 +63,11 @@ class StripedRefCounter implements RefCounter {
   }
 
   StripedRefCounter(final int stripeCount) {
-    validateStripeCount(stripeCount);
-    this.stripeMask = stripeCount - 1;
-    this.counters = new Stripe[stripeCount];
-    for (int i = 0; i < stripeCount; i++) {
+    final int effectiveStripeCount = lowestPowerOfTwoGreaterThanOrEqualTo(stripeCount);
+    validateStripeCount(effectiveStripeCount);
+    this.stripeMask = effectiveStripeCount - 1;
+    this.counters = new Stripe[effectiveStripeCount];
+    for (int i = 0; i < effectiveStripeCount; i++) {
       counters[i] = new Stripe(this);
     }
   }
@@ -320,9 +321,6 @@ class StripedRefCounter implements RefCounter {
     if (stripeCount > MAX_STRIPES) {
       throw new IllegalArgumentException(
           "Stripe count exceeds maximum. Got: " + stripeCount + ", max: " + MAX_STRIPES);
-    }
-    if ((stripeCount & (stripeCount - 1)) != 0) {
-      throw new IllegalArgumentException("Stripe count must be power of 2, got: " + stripeCount);
     }
   }
 
