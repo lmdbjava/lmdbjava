@@ -59,7 +59,7 @@ public class RefCounterTest {
 
   /**
    * @return A {@link Stream} of {@link RefCounter}s that support multithreaded use for {@link
-   * ParameterizedTest}s.
+   *     ParameterizedTest}s.
    */
   private static Stream<Arguments> multiThreadedRefCounterProvider() {
     return Stream.of(new StripedRefCounter(), new SimpleRefCounter(), new SynchronisedRefCounter())
@@ -78,7 +78,9 @@ public class RefCounterTest {
       final int round = i;
       // Run tests with all available processors
       System.out.println(
-          "Multi-threaded (" + processorCount + " threads) tests ---------------------------------");
+          "Multi-threaded ("
+              + processorCount
+              + " threads) tests ---------------------------------");
 
       System.out.println("Round: " + round + " " + StripedRefCounter.class.getSimpleName());
       IntStream.of(1, 16, 32, 64, 128, 256)
@@ -544,8 +546,7 @@ public class RefCounterTest {
     final AtomicInteger onCloseCallCount = new AtomicInteger();
     refCounter.close(onCloseCallCount::incrementAndGet);
     assertThat(onCloseCallCount.get()).isEqualTo(1);
-    assertThatThrownBy(refCounter::acquire)
-        .isInstanceOf(Env.AlreadyClosedException.class);
+    assertThatThrownBy(refCounter::acquire).isInstanceOf(Env.AlreadyClosedException.class);
   }
 
   @ParameterizedTest
@@ -558,8 +559,7 @@ public class RefCounterTest {
     refCounter.close(onCloseCallCount::incrementAndGet);
     assertThat(onCloseCallCount.get()).isEqualTo(1);
 
-    assertThatThrownBy(releaser::release)
-        .isInstanceOf(Env.AlreadyClosedException.class);
+    assertThatThrownBy(releaser::release).isInstanceOf(Env.AlreadyClosedException.class);
   }
 
   @ParameterizedTest
@@ -567,23 +567,23 @@ public class RefCounterTest {
   void use(final RefCounter refCounter) {
     final AtomicInteger onCloseCallCount = new AtomicInteger();
     final AtomicInteger useCallCount = new AtomicInteger();
-    refCounter.use(() -> {
-      useCallCount.incrementAndGet();
-      if (!(refCounter instanceof NoOpRefCounter)) {
-        assertThatThrownBy(() ->
-            refCounter.close(onCloseCallCount::incrementAndGet))
-            .isInstanceOf(Env.EnvInUseException.class);
-      }
-    });
+    refCounter.use(
+        () -> {
+          useCallCount.incrementAndGet();
+          if (!(refCounter instanceof NoOpRefCounter)) {
+            assertThatThrownBy(() -> refCounter.close(onCloseCallCount::incrementAndGet))
+                .isInstanceOf(Env.EnvInUseException.class);
+          }
+        });
 
-    refCounter.use(() -> {
-      useCallCount.incrementAndGet();
-      if (!(refCounter instanceof NoOpRefCounter)) {
-        assertThatThrownBy(() ->
-            refCounter.close(onCloseCallCount::incrementAndGet))
-            .isInstanceOf(Env.EnvInUseException.class);
-      }
-    });
+    refCounter.use(
+        () -> {
+          useCallCount.incrementAndGet();
+          if (!(refCounter instanceof NoOpRefCounter)) {
+            assertThatThrownBy(() -> refCounter.close(onCloseCallCount::incrementAndGet))
+                .isInstanceOf(Env.EnvInUseException.class);
+          }
+        });
 
     assertThat(useCallCount.get()).isEqualTo(2);
     assertThat(onCloseCallCount.get()).isEqualTo(0);
@@ -594,8 +594,7 @@ public class RefCounterTest {
     assertThat(onCloseCallCount.get()).isEqualTo(1);
 
     if (!(refCounter instanceof NoOpRefCounter)) {
-      assertThatThrownBy(() ->
-          refCounter.use(useCallCount::incrementAndGet))
+      assertThatThrownBy(() -> refCounter.use(useCallCount::incrementAndGet))
           .isInstanceOf(Env.AlreadyClosedException.class);
     }
   }
@@ -606,11 +605,11 @@ public class RefCounterTest {
     final StripedRefCounter refCounter = new StripedRefCounter();
 
     assertThatThrownBy(
-        () ->
-            refCounter.close(
-                () -> {
-                  throw new RuntimeException("boom");
-                }))
+            () ->
+                refCounter.close(
+                    () -> {
+                      throw new RuntimeException("boom");
+                    }))
         .isInstanceOf(RuntimeException.class);
 
     assertThat(refCounter.isClosed()).isFalse();
@@ -692,8 +691,9 @@ public class RefCounterTest {
       }
       CompletableFuture.allOf(futures).join();
 
-//      final Duration duration = Duration.between(startTime.get(), Instant.now());
-//      final long iterationsPerSec = Math.round((double) iterations / duration.toMillis() * 1000);
+      //      final Duration duration = Duration.between(startTime.get(), Instant.now());
+      //      final long iterationsPerSec = Math.round((double) iterations / duration.toMillis() *
+      // 1000);
       //      System.out.println(
       //          "All Finished"
       //              + ", threads: "
