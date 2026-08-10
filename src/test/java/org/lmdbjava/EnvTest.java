@@ -25,6 +25,7 @@ import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.EnvFlags.MDB_NOSYNC;
 import static org.lmdbjava.EnvFlags.MDB_NOTLS;
 import static org.lmdbjava.EnvFlags.MDB_RDONLY_ENV;
+import static org.lmdbjava.PutFlags.MDB_APPENDDUP;
 import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.bb;
 
@@ -42,6 +43,8 @@ import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.lmdbjava.Env.AlreadyClosedException;
 import org.lmdbjava.Env.AlreadyOpenException;
 import org.lmdbjava.Env.Builder;
@@ -90,6 +93,9 @@ public final class EnvTest {
       assertThatThrownBy(() -> builder.setMapSize(1)).isInstanceOf(AlreadyOpenException.class);
       assertThatThrownBy(builder::setSafeClose).isInstanceOf(AlreadyOpenException.class);
       assertThatThrownBy(() -> builder.setSafeClose(true)).isInstanceOf(AlreadyOpenException.class);
+      assertThatThrownBy(builder::setSingleThreaded).isInstanceOf(AlreadyOpenException.class);
+      assertThatThrownBy(() -> builder.setSingleThreaded(true))
+          .isInstanceOf(AlreadyOpenException.class);
       assertThatThrownBy(() -> builder.setEnvFlags(EnvFlagSet.of(MDB_NOSUBDIR)))
           .isInstanceOf(AlreadyOpenException.class);
       assertThatThrownBy(() -> builder.setMaxReaders(1)).isInstanceOf(AlreadyOpenException.class);
@@ -747,7 +753,6 @@ public final class EnvTest {
   @Test
   void closeWithOpenWriteTxn() {
     final Path file = tempDir.createTempFile();
-    @SuppressWarnings("resource")
     final Env<ByteBuffer> env =
         Env.create()
             .setSafeClose()
@@ -794,5 +799,67 @@ public final class EnvTest {
     Assertions.assertThatThrownBy(cursor::close).isInstanceOf(Txn.NotReadyException.class);
 
     // can't close the env as we are unable to close the cursor
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+    "true, true, false",
+    "true, false, false",
+    "false, true, false",
+    "false, false, false",
+    "false, false, true"
+  })
+  void singleThreaded(final boolean safeClose, final boolean singleThreaded, final boolean noArgs) {
+    testEnvUse(safeClose, singleThreaded, noArgs);
+  }
+
+  private void testEnvUse(
+      final boolean safeClose, final boolean singleThreaded, final boolean noArgs) {
+    final Path file = tempDir.createTempFile();
+
+    final Builder<ByteBuffer> builder =
+        Env.create()
+            .setMapSize(1, ByteUnit.MEBIBYTES)
+            .setMaxDbs(1)
+            .setMaxReaders(1)
+            .setEnvFlags(MDB_NOSUBDIR);
+
+    if (noArgs) {
+      builder.setSafeClose().setSingleThreaded();
+    } else {
+      builder.setSafeClose(safeClose).setSingleThreaded(singleThreaded);
+    }
+
+    try (Env<ByteBuffer> env = builder.open(file)) {
+      final Dbi<ByteBuffer> dbi =
+          env.createDbi().setDbName(DB_1).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
+
+      try (Txn<ByteBuffer> txn = env.txnWrite()) {
+        for (int i = 0; i < 10; i++) {
+          dbi.put(txn, bb(i), bb(100 + i), MDB_APPENDDUP);
+
+          if (safeClose) {
+            Assertions.assertThatThrownBy(env::close).isInstanceOf(Env.EnvInUseException.class);
+          }
+        }
+        txn.commit();
+      }
+
+      for (int i = 0; i < 5; i++) {
+        try (Txn<ByteBuffer> txn = env.txnRead();
+            Cursor<ByteBuffer> cursor = dbi.openCursor(txn)) {
+          int j = 0;
+          while (cursor.next()) {
+            final KeyVal<ByteBuffer> keyVal = cursor.keyVal();
+            Assertions.assertThat(keyVal.key().getInt()).isEqualTo(j);
+            Assertions.assertThat(keyVal.val().getInt()).isEqualTo(100 + j);
+            if (safeClose) {
+              Assertions.assertThatThrownBy(env::close).isInstanceOf(Env.EnvInUseException.class);
+            }
+            j++;
+          }
+        }
+      }
+    }
   }
 }

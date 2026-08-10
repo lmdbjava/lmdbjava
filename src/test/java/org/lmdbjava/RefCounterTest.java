@@ -635,16 +635,16 @@ public class RefCounterTest {
       final Duration duration = Duration.between(startTime.get(), Instant.now());
       final long iterationsPerSec = Math.round((double) iterations / duration.toMillis() * 1000);
 
-//      System.out.println(
-//          "All Finished"
-//              + ", threads: "
-//              + threadCount
-//              + ", iterationsPerThread: "
-//              + iterationsPerThread
-//              + ", duration: "
-//              + duration
-//              + ", iterationsPerSec: "
-//              + NumberFormat.getInstance().format(iterationsPerSec));
+      //      System.out.println(
+      //          "All Finished"
+      //              + ", threads: "
+      //              + threadCount
+      //              + ", iterationsPerThread: "
+      //              + iterationsPerThread
+      //              + ", duration: "
+      //              + duration
+      //              + ", iterationsPerSec: "
+      //              + NumberFormat.getInstance().format(iterationsPerSec));
     } finally {
       // ExecutorService does not implement AutoCloseable in Java8
       executorService.shutdown();
