@@ -21,7 +21,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.text.NumberFormat;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Arrays;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.Random;
@@ -53,9 +52,9 @@ public class RefCounterTest {
    */
   private static Stream<Arguments> allRefCounterProvider() {
     return Stream.concat(
-            multiThreadedRefCounterProvider(),
-            Stream.of(new SingleThreadedRefCounter(), new NoOpRefCounter())
-                .map(RefCounterTest::createArguments));
+        multiThreadedRefCounterProvider(),
+        Stream.of(new SingleThreadedRefCounter(), new NoOpRefCounter())
+            .map(RefCounterTest::createArguments));
   }
 
   /**
@@ -214,7 +213,9 @@ public class RefCounterTest {
       callCounts[i] = new AtomicInteger();
     }
     final CountDownLatch countDownLatch = new CountDownLatch(threadCount);
-    try (ExecutorService executorService = Executors.newFixedThreadPool(threadCount)) {
+    //noinspection resource ExecutorService does not implement AutoCloseable in Java8
+    final ExecutorService executorService = Executors.newFixedThreadPool(threadCount);
+    try {
 
       final CompletableFuture<?>[] futures =
           IntStream.range(0, threadCount)
@@ -240,6 +241,9 @@ public class RefCounterTest {
       for (AtomicInteger callCount : callCounts) {
         assertThat(callCount).hasValue(iterations);
       }
+    } finally {
+      // ExecutorService does not implement AutoCloseable in Java8
+      executorService.shutdown();
     }
   }
 
@@ -250,42 +254,47 @@ public class RefCounterTest {
     final AtomicInteger[] callCounts;
     final Queue<RefCounter.RefCounterReleaser> releasers;
 
-    try (ExecutorService executor = Executors.newFixedThreadPool(threadCount)) {
-      try (ExecutorService executor2 = Executors.newFixedThreadPool(threadCount)) {
-        callCounts = new AtomicInteger[threadCount];
-        for (int i = 0; i < threadCount; i++) {
-          callCounts[i] = new AtomicInteger();
-        }
-        final CountDownLatch countDownLatch = new CountDownLatch(threadCount);
+    //noinspection resource ExecutorService does not implement AutoCloseable in Java8
+    final ExecutorService executorService = Executors.newFixedThreadPool(threadCount);
+    final ExecutorService executorService2 = Executors.newFixedThreadPool(threadCount);
 
-        releasers = new ConcurrentLinkedQueue<>();
-        final Queue<CompletableFuture<?>> futures = new ConcurrentLinkedQueue<>();
-
-        IntStream.range(0, threadCount)
-            .boxed()
-            .map(
-                i ->
-                    CompletableFuture.runAsync(
-                        () -> {
-                          TestUtils.countDownThenAwait(countDownLatch);
-                          for (int j = 0; j < iterations; j++) {
-                            final RefCounter.RefCounterReleaser releaser = refCounter.acquire();
-                            releasers.add(releaser);
-                            callCounts[i].getAndIncrement();
-                            futures.add(
-                                CompletableFuture.runAsync(
-                                    () -> {
-                                      final long count = refCounter.getCount();
-                                      assertThat(count).isNotEqualTo(0);
-                                    },
-                                    executor2));
-                          }
-                        },
-                        executor))
-            .forEach(futures::add);
-
-        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+    try {
+      callCounts = new AtomicInteger[threadCount];
+      for (int i = 0; i < threadCount; i++) {
+        callCounts[i] = new AtomicInteger();
       }
+      final CountDownLatch countDownLatch = new CountDownLatch(threadCount);
+
+      releasers = new ConcurrentLinkedQueue<>();
+      final Queue<CompletableFuture<?>> futures = new ConcurrentLinkedQueue<>();
+
+      IntStream.range(0, threadCount)
+          .boxed()
+          .map(
+              i ->
+                  CompletableFuture.runAsync(
+                      () -> {
+                        TestUtils.countDownThenAwait(countDownLatch);
+                        for (int j = 0; j < iterations; j++) {
+                          final RefCounter.RefCounterReleaser releaser = refCounter.acquire();
+                          releasers.add(releaser);
+                          callCounts[i].getAndIncrement();
+                          futures.add(
+                              CompletableFuture.runAsync(
+                                  () -> {
+                                    final long count = refCounter.getCount();
+                                    assertThat(count).isNotEqualTo(0);
+                                  },
+                                  executorService2));
+                        }
+                      },
+                      executorService))
+          .forEach(futures::add);
+
+      CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+    } finally {
+      executorService2.shutdown();
+      executorService.shutdown();
     }
 
     assertRefCount(refCounter, threadCount * iterations);
@@ -330,14 +339,15 @@ public class RefCounterTest {
   void testBehaviour(final RefCounter refCounter) throws InterruptedException {
     final Random random = new Random();
     final int threadCount = this.threadCount - 1;
-    try (ExecutorService executorService = Executors.newFixedThreadPool(threadCount)) {
+    //noinspection resource ExecutorService does not implement AutoCloseable in Java8
+    final ExecutorService executorService = Executors.newFixedThreadPool(threadCount);
+    try {
       final int rounds = 5;
       final int iterations = 10_000_000;
       final AtomicReference<Object> mockEnv = new AtomicReference<>();
 
       for (int k = 0; k < rounds; k++) {
         final int round = k;
-        System.out.printf("Round %s ----------------------------------------%n", round);
 
         // Reset the env
         mockEnv.set(new Object());
@@ -358,16 +368,8 @@ public class RefCounterTest {
                   () -> {
                     // Wait for all threads to be ready
                     TestUtils.countDownThenAwait(startLatch);
-                    //          System.out.println(Thread.currentThread() + " - Starting");
                     for (int j = 0; j < iterations; j++) {
                       if (abortThreads.get()) {
-                        System.out.println(
-                            Thread.currentThread()
-                                + ", round: "
-                                + round
-                                + ", j: "
-                                + j
-                                + ", abortThreads is true");
                         break;
                       }
 
@@ -376,13 +378,6 @@ public class RefCounterTest {
                         releaser = roundRefCounter.acquire();
                         counts[threadIdx].incrementAndGet();
                       } catch (Env.AlreadyClosedException e) {
-                        System.out.println(
-                            Thread.currentThread()
-                                + ", round: "
-                                + round
-                                + ", j: "
-                                + j
-                                + ", Env closed, aborting");
                         break;
                       }
                       try {
@@ -396,7 +391,6 @@ public class RefCounterTest {
                         releaser.release();
                       }
                     }
-                    //          System.out.println(Thread.currentThread() + " - Done");
                   },
                   executorService);
         }
@@ -412,11 +406,9 @@ public class RefCounterTest {
         while (!didClose.get()) {
           try {
             assertThat(mockEnv.get()).isNotNull();
-            System.out.println("close called " + ++closeCallCount);
             roundRefCounter.close(
                 () -> {
                   onCloseCallCount.incrementAndGet();
-                  System.out.println("onClose called " + onCloseCallCount.get());
                   // Imitate closing the env
                   mockEnv.set(null);
                   didClose.set(true);
@@ -438,9 +430,6 @@ public class RefCounterTest {
         // Wait for all workers to finish
         CompletableFuture.allOf(futures).join();
 
-        System.out.println(
-            "Acquire call count: " + Arrays.stream(counts).mapToLong(AtomicLong::get).sum());
-
         // Make sure the mock env is all closed down
         assertThat(mockEnv).hasNullValue();
         assertThat(roundRefCounter.isClosed()).isEqualTo(true);
@@ -448,6 +437,9 @@ public class RefCounterTest {
         assertThatThrownBy(roundRefCounter::acquire).isInstanceOf(Env.AlreadyClosedException.class);
         assertThat(onCloseCallCount).hasValue(1);
       }
+    } finally {
+      // ExecutorService does not implement AutoCloseable in Java8
+      executorService.shutdown();
     }
   }
 
@@ -459,16 +451,15 @@ public class RefCounterTest {
   void testGetCount(final RefCounter refCounter) throws InterruptedException {
     final Random random = new Random();
     final int threadCount = this.threadCount - 1;
-    try (ExecutorService executorService = Executors.newFixedThreadPool(threadCount)) {
+    //noinspection resource ExecutorService does not implement AutoCloseable in Java8
+    final ExecutorService executorService = Executors.newFixedThreadPool(threadCount);
+    try {
       final int rounds = 5;
       final int iterations = 10_000_000;
       final AtomicReference<Object> mockEnv = new AtomicReference<>();
       final AtomicBoolean abortThreads = new AtomicBoolean(false);
 
       for (int k = 0; k < rounds; k++) {
-        //      final int round = k;
-        System.out.printf("Round %s ----------------------------------------%n", k);
-
         // Reset the env
         mockEnv.set(new Object());
         abortThreads.set(false);
@@ -484,7 +475,6 @@ public class RefCounterTest {
                   () -> {
                     // Wait for all threads to be ready
                     TestUtils.countDownThenAwait(startLatch);
-                    //        System.out.println(Thread.currentThread() + " - Starting");
 
                     for (int j = 0; j < iterations; j++) {
                       if (abortThreads.get()) {
@@ -495,8 +485,6 @@ public class RefCounterTest {
                         releaser = roundRefCounter.acquire();
                         counts[threadIdx]++;
                       } catch (Env.AlreadyClosedException e) {
-                        //              System.out.println(Thread.currentThread() + ", round: " +
-                        // round + ", Env closed, aborting");
                         break;
                       }
                       try {
@@ -511,7 +499,6 @@ public class RefCounterTest {
                       // is not using the 'env'
                       TestUtils.sleep(5 + random.nextInt(5));
                     }
-                    //        System.out.println(Thread.currentThread() + " - Done");
                   },
                   executorService);
         }
@@ -524,7 +511,8 @@ public class RefCounterTest {
 
         for (int i = 0; i < 10; i++) {
           try {
-            System.out.println("count: " + roundRefCounter.getCount());
+            // Makes sure we can acquire the ref counter count
+            roundRefCounter.getCount();
           } catch (Env.EnvInUseException e) {
             TestUtils.sleep(100 + random.nextInt(200));
           }
@@ -533,12 +521,13 @@ public class RefCounterTest {
         // Wait for all workers to finish
         CompletableFuture.allOf(futures).join();
 
-        System.out.println("Acquire call count: " + Arrays.stream(counts).sum());
-
         if (roundRefCounter.getCount() != 0) {
           throw new IllegalStateException("Ref count is " + roundRefCounter.getCount());
         }
       }
+    } finally {
+      // ExecutorService does not implement AutoCloseable in Java8
+      executorService.shutdown();
     }
   }
 
@@ -614,48 +603,52 @@ public class RefCounterTest {
     final NoOpRefCounter refCounter = new NoOpRefCounter();
     final CountDownLatch startLatch = new CountDownLatch(threadCount);
     final ExecutorService executorService = Executors.newFixedThreadPool(threadCount);
-    final int iterationsPerThread = iterations / threadCount;
-    for (int i = 0; i < threadCount; i++) {
-      futures[i] =
-          CompletableFuture.runAsync(
-              () -> {
-                // Wait for all threads to be ready
-                TestUtils.countDownThenAwait(startLatch);
+    try {
+      final int iterationsPerThread = iterations / threadCount;
+      for (int i = 0; i < threadCount; i++) {
+        futures[i] =
+            CompletableFuture.runAsync(
+                () -> {
+                  // Wait for all threads to be ready
+                  TestUtils.countDownThenAwait(startLatch);
 
-                // Capture the start time
-                startTime.updateAndGet(
-                    currVal -> {
-                      if (currVal == null) {
-                        return Instant.now();
-                      } else {
-                        return currVal;
-                      }
-                    });
+                  // Capture the start time
+                  startTime.updateAndGet(
+                      currVal -> {
+                        if (currVal == null) {
+                          return Instant.now();
+                        } else {
+                          return currVal;
+                        }
+                      });
 
-                for (int j = 0; j < iterationsPerThread; j++) {
-                  // Just acquire then release
-                  final RefCounter.RefCounterReleaser releaser = refCounter.acquire();
-                  releaser.release();
-                }
-              },
-              executorService);
+                  for (int j = 0; j < iterationsPerThread; j++) {
+                    // Just acquire then release
+                    final RefCounter.RefCounterReleaser releaser = refCounter.acquire();
+                    releaser.release();
+                  }
+                },
+                executorService);
+      }
+      CompletableFuture.allOf(futures).join();
+
+      final Duration duration = Duration.between(startTime.get(), Instant.now());
+      final long iterationsPerSec = Math.round((double) iterations / duration.toMillis() * 1000);
+
+//      System.out.println(
+//          "All Finished"
+//              + ", threads: "
+//              + threadCount
+//              + ", iterationsPerThread: "
+//              + iterationsPerThread
+//              + ", duration: "
+//              + duration
+//              + ", iterationsPerSec: "
+//              + NumberFormat.getInstance().format(iterationsPerSec));
+    } finally {
+      // ExecutorService does not implement AutoCloseable in Java8
+      executorService.shutdown();
     }
-    CompletableFuture.allOf(futures).join();
-
-    final Duration duration = Duration.between(startTime.get(), Instant.now());
-    final long iterationsPerSec = Math.round((double) iterations / duration.toMillis() * 1000);
-
-    System.out.println(
-        "All Finished"
-            + ", threads: "
-            + threadCount
-            + ", iterationsPerThread: "
-            + iterationsPerThread
-            + ", duration: "
-            + duration
-            + ", iterationsPerSec: "
-            + NumberFormat.getInstance().format(iterationsPerSec));
-    executorService.close();
   }
 
   private void runPerfTest(int stripes, final RefCounter refCounter) {
@@ -667,51 +660,56 @@ public class RefCounterTest {
     final CompletableFuture<?>[] futures = new CompletableFuture[threadCount];
     final CountDownLatch startLatch = new CountDownLatch(threadCount);
     final ExecutorService executorService = Executors.newFixedThreadPool(threadCount);
-    final int iterationsPerThread = iterations / threadCount;
-    for (int i = 0; i < threadCount; i++) {
-      futures[i] =
-          CompletableFuture.runAsync(
-              () -> {
-                // Wait for all threads to be ready
-                TestUtils.countDownThenAwait(startLatch);
-                // Capture the start time
-                startTime.updateAndGet(
-                    currVal -> {
-                      if (currVal == null) {
-                        return Instant.now();
-                      } else {
-                        return currVal;
-                      }
-                    });
+    try {
+      final int iterationsPerThread = iterations / threadCount;
+      for (int i = 0; i < threadCount; i++) {
+        futures[i] =
+            CompletableFuture.runAsync(
+                () -> {
+                  // Wait for all threads to be ready
+                  TestUtils.countDownThenAwait(startLatch);
+                  // Capture the start time
+                  startTime.updateAndGet(
+                      currVal -> {
+                        if (currVal == null) {
+                          return Instant.now();
+                        } else {
+                          return currVal;
+                        }
+                      });
 
-                for (int j = 0; j < iterationsPerThread; j++) {
-                  final RefCounter.RefCounterReleaser releaser = refCounter.acquire();
-                  releaser.release();
-                }
-              },
-              executorService);
+                  for (int j = 0; j < iterationsPerThread; j++) {
+                    final RefCounter.RefCounterReleaser releaser = refCounter.acquire();
+                    releaser.release();
+                  }
+                },
+                executorService);
+      }
+      CompletableFuture.allOf(futures).join();
+
+      if (refCounter.getCount() != 0) {
+        throw new IllegalStateException("Ref count is " + refCounter.getCount());
+      }
+
+      final Duration duration = Duration.between(startTime.get(), Instant.now());
+      final long iterationsPerSec = Math.round((double) iterations / duration.toMillis() * 1000);
+
+      System.out.println(
+          "All Finished"
+              + ", stripes: "
+              + stripes
+              + ", threads: "
+              + threadCount
+              + ", iterationsPerThread: "
+              + iterationsPerThread
+              + ", duration: "
+              + duration
+              + ", iterationsPerSec: "
+              + NumberFormat.getInstance().format(iterationsPerSec));
+    } finally {
+      // ExecutorService does not implement AutoCloseable in Java8
+      executorService.shutdown();
     }
-    CompletableFuture.allOf(futures).join();
-
-    if (refCounter.getCount() != 0) {
-      throw new IllegalStateException("Ref count is " + refCounter.getCount());
-    }
-
-    final Duration duration = Duration.between(startTime.get(), Instant.now());
-    final long iterationsPerSec = Math.round((double) iterations / duration.toMillis() * 1000);
-
-    System.out.println(
-        "All Finished"
-            + ", stripes: "
-            + stripes
-            + ", threads: "
-            + threadCount
-            + ", iterationsPerThread: "
-            + iterationsPerThread
-            + ", duration: "
-            + duration
-            + ", iterationsPerSec: "
-            + NumberFormat.getInstance().format(iterationsPerSec));
   }
 
   private static RefCounter createNewRefCounter(RefCounter refCounter) {

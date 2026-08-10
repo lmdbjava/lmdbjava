@@ -772,12 +772,12 @@ public final class EnvTest {
     final Path file = tempDir.createTempFile();
     final Env<ByteBuffer> env =
         Env.create()
-            .setSafeClose()
             .setMapSize(1, ByteUnit.MEBIBYTES)
             .setMaxDbs(1)
             .setMaxReaders(1)
             .setEnvFlags(MDB_NOSUBDIR)
-            .setSafeClose()
+            .setSafeClose(true)
+            .setSingleThreaded(true)
             .open(file);
 
     final Dbi<ByteBuffer> dbi =
