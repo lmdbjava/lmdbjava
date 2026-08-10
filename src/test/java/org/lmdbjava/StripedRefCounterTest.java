@@ -74,8 +74,7 @@ class StripedRefCounterTest {
 
   @Test
   void getStripeCount5() {
-    assertThatThrownBy(() -> new StripedRefCounter(0))
-        .isInstanceOf(IllegalArgumentException.class);
+    assertThatThrownBy(() -> new StripedRefCounter(0)).isInstanceOf(IllegalArgumentException.class);
   }
 
   @Test
