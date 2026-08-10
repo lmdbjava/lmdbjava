@@ -61,8 +61,10 @@ public final class Cursor<T> implements AutoCloseable {
     try {
       this.kv = txn.newKeyVal();
     } catch (final Exception e) {
+      closed.set(true);
       this.refCounterReleaser.release();
-      closed.set(false);
+      // Clean up the native cursor
+      LIB.mdb_cursor_close(ptrCursor);
       throw e;
     }
   }
