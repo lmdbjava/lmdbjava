@@ -203,6 +203,17 @@ public final class EnvTest {
   }
 
   @Test
+  void cannotOpenTxnOnceClosed() {
+    final Path file = tempDir.createTempFile();
+    final Env<ByteBuffer> env =
+        Env.create().setSafeClose().setMaxReaders(1).setEnvFlags(MDB_NOSUBDIR).open(file);
+    env.close();
+    assertThatThrownBy(() -> env.txn(null)).isInstanceOf(AlreadyClosedException.class);
+    assertThatThrownBy(() -> env.txn(null, TxnFlags.MDB_RDONLY_TXN))
+        .isInstanceOf(AlreadyClosedException.class);
+  }
+
+  @Test
   void copyDirectoryBased() {
     final Path dest = tempDir.createTempDir();
     assertThat(Files.exists(dest)).isTrue();

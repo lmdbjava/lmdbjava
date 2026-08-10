@@ -596,6 +596,7 @@ public final class Env<T> implements AutoCloseable {
    */
   @Deprecated
   public Txn<T> txn(final Txn<T> parent, final TxnFlags... flags) {
+    checkNotClosed();
     return new Txn<>(this, parent, proxy, TxnFlagSet.of(flags));
   }
 
@@ -606,6 +607,7 @@ public final class Env<T> implements AutoCloseable {
    * @return a transaction (never null)
    */
   public Txn<T> txn(final Txn<T> parent) {
+    checkNotClosed();
     return new Txn<>(this, parent, proxy, TxnFlagSet.EMPTY);
   }
 
@@ -619,6 +621,7 @@ public final class Env<T> implements AutoCloseable {
    * @return a transaction (never null)
    */
   public Txn<T> txn(final Txn<T> parent, final TxnFlagSet flags) {
+    checkNotClosed();
     return new Txn<>(this, parent, proxy, flags);
   }
 
@@ -628,6 +631,7 @@ public final class Env<T> implements AutoCloseable {
    * @return a read-only transaction
    */
   public Txn<T> txnRead() {
+    checkNotClosed();
     return new Txn<>(this, null, proxy, TxnFlags.MDB_RDONLY_TXN);
   }
 
@@ -637,6 +641,7 @@ public final class Env<T> implements AutoCloseable {
    * @return a read-write transaction
    */
   public Txn<T> txnWrite() {
+    checkNotClosed();
     return new Txn<>(this, null, proxy, TxnFlagSet.EMPTY);
   }
 

@@ -548,7 +548,10 @@ public class RefCounterTest {
     final AtomicInteger onCloseCallCount = new AtomicInteger();
     refCounter.close(onCloseCallCount::incrementAndGet);
     assertThat(onCloseCallCount.get()).isEqualTo(1);
-    assertThatThrownBy(refCounter::acquire).isInstanceOf(Env.AlreadyClosedException.class);
+
+    if (!(refCounter instanceof NoOpRefCounter)) {
+      assertThatThrownBy(refCounter::acquire).isInstanceOf(Env.AlreadyClosedException.class);
+    }
   }
 
   @ParameterizedTest
@@ -561,7 +564,8 @@ public class RefCounterTest {
     refCounter.close(onCloseCallCount::incrementAndGet);
     assertThat(onCloseCallCount.get()).isEqualTo(1);
 
-    assertThatThrownBy(releaser::release).isInstanceOf(Env.AlreadyClosedException.class);
+    // This is a no-op as already released
+    releaser.release();
   }
 
   @ParameterizedTest

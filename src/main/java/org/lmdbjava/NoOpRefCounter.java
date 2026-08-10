@@ -33,9 +33,6 @@ public class NoOpRefCounter implements RefCounter {
 
   @Override
   public RefCounterReleaser acquire() {
-    if (isClosed.get()) {
-      throw new Env.AlreadyClosedException();
-    }
     return NO_OP_RELEASER;
   }
 
