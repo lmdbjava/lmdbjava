@@ -33,11 +33,15 @@ import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -794,5 +798,155 @@ public final class EnvTest {
     Assertions.assertThatThrownBy(cursor::close).isInstanceOf(Txn.NotReadyException.class);
 
     // can't close the env as we are unable to close the cursor
+  }
+
+  /**
+   * Regression for the intermittent close-during-read SIGSEGV (lmdbjava#253 / lmdbjava#279). With
+   * safe close enabled, {@link Env#close()} must never unmap the memory map while another thread is
+   * still inside a live read transaction; instead it fails fast with {@link Env.EnvInUseException}.
+   *
+   * <p>Unlike the {@code RefCounter} unit tests, this exercises the real {@code Env}/{@code Txn}
+   * wiring against native LMDB: many threads hammer {@code txnRead()}/{@code Dbi.get} while another
+   * thread races {@link Env#close()}. On {@code master} (no safe close) this reliably crashes the
+   * JVM in {@code mdb_txn_renew0}; with safe close the close is rejected while reads are in flight,
+   * readers only ever observe {@link Env.AlreadyClosedException}, and the env closes cleanly once
+   * the readers stop.
+   */
+  @Test
+  void closeDuringConcurrentReads_isRejectedWhileReadersLiveAndSurvives() throws Exception {
+    final Path dir = tempDir.createTempDir();
+    final Env<ByteBuffer> env =
+        Env.create().setSafeClose().setMaxReaders(64).setMaxDbs(1).open(dir);
+    final Dbi<ByteBuffer> db =
+        env.createDbi().setDbName(DB_1).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
+    for (int i = 0; i < 32; i++) {
+      db.put(bb(i), bb(i));
+    }
+
+    final int readerCount = 16;
+    final AtomicBoolean stop = new AtomicBoolean(false);
+    final AtomicLong reads = new AtomicLong();
+    final List<Throwable> unexpected = new CopyOnWriteArrayList<>();
+    final List<Thread> readers = new ArrayList<>(readerCount);
+
+    for (int i = 0; i < readerCount; i++) {
+      final int seed = i;
+      final Thread reader =
+          new Thread(
+              () -> {
+                int k = seed;
+                while (!stop.get()) {
+                  try (Txn<ByteBuffer> txn = env.txnRead()) {
+                    db.get(txn, bb(k & 31));
+                    reads.incrementAndGet();
+                    k++;
+                  } catch (final AlreadyClosedException expected) {
+                    return; // benign: env is closing/closed
+                  } catch (final Throwable t) {
+                    unexpected.add(t);
+                    return;
+                  }
+                }
+              },
+              "reader-" + seed);
+      reader.setDaemon(true);
+      reader.start();
+      readers.add(reader);
+    }
+
+    // A transaction held on this thread guarantees the count is non-zero, so the racing close()
+    // below deterministically fails fast rather than unmapping. The hammer threads meanwhile race
+    // real native txn begin/renew against that close().
+    final Txn<ByteBuffer> heldReader = env.txnRead();
+    try {
+      Thread.sleep(100); // let the reader threads saturate the native read path
+      Assertions.assertThatThrownBy(env::close).isInstanceOf(Env.EnvInUseException.class);
+      assertThat(env.isClosed()).isFalse(); // must NOT have unmapped with live readers
+    } finally {
+      heldReader.close();
+    }
+
+    // Stop the hammer threads and wait for every in-flight transaction to be released.
+    stop.set(true);
+    for (final Thread reader : readers) {
+      reader.join(5_000);
+    }
+
+    // With no live transactions the env now closes cleanly.
+    env.close();
+
+    assertThat(reads.get()).isGreaterThan(0L);
+    assertThat(unexpected).isEmpty();
+    assertThat(env.isClosed()).isTrue();
+  }
+
+  /**
+   * As {@link #closeDuringConcurrentReads_isRejectedWhileReadersLiveAndSurvives()} but the readers
+   * additionally open a {@link Cursor} on each transaction. Safe close newly tracks cursors as well
+   * as transactions, so this covers the cursor acquire/release wiring under a concurrent close
+   * race, which the existing single-threaded cursor test does not.
+   */
+  @Test
+  void closeDuringConcurrentCursorReads_isRejectedWhileCursorsLiveAndSurvives() throws Exception {
+    final Path dir = tempDir.createTempDir();
+    final Env<ByteBuffer> env =
+        Env.create().setSafeClose().setMaxReaders(64).setMaxDbs(1).open(dir);
+    final Dbi<ByteBuffer> db =
+        env.createDbi().setDbName(DB_1).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
+    for (int i = 0; i < 32; i++) {
+      db.put(bb(i), bb(i));
+    }
+
+    final int readerCount = 16;
+    final AtomicBoolean stop = new AtomicBoolean(false);
+    final AtomicLong reads = new AtomicLong();
+    final List<Throwable> unexpected = new CopyOnWriteArrayList<>();
+    final List<Thread> readers = new ArrayList<>(readerCount);
+
+    for (int i = 0; i < readerCount; i++) {
+      final Thread reader =
+          new Thread(
+              () -> {
+                while (!stop.get()) {
+                  try (Txn<ByteBuffer> txn = env.txnRead();
+                      Cursor<ByteBuffer> cursor = db.openCursor(txn)) {
+                    cursor.first();
+                    reads.incrementAndGet();
+                  } catch (final AlreadyClosedException expected) {
+                    return; // benign: env is closing/closed
+                  } catch (final Throwable t) {
+                    unexpected.add(t);
+                    return;
+                  }
+                }
+              },
+              "cursor-reader-" + i);
+      reader.setDaemon(true);
+      reader.start();
+      readers.add(reader);
+    }
+
+    // A cursor held on this thread guarantees a non-zero count during the racing close().
+    final Txn<ByteBuffer> heldReader = env.txnRead();
+    final Cursor<ByteBuffer> heldCursor = db.openCursor(heldReader);
+    try {
+      Thread.sleep(100);
+      Assertions.assertThatThrownBy(env::close).isInstanceOf(Env.EnvInUseException.class);
+      assertThat(env.isClosed()).isFalse();
+    } finally {
+      heldCursor.close();
+      heldReader.close();
+    }
+
+    stop.set(true);
+    for (final Thread reader : readers) {
+      reader.join(5_000);
+    }
+
+    env.close();
+
+    assertThat(reads.get()).isGreaterThan(0L);
+    assertThat(unexpected).isEmpty();
+    assertThat(env.isClosed()).isTrue();
   }
 }
