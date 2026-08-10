@@ -59,7 +59,7 @@ public class RefCounterTest {
 
   /**
    * @return A {@link Stream} of {@link RefCounter}s that support multithreaded use for {@link
-   *     ParameterizedTest}s.
+   * ParameterizedTest}s.
    */
   private static Stream<Arguments> multiThreadedRefCounterProvider() {
     return Stream.of(new StripedRefCounter(), new SimpleRefCounter(), new SynchronisedRefCounter())
@@ -540,15 +540,77 @@ public class RefCounterTest {
 
   @ParameterizedTest
   @MethodSource("allRefCounterProvider")
+  void acquireAfterClose(final RefCounter refCounter) {
+    final AtomicInteger onCloseCallCount = new AtomicInteger();
+    refCounter.close(onCloseCallCount::incrementAndGet);
+    assertThat(onCloseCallCount.get()).isEqualTo(1);
+    assertThatThrownBy(refCounter::acquire)
+        .isInstanceOf(Env.AlreadyClosedException.class);
+  }
+
+  @ParameterizedTest
+  @MethodSource("allRefCounterProvider")
+  void releaseAfterClose(final RefCounter refCounter) {
+    final AtomicInteger onCloseCallCount = new AtomicInteger();
+    final RefCounter.RefCounterReleaser releaser = refCounter.acquire();
+    // Need to release to allow the close
+    releaser.release();
+    refCounter.close(onCloseCallCount::incrementAndGet);
+    assertThat(onCloseCallCount.get()).isEqualTo(1);
+
+    assertThatThrownBy(releaser::release)
+        .isInstanceOf(Env.AlreadyClosedException.class);
+  }
+
+  @ParameterizedTest
+  @MethodSource("allRefCounterProvider")
+  void use(final RefCounter refCounter) {
+    final AtomicInteger onCloseCallCount = new AtomicInteger();
+    final AtomicInteger useCallCount = new AtomicInteger();
+    refCounter.use(() -> {
+      useCallCount.incrementAndGet();
+      if (!(refCounter instanceof NoOpRefCounter)) {
+        assertThatThrownBy(() ->
+            refCounter.close(onCloseCallCount::incrementAndGet))
+            .isInstanceOf(Env.EnvInUseException.class);
+      }
+    });
+
+    refCounter.use(() -> {
+      useCallCount.incrementAndGet();
+      if (!(refCounter instanceof NoOpRefCounter)) {
+        assertThatThrownBy(() ->
+            refCounter.close(onCloseCallCount::incrementAndGet))
+            .isInstanceOf(Env.EnvInUseException.class);
+      }
+    });
+
+    assertThat(useCallCount.get()).isEqualTo(2);
+    assertThat(onCloseCallCount.get()).isEqualTo(0);
+
+    assertThat(refCounter.getCount()).isEqualTo(0);
+
+    refCounter.close(onCloseCallCount::incrementAndGet);
+    assertThat(onCloseCallCount.get()).isEqualTo(1);
+
+    if (!(refCounter instanceof NoOpRefCounter)) {
+      assertThatThrownBy(() ->
+          refCounter.use(useCallCount::incrementAndGet))
+          .isInstanceOf(Env.AlreadyClosedException.class);
+    }
+  }
+
+  @ParameterizedTest
+  @MethodSource("allRefCounterProvider")
   void failedOnCloseDoesNotCloseOrCorruptCounter() {
     final StripedRefCounter refCounter = new StripedRefCounter();
 
     assertThatThrownBy(
-            () ->
-                refCounter.close(
-                    () -> {
-                      throw new RuntimeException("boom");
-                    }))
+        () ->
+            refCounter.close(
+                () -> {
+                  throw new RuntimeException("boom");
+                }))
         .isInstanceOf(RuntimeException.class);
 
     assertThat(refCounter.isClosed()).isFalse();
