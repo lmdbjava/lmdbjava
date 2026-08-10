@@ -45,7 +45,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 public class RefCounterTest {
   private static final int PROCESSOR_COUNT = Runtime.getRuntime().availableProcessors();
   private final int iterations = 20_000_000;
-  private final int threadCount = PROCESSOR_COUNT;
+  private final int processorCount = PROCESSOR_COUNT;
 
   /**
    * @return A {@link Stream} of all {@link RefCounter}s for {@link ParameterizedTest}s.
@@ -78,7 +78,7 @@ public class RefCounterTest {
       final int round = i;
       // Run tests with all available processors
       System.out.println(
-          "Multi-threaded (" + threadCount + " threads) tests ---------------------------------");
+          "Multi-threaded (" + processorCount + " threads) tests ---------------------------------");
 
       System.out.println("Round: " + round + " " + StripedRefCounter.class.getSimpleName());
       IntStream.of(1, 16, 32, 64, 128, 256)
@@ -208,17 +208,17 @@ public class RefCounterTest {
   @MethodSource("multiThreadedRefCounterProvider")
   void multipleThreads(final RefCounter refCounter) {
     final int iterations = 1000;
-    final AtomicInteger[] callCounts = new AtomicInteger[threadCount];
-    for (int i = 0; i < threadCount; i++) {
+    final AtomicInteger[] callCounts = new AtomicInteger[processorCount];
+    for (int i = 0; i < processorCount; i++) {
       callCounts[i] = new AtomicInteger();
     }
-    final CountDownLatch countDownLatch = new CountDownLatch(threadCount);
+    final CountDownLatch countDownLatch = new CountDownLatch(processorCount);
     //noinspection resource ExecutorService does not implement AutoCloseable in Java8
-    final ExecutorService executorService = Executors.newFixedThreadPool(threadCount);
+    final ExecutorService executorService = Executors.newFixedThreadPool(processorCount);
     try {
 
       final CompletableFuture<?>[] futures =
-          IntStream.range(0, threadCount)
+          IntStream.range(0, processorCount)
               .boxed()
               .map(
                   i ->
@@ -255,20 +255,20 @@ public class RefCounterTest {
     final Queue<RefCounter.RefCounterReleaser> releasers;
 
     //noinspection resource ExecutorService does not implement AutoCloseable in Java8
-    final ExecutorService executorService = Executors.newFixedThreadPool(threadCount);
-    final ExecutorService executorService2 = Executors.newFixedThreadPool(threadCount);
+    final ExecutorService executorService = Executors.newFixedThreadPool(processorCount);
+    final ExecutorService executorService2 = Executors.newFixedThreadPool(processorCount);
 
     try {
-      callCounts = new AtomicInteger[threadCount];
-      for (int i = 0; i < threadCount; i++) {
+      callCounts = new AtomicInteger[processorCount];
+      for (int i = 0; i < processorCount; i++) {
         callCounts[i] = new AtomicInteger();
       }
-      final CountDownLatch countDownLatch = new CountDownLatch(threadCount);
+      final CountDownLatch countDownLatch = new CountDownLatch(processorCount);
 
       releasers = new ConcurrentLinkedQueue<>();
       final Queue<CompletableFuture<?>> futures = new ConcurrentLinkedQueue<>();
 
-      IntStream.range(0, threadCount)
+      IntStream.range(0, processorCount)
           .boxed()
           .map(
               i ->
@@ -297,7 +297,7 @@ public class RefCounterTest {
       executorService.shutdown();
     }
 
-    assertRefCount(refCounter, threadCount * iterations);
+    assertRefCount(refCounter, processorCount * iterations);
 
     for (AtomicInteger callCount : callCounts) {
       assertThat(callCount).hasValue(iterations);
@@ -338,7 +338,7 @@ public class RefCounterTest {
   @MethodSource("multiThreadedRefCounterProvider")
   void testBehaviour(final RefCounter refCounter) throws InterruptedException {
     final Random random = new Random();
-    final int threadCount = this.threadCount - 1;
+    final int threadCount = this.processorCount - 1;
     //noinspection resource ExecutorService does not implement AutoCloseable in Java8
     final ExecutorService executorService = Executors.newFixedThreadPool(threadCount);
     try {
@@ -347,7 +347,6 @@ public class RefCounterTest {
       final AtomicReference<Object> mockEnv = new AtomicReference<>();
 
       for (int k = 0; k < rounds; k++) {
-        final int round = k;
 
         // Reset the env
         mockEnv.set(new Object());
@@ -401,7 +400,6 @@ public class RefCounterTest {
         // Give the other threads a chance to get underway
         TestUtils.sleep(200 + random.nextInt(200));
         final AtomicBoolean didClose = new AtomicBoolean(false);
-        int closeCallCount = 0;
         final AtomicInteger onCloseCallCount = new AtomicInteger();
         while (!didClose.get()) {
           try {
@@ -450,7 +448,7 @@ public class RefCounterTest {
   @MethodSource("multiThreadedRefCounterProvider")
   void testGetCount(final RefCounter refCounter) throws InterruptedException {
     final Random random = new Random();
-    final int threadCount = this.threadCount - 1;
+    final int threadCount = this.processorCount - 1;
     //noinspection resource ExecutorService does not implement AutoCloseable in Java8
     final ExecutorService executorService = Executors.newFixedThreadPool(threadCount);
     try {
@@ -599,13 +597,13 @@ public class RefCounterTest {
 
   private void doNoOpRefCounter() {
     final AtomicReference<Instant> startTime = new AtomicReference<>(null);
-    final CompletableFuture<?>[] futures = new CompletableFuture[threadCount];
+    final CompletableFuture<?>[] futures = new CompletableFuture[processorCount];
     final NoOpRefCounter refCounter = new NoOpRefCounter();
-    final CountDownLatch startLatch = new CountDownLatch(threadCount);
-    final ExecutorService executorService = Executors.newFixedThreadPool(threadCount);
+    final CountDownLatch startLatch = new CountDownLatch(processorCount);
+    final ExecutorService executorService = Executors.newFixedThreadPool(processorCount);
     try {
-      final int iterationsPerThread = iterations / threadCount;
-      for (int i = 0; i < threadCount; i++) {
+      final int iterationsPerThread = iterations / processorCount;
+      for (int i = 0; i < processorCount; i++) {
         futures[i] =
             CompletableFuture.runAsync(
                 () -> {
@@ -632,9 +630,8 @@ public class RefCounterTest {
       }
       CompletableFuture.allOf(futures).join();
 
-      final Duration duration = Duration.between(startTime.get(), Instant.now());
-      final long iterationsPerSec = Math.round((double) iterations / duration.toMillis() * 1000);
-
+//      final Duration duration = Duration.between(startTime.get(), Instant.now());
+//      final long iterationsPerSec = Math.round((double) iterations / duration.toMillis() * 1000);
       //      System.out.println(
       //          "All Finished"
       //              + ", threads: "
@@ -652,7 +649,7 @@ public class RefCounterTest {
   }
 
   private void runPerfTest(int stripes, final RefCounter refCounter) {
-    runPerfTest(stripes, threadCount, refCounter);
+    runPerfTest(stripes, processorCount, refCounter);
   }
 
   private void runPerfTest(int stripes, final int threadCount, final RefCounter refCounter) {

@@ -33,6 +33,7 @@ class SynchronisedRefCounter implements RefCounter {
     }
   }
 
+  @Override
   public RefCounterReleaser acquire() {
     synchronized (this) {
       if (isClosed) {

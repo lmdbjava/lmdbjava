@@ -129,7 +129,7 @@ public final class CursorIterableTest {
 
   @Test
   void testPopulate() {
-    final Dbi<ByteBuffer> db = getDb();
+    getDb();
   }
 
   @Test

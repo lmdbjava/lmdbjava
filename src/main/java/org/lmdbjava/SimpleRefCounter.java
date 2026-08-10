@@ -32,6 +32,7 @@ class SimpleRefCounter implements RefCounter {
     return counter.get() == CLOSED_VALUE;
   }
 
+  @Override
   public RefCounterReleaser acquire() {
     final int newVal =
         counter.updateAndGet(currVal -> currVal == CLOSED_VALUE ? currVal : currVal + 1);
