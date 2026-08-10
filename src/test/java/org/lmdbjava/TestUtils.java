@@ -26,6 +26,7 @@ import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.util.Comparator;
 import java.util.Objects;
+import java.util.concurrent.CountDownLatch;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import org.agrona.MutableDirectBuffer;
@@ -201,5 +202,25 @@ final class TestUtils {
     Objects.requireNonNull(comparator);
     final int result = comparator.compare(o1, o2);
     return ComparatorResult.get(result);
+  }
+
+  public static void countDownThenAwait(final CountDownLatch latch) {
+    Objects.requireNonNull(latch);
+    latch.countDown();
+    try {
+      latch.await();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new RuntimeException(e);
+    }
+  }
+
+  public static void sleep(final int millis) {
+    try {
+      Thread.sleep(millis);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new RuntimeException(e);
+    }
   }
 }

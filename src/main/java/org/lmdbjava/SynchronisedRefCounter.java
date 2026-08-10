@@ -16,6 +16,7 @@
 package org.lmdbjava;
 
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 class SynchronisedRefCounter implements RefCounter {
   private static final int CLOSED_VALUE = Integer.MIN_VALUE;
@@ -36,7 +37,13 @@ class SynchronisedRefCounter implements RefCounter {
       }
       counter++;
     }
-    return this::release;
+    final AtomicBoolean hasReleased = new AtomicBoolean(false);
+    return () -> {
+      // Prevent duplicate release calls
+      if (hasReleased.compareAndSet(false, true)) {
+        release();
+      }
+    };
   }
 
   @Override

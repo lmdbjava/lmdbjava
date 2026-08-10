@@ -1032,11 +1032,11 @@ public final class Env<T> implements AutoCloseable {
      * If set, the caller is asserting that the Env will only be used by a single thread throughout
      * its entire life. This allows the {@link Env} to make minor optimisations that are not
      * thread-safe, e.g. using primitives rather than thread-safe objects. By default, an Env is
-     * considered thread-safe.
+     * assumed to be used by multiple threads.
      *
      * @return this builder instance.
      */
-    public Builder<T> singleThreaded() {
+    public Builder<T> setSingleThreaded() {
       checkEnvNotOpened();
       singleThreaded = true;
       return this;
@@ -1046,12 +1046,12 @@ public final class Env<T> implements AutoCloseable {
      * If set to true, the caller is asserting that the Env will only be used by a single thread
      * throughout its entire life. This allows the {@link Env} to make minor optimisations that are
      * not thread-safe, e.g. using primitives rather than thread-safe objects. By default, an Env is
-     * considered thread-safe.
+     * assumed to be used by multiple threads.
      *
      * @param singleThreaded Set to true if the Env will only ever be used by a single thread.
      * @return this builder instance.
      */
-    public Builder<T> singleThreaded(final boolean singleThreaded) {
+    public Builder<T> setSingleThreaded(final boolean singleThreaded) {
       checkEnvNotOpened();
       this.singleThreaded = singleThreaded;
       return this;
