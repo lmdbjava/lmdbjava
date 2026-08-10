@@ -18,8 +18,11 @@ package org.lmdbjava;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+/**
+ * An implementation of {@link RefCounter} that uses synchronisation to track the number of
+ * references to a resource.
+ */
 class SynchronisedRefCounter implements RefCounter {
-  private static final int CLOSED_VALUE = Integer.MIN_VALUE;
   private boolean isClosed = false;
   private int counter = 0;
 

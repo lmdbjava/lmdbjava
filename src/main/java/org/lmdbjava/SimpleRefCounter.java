@@ -19,6 +19,10 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * An implementation of {@link RefCounter} that uses an {@link AtomicInteger} to track the number of
+ * references to a resource.
+ */
 class SimpleRefCounter implements RefCounter {
   private static final int CLOSED_VALUE = Integer.MIN_VALUE;
   private final AtomicInteger counter = new AtomicInteger(0);
@@ -30,8 +34,7 @@ class SimpleRefCounter implements RefCounter {
 
   public RefCounterReleaser acquire() {
     final int newVal =
-        counter.updateAndGet(currVal ->
-            currVal == CLOSED_VALUE ? currVal : currVal + 1);
+        counter.updateAndGet(currVal -> currVal == CLOSED_VALUE ? currVal : currVal + 1);
     if (newVal == CLOSED_VALUE) {
       throw new Env.AlreadyClosedException();
     }

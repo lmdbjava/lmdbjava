@@ -93,8 +93,9 @@ public final class Txn<T> implements AutoCloseable {
   /**
    * Closes this transaction. Any uncommitted work will be aborted first.
    *
-   * <p>If any {@link Cursor}s have been opened on this transaction, they <strong>MUST</strong> be closed
-   * first, else you will not be able to close the cursor after its transaction has been closed.
+   * <p>If any {@link Cursor}s have been opened on this transaction, they <strong>MUST</strong> be
+   * closed first, else you will not be able to close the cursor after its transaction has been
+   * closed.
    *
    * <p>Closing the transaction will invoke {@link BufferProxy#deallocate(java.lang.Object)} for
    * each read-only buffer (ie the key and value).
@@ -118,8 +119,10 @@ public final class Txn<T> implements AutoCloseable {
 
   /**
    * Commits this transaction.
-   * <p>If you have an open cursor using this transaction, you must close the cursor before committing.
-   * */
+   *
+   * <p>If you have an open cursor using this transaction, you must close the cursor before
+   * committing.
+   */
   public void commit() {
     if (SHOULD_CHECK) {
       env.checkNotClosed();
@@ -196,6 +199,7 @@ public final class Txn<T> implements AutoCloseable {
   /**
    * Aborts this read-only transaction and resets the transaction handle, so it can be reused upon
    * calling {@link #renew()}.
+   *
    * <p>Not applicable to write transactions.
    */
   public void reset() {
@@ -318,8 +322,8 @@ public final class Txn<T> implements AutoCloseable {
     public NotReadyException() {
       super(
           "Transaction is not in ready state, i.e. it has been closed/committed/aborted/reset. "
-              + "You may see this if have you tried to close a cursor after committing the transaction, " +
-              "or if you have tried to use a cursor after closing its transaction.");
+              + "You may see this if have you tried to close a cursor after committing the transaction, "
+              + "or if you have tried to use a cursor after closing its transaction.");
     }
   }
 

@@ -437,7 +437,11 @@ public final class TutorialTest {
     // There's also a PROXY_SAFE if you want to stop ByteBuffer's Unsafe use.
     // Aside from that and a different type argument, it's the same as usual...
     final Env<DirectBuffer> env =
-        Env.create(PROXY_DB).setMapSize(10, ByteUnit.MEBIBYTES).setMaxDbs(1).setSafeClose().open(dir);
+        Env.create(PROXY_DB)
+            .setMapSize(10, ByteUnit.MEBIBYTES)
+            .setMaxDbs(1)
+            .setSafeClose()
+            .open(dir);
 
     final Dbi<DirectBuffer> db =
         env.createDbi().setDbName(DB_NAME).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
@@ -618,6 +622,11 @@ public final class TutorialTest {
   // or reverse ordered keys, using Env.DISABLE_CHECKS_PROP etc), but you now
   // know enough to tackle the JavaDocs with confidence. Have fun!
   private Env<ByteBuffer> createSimpleEnv(final Path path) {
-    return Env.create().setMapSize(10, ByteUnit.MEBIBYTES).setMaxDbs(1).setMaxReaders(1).setSafeClose().open(path);
+    return Env.create()
+        .setMapSize(10, ByteUnit.MEBIBYTES)
+        .setMaxDbs(1)
+        .setMaxReaders(1)
+        .setSafeClose()
+        .open(path);
   }
 }

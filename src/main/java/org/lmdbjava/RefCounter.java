@@ -15,7 +15,10 @@
  */
 package org.lmdbjava;
 
-/** Used to prevent the closure of a thing while other threads are actively using that thing. */
+/**
+ * Used to prevent the closure of a resource while other threads are actively using that resource.
+ * Achieves this via reference counting.
+ */
 interface RefCounter {
 
   /**

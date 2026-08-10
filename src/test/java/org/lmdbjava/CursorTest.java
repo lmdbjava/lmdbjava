@@ -75,7 +75,6 @@ public final class CursorTest {
     tempDir.cleanup();
   }
 
-
   @Test
   void closedCursorRejectsSubsequentGets() {
     assertThatThrownBy(

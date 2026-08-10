@@ -135,7 +135,11 @@ public final class TxnTest {
   void readOnlyTxnAllowedInReadOnlyEnv() {
     env.createDbi().setDbName(DB_1).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
     try (Env<ByteBuffer> roEnv =
-        create().setSafeClose().setMaxReaders(1).setEnvFlags(MDB_NOSUBDIR, MDB_RDONLY_ENV).open(file)) {
+        create()
+            .setSafeClose()
+            .setMaxReaders(1)
+            .setEnvFlags(MDB_NOSUBDIR, MDB_RDONLY_ENV)
+            .open(file)) {
       try (Txn<ByteBuffer> readTxn = roEnv.txnRead()) {
         assertThat(readTxn).isNotNull();
       }
@@ -153,7 +157,11 @@ public final class TxnTest {
                   .open();
               env.close();
               try (Env<ByteBuffer> roEnv =
-                  create().setSafeClose().setMaxReaders(1).setEnvFlags(MDB_NOSUBDIR, MDB_RDONLY_ENV).open(file)) {
+                  create()
+                      .setSafeClose()
+                      .setMaxReaders(1)
+                      .setEnvFlags(MDB_NOSUBDIR, MDB_RDONLY_ENV)
+                      .open(file)) {
                 roEnv.txnWrite(); // error
               }
             })

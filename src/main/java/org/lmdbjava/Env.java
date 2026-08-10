@@ -162,8 +162,8 @@ public final class Env<T> implements AutoCloseable {
    * <p>Before and during this call, the caller <strong>MUST</strong> ensure that:
    *
    * <ul>
-   *   <li>every {@link Txn} and {@link Cursor} obtained from this environment has already been closed;
-   *       and
+   *   <li>every {@link Txn} and {@link Cursor} obtained from this environment has already been
+   *       closed; and
    *   <li>no other thread is executing <em>any</em> operation on this environment or on a handle
    *       derived from it — including {@link #txnRead()} / {@link #txnWrite()} and reads such as
    *       {@code Dbi.get}.
@@ -181,11 +181,11 @@ public final class Env<T> implements AutoCloseable {
    * the read lock for the entire duration of its transaction and {@code close()} holds the write
    * lock, so the map is never unmapped while a read is in flight.
    *
-   * <p>If safeClose has been enabled on the {@link Env}, then this method will throw a
-   * {@link EnvInUseException} if transactions or cursors are still active.
+   * <p>If safeClose has been enabled on the {@link Env}, then this method will throw a {@link
+   * EnvInUseException} if transactions or cursors are still active.
    *
    * @throws EnvInUseException If safeClose has been set and {@link Txn} or {@link Cursor} is still
-   * open on this {@link Env}
+   *     open on this {@link Env}
    */
   @Override
   public void close() {

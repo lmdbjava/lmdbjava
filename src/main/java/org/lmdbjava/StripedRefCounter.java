@@ -19,6 +19,17 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * An implementation of {@link RefCounter} that uses an array of {@link AtomicInteger}s to track the
+ * number of references to a resource. Offers better concurrency performance than {@link
+ * SimpleRefCounter} which used a single {@link AtomicInteger}, at the cost of more memory due to
+ * the additional {@link AtomicInteger}s.
+ *
+ * <p>Each thread will use the {@link AtomicInteger} at an array offset determined by a hash of the
+ * thread's id.
+ *
+ * <p>The number of stripes configurable but immutable once set.
+ */
 class StripedRefCounter implements RefCounter {
   private static final int PROCESSOR_COUNT = Runtime.getRuntime().availableProcessors();
 

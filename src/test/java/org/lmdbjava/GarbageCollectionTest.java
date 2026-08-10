@@ -36,7 +36,8 @@ class GarbageCollectionTest {
   void buffersNotGarbageCollectedTest() {
     try (final TempDir tempDir = new TempDir()) {
       final Path dir = tempDir.createTempDir();
-      try (Env<ByteBuffer> env = Env.create().setSafeClose().setMapSize(2_085_760_999).setMaxDbs(1).open(dir)) {
+      try (Env<ByteBuffer> env =
+          Env.create().setSafeClose().setMapSize(2_085_760_999).setMaxDbs(1).open(dir)) {
         final Dbi<ByteBuffer> db =
             env.createDbi()
                 .setDbName(DB_NAME)

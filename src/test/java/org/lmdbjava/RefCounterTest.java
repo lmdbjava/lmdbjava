@@ -47,7 +47,29 @@ public class RefCounterTest {
   private static final int PROCESSOR_COUNT = Runtime.getRuntime().availableProcessors();
   private final int iterations = 20_000_000;
   private final int threadCount = PROCESSOR_COUNT;
-  private volatile Object env = new Object();
+
+  /**
+   * @return A {@link Stream} of all {@link RefCounter}s for {@link ParameterizedTest}s.
+   */
+  private static Stream<Arguments> allRefCounterProvider() {
+    return Stream.concat(
+            multiThreadedRefCounterProvider(),
+            Stream.of(new SingleThreadedRefCounter(), new NoOpRefCounter())
+                .map(RefCounterTest::createArguments));
+  }
+
+  /**
+   * @return A {@link Stream} of {@link RefCounter}s that support multithreaded use for {@link
+   *     ParameterizedTest}s.
+   */
+  private static Stream<Arguments> multiThreadedRefCounterProvider() {
+    return Stream.of(new StripedRefCounter(), new SimpleRefCounter(), new SynchronisedRefCounter())
+        .map(RefCounterTest::createArguments);
+  }
+
+  private static Arguments createArguments(final RefCounter refCounter) {
+    return Arguments.argumentSet(refCounter.getClass().getSimpleName(), refCounter);
+  }
 
   @Disabled // Manual performance test
   @Test
@@ -125,41 +147,6 @@ public class RefCounterTest {
     }
   }
 
-  /**
-   * @return A {@link Stream} of all {@link RefCounter}s
-   */
-  static Stream<Arguments> allRefCounterProvider() {
-    return Stream.of(
-            new StripedRefCounter(),
-            new SingleThreadedRefCounter(),
-            new SimpleRefCounter(),
-            new SynchronisedRefCounter(),
-            new NoOpRefCounter())
-        .map(refCounter -> Arguments.argumentSet(
-            refCounter.getClass().getSimpleName(),
-            refCounter));
-  }
-
-  /**
-   * @return A {@link Stream} of {@link RefCounter}s that support multi-threaded use
-   */
-  static Stream<Arguments> multiThreadedRefCounterProvider() {
-    return Stream.of(
-            new StripedRefCounter(),
-            new SimpleRefCounter(),
-            new SynchronisedRefCounter())
-        .map(refCounter -> Arguments.argumentSet(
-            refCounter.getClass().getSimpleName(),
-            refCounter));
-  }
-
-  private void assertRefCount(final RefCounter refCounter, final int expectedCount) {
-    // NoOpRefCounter does no reference counting, so we can't assert the count
-    if (!(refCounter instanceof NoOpRefCounter)) {
-      assertThat(refCounter.getCount()).isEqualTo(expectedCount);
-    }
-  }
-
   @ParameterizedTest
   @MethodSource("allRefCounterProvider")
   void testRefCounters(final RefCounter refCounter) {
@@ -172,7 +159,7 @@ public class RefCounterTest {
     final AtomicInteger onCloseCallCount = new AtomicInteger();
 
     if (!(refCounter instanceof NoOpRefCounter)) {
-      // Close not called as 2 are un-released
+      // Close() not called as ref count is two.
       Assertions.assertThatThrownBy(
               () -> {
                 refCounter.close(onCloseCallCount::incrementAndGet);
@@ -187,7 +174,7 @@ public class RefCounterTest {
     assertRefCount(refCounter, 1);
 
     if (!(refCounter instanceof NoOpRefCounter)) {
-      // Close not called as 1 un-released
+      // Close() not called as ref count is one.
       Assertions.assertThatThrownBy(
               () -> {
                 refCounter.close(onCloseCallCount::incrementAndGet);
@@ -229,21 +216,22 @@ public class RefCounterTest {
     final CountDownLatch countDownLatch = new CountDownLatch(threadCount);
     try (ExecutorService executorService = Executors.newFixedThreadPool(threadCount)) {
 
-      final CompletableFuture<?>[] futures = IntStream.range(0, threadCount)
-          .boxed()
-          .map(
-              i ->
-                  CompletableFuture.runAsync(
-                      () -> {
-                        TestUtils.countDownThenAwait(countDownLatch);
-                        for (int j = 0; j < iterations; j++) {
-                          final RefCounter.RefCounterReleaser releaser = refCounter.acquire();
-                          callCounts[i].getAndIncrement();
-                          releaser.release();
-                        }
-                      },
-                      executorService))
-          .toArray(CompletableFuture[]::new);
+      final CompletableFuture<?>[] futures =
+          IntStream.range(0, threadCount)
+              .boxed()
+              .map(
+                  i ->
+                      CompletableFuture.runAsync(
+                          () -> {
+                            TestUtils.countDownThenAwait(countDownLatch);
+                            for (int j = 0; j < iterations; j++) {
+                              final RefCounter.RefCounterReleaser releaser = refCounter.acquire();
+                              callCounts[i].getAndIncrement();
+                              releaser.release();
+                            }
+                          },
+                          executorService))
+              .toArray(CompletableFuture[]::new);
 
       CompletableFuture.allOf(futures).join();
 
@@ -281,8 +269,7 @@ public class RefCounterTest {
                         () -> {
                           TestUtils.countDownThenAwait(countDownLatch);
                           for (int j = 0; j < iterations; j++) {
-                            final RefCounter.RefCounterReleaser releaser =
-                                refCounter.acquire();
+                            final RefCounter.RefCounterReleaser releaser = refCounter.acquire();
                             releasers.add(releaser);
                             callCounts[i].getAndIncrement();
                             futures.add(
@@ -322,24 +309,21 @@ public class RefCounterTest {
     assertThat(onCloseCallCount).hasValue(1);
     assertThat(refCounter.isClosed()).isEqualTo(true);
 
-    assertThatThrownBy(refCounter::checkNotClosed)
-        .isInstanceOf(Env.AlreadyClosedException.class);
+    assertThatThrownBy(refCounter::checkNotClosed).isInstanceOf(Env.AlreadyClosedException.class);
 
     // Check again as idempotent
     refCounter.close(onCloseCallCount::incrementAndGet);
     assertThat(onCloseCallCount).hasValue(1);
     assertThat(refCounter.isClosed()).isEqualTo(true);
 
-    assertThatThrownBy(refCounter::checkNotClosed)
-        .isInstanceOf(Env.AlreadyClosedException.class);
+    assertThatThrownBy(refCounter::checkNotClosed).isInstanceOf(Env.AlreadyClosedException.class);
   }
-
 
   /**
    * Lots of threads all doing acquire/release in a loop, then the main thread tries to call
-   * refCounter.close(...), which will throw an {@link org.lmdbjava.Env.EnvInUseException}. Main thread then
-   * makes all worker threads stop their looping and calls refCounter.close(...) again, successfully
-   * this time.
+   * refCounter.close(...), which will throw an {@link org.lmdbjava.Env.EnvInUseException}. The main
+   * thread then makes all worker threads stop their looping and calls refCounter.close(...) again,
+   * successfully this time.
    */
   @ParameterizedTest
   @MethodSource("multiThreadedRefCounterProvider")
@@ -378,7 +362,12 @@ public class RefCounterTest {
                     for (int j = 0; j < iterations; j++) {
                       if (abortThreads.get()) {
                         System.out.println(
-                            Thread.currentThread() + ", round: " + round + ", j: " + j + ", abortThreads is true");
+                            Thread.currentThread()
+                                + ", round: "
+                                + round
+                                + ", j: "
+                                + j
+                                + ", abortThreads is true");
                         break;
                       }
 
@@ -388,7 +377,12 @@ public class RefCounterTest {
                         counts[threadIdx].incrementAndGet();
                       } catch (Env.AlreadyClosedException e) {
                         System.out.println(
-                            Thread.currentThread() + ", round: " + round + ", j: " + j + ", Env closed, aborting");
+                            Thread.currentThread()
+                                + ", round: "
+                                + round
+                                + ", j: "
+                                + j
+                                + ", Env closed, aborting");
                         break;
                       }
                       try {
@@ -396,7 +390,8 @@ public class RefCounterTest {
                         TestUtils.sleep(random.nextInt(5));
                         // env is null after closure
                         assertThat(mockEnv.get()).isNotNull();
-  //                      Objects.requireNonNull(mockEnv.get(), "Attempt to use a null env");
+                        //                      Objects.requireNonNull(mockEnv.get(), "Attempt to
+                        // use a null env");
                       } finally {
                         releaser.release();
                       }
@@ -562,11 +557,11 @@ public class RefCounterTest {
     final StripedRefCounter refCounter = new StripedRefCounter();
 
     assertThatThrownBy(
-        () ->
-            refCounter.close(
-                () -> {
-                  throw new RuntimeException("boom");
-                }))
+            () ->
+                refCounter.close(
+                    () -> {
+                      throw new RuntimeException("boom");
+                    }))
         .isInstanceOf(RuntimeException.class);
 
     assertThat(refCounter.isClosed()).isFalse();
@@ -614,8 +609,6 @@ public class RefCounterTest {
   }
 
   private void doNoOpRefCounter() {
-    //    System.out.println("Running test for " + stripes + " stripes");
-
     final AtomicReference<Instant> startTime = new AtomicReference<>(null);
     final CompletableFuture<?>[] futures = new CompletableFuture[threadCount];
     final NoOpRefCounter refCounter = new NoOpRefCounter();
@@ -640,15 +633,10 @@ public class RefCounterTest {
                     });
 
                 for (int j = 0; j < iterationsPerThread; j++) {
+                  // Just acquire then release
                   final RefCounter.RefCounterReleaser releaser = refCounter.acquire();
-                  try {
-                    // Make sure we have an env that is not 'closed'
-                    Objects.requireNonNull(env);
-                  } finally {
-                    releaser.release();
-                  }
+                  releaser.release();
                 }
-                //        System.out.println(Thread.currentThread() + " - Done");
               },
               executorService);
     }
@@ -735,4 +723,10 @@ public class RefCounterTest {
     }
   }
 
+  private void assertRefCount(final RefCounter refCounter, final int expectedCount) {
+    // NoOpRefCounter does no reference counting, so we can't assert the count
+    if (!(refCounter instanceof NoOpRefCounter)) {
+      assertThat(refCounter.getCount()).isEqualTo(expectedCount);
+    }
+  }
 }

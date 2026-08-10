@@ -62,7 +62,8 @@ public final class ByteBufferProxyTest {
             () -> {
               try (final TempDir tempDir = new TempDir()) {
                 final Path dir = tempDir.createTempDir();
-                try (Env<ByteBuffer> env = create().setSafeClose().setSafeClose().setMaxReaders(1).open(dir)) {
+                try (Env<ByteBuffer> env =
+                    create().setSafeClose().setSafeClose().setMaxReaders(1).open(dir)) {
                   final Dbi<ByteBuffer> db =
                       env.createDbi()
                           .setDbName(DB_1)
