@@ -141,16 +141,34 @@ class StripedRefCounter implements RefCounter {
 
   @Override
   public void close(final Runnable onClose) {
+    final Long count = doClose(onClose);
+    if (count != null && count > 0) {
+      throw new Env.EnvInUseException(count);
+    }
+  }
+
+  @Override
+  public boolean tryClose(Runnable onClose) {
+    final Long count = doClose(onClose);
+    return count != null && count == 0;
+  }
+
+  /**
+   * @return A non-zero count to indicate the resource is in use. A zero count to indicate the
+   *     onClose was called successfully. A null count to indicate the resource was already in a
+   *     closed state.
+   */
+  private Long doClose(final Runnable onClose) {
     Objects.requireNonNull(onClose);
 
     // close is idempotent so silently drop out
     if (isClosed.get()) {
-      return;
+      return null;
     }
 
     synchronized (this) {
       if (isClosed.get()) {
-        return;
+        return null;
       }
 
       // Once we have marked all counters as count-in-progress, any threads trying to mutate the
@@ -179,9 +197,8 @@ class StripedRefCounter implements RefCounter {
           for (final Stripe stripe : counters) {
             stripe.counter.set(MAGIC_CLOSED_VALUE);
           }
-        } else {
-          throw new Env.EnvInUseException(totalCount);
         }
+        return totalCount;
       } finally {
         if (!isClosed.get()) {
           // Return all counters to their original positive values so
@@ -351,6 +368,16 @@ class StripedRefCounter implements RefCounter {
     threadId = (threadId ^ (threadId >>> 30)) * 0xbf58476d1ce4e5b9L;
     threadId = (threadId ^ (threadId >>> 27)) * 0x94d049bb133111ebL;
     return (int) ((threadId ^ (threadId >>> 31)) & stripeMask);
+  }
+
+  private enum CloseOutcome {
+    /** Successfully closed. */
+    CLOSED,
+    /** The resource is in use. */
+    IN_USE,
+    /** Already in a closed state. */
+    ALREADY_CLOSED,
+    ;
   }
 
   private enum Delta {

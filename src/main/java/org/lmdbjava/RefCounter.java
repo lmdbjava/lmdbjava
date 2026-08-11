@@ -54,6 +54,16 @@ interface RefCounter {
   void close(final Runnable onClose);
 
   /**
+   * If the reference count is zero, onClose will be called and true returned. This {@link
+   * RefCounter} will be marked as closed so all future calls to acquire will throw a {@link
+   * org.lmdbjava.Env.AlreadyClosedException}. If the count is non-zero it is a no-op and false is
+   * returned. If already closed, this is a no-op and false is returned.
+   *
+   * @return True if onClose was called.
+   */
+  boolean tryClose(final Runnable onClose);
+
+  /**
    * @return True if {@link RefCounter} has been closed.
    */
   boolean isClosed();

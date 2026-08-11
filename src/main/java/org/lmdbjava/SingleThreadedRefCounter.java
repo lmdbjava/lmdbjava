@@ -66,6 +66,20 @@ public class SingleThreadedRefCounter implements RefCounter {
   }
 
   @Override
+  public boolean tryClose(Runnable onClose) {
+    Objects.requireNonNull(onClose);
+    if (!isClosed) {
+      final long count = getCount();
+      if (count == 0) {
+        isClosed = true;
+        onClose.run();
+        return true;
+      }
+    }
+    return false;
+  }
+
+  @Override
   public boolean isClosed() {
     return isClosed;
   }

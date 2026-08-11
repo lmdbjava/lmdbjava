@@ -65,6 +65,21 @@ class SynchronisedRefCounter implements RefCounter {
     }
   }
 
+  @Override
+  public boolean tryClose(Runnable onClose) {
+    Objects.requireNonNull(onClose);
+    synchronized (this) {
+      if (!isClosed) {
+        if (counter == 0) {
+          isClosed = true;
+          onClose.run();
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
   private void release() {
     synchronized (this) {
       if (isClosed) {

@@ -157,7 +157,7 @@ public final class Env<T> implements AutoCloseable {
   /**
    * Close the handle.
    *
-   * <p>Will silently return if already closed or never opened.
+   * <p>Will silently return if already closed.
    *
    * <p>Before and during this call, the caller <strong>MUST</strong> ensure that:
    *
@@ -184,12 +184,60 @@ public final class Env<T> implements AutoCloseable {
    * <p>If safeClose has been enabled on the {@link Env}, then this method will throw a {@link
    * EnvInUseException} if transactions or cursors are still active.
    *
-   * @throws EnvInUseException If safeClose has been set and {@link Txn} or {@link Cursor} is still
-   *     open on this {@link Env}
+   * <p>If safeClose has not been enabled then this method will perform the close regardless of
+   * whether it is in use or not with the implications detailed above.
+   *
+   * @throws EnvInUseException If safeClose has been set and a {@link Txn} or {@link Cursor} is
+   *     still open on this {@link Env}
    */
   @Override
   public void close() {
-    refCounter.close(() -> LIB.mdb_env_close(ptr));
+    refCounter.close(this::doClose);
+  }
+
+  /**
+   * Try to close the handle.
+   *
+   * <p>Will silently return if already closed.
+   *
+   * <p>Before and during this call, the caller <strong>MUST</strong> ensure that:
+   *
+   * <ul>
+   *   <li>every {@link Txn} and {@link Cursor} obtained from this environment has already been
+   *       closed; and
+   *   <li>no other thread is executing <em>any</em> operation on this environment or on a handle
+   *       derived from it — including {@link #txnRead()} / {@link #txnWrite()} and reads such as
+   *       {@code Dbi.get}.
+   * </ul>
+   *
+   * <p>Violating this contract is <strong>undefined behaviour that can crash the whole JVM</strong>
+   * ({@code SIGSEGV} on Linux/macOS, {@code EXCEPTION_ACCESS_VIOLATION 0xC0000005} on Windows); it
+   * does <em>not</em> raise a Java exception. The underlying {@code mdb_env_close} unmaps the
+   * memory map, so a transaction still being started or used on another thread then dereferences
+   * freed memory — typically observed as a native crash in {@code mdb_txn_renew0} / {@code
+   * mdb_txn_begin}.
+   *
+   * <p>If you must close an environment while reader threads may still be active, serialise the
+   * close against those readers in application code: e.g. a read/write lock where each reader holds
+   * the read lock for the entire duration of its transaction and {@code close()} holds the write
+   * lock, so the map is never unmapped while a read is in flight.
+   *
+   * <p>If safeClose has been enabled on the {@link Env}, then this method will return false if
+   * transactions or cursors are still active.
+   *
+   * <p>If safeClose has not been enabled then this method will perform the close regardless of
+   * whether it is in use or not with the implications detailed above, i.e. it has the same
+   * behaviour as {@link #close()} with safeClose disabled.
+   *
+   * @return {@code true} if the environment was closed or {@code false} if it was already closed or
+   *     safeClose prevented its closure due to being in use.
+   */
+  public boolean tryClose() {
+    return refCounter.tryClose(this::doClose);
+  }
+
+  private void doClose() {
+    LIB.mdb_env_close(ptr);
   }
 
   /**

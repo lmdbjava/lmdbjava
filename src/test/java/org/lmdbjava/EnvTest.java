@@ -34,6 +34,7 @@ import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -43,6 +44,7 @@ import java.util.Random;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.LongAdder;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -754,7 +756,6 @@ public final class EnvTest {
             .setMaxDbs(1)
             .setMaxReaders(1)
             .setEnvFlags(MDB_NOSUBDIR)
-            .setSafeClose()
             .open(file);
 
     // Open but don't close
@@ -767,6 +768,62 @@ public final class EnvTest {
   }
 
   @Test
+  void tryCloseWithOpenReadTxn() {
+    final Path file = tempDir.createTempFile();
+    final Env<ByteBuffer> env =
+        Env.create()
+            .setSafeClose()
+            .setMapSize(1, ByteUnit.MEBIBYTES)
+            .setMaxDbs(1)
+            .setMaxReaders(1)
+            .setEnvFlags(MDB_NOSUBDIR)
+            .open(file);
+
+    // Open but don't close
+    final Txn<ByteBuffer> readTxn = env.txnWrite();
+
+    assertThat(env.tryClose()).isFalse();
+    readTxn.close();
+    assertThat(env.tryClose()).isTrue();
+    // already closed
+    assertThat(env.tryClose()).isFalse();
+  }
+
+  @Test
+  void immediateClose() {
+    final Path file = tempDir.createTempFile();
+    final Env<ByteBuffer> env =
+        Env.create()
+            .setSafeClose()
+            .setMapSize(1, ByteUnit.MEBIBYTES)
+            .setMaxDbs(1)
+            .setMaxReaders(1)
+            .setEnvFlags(MDB_NOSUBDIR)
+            .open(file);
+
+    env.close();
+    // no-op
+    env.close();
+  }
+
+  @Test
+  void immediateTryClose() {
+    final Path file = tempDir.createTempFile();
+    final Env<ByteBuffer> env =
+        Env.create()
+            .setSafeClose()
+            .setMapSize(1, ByteUnit.MEBIBYTES)
+            .setMaxDbs(1)
+            .setMaxReaders(1)
+            .setEnvFlags(MDB_NOSUBDIR)
+            .open(file);
+
+    assertThat(env.tryClose()).isTrue();
+    // already closed
+    assertThat(env.tryClose()).isFalse();
+  }
+
+  @Test
   void closeWithOpenWriteTxn() {
     final Path file = tempDir.createTempFile();
     final Env<ByteBuffer> env =
@@ -776,7 +833,6 @@ public final class EnvTest {
             .setMaxDbs(1)
             .setMaxReaders(1)
             .setEnvFlags(MDB_NOSUBDIR)
-            .setSafeClose()
             .open(file);
 
     // Open but don't close
@@ -877,6 +933,7 @@ public final class EnvTest {
     try (Txn<ByteBuffer> ignoredHeldReader = env.txnRead()) {
       Thread.sleep(100); // let the reader threads saturate the native read path
       Assertions.assertThatThrownBy(env::close).isInstanceOf(Env.EnvInUseException.class);
+      assertThat(env.tryClose()).isFalse();
       assertThat(env.isClosed()).isFalse(); // must NOT have unmapped with live readers
     }
 
@@ -946,6 +1003,7 @@ public final class EnvTest {
     try {
       Thread.sleep(100);
       Assertions.assertThatThrownBy(env::close).isInstanceOf(Env.EnvInUseException.class);
+      assertThat(env.tryClose()).isFalse();
       assertThat(env.isClosed()).isFalse();
     } finally {
       heldCursor.close();
@@ -961,6 +1019,72 @@ public final class EnvTest {
 
     assertThat(reads.get()).isGreaterThan(0L);
     assertThat(unexpected).isEmpty();
+    assertThat(env.isClosed()).isTrue();
+  }
+
+  @Test
+  void testEventualTryClose() throws InterruptedException {
+    final Path dir = tempDir.createTempDir();
+    final Env<ByteBuffer> env =
+        Env.create().setSafeClose().setMaxReaders(64).setMaxDbs(1).open(dir);
+    final Dbi<ByteBuffer> db =
+        env.createDbi().setDbName(DB_1).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
+    for (int i = 0; i < 32; i++) {
+      db.put(bb(i), bb(i));
+    }
+
+    final int readerCount = 16;
+    final AtomicLong reads = new AtomicLong();
+    final LongAdder completedCount = new LongAdder();
+    final List<Throwable> unexpected = new CopyOnWriteArrayList<>();
+    final List<Thread> readers = new ArrayList<>(readerCount);
+
+    final Instant endTime = Instant.now().plusMillis(500);
+
+    // Have 16 threads all hammer the env with reads until timeout
+    for (int i = 0; i < readerCount; i++) {
+      final Thread reader =
+          new Thread(
+              () -> {
+                while (Instant.now().isBefore(endTime)) {
+                  try (Txn<ByteBuffer> txn = env.txnRead();
+                      Cursor<ByteBuffer> cursor = db.openCursor(txn)) {
+                    cursor.first();
+                    reads.incrementAndGet();
+                  } catch (final AlreadyClosedException expected) {
+                    return; // benign: env is closing/closed
+                  } catch (final Throwable t) {
+                    unexpected.add(t);
+                    return;
+                  }
+                }
+                completedCount.increment();
+              },
+              "cursor-reader-" + i);
+      reader.setDaemon(true);
+      reader.start();
+      readers.add(reader);
+    }
+
+    // Keep trying to close until we are able
+    boolean didClose = false;
+    while (!didClose) {
+      Thread.sleep(10);
+      didClose = env.tryClose();
+      if (didClose) {
+        assertThat(completedCount).hasValue(readerCount);
+      }
+    }
+
+    // readers should all have completed by now anyway
+    for (final Thread reader : readers) {
+      reader.join(5_000);
+    }
+
+    assertThat(env.tryClose()).isFalse();
+    assertThat(reads.get()).isGreaterThan(0L);
+    assertThat(unexpected).isEmpty();
+    assertThat(completedCount).hasValue(readerCount);
     assertThat(env.isClosed()).isTrue();
   }
 

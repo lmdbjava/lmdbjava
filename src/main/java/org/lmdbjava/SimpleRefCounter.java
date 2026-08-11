@@ -62,6 +62,19 @@ class SimpleRefCounter implements RefCounter {
     }
   }
 
+  @Override
+  public boolean tryClose(Runnable onClose) {
+    Objects.requireNonNull(onClose);
+    if (counter.get() != CLOSED_VALUE) {
+      // Set to CLOSED_VALUE to indicate closure, if the count is 0
+      if (counter.compareAndSet(0, CLOSED_VALUE)) {
+        onClose.run();
+        return true;
+      }
+    }
+    return false;
+  }
+
   private void release() {
     final int newVal =
         counter.updateAndGet(currVal -> currVal == CLOSED_VALUE ? currVal : currVal - 1);

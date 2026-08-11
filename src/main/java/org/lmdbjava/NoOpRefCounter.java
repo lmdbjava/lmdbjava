@@ -50,6 +50,17 @@ public class NoOpRefCounter implements RefCounter {
   }
 
   @Override
+  public boolean tryClose(Runnable onClose) {
+    if (isClosed.compareAndSet(false, true)) {
+      // Close with no checks
+      onClose.run();
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  @Override
   public boolean isClosed() {
     return isClosed.get();
   }

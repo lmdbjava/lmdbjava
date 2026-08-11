@@ -150,7 +150,7 @@ public class RefCounterTest {
 
   @ParameterizedTest
   @MethodSource("allRefCounterProvider")
-  void testRefCounters(final RefCounter refCounter) {
+  void testRefCounters_close(final RefCounter refCounter) {
     // Acquire twice
     final RefCounter.RefCounterReleaser releaser1 = refCounter.acquire();
     assertRefCount(refCounter, 1);
@@ -161,6 +161,7 @@ public class RefCounterTest {
 
     if (!(refCounter instanceof NoOpRefCounter)) {
       // Close() not called as ref count is two.
+
       Assertions.assertThatThrownBy(
               () -> {
                 refCounter.close(onCloseCallCount::incrementAndGet);
@@ -203,6 +204,54 @@ public class RefCounterTest {
 
     // no-op as onClose already called
     refCounter.close(onCloseCallCount::incrementAndGet);
+    assertThat(onCloseCallCount).hasValue(1);
+  }
+
+  @ParameterizedTest
+  @MethodSource("allRefCounterProvider")
+  void testRefCounters_tryClose(final RefCounter refCounter) {
+    // Acquire twice
+    final RefCounter.RefCounterReleaser releaser1 = refCounter.acquire();
+    assertRefCount(refCounter, 1);
+    final RefCounter.RefCounterReleaser releaser2 = refCounter.acquire();
+    assertRefCount(refCounter, 2);
+
+    final AtomicInteger onCloseCallCount = new AtomicInteger();
+
+    if (!(refCounter instanceof NoOpRefCounter)) {
+      // Close() not called as ref count is two.
+      assertThat(refCounter.tryClose(onCloseCallCount::incrementAndGet)).isFalse();
+    }
+    assertThat(onCloseCallCount).hasValue(0);
+
+    // Release 1st releaser
+    releaser1.release();
+    assertRefCount(refCounter, 1);
+
+    if (!(refCounter instanceof NoOpRefCounter)) {
+      // Close() not called as ref count is one.
+      assertThat(refCounter.tryClose(onCloseCallCount::incrementAndGet)).isFalse();
+    }
+    assertThat(onCloseCallCount).hasValue(0);
+
+    // Release 2nd releaser
+    releaser2.release();
+    assertThat(refCounter.getCount()).isEqualTo(0);
+
+    // no-op if already released
+    releaser1.release();
+    assertThat(refCounter.getCount()).isEqualTo(0);
+
+    // no-op if already released
+    releaser2.release();
+    assertThat(refCounter.getCount()).isEqualTo(0);
+
+    // onClose is called now
+    assertThat(refCounter.tryClose(onCloseCallCount::incrementAndGet)).isTrue();
+    assertThat(onCloseCallCount).hasValue(1);
+
+    // no-op as onClose already called
+    assertThat(refCounter.tryClose(onCloseCallCount::incrementAndGet)).isFalse();
     assertThat(onCloseCallCount).hasValue(1);
   }
 

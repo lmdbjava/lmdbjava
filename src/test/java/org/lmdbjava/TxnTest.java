@@ -182,6 +182,16 @@ public final class TxnTest {
   }
 
   @Test
+  void testDoubleCommit() {
+    try (Txn<ByteBuffer> txn = env.txnRead()) {
+      txn.commit();
+      assertState(txn, DONE);
+      assertThatThrownBy(txn::commit).isInstanceOf(NotReadyException.class);
+      assertState(txn, DONE);
+    }
+  }
+
+  @Test
   void testCheckReadOnly() {
     assertThatThrownBy(
             () -> {
@@ -221,6 +231,14 @@ public final class TxnTest {
     }
     // should not see the same snapshot
     assertThat(txId1.get()).isNotEqualTo(txId2.get());
+  }
+
+  @Test
+  void txIdDeniedIfEnvClosed() {
+    final Txn<ByteBuffer> txnRead = env.txnRead();
+    txnRead.close();
+    env.close();
+    assertThatThrownBy(txnRead::getId).isInstanceOf(AlreadyClosedException.class);
   }
 
   @Test
@@ -265,18 +283,20 @@ public final class TxnTest {
     assertThatThrownBy(txnRead::renew).isInstanceOf(AlreadyClosedException.class);
   }
 
-  @Disabled // We shouldn't be trying to close the env with open txns
   @Test
   void txCloseDeniedIfEnvClosed() {
     final Txn<ByteBuffer> txnRead = env.txnRead();
+    // We can't test closing the env with the txn open as the env will prevent it
+    txnRead.close();
     env.close();
     assertThatThrownBy(txnRead::close).isInstanceOf(AlreadyClosedException.class);
   }
 
-  @Disabled // We shouldn't be trying to close the env with open txns
   @Test
   void txCommitDeniedIfEnvClosed() {
     final Txn<ByteBuffer> txnRead = env.txnRead();
+    // We can't test closing the env with the txn open as the env will prevent it
+    txnRead.close();
     env.close();
     assertThatThrownBy(txnRead::commit).isInstanceOf(AlreadyClosedException.class);
   }
