@@ -70,10 +70,11 @@ public abstract class AbstractFlagSetTest<
 
       // Compare as a Set
       assertThat(flagSet.getFlags()).isEqualTo(flag.getFlags());
-      // Compare as a FlagSet
-      assertThat(flagSet).isEqualTo(flag);
-
+      // Compare as a FlagSet because a single flag enum implements FlagSet
+      assertThat(flagSet.equals(flag)).isTrue();
+      assertThat(flag.equals(flagSet)).isTrue();
       assertThat(FlagSet.equals(flagSet, flag)).isTrue();
+      assertThat(flagSet.hashCode()).isEqualTo(flag.hashCode());
 
       assertThat(flagSet.getMask()).isEqualTo(flag.getMask());
       assertThat(flagSet.getMask()).isEqualTo(MaskedFlag.mask(flag));
@@ -95,6 +96,14 @@ public abstract class AbstractFlagSetTest<
       } else {
         assertThat(flagSet.getMask()).isNotEqualTo(MaskedFlag.mask(getFirst()));
         assertThat(flagSet.getMaskWith(getFirst())).isEqualTo(MaskedFlag.mask(flag, getFirst()));
+      }
+      // Here to help codecov pick up the toString() method
+      if (flagSet instanceof AbstractFlagSet) {
+        //noinspection unchecked
+        final AbstractFlagSet<T> abstractFlagSet = (AbstractFlagSet<T>) flagSet;
+        assertThat(abstractFlagSet.toString())
+            .isNotNull()
+            .doesNotStartWith("@");
       }
       assertThat(flagSet.toString()).isNotNull();
       assertThat(flag.name()).isNotNull();
