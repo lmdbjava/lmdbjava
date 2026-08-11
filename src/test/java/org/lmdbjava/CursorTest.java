@@ -26,10 +26,12 @@ import static org.lmdbjava.DbiFlags.MDB_DUPFIXED;
 import static org.lmdbjava.DbiFlags.MDB_DUPSORT;
 import static org.lmdbjava.Env.create;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
+import static org.lmdbjava.Library.LIB;
 import static org.lmdbjava.PutFlags.MDB_APPENDDUP;
 import static org.lmdbjava.PutFlags.MDB_MULTIPLE;
 import static org.lmdbjava.PutFlags.MDB_NODUPDATA;
 import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
+import static org.lmdbjava.ResultCodeMapper.checkRc;
 import static org.lmdbjava.SeekOp.MDB_FIRST;
 import static org.lmdbjava.SeekOp.MDB_GET_BOTH;
 import static org.lmdbjava.SeekOp.MDB_LAST;
@@ -40,6 +42,7 @@ import static org.lmdbjava.TestUtils.bb;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.util.function.Consumer;
+import jnr.ffi.byref.PointerByReference;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,6 +50,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.lmdbjava.Cursor.ClosedException;
 import org.lmdbjava.Txn.ReadOnlyRequiredException;
+import org.mockito.Mockito;
 
 /** Test {@link Cursor}. */
 public final class CursorTest {
@@ -596,6 +600,25 @@ public final class CursorTest {
         assertThat(key2.getInt(0)).isEqualTo(3);
         assertThat(val2.getInt(0)).isEqualTo(4);
       }
+    }
+  }
+
+  @Test
+  void testCursorConstructorFailure() {
+    final Dbi<ByteBuffer> db =
+        env.createDbi().setDbName(DB_1).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
+
+      // These two lines do what Dbi.openCursor does before calling the Cursor constructor
+      final PointerByReference cursorPtr = new PointerByReference();
+      checkRc(LIB.mdb_cursor_open(txn.pointer(), db.pointer(), cursorPtr));
+
+      //noinspection unchecked,resource
+      final Txn<ByteBuffer> mockTxn = (Txn<ByteBuffer>) Mockito.mock(Txn.class);
+      Mockito.when(mockTxn.newKeyVal()).thenThrow(new RuntimeException("newKeyVal error"));
+      assertThatThrownBy(() -> new Cursor<>(cursorPtr.getValue(), mockTxn, env))
+          .isInstanceOf(RuntimeException.class)
+          .hasMessage("newKeyVal error");
     }
   }
 
