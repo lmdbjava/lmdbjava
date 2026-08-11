@@ -636,6 +636,20 @@ public class RefCounterTest {
 
   @ParameterizedTest
   @MethodSource("allRefCounterProvider")
+  void use_null(final RefCounter refCounter) {
+    // A no-op
+    refCounter.use(null);
+
+    final AtomicInteger onCloseCallCount = new AtomicInteger();
+    refCounter.close(onCloseCallCount::incrementAndGet);
+    assertThat(onCloseCallCount.get()).isEqualTo(1);
+
+    // A no-op
+    refCounter.use(null);
+  }
+
+  @ParameterizedTest
+  @MethodSource("allRefCounterProvider")
   void use(final RefCounter refCounter) {
     final AtomicInteger onCloseCallCount = new AtomicInteger();
     final AtomicInteger useCallCount = new AtomicInteger();

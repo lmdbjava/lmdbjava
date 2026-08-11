@@ -43,11 +43,13 @@ public class SingleThreadedRefCounter implements RefCounter {
 
   @Override
   public void use(Runnable runnable) {
-    final RefCounterReleaser releaser = acquire();
-    try {
-      runnable.run();
-    } finally {
-      releaser.release();
+    if (runnable != null) {
+      final RefCounterReleaser releaser = acquire();
+      try {
+        runnable.run();
+      } finally {
+        releaser.release();
+      }
     }
   }
 

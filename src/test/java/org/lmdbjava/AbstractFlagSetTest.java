@@ -67,6 +67,8 @@ public abstract class AbstractFlagSetTest<
     final List<T> allFlags = getAllFlags();
     for (T flag : allFlags) {
       final F flagSet = getBuilder().addFlag(flag).build();
+      assertThat(FlagSet.equals(flagSet, flag)).isTrue();
+      assertThat(FlagSet.equals(flagSet, flag.getFlags())).isTrue();
       assertThat(flagSet.getMask()).isEqualTo(flag.getMask());
       assertThat(flagSet.getMask()).isEqualTo(MaskedFlag.mask(flag));
       assertThat(flagSet.getFlags()).containsExactly(flag);

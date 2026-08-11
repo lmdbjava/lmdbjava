@@ -38,7 +38,9 @@ public class NoOpRefCounter implements RefCounter {
 
   @Override
   public void use(final Runnable runnable) {
-    runnable.run();
+    if (runnable != null) {
+      runnable.run();
+    }
   }
 
   @Override

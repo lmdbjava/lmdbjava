@@ -30,7 +30,9 @@ interface RefCounter {
 
   /**
    * Calls {@link RefCounter#acquire()}, runs runnable, then calls {@link
-   * RefCounterReleaser#release()}
+   * RefCounterReleaser#release()}.
+   *
+   * <p>If runnable is null, this is a no-op.
    */
   default void use(final Runnable runnable) {
     if (runnable != null) {
