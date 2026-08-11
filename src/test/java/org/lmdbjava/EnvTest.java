@@ -45,6 +45,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
+import java.util.stream.Stream;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -285,10 +286,58 @@ public final class EnvTest {
     final Path dest = tempDir.createTempFile();
     assertThat(Files.exists(dest)).isFalse();
     final Path src = tempDir.createTempFile();
+
+    // Create the source env and put an entry
     try (Env<ByteBuffer> env =
         Env.create().setSafeClose().setMaxReaders(1).setEnvFlags(MDB_NOSUBDIR).open(src)) {
+      final Dbi<ByteBuffer> rwDb =
+          env.createDbi().setDbName(DB_1).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
+      rwDb.put(bb(1), bb(42));
+
       env.copy(dest, MDB_CP_COMPACT);
     }
+
+    // Check the destination env and get the entry
+    try (Env<ByteBuffer> env =
+        Env.create().setSafeClose().setMaxReaders(1).setEnvFlags(MDB_NOSUBDIR).open(dest)) {
+      final Dbi<ByteBuffer> dbi =
+          env.createDbi().setDbName(DB_1).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
+      try (Txn<ByteBuffer> txn = env.txnRead()) {
+        final ByteBuffer byteBuffer = dbi.get(txn, bb(1));
+        assertThat(byteBuffer).isNotNull();
+        assertThat(byteBuffer.getInt()).isEqualTo(42);
+      }
+    }
+    assertThat(FileUtil.size(dest)).isGreaterThan(0L);
+  }
+
+  @Test
+  void copyDirBased() {
+    final Path dest = tempDir.createTempDir();
+    assertThat(isEmptyDir(dest)).isTrue();
+    final Path src = tempDir.createTempDir();
+    assertThat(isEmptyDir(src)).isTrue();
+    // Create the source env and put an entry
+    try (Env<ByteBuffer> env = Env.create().setSafeClose().setMaxReaders(1).open(src)) {
+      final Dbi<ByteBuffer> rwDb =
+          env.createDbi().setDbName(DB_1).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
+      rwDb.put(bb(1), bb(42));
+
+      env.copy(dest, MDB_CP_COMPACT);
+    }
+
+    // Check the destination env and get the entry
+    try (Env<ByteBuffer> env = Env.create().setSafeClose().setMaxReaders(1).open(dest)) {
+      final Dbi<ByteBuffer> dbi =
+          env.createDbi().setDbName(DB_1).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
+      try (Txn<ByteBuffer> txn = env.txnRead()) {
+        final ByteBuffer byteBuffer = dbi.get(txn, bb(1));
+        assertThat(byteBuffer).isNotNull();
+        assertThat(byteBuffer.getInt()).isEqualTo(42);
+      }
+    }
+    assertThat(isEmptyDir(dest)).isFalse();
+    assertThat(isEmptyDir(src)).isFalse();
     assertThat(FileUtil.size(dest)).isGreaterThan(0L);
   }
 
@@ -1107,6 +1156,14 @@ public final class EnvTest {
     try (Env<ByteBuffer> env =
         Env.create().setSafeClose().setMaxReaders(64).setMaxDbs(1).open(dir)) {
       assertThat(env.toString()).doesNotStartWith("@");
+    }
+  }
+
+  private boolean isEmptyDir(final Path dir) {
+    try (Stream<Path> pathStream = Files.list(dir)) {
+      return !pathStream.findAny().isPresent();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
   }
 
