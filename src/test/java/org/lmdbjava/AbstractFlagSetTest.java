@@ -101,9 +101,7 @@ public abstract class AbstractFlagSetTest<
       if (flagSet instanceof AbstractFlagSet) {
         //noinspection unchecked
         final AbstractFlagSet<T> abstractFlagSet = (AbstractFlagSet<T>) flagSet;
-        assertThat(abstractFlagSet.toString())
-            .isNotNull()
-            .doesNotStartWith("@");
+        assertThat(abstractFlagSet.toString()).isNotNull().doesNotStartWith("@");
       }
       assertThat(flagSet.toString()).isNotNull();
       assertThat(flag.name()).isNotNull();
