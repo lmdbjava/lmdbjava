@@ -777,11 +777,6 @@ public final class Env<T> implements AutoCloseable {
 
     private static final long serialVersionUID = 1L;
 
-    /** Creates a new instance. */
-    public EnvInUseException() {
-      super("Environment has open transactions/cursors so cannot be closed.");
-    }
-
     /**
      * Creates a new instance.
      *

@@ -1101,6 +1101,15 @@ public final class EnvTest {
     testEnvUse(safeClose, singleThreaded);
   }
 
+  @Test
+  void testToString() {
+    final Path dir = tempDir.createTempDir();
+    try (Env<ByteBuffer> env =
+        Env.create().setSafeClose().setMaxReaders(64).setMaxDbs(1).open(dir)) {
+      assertThat(env.toString()).doesNotStartWith("@");
+    }
+  }
+
   private void testEnvUse(final BooleanArg safeClose, final BooleanArg singleThreaded) {
     final Path file = tempDir.createTempFile();
 
