@@ -142,8 +142,7 @@ public final class TxnTest {
             .open(file)) {
       try (Txn<ByteBuffer> readTxn = roEnv.txnRead()) {
         assertThat(readTxn).isNotNull();
-        assertThat(readTxn.isReadOnly()).isTrue();
-        assertThat(readTxn.isWritable()).isFalse();
+        assertReadOnly(readTxn);
       }
     }
   }
@@ -227,9 +226,9 @@ public final class TxnTest {
   @Test
   void txCanCommitThenCloseWithoutError() {
     try (Txn<ByteBuffer> txn = env.txnRead()) {
-      assertThat(txn.getState()).isEqualTo(READY);
+      assertState(txn, READY);
       txn.commit();
-      assertThat(txn.getState()).isEqualTo(DONE);
+      assertState(txn, DONE);
     }
   }
 
@@ -237,10 +236,9 @@ public final class TxnTest {
   void txCannotAbortIfAlreadyCommitted() {
 
     try (Txn<ByteBuffer> txn = env.txnRead()) {
-      assertThat(txn.getState()).isEqualTo(READY);
+      assertState(txn, READY);
       txn.commit();
-      assertThat(txn.getState()).isEqualTo(DONE);
-
+      assertState(txn, DONE);
       assertThatThrownBy(txn::abort).isInstanceOf(NotReadyException.class);
     }
   }
@@ -368,18 +366,16 @@ public final class TxnTest {
   void txReadOnly() {
     try (Txn<ByteBuffer> txn = env.txnRead()) {
       assertThat(txn.getParent()).isNull();
-      assertThat(txn.getState()).isEqualTo(READY);
-      assertThat(txn.isReadOnly()).isTrue();
-      txn.checkReady();
-      txn.checkReadOnly();
+      assertState(txn, READY);
+      assertReadOnly(txn);
       txn.reset();
-      assertThat(txn.getState()).isEqualTo(RESET);
+      assertState(txn, RESET);
       txn.renew();
-      assertThat(txn.getState()).isEqualTo(READY);
+      assertState(txn, READY);
       txn.commit();
-      assertThat(txn.getState()).isEqualTo(DONE);
+      assertState(txn, DONE);
       txn.close();
-      assertThat(txn.getState()).isEqualTo(RELEASED);
+      assertState(txn, RELEASED);
     }
   }
 
@@ -387,15 +383,12 @@ public final class TxnTest {
   void txReadWrite() {
     final Txn<ByteBuffer> txn = env.txnWrite();
     assertThat(txn.getParent()).isNull();
-    assertThat(txn.getState()).isEqualTo(READY);
-    assertThat(txn.isReadOnly()).isFalse();
-    assertThat(txn.isWritable()).isTrue();
-    txn.checkReady();
-    txn.checkWritesAllowed();
+    assertState(txn, READY);
+    assertWritable(txn);
     txn.commit();
-    assertThat(txn.getState()).isEqualTo(DONE);
+    assertState(txn, DONE);
     txn.close();
-    assertThat(txn.getState()).isEqualTo(RELEASED);
+    assertState(txn, RELEASED);
   }
 
   @Test
@@ -450,5 +443,31 @@ public final class TxnTest {
               dbi.put(key, bb(2));
             })
         .isInstanceOf(BadValueSizeException.class);
+  }
+
+  private void assertState(final Txn<?> txn, final Txn.State expectedState) {
+    assertThat(txn.getState()).isEqualTo(expectedState);
+    if (expectedState == READY) {
+      assertThat(txn.isReady()).isTrue();
+      txn.checkReady();
+    } else {
+      assertThat(txn.isReady()).isFalse();
+      assertThatThrownBy(txn::checkReady).isInstanceOf(NotReadyException.class);
+    }
+  }
+
+  private void assertReadOnly(final Txn<?> txn) {
+    assertThat(txn.isReadOnly()).isTrue();
+    assertThat(txn.isWritable()).isFalse();
+    txn.checkReadOnly();
+    assertThatThrownBy(txn::checkWritesAllowed).isInstanceOf(ReadWriteRequiredException.class);
+  }
+
+  private void assertWritable(final Txn<?> txn) {
+    assertThat(txn.isReadOnly()).isFalse();
+    assertThat(txn.isWritable()).isTrue();
+    assertThatThrownBy(txn::checkReadOnly).isInstanceOf(ReadOnlyRequiredException.class);
+    // Should not throw in a writable state
+    txn.checkWritesAllowed();
   }
 }
