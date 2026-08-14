@@ -29,6 +29,7 @@ import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.StreamSupport;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
@@ -237,13 +238,8 @@ final class TestUtils {
   }
 
   public static int getEntryCount(final Dbi<ByteBuffer> dbi, final Txn<ByteBuffer> txn) {
-    int count = 0;
     try (CursorIterable<ByteBuffer> cursorIterable = dbi.iterate(txn)) {
-
-      for (final CursorIterable.KeyVal<ByteBuffer> kv : cursorIterable) {
-        count++;
-      }
+      return (int) StreamSupport.stream(cursorIterable.spliterator(), false).count();
     }
-    return count;
   }
 }
