@@ -894,7 +894,7 @@ public final class EnvTest {
   }
 
   @Test
-  void closeWithOpenCursor() {
+  void closeWithOpenRWCursor() {
     final Path file = tempDir.createTempFile();
     final Env<ByteBuffer> env =
         Env.create()
@@ -920,6 +920,35 @@ public final class EnvTest {
     Assertions.assertThatThrownBy(cursor::close).isInstanceOf(Txn.NotReadyException.class);
 
     // can't close the env as we are unable to close the cursor
+  }
+
+  @Test
+  void closeWithOpenROCursor() {
+    final Path file = tempDir.createTempFile();
+    final Env<ByteBuffer> env =
+        Env.create()
+            .setMapSize(1, ByteUnit.MEBIBYTES)
+            .setMaxDbs(1)
+            .setMaxReaders(1)
+            .setEnvFlags(MDB_NOSUBDIR)
+            .setSafeClose(true)
+            .setSingleThreaded(true)
+            .open(file);
+
+    final Dbi<ByteBuffer> dbi =
+        env.createDbi().setDbName(DB_1).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
+
+    // Open but don't close
+    final Txn<ByteBuffer> readTxn = env.txnRead();
+    final Cursor<ByteBuffer> cursor = dbi.openCursor(readTxn);
+
+    // Close the txn but not the cursor. LMDB will implicitly close the cursor as it is RO.
+    readTxn.close();
+
+    // Close env with no exception as it does not track RO cursors.
+    env.close();
+
+    Assertions.assertThatThrownBy(cursor::close).isInstanceOf(Env.AlreadyClosedException.class);
   }
 
   /**

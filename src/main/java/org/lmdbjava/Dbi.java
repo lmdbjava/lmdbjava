@@ -1,5 +1,5 @@
 /*
- * Copyright © 2016-2025 The LmdbJava Open Source Project
+ * Copyright © 2016-2026 The LmdbJava Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -407,6 +407,9 @@ public final class Dbi<T> {
 
   /**
    * Starts a new read-write transaction and puts the key/data pair.
+   *
+   * <p>NOTE: If this is called while this thread already has an open write transaction, it will
+   * block indefinitely.
    *
    * @param key key to store in the database (not null)
    * @param val value to store in the database (not null)

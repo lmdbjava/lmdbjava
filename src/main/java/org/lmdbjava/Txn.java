@@ -31,7 +31,21 @@ import java.util.Objects;
 import jnr.ffi.Pointer;
 
 /**
- * LMDB transaction.
+ * An LMDB ACID transaction.
+ *
+ * <p>A transaction belongs to an {@link Env} and must be closed before the {@link Env} is closed.
+ * Only one concurrent write transaction is supported. Attempts to open another write transaction
+ * will block until the open write transaction is closed.
+ *
+ * <p>{@link Txn#commit()} must be called to commit any changes made within the transaction.
+ *
+ * <p>Uncommitted changes can be rolled back by either calling {@link Txn#close()} or calling {@link
+ * Txn#abort()}.
+ *
+ * <p>Closing a transaction without first calling {@link Txn#commit()} will perform an implicit
+ * rollback of any uncommitted changes made within the transaction.
+ *
+ * <p>Transactions can be nested
  *
  * @param <T> buffer type
  */
@@ -43,8 +57,8 @@ public final class Txn<T> implements AutoCloseable {
   private final Pointer ptr;
   private final boolean readOnly;
   private final Env<T> env;
-  private State state;
-  private RefCounter.RefCounterReleaser refCounterReleaser;
+  private final RefCounter.RefCounterReleaser refCounterReleaser;
+  private volatile State state;
 
   Txn(final Env<T> env, final Txn<T> parent, final BufferProxy<T> proxy, final TxnFlagSet flags) {
 
@@ -77,7 +91,13 @@ public final class Txn<T> implements AutoCloseable {
     }
   }
 
-  /** Aborts this transaction. */
+  /**
+   * Aborts this transaction.
+   *
+   * <p>If this is a read-write transaction, and you have any open {@link Cursor}s against this
+   * transaction, they <strong>MUST</strong> be closed first, else you will not be able to close the
+   * cursor after this transaction has been committed.
+   */
   public void abort() {
     if (SHOULD_CHECK) {
       env.checkNotClosed();
@@ -86,8 +106,8 @@ public final class Txn<T> implements AutoCloseable {
     state = DONE;
     LIB.mdb_txn_abort(ptr);
 
-    // TODO It is not clear whether this method should call refCounterReleaser.release() like close
-    //  does
+    // No call to refCounterReleaser.release() here because the keyVal is still open
+    // and the txn can still be reset.
   }
 
   /**
@@ -99,6 +119,10 @@ public final class Txn<T> implements AutoCloseable {
    *
    * <p>Closing the transaction will invoke {@link BufferProxy#deallocate(java.lang.Object)} for
    * each read-only buffer (ie the key and value).
+   *
+   * <p>If this is a read-write transaction, and you have any open {@link Cursor}s against this
+   * transaction, they <strong>MUST</strong> be closed first, else you will not be able to close the
+   * cursor after this transaction has been closed.
    */
   @Override
   public void close() {
@@ -122,6 +146,10 @@ public final class Txn<T> implements AutoCloseable {
    *
    * <p>If you have an open cursor using this transaction, you must close the cursor before
    * committing.
+   *
+   * <p>If this is a read-write transaction, and you have any open {@link Cursor}s against this
+   * transaction, they <strong>MUST</strong> be closed first, else you will not be able to close the
+   * cursor after this transaction has been committed.
    */
   public void commit() {
     if (SHOULD_CHECK) {

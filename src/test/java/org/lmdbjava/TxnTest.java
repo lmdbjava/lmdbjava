@@ -251,6 +251,43 @@ public final class TxnTest {
   }
 
   @Test
+  void txAbortThenClose() {
+    final Dbi<ByteBuffer> db =
+        env.createDbi().setDbName(DB_1).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
+
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
+      assertState(txn, READY);
+      db.put(txn, bb(1), bb(2));
+      assertThat(db.get(txn, bb(1))).isEqualTo(bb(2));
+
+      // Change rolled back
+      txn.abort();
+    }
+
+    try (Txn<ByteBuffer> txn = env.txnRead()) {
+      assertThat(db.get(txn, bb(1))).isNull();
+    }
+  }
+
+  @Test
+  void txCloseWithoutAbort() {
+    final Dbi<ByteBuffer> db =
+        env.createDbi().setDbName(DB_1).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
+
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
+      assertState(txn, READY);
+      db.put(txn, bb(1), bb(2));
+      assertThat(db.get(txn, bb(1))).isEqualTo(bb(2));
+
+      // Change rolled back by implicit abort on close
+    }
+
+    try (Txn<ByteBuffer> txn = env.txnRead()) {
+      assertThat(db.get(txn, bb(1))).isNull();
+    }
+  }
+
+  @Test
   void txCannotAbortIfAlreadyCommitted() {
 
     try (Txn<ByteBuffer> txn = env.txnRead()) {
@@ -343,6 +380,98 @@ public final class TxnTest {
         Txn<ByteBuffer> txChild = env.txn(txRoot, TxnFlagSet.EMPTY)) {
       assertThat(txRoot.getParent()).isNull();
       assertThat(txChild.getParent()).isEqualTo(txRoot);
+    }
+  }
+
+  @Test
+  public void txParent4() {
+    final Dbi<ByteBuffer> db =
+        env.createDbi().setDbName(DB_1).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
+
+    try (Txn<ByteBuffer> txRoot = env.txnWrite()) {
+      assertThat(txRoot.getParent()).isNull();
+
+      // Put using the parent txn
+      db.put(txRoot, bb(1), bb(10));
+      assertThat(db.get(txRoot, bb(1))).isEqualTo(bb(10));
+
+      try (Txn<ByteBuffer> txChild = env.txn(txRoot)) {
+        assertThat(txChild.getParent()).isEqualTo(txRoot);
+
+        assertThat(db.get(txChild, bb(1))).isEqualTo(bb(10));
+
+        // Put using the child txn
+        db.put(txChild, bb(2), bb(20));
+        assertThat(db.get(txChild, bb(2))).isEqualTo(bb(20));
+
+        // Rollback the child txn's change
+        txChild.abort();
+      }
+
+      // Root's change still there
+      assertThat(db.get(txRoot, bb(1))).isEqualTo(bb(10));
+      // Child's change was rolled back
+      assertThat(db.get(txRoot, bb(2))).isNull();
+
+      // Put using the parent txn again
+      db.put(txRoot, bb(3), bb(30));
+      assertThat(db.get(txRoot, bb(3))).isEqualTo(bb(30));
+
+      // Commit the parent txn's change without the child's changes
+      txRoot.commit();
+    }
+
+    // Open a new txn to assert the entry
+    try (Txn<ByteBuffer> txn = env.txnRead()) {
+      assertThat(db.get(txn, bb(1))).isEqualTo(bb(10));
+      assertThat(db.get(txn, bb(2))).isNull();
+      assertThat(db.get(txn, bb(3))).isEqualTo(bb(30));
+    }
+  }
+
+  @Test
+  public void txParent5() {
+    final Dbi<ByteBuffer> db =
+        env.createDbi().setDbName(DB_1).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
+
+    try (Txn<ByteBuffer> txRoot = env.txnWrite()) {
+      assertThat(txRoot.getParent()).isNull();
+
+      // Put using the parent txn
+      db.put(txRoot, bb(1), bb(10));
+      assertThat(db.get(txRoot, bb(1))).isEqualTo(bb(10));
+
+      try (Txn<ByteBuffer> txChild = env.txn(txRoot)) {
+        assertThat(txChild.getParent()).isEqualTo(txRoot);
+
+        assertThat(db.get(txChild, bb(1))).isEqualTo(bb(10));
+
+        // Put using the child txn
+        db.put(txChild, bb(2), bb(20));
+        assertThat(db.get(txChild, bb(2))).isEqualTo(bb(20));
+
+        // Commit the child txn's change
+        txChild.commit();
+      }
+
+      // Root's change still there
+      assertThat(db.get(txRoot, bb(1))).isEqualTo(bb(10));
+      // Child's change was rolled back
+      assertThat(db.get(txRoot, bb(2))).isEqualTo(bb(20));
+
+      // Put using the parent txn again
+      db.put(txRoot, bb(3), bb(30));
+      assertThat(db.get(txRoot, bb(3))).isEqualTo(bb(30));
+
+      // Roll back everything, including the changes committed in the child txn
+      txRoot.abort();
+    }
+
+    // Open a new txn to assert the entry
+    try (Txn<ByteBuffer> txn = env.txnRead()) {
+      assertThat(db.get(txn, bb(1))).isNull();
+      assertThat(db.get(txn, bb(2))).isNull();
+      assertThat(db.get(txn, bb(3))).isNull();
     }
   }
 

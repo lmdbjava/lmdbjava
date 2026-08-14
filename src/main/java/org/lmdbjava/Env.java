@@ -45,7 +45,26 @@ import org.lmdbjava.Library.MDB_envinfo;
 import org.lmdbjava.Library.MDB_stat;
 
 /**
- * LMDB environment.
+ * An LMDB environment that includes one or more databases ({@link Dbi}s). The {@link Env} manages
+ * the transactions and databases. An {@link Env} can only have one concurrent write transaction but
+ * supports multiple concurrent read transactions.
+ *
+ * <p><strong>WARNING</strong>: LMDBJava's and LMDB's performance comes from their low-level memory
+ * access, but this requires that you strictly adhere to the various contracts set out when using
+ * environments, databases, transactions, and cursors. Incorrect use of LMDBJava can lead to
+ * segmentation faults that can crash your application.
+ *
+ * <p>By default, LMDBJava performs some checks, for example, checking that the {@link Env} is not
+ * closed when opening a transaction. It is possible, however, for race conditions to occur if you
+ * close the {@link Env} after one of these checks has been performed and before the transaction is
+ * opened. Note, these checks can be disabled by setting the {@link #DISABLE_CHECKS_PROP} system
+ * property to {@code true}. This may be beneficial in performance-critical applications.
+ *
+ * <p>{@link Builder#setSafeClose()} can also be used to add additional checks that ensure the
+ * {@link Env} is not closed while transactions/cursors are in use.
+ *
+ * <p>It is the responsibility of the user to ensure that the {@link Env} is not closed while
+ * transactions or cursors are in use.
  *
  * @param <T> buffer type
  */
@@ -79,6 +98,7 @@ public final class Env<T> implements AutoCloseable {
   /** True if this Env has been created on the basis of only ever being used by a single thread. */
   private final boolean isSingleThreaded;
 
+  /** If true, close will be prevented if there are open txns/cursors. */
   private final boolean safeClose;
 
   private Env(
@@ -450,10 +470,11 @@ public final class Env<T> implements AutoCloseable {
   }
 
   /**
-   * Returns a builder for creating and opening a {@link Dbi} instance in this {@link Env}.
+   * Returns a builder for creating and opening a {@link Dbi} instance in this {@link Env}. This
+   * method is used for both opening an existing database or creating a new one.
    *
-   * <p>The flag {@link DbiFlags#MDB_CREATE} needs to be set on the builder if you need to create a
-   * new database before opening it.
+   * <p>The flag {@link DbiFlags#MDB_CREATE} needs to be set on the builder if the database does not
+   * already exist, and you need to create it before opening it.
    *
    * @return A new builder instance for creating/opening a {@link Dbi}.
    */
@@ -641,6 +662,9 @@ public final class Env<T> implements AutoCloseable {
    * @return a transaction (never null)
    * @deprecated Instead use {@link Env#txn(Txn, TxnFlagSet)}
    *     <p>Obtain a transaction with the requested parent and flags.
+   *     <p>Must not race a concurrent {@link #close()} on another thread: the closed-check and the
+   *     native transaction start are not atomic, so a close occurring between them can crash the
+   *     JVM (see {@link #close()}).
    */
   @Deprecated
   public Txn<T> txn(final Txn<T> parent, final TxnFlags... flags) {
@@ -649,9 +673,18 @@ public final class Env<T> implements AutoCloseable {
   }
 
   /**
-   * Obtain a transaction with the requested parent and flags.
+   * Obtain a read-write transaction with the requested parent and flags.
    *
-   * @param parent parent transaction (may be null if no parent)
+   * <p>Must not race a concurrent {@link #close()} on another thread: the closed-check and the
+   * native transaction start are not atomic, so a close occurring between them can crash the JVM
+   * (see {@link #close()}).
+   *
+   * <p>When using a parent transaction, any committed changes will only be visible to the parent
+   * transaction and will only be fully committed to the {@link Dbi} if the root transaction is
+   * committed. Aborting this transaction will not roll back changes already made by the parent
+   * transaction.
+   *
+   * @param parent parent transaction (maybe null if no parent)
    * @return a transaction (never null)
    */
   public Txn<T> txn(final Txn<T> parent) {
@@ -662,11 +695,25 @@ public final class Env<T> implements AutoCloseable {
   /**
    * Obtain a transaction with the requested parent and flags.
    *
-   * @param parent parent transaction (may be null if no parent)
+   * <p>If you want a read-write transaction, you can instead call {@link #txn(Txn)}. To obtain a
+   * read-only transaction, ensure {@link TxnFlags#MDB_RDONLY_TXN} is present in the {@link
+   * TxnFlagSet}.
+   *
+   * <p>Must not race a concurrent {@link #close()} on another thread: the closed-check and the
+   * native transaction start are not atomic, so a close occurring between them can crash the JVM
+   * (see {@link #close()}).
+   *
+   * <p>When using a parent transaction, any committed changes will only be visible to the parent
+   * transaction and will only be fully committed to the {@link Dbi} if the root transaction is
+   * committed. Aborting this transaction will not roll back changes already made by the parent
+   * transaction.
+   *
+   * @param parent parent transaction (maybe null if no parent)
    * @param flags applicable flags (e.g. for a reusable, read-only transaction). If the set of flags
-   *     is used frequently it is recommended to hold a static instance of the {@link TxnFlagSet}
+   *     is used frequently, it is recommended to hold a static instance of the {@link TxnFlagSet}
    *     for re-use.
    * @return a transaction (never null)
+   * @throws Env.AlreadyClosedException if this environment has already been closed.
    */
   public Txn<T> txn(final Txn<T> parent, final TxnFlagSet flags) {
     checkNotClosed();
@@ -676,7 +723,12 @@ public final class Env<T> implements AutoCloseable {
   /**
    * Obtain a read-only transaction.
    *
+   * <p>Must not race a concurrent {@link #close()} on another thread: the closed-check and the
+   * native transaction start are not atomic, so a close occurring between them can crash the JVM
+   * (see {@link #close()}).
+   *
    * @return a read-only transaction
+   * @throws Env.AlreadyClosedException if this environment has already been closed.
    */
   public Txn<T> txnRead() {
     checkNotClosed();
@@ -686,7 +738,12 @@ public final class Env<T> implements AutoCloseable {
   /**
    * Obtain a read-write transaction.
    *
+   * <p>Must not race a concurrent {@link #close()} on another thread: the closed-check and the
+   * native transaction start are not atomic, so a close occurring between them can crash the JVM
+   * (see {@link #close()}).
+   *
    * @return a read-write transaction
+   * @throws Env.AlreadyClosedException if this environment has already been closed
    */
   public Txn<T> txnWrite() {
     checkNotClosed();
@@ -1108,12 +1165,12 @@ public final class Env<T> implements AutoCloseable {
     /**
      * Enables the opt-in "safe close" for the resulting {@link Env}.
      *
-     * <p>When enabled, the environment tracks its live transactions and cursors so that closure of
-     * the {@link Env} is prevented if transactions or cursors are active. This adds a small amount
-     * of bookkeeping on transaction start/close; it is <strong>disabled by default</strong> so
-     * applications that already manage their own threading (the common low-latency case) pay
-     * nothing. When enabled, {@link Env#close()} will throw a {@link EnvInUseException} if
-     * transactions or cursors are active.
+     * <p>When enabled, the environment tracks its live transactions and read-write cursors so that
+     * closure of the {@link Env} is prevented if transactions or cursors are active. This adds a
+     * small amount of bookkeeping on transaction start/close; it is <strong>disabled by
+     * default</strong> so applications that already manage their own threading (the common
+     * low-latency case) pay nothing. When enabled, {@link Env#close()} will throw a {@link
+     * EnvInUseException} if transactions or cursors are active.
      *
      * @return the builder
      */
@@ -1125,12 +1182,12 @@ public final class Env<T> implements AutoCloseable {
     /**
      * Enables the opt-in "safe close" for the resulting {@link Env}.
      *
-     * <p>When enabled, the environment tracks its live transactions and cursors so that closure of
-     * the {@link Env} is prevented if transactions or cursors are active. This adds a small amount
-     * of bookkeeping on transaction start/close; it is <strong>disabled by default</strong> so
-     * applications that already manage their own threading (the common low-latency case) pay
-     * nothing. When enabled, {@link Env#close()} will throw a {@link EnvInUseException} if
-     * transactions or cursors are active.
+     * <p>When enabled, the environment tracks its live transactions and read-write cursors so that
+     * closure of the {@link Env} is prevented if transactions or cursors are active. This adds a
+     * small amount of bookkeeping on transaction start/close; it is <strong>disabled by
+     * default</strong> so applications that already manage their own threading (the common
+     * low-latency case) pay nothing. When enabled, {@link Env#close()} will throw a {@link
+     * EnvInUseException} if transactions or cursors are active.
      *
      * @param safeClose true to enable cursor/transaction tracking.
      * @return the builder
