@@ -85,6 +85,12 @@ final class TestUtils {
     return bb;
   }
 
+  static int getInt(final ByteBuffer bb) {
+    final int val = bb.getInt();
+    bb.rewind();
+    return val;
+  }
+
   static int getNativeInt(final ByteBuffer bb) {
     final int val = bb.order(ByteOrder.nativeOrder()).getInt();
     bb.rewind();
@@ -222,5 +228,22 @@ final class TestUtils {
       Thread.currentThread().interrupt();
       throw new RuntimeException(e);
     }
+  }
+
+  public static int getEntryCount(final Dbi<ByteBuffer> dbi, final Env<ByteBuffer> env) {
+    try (final Txn<ByteBuffer> readTxn = env.txnRead()) {
+      return getEntryCount(dbi, readTxn);
+    }
+  }
+
+  public static int getEntryCount(final Dbi<ByteBuffer> dbi, final Txn<ByteBuffer> txn) {
+    int count = 0;
+    try (CursorIterable<ByteBuffer> cursorIterable = dbi.iterate(txn)) {
+
+      for (final CursorIterable.KeyVal<ByteBuffer> kv : cursorIterable) {
+        count++;
+      }
+    }
+    return count;
   }
 }

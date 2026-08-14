@@ -35,18 +35,33 @@ import jnr.ffi.Pointer;
 import jnr.ffi.byref.NativeLongByReference;
 
 /**
- * A cursor handle.
+ * A cursor handle for iterating through key/value pairs in an LMDB database.
+ *
+ * <p>A cursor belongs to a {@link Txn}.
+ *
+ * <p>If {@link Txn} is a read-write transaction, LMDB will automatically close the cursor handle
+ * when the {@link Txn} is committed or aborted, meaning that Cursor#close() does not need to be
+ * called, however, if it is called, it must be called before the {@link Txn} is committed/aborted.
+ *
+ * <p>NOTE: If {@link Env.Builder#setSafeClose()} is set, the {@link Env} requires that all cursors
+ * are closed before the {@link Env} is closed, therefore it is good practice to explicitly call
+ * {@link Cursor#close()} or use a try-with-resources block on all types of cursor.
+ *
+ * <p>If {@link Txn} is a read-only transaction, {@link Cursor#close()} must be called to free up
+ * the cursor handle. This can be called at any time. Read-only transactions can 'moved' to a
+ * different transaction using the {@link Cursor#renew(Txn)} method. This can also be done at any
+ * time.
  *
  * @param <T> buffer type
  */
 public final class Cursor<T> implements AutoCloseable {
 
-  private AtomicBoolean closed;
+  private final AtomicBoolean closed;
   private final KeyVal<T> kv;
   private final Pointer ptrCursor;
-  private Txn<T> txn;
   private final Env<T> env;
   private final RefCounter.RefCounterReleaser refCounterReleaser;
+  private volatile Txn<T> txn;
 
   Cursor(final Pointer ptr, final Txn<T> txn, final Env<T> env) {
     requireNonNull(ptr);
@@ -54,17 +69,21 @@ public final class Cursor<T> implements AutoCloseable {
     requireNonNull(env);
     this.ptrCursor = ptr;
     this.txn = txn;
-    // The env needs to track open cursors to prevent env closure before the cursors are closed
-    this.refCounterReleaser = env.acquire();
+    // The env needs to track open RW cursors to prevent env closure before the cursors are closed.
+    // We don't care about RO cursors as LMDB will automatically free them.
+    refCounterReleaser = txn.isWritable() ? env.acquire() : null;
     this.env = env;
     this.closed = new AtomicBoolean(false);
     try {
       this.kv = txn.newKeyVal();
     } catch (final Exception e) {
       closed.set(true);
-      this.refCounterReleaser.release();
+      releaseRefCount();
+
       // Clean up the native cursor
-      LIB.mdb_cursor_close(ptrCursor);
+      if (txn.isReadOnly() || txn.isReady()) {
+        LIB.mdb_cursor_close(ptrCursor);
+      }
       throw e;
     }
   }
@@ -73,7 +92,7 @@ public final class Cursor<T> implements AutoCloseable {
    * Close a cursor handle.
    *
    * <p>The cursor handle will be freed and must not be used again after this call. Its transaction
-   * must still be live (i.e. not committed) if it is a write-transaction.
+   * must still be live (i.e. not committed or aborted) if it is a write-transaction.
    */
   @Override
   public void close() {
@@ -93,17 +112,17 @@ public final class Cursor<T> implements AutoCloseable {
         }
       }
       LIB.mdb_cursor_close(ptrCursor);
-      refCounterReleaser.release();
+      releaseRefCount();
     }
   }
 
   /**
-   * Return count of duplicates for current key.
+   * Return count of duplicates for the current key.
    *
    * <p>This call is only valid on databases that support sorted duplicate data items {@link
    * DbiFlags#MDB_DUPSORT}.
    *
-   * @return count of duplicates for current key
+   * @return count of duplicates for the current key
    */
   public long count() {
     if (SHOULD_CHECK) {
@@ -388,7 +407,6 @@ public final class Cursor<T> implements AutoCloseable {
    */
   public void putMultiple(final T key, final T val, final int elements, final PutFlagSet flags) {
     if (SHOULD_CHECK) {
-      requireNonNull(txn);
       requireNonNull(key);
       requireNonNull(val);
       env.checkNotClosed();
@@ -417,19 +435,20 @@ public final class Cursor<T> implements AutoCloseable {
    * may be associated with a new read-only transaction, and referencing the same database handle as
    * it was created with. This may be done whether the previous transaction is live or dead.
    *
-   * @param newTxn transaction handle
+   * @param newTxn The new transaction handle to associate with this cursor. It must be a read-only
+   *     transaction and in a ready state, i.e. not committed/aborted/closed.
    */
   public void renew(final Txn<T> newTxn) {
     if (SHOULD_CHECK) {
       requireNonNull(newTxn);
       env.checkNotClosed();
       checkNotClosed();
-      this.txn.checkReadOnly(); // existing
+      txn.checkReadOnly(); // existing
       newTxn.checkReadOnly();
       newTxn.checkReady();
     }
     checkRc(LIB.mdb_cursor_renew(newTxn.pointer(), ptrCursor));
-    this.txn = newTxn;
+    txn = newTxn;
   }
 
   /**
@@ -540,6 +559,13 @@ public final class Cursor<T> implements AutoCloseable {
   private void checkNotClosed() {
     if (closed.get()) {
       throw new ClosedException();
+    }
+  }
+
+  private void releaseRefCount() {
+    // May be null if the cursor was created with a read-only transaction
+    if (refCounterReleaser != null) {
+      refCounterReleaser.release();
     }
   }
 
