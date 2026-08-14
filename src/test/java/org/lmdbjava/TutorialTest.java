@@ -1,5 +1,5 @@
 /*
- * Copyright © 2016-2025 The LmdbJava Open Source Project
+ * Copyright © 2016-2026 The LmdbJava Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.lmdbjava;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -89,6 +88,9 @@ public final class TutorialTest {
             .setMapSize(10_485_760)
             // LMDB also needs to know how many DBs (Dbi) we want to store in this Env.
             .setMaxDbs(1)
+            // Add additional checks to ensure the env is not close while in use. Adds
+            // some performance overhead
+            .setSafeClose()
             // Now let's open the Env. The same path can be concurrently opened and
             // used in different processes, but do not open the same path twice in
             // the same process at the same time.
@@ -231,38 +233,37 @@ public final class TutorialTest {
 
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
       // A cursor always belongs to a particular Dbi.
-      final Cursor<ByteBuffer> c = db.openCursor(txn);
+      try (Cursor<ByteBuffer> c = db.openCursor(txn)) {
 
-      // We can put via a Cursor. Note we're adding keys in a strange order,
-      // as we want to show you that LMDB returns them in sorted order.
-      key.put("zzz".getBytes(UTF_8)).flip();
-      val.put("lmdb".getBytes(UTF_8)).flip();
-      c.put(key, val);
-      key.clear();
-      key.put("aaa".getBytes(UTF_8)).flip();
-      c.put(key, val);
-      key.clear();
-      key.put("ccc".getBytes(UTF_8)).flip();
-      c.put(key, val);
+        // We can put via a Cursor. Note we're adding keys in a strange order,
+        // as we want to show you that LMDB returns them in sorted order.
+        key.put("zzz".getBytes(UTF_8)).flip();
+        val.put("lmdb".getBytes(UTF_8)).flip();
+        c.put(key, val);
+        key.clear();
+        key.put("aaa".getBytes(UTF_8)).flip();
+        c.put(key, val);
+        key.clear();
+        key.put("ccc".getBytes(UTF_8)).flip();
+        c.put(key, val);
 
-      // We can read from the Cursor by key.
-      c.get(key, MDB_SET);
-      assertThat(UTF_8.decode(c.key()).toString()).isEqualTo("ccc");
+        // We can read from the Cursor by key.
+        c.get(key, MDB_SET);
+        assertThat(UTF_8.decode(c.key()).toString()).isEqualTo("ccc");
 
-      // Let's see that LMDB provides the keys in appropriate order....
-      c.seek(MDB_FIRST);
-      assertThat(UTF_8.decode(c.key()).toString()).isEqualTo("aaa");
+        // Let's see that LMDB provides the keys in appropriate order....
+        c.seek(MDB_FIRST);
+        assertThat(UTF_8.decode(c.key()).toString()).isEqualTo("aaa");
 
-      c.seek(MDB_LAST);
-      assertThat(UTF_8.decode(c.key()).toString()).isEqualTo("zzz");
+        c.seek(MDB_LAST);
+        assertThat(UTF_8.decode(c.key()).toString()).isEqualTo("zzz");
 
-      c.seek(MDB_PREV);
-      assertThat(UTF_8.decode(c.key()).toString()).isEqualTo("ccc");
+        c.seek(MDB_PREV);
+        assertThat(UTF_8.decode(c.key()).toString()).isEqualTo("ccc");
 
-      // Cursors can also delete the current key.
-      c.delete();
-
-      c.close();
+        // Cursors can also delete the current key.
+        c.delete();
+      }
       txn.commit();
     }
 
@@ -286,6 +287,7 @@ public final class TutorialTest {
     tx2.renew();
     c.seek(MDB_LAST);
 
+    c.close();
     tx2.close();
     env.close();
   }
@@ -369,34 +371,33 @@ public final class TutorialTest {
     final ByteBuffer val = ByteBuffer.allocateDirect(env.getMaxKeySize());
 
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
-      final Cursor<ByteBuffer> c = db.openCursor(txn);
+      try (Cursor<ByteBuffer> c = db.openCursor(txn)) {
 
-      // Store one key, but many values, and in non-natural order.
-      key.put("key".getBytes(UTF_8)).flip();
-      val.put("xxx".getBytes(UTF_8)).flip();
-      c.put(key, val);
-      val.clear();
-      val.put("kkk".getBytes(UTF_8)).flip();
-      c.put(key, val);
-      val.clear();
-      val.put("lll".getBytes(UTF_8)).flip();
-      c.put(key, val);
+        // Store one key, but many values, and in non-natural order.
+        key.put("key".getBytes(UTF_8)).flip();
+        val.put("xxx".getBytes(UTF_8)).flip();
+        c.put(key, val);
+        val.clear();
+        val.put("kkk".getBytes(UTF_8)).flip();
+        c.put(key, val);
+        val.clear();
+        val.put("lll".getBytes(UTF_8)).flip();
+        c.put(key, val);
 
-      // Cursor can tell us how many values the current key has.
-      final long count = c.count();
-      assertThat(count).isEqualTo(3L);
+        // Cursor can tell us how many values the current key has.
+        final long count = c.count();
+        assertThat(count).isEqualTo(3L);
 
-      // Let's position the Cursor. Note sorting still works.
-      c.seek(MDB_FIRST);
-      assertThat(UTF_8.decode(c.val()).toString()).isEqualTo("kkk");
+        // Let's position the Cursor. Note sorting still works.
+        c.seek(MDB_FIRST);
+        assertThat(UTF_8.decode(c.val()).toString()).isEqualTo("kkk");
 
-      c.seek(MDB_LAST);
-      assertThat(UTF_8.decode(c.val()).toString()).isEqualTo("xxx");
+        c.seek(MDB_LAST);
+        assertThat(UTF_8.decode(c.val()).toString()).isEqualTo("xxx");
 
-      c.seek(MDB_PREV);
-      assertThat(UTF_8.decode(c.val()).toString()).isEqualTo("lll");
-
-      c.close();
+        c.seek(MDB_PREV);
+        assertThat(UTF_8.decode(c.val()).toString()).isEqualTo("lll");
+      }
       txn.commit();
     }
 
@@ -415,6 +416,7 @@ public final class TutorialTest {
         Env.create(PROXY_OPTIMAL)
             .setMapSize(10, ByteUnit.MEBIBYTES)
             .setMaxDbs(Verifier.DBI_COUNT)
+            .setSafeClose()
             .open(dir);
 
     // Create a Verifier (it's a Callable<Long> for those needing full control).
@@ -435,7 +437,11 @@ public final class TutorialTest {
     // There's also a PROXY_SAFE if you want to stop ByteBuffer's Unsafe use.
     // Aside from that and a different type argument, it's the same as usual...
     final Env<DirectBuffer> env =
-        Env.create(PROXY_DB).setMapSize(10, ByteUnit.MEBIBYTES).setMaxDbs(1).open(dir);
+        Env.create(PROXY_DB)
+            .setMapSize(10, ByteUnit.MEBIBYTES)
+            .setMaxDbs(1)
+            .setSafeClose()
+            .open(dir);
 
     final Dbi<DirectBuffer> db =
         env.createDbi().setDbName(DB_NAME).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
@@ -616,6 +622,11 @@ public final class TutorialTest {
   // or reverse ordered keys, using Env.DISABLE_CHECKS_PROP etc), but you now
   // know enough to tackle the JavaDocs with confidence. Have fun!
   private Env<ByteBuffer> createSimpleEnv(final Path path) {
-    return Env.create().setMapSize(10, ByteUnit.MEBIBYTES).setMaxDbs(1).setMaxReaders(1).open(path);
+    return Env.create()
+        .setMapSize(10, ByteUnit.MEBIBYTES)
+        .setMaxDbs(1)
+        .setMaxReaders(1)
+        .setSafeClose()
+        .open(path);
   }
 }

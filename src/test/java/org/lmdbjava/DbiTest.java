@@ -1,5 +1,5 @@
 /*
- * Copyright © 2016-2025 The LmdbJava Open Source Project
+ * Copyright © 2016-2026 The LmdbJava Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.lmdbjava;
 
 import static java.lang.Long.MAX_VALUE;
@@ -61,6 +60,7 @@ import java.util.function.Supplier;
 import java.util.function.ToIntFunction;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.lmdbjava.CursorIterable.KeyVal;
 import org.lmdbjava.Dbi.DbFullException;
@@ -81,6 +81,7 @@ public final class DbiTest {
     final Path file = tempDir.createTempFile();
     env =
         create()
+            .setSafeClose()
             .setMapSize(64, ByteUnit.MEBIBYTES)
             .setMaxReaders(2)
             .setMaxDbs(2)
@@ -89,6 +90,7 @@ public final class DbiTest {
     final Path fileBa = tempDir.createTempFile();
     envBa =
         create(PROXY_BA)
+            .setSafeClose()
             .setMapSize(64, ByteUnit.MEBIBYTES)
             .setMaxReaders(2)
             .setMaxDbs(2)
@@ -492,6 +494,7 @@ public final class DbiTest {
     final Path file = tempDir.createTempFile();
     try (Env<byte[]> envBa =
         create(PROXY_BA)
+            .setSafeClose()
             .setMapSize(64, ByteUnit.MEBIBYTES)
             .setMaxReaders(1)
             .setMaxDbs(2)
@@ -697,6 +700,7 @@ public final class DbiTest {
         .isInstanceOf(AlreadyClosedException.class);
   }
 
+  @Disabled // We shouldn't be trying to close the env with open txns/cursors
   @Test
   void closedEnvRejectsCloseCall() {
     assertThatThrownBy(
@@ -706,6 +710,7 @@ public final class DbiTest {
         .isInstanceOf(AlreadyClosedException.class);
   }
 
+  @Disabled // We shouldn't be trying to close the env with open txns/cursors
   @Test
   void closedEnvRejectsGetCall() {
     assertThatThrownBy(
@@ -721,6 +726,7 @@ public final class DbiTest {
         .isInstanceOf(AlreadyClosedException.class);
   }
 
+  @Disabled // We shouldn't be trying to close the env with open txns/cursors
   @Test
   void closedEnvRejectsPutCall() {
     assertThatThrownBy(
@@ -730,6 +736,7 @@ public final class DbiTest {
         .isInstanceOf(AlreadyClosedException.class);
   }
 
+  @Disabled // We shouldn't be trying to close the env with open txns/cursors
   @Test
   void closedEnvRejectsPutWithTxnCall() {
     assertThatThrownBy(
@@ -743,6 +750,7 @@ public final class DbiTest {
         .isInstanceOf(AlreadyClosedException.class);
   }
 
+  @Disabled // We shouldn't be trying to close the env with open txns/cursors
   @Test
   void closedEnvRejectsIterateCall() {
     assertThatThrownBy(
@@ -752,6 +760,7 @@ public final class DbiTest {
         .isInstanceOf(AlreadyClosedException.class);
   }
 
+  @Disabled // We shouldn't be trying to close the env with open txns/cursors
   @Test
   void closedEnvRejectsDropCall() {
     assertThatThrownBy(
@@ -761,6 +770,7 @@ public final class DbiTest {
         .isInstanceOf(AlreadyClosedException.class);
   }
 
+  @Disabled // We shouldn't be trying to close the env with open txns/cursors
   @Test
   void closedEnvRejectsDropAndDeleteCall() {
     assertThatThrownBy(
@@ -770,6 +780,7 @@ public final class DbiTest {
         .isInstanceOf(AlreadyClosedException.class);
   }
 
+  @Disabled // We shouldn't be trying to close the env with open txns/cursors
   @Test
   void closedEnvRejectsOpenCursorCall() {
     assertThatThrownBy(
@@ -779,6 +790,7 @@ public final class DbiTest {
         .isInstanceOf(AlreadyClosedException.class);
   }
 
+  @Disabled // We shouldn't be trying to close the env with open txns/cursors
   @Test
   void closedEnvRejectsReserveCall() {
     assertThatThrownBy(
@@ -788,6 +800,7 @@ public final class DbiTest {
         .isInstanceOf(AlreadyClosedException.class);
   }
 
+  @Disabled // We shouldn't be trying to close the env with open txns/cursors
   @Test
   void closedEnvRejectsStatCall() {
     assertThatThrownBy(

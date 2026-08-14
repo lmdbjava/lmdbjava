@@ -1,5 +1,5 @@
 /*
- * Copyright © 2016-2025 The LmdbJava Open Source Project
+ * Copyright © 2016-2026 The LmdbJava Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,8 +26,10 @@ import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.util.Comparator;
 import java.util.Objects;
+import java.util.concurrent.CountDownLatch;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.StreamSupport;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
@@ -82,6 +84,12 @@ final class TestUtils {
     final ByteBuffer bb = allocateDirect(Long.BYTES).order(ByteOrder.nativeOrder());
     bb.putLong(value).flip();
     return bb;
+  }
+
+  static int getInt(final ByteBuffer bb) {
+    final int val = bb.getInt();
+    bb.rewind();
+    return val;
   }
 
   static int getNativeInt(final ByteBuffer bb) {
@@ -201,5 +209,37 @@ final class TestUtils {
     Objects.requireNonNull(comparator);
     final int result = comparator.compare(o1, o2);
     return ComparatorResult.get(result);
+  }
+
+  public static void countDownThenAwait(final CountDownLatch latch) {
+    Objects.requireNonNull(latch);
+    latch.countDown();
+    try {
+      latch.await();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new RuntimeException(e);
+    }
+  }
+
+  public static void sleep(final int millis) {
+    try {
+      Thread.sleep(millis);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new RuntimeException(e);
+    }
+  }
+
+  public static int getEntryCount(final Dbi<ByteBuffer> dbi, final Env<ByteBuffer> env) {
+    try (final Txn<ByteBuffer> readTxn = env.txnRead()) {
+      return getEntryCount(dbi, readTxn);
+    }
+  }
+
+  public static int getEntryCount(final Dbi<ByteBuffer> dbi, final Txn<ByteBuffer> txn) {
+    try (CursorIterable<ByteBuffer> cursorIterable = dbi.iterate(txn)) {
+      return (int) StreamSupport.stream(cursorIterable.spliterator(), false).count();
+    }
   }
 }

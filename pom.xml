@@ -34,6 +34,7 @@
     <google-java-format.version>1.28.0</google-java-format.version>
     <guava.version>33.5.0-jre</guava.version>
     <jacoco-maven-plugin.version>0.8.14</jacoco-maven-plugin.version>
+    <jmh.version>1.37</jmh.version>
     <jnr-constants.version>0.10.4</jnr-constants.version>
     <jnr-ffi.version>2.2.18</jnr-ffi.version>
     <junit.version>5.14.1</junit.version>
@@ -123,6 +124,18 @@
       <groupId>org.mockito</groupId>
       <artifactId>mockito-inline</artifactId>
       <version>${mockito.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.openjdk.jmh</groupId>
+      <artifactId>jmh-core</artifactId>
+      <version>${jmh.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.openjdk.jmh</groupId>
+      <artifactId>jmh-generator-annprocess</artifactId>
+      <version>${jmh.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>

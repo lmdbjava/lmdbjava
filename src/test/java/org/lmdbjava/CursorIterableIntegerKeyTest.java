@@ -1,5 +1,5 @@
 /*
- * Copyright © 2016-2025 The LmdbJava Open Source Project
+ * Copyright © 2016-2026 The LmdbJava Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -102,6 +102,7 @@ public final class CursorIterableIntegerKeyTest {
     final BufferProxy<ByteBuffer> bufferProxy = ByteBufferProxy.PROXY_OPTIMAL;
     env =
         Env.create(bufferProxy)
+            .setSafeClose()
             .setMapSize(256, ByteUnit.KIBIBYTES)
             .setMaxReaders(1)
             .setMaxDbs(3)
@@ -122,17 +123,18 @@ public final class CursorIterableIntegerKeyTest {
     final Dbi<ByteBuffer> dbi = dbiFactory.factory.apply(env);
 
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
-      final Cursor<ByteBuffer> c = dbi.openCursor(txn);
-      long i = 1;
-      while (true) {
-        //        System.out.println("putting " + i);
-        c.put(bbNative(i), bb(i + "-long"));
-        final long i2 = i * 10;
-        if (i2 < i) {
-          // Overflowed
-          break;
+      try (Cursor<ByteBuffer> c = dbi.openCursor(txn)) {
+        long i = 1;
+        while (true) {
+          //        System.out.println("putting " + i);
+          c.put(bbNative(i), bb(i + "-long"));
+          final long i2 = i * 10;
+          if (i2 < i) {
+            // Overflowed
+            break;
+          }
+          i = i2;
         }
-        i = i2;
       }
       txn.commit();
     }
@@ -165,17 +167,18 @@ public final class CursorIterableIntegerKeyTest {
     final Dbi<ByteBuffer> dbi = dbiFactory.factory.apply(env);
 
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
-      final Cursor<ByteBuffer> c = dbi.openCursor(txn);
-      int i = 1;
-      while (true) {
-        //        System.out.println("putting " + i);
-        c.put(bbNative(i), bb(i + "-int"));
-        final int i2 = i * 10;
-        if (i2 < i) {
-          // Overflowed
-          break;
+      try (Cursor<ByteBuffer> c = dbi.openCursor(txn)) {
+        int i = 1;
+        while (true) {
+          //        System.out.println("putting " + i);
+          c.put(bbNative(i), bb(i + "-int"));
+          final int i2 = i * 10;
+          if (i2 < i) {
+            // Overflowed
+            break;
+          }
+          i = i2;
         }
-        i = i2;
       }
       txn.commit();
     }
@@ -279,11 +282,12 @@ public final class CursorIterableIntegerKeyTest {
 
   private void populateDatabase(final Dbi<ByteBuffer> dbi) {
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
-      final Cursor<ByteBuffer> c = dbi.openCursor(txn);
-      c.put(bbNative(2), bb(3), MDB_NOOVERWRITE);
-      c.put(bbNative(4), bb(5));
-      c.put(bbNative(6), bb(7));
-      c.put(bbNative(8), bb(9));
+      try (Cursor<ByteBuffer> c = dbi.openCursor(txn)) {
+        c.put(bbNative(2), bb(3), MDB_NOOVERWRITE);
+        c.put(bbNative(4), bb(5));
+        c.put(bbNative(6), bb(7));
+        c.put(bbNative(8), bb(9));
+      }
       txn.commit();
     }
   }

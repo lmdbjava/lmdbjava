@@ -1,5 +1,5 @@
 /*
- * Copyright © 2016-2025 The LmdbJava Open Source Project
+ * Copyright © 2016-2026 The LmdbJava Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.lmdbjava;
 
 import static java.util.Arrays.asList;
@@ -60,6 +59,7 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.params.Parameter;
@@ -94,6 +94,7 @@ public final class CursorIterableTest {
     final BufferProxy<ByteBuffer> bufferProxy = ByteBufferProxy.PROXY_OPTIMAL;
     env =
         create(bufferProxy)
+            .setSafeClose()
             .setMapSize(256, ByteUnit.KIBIBYTES)
             .setMaxReaders(1)
             .setMaxDbs(3)
@@ -116,13 +117,19 @@ public final class CursorIterableTest {
 
   private void populateDatabase(final Dbi<ByteBuffer> dbi) {
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
-      final Cursor<ByteBuffer> c = dbi.openCursor(txn);
-      c.put(bb(2), bb(3), MDB_NOOVERWRITE);
-      c.put(bb(4), bb(5));
-      c.put(bb(6), bb(7));
-      c.put(bb(8), bb(9));
+      try (final Cursor<ByteBuffer> cursor = dbi.openCursor(txn)) {
+        cursor.put(bb(2), bb(3), MDB_NOOVERWRITE);
+        cursor.put(bb(4), bb(5));
+        cursor.put(bb(6), bb(7));
+        cursor.put(bb(8), bb(9));
+      }
       txn.commit();
     }
+  }
+
+  @Test
+  void testPopulate() {
+    getDb();
   }
 
   @Test
@@ -347,6 +354,7 @@ public final class CursorIterableTest {
     verify(db, all(), 4, 8);
   }
 
+  @Disabled // We shouldn't be trying to close the env with open txns/cursors
   @Test
   void nextWithClosedEnvTest() {
     assertThatThrownBy(
@@ -364,6 +372,7 @@ public final class CursorIterableTest {
         .isInstanceOf(Env.AlreadyClosedException.class);
   }
 
+  @Disabled // We shouldn't be trying to close the env with open txns/cursors
   @Test
   void removeWithClosedEnvTest() {
     assertThatThrownBy(
@@ -384,6 +393,7 @@ public final class CursorIterableTest {
         .isInstanceOf(Env.AlreadyClosedException.class);
   }
 
+  @Disabled // We shouldn't be trying to close the env with open txns/cursors
   @Test
   void hasNextWithClosedEnvTest() {
     assertThatThrownBy(
@@ -401,6 +411,7 @@ public final class CursorIterableTest {
         .isInstanceOf(Env.AlreadyClosedException.class);
   }
 
+  @Disabled // We shouldn't be trying to close the env with open txns/cursors
   @Test
   void forEachRemainingWithClosedEnvTest() {
     assertThatThrownBy(

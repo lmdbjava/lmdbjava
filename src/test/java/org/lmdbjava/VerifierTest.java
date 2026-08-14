@@ -1,5 +1,5 @@
 /*
- * Copyright © 2016-2025 The LmdbJava Open Source Project
+ * Copyright © 2016-2026 The LmdbJava Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.lmdbjava;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -35,6 +34,7 @@ public final class VerifierTest {
       final Path file = tempDir.createTempFile();
       try (Env<ByteBuffer> env =
           create()
+              .setSafeClose()
               .setMaxReaders(1)
               .setMaxDbs(Verifier.DBI_COUNT)
               .setMapSize(10, ByteUnit.MEBIBYTES)

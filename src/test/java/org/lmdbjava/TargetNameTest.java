@@ -1,5 +1,5 @@
 /*
- * Copyright © 2016-2025 The LmdbJava Open Source Project
+ * Copyright © 2016-2026 The LmdbJava Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.lmdbjava;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -21,6 +20,7 @@ import static org.lmdbjava.TargetName.isExternal;
 import static org.lmdbjava.TargetName.resolveFilename;
 import static org.lmdbjava.TestUtils.invokePrivateConstructor;
 
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 /** Test {@link TargetName}. */
@@ -64,6 +64,36 @@ public final class TargetNameTest {
   void externalTakesPriority() {
     assertThat(resolveFilename("/lm.so", "x/y.so", NONE, NONE)).isEqualTo("/lm.so");
     assertThat(isExternal("/lm.so")).isTrue();
+  }
+
+  @Test
+  void resolveExtension_null() {
+    assertThat(TargetName.resolveExtension(null)).isEqualTo("so");
+  }
+
+  @Test
+  void resolveExtension_unknown() {
+    assertThat(TargetName.resolveExtension("foo")).isEqualTo("so");
+  }
+
+  @Test
+  void badArch() {
+    Assertions.assertThatThrownBy(
+            () -> {
+              TargetName.resolveFilename(NONE, NONE, "badArch", "Linux");
+            })
+        .isInstanceOf(UnsupportedOperationException.class)
+        .hasMessageContaining("os.arch");
+  }
+
+  @Test
+  void badOs() {
+    Assertions.assertThatThrownBy(
+            () -> {
+              TargetName.resolveFilename(NONE, NONE, "arch", "badOs");
+            })
+        .isInstanceOf(UnsupportedOperationException.class)
+        .hasMessageContaining("os.name");
   }
 
   private void embed(final String lib, final String arch, final String os) {

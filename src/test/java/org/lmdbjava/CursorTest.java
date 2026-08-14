@@ -1,5 +1,5 @@
 /*
- * Copyright © 2016-2025 The LmdbJava Open Source Project
+ * Copyright © 2016-2026 The LmdbJava Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.lmdbjava;
 
 import static java.lang.Long.BYTES;
@@ -27,46 +26,61 @@ import static org.lmdbjava.DbiFlags.MDB_DUPFIXED;
 import static org.lmdbjava.DbiFlags.MDB_DUPSORT;
 import static org.lmdbjava.Env.create;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
+import static org.lmdbjava.EnvFlags.MDB_NOTLS;
+import static org.lmdbjava.Library.LIB;
 import static org.lmdbjava.PutFlags.MDB_APPENDDUP;
 import static org.lmdbjava.PutFlags.MDB_MULTIPLE;
 import static org.lmdbjava.PutFlags.MDB_NODUPDATA;
 import static org.lmdbjava.PutFlags.MDB_NOOVERWRITE;
+import static org.lmdbjava.ResultCodeMapper.checkRc;
 import static org.lmdbjava.SeekOp.MDB_FIRST;
 import static org.lmdbjava.SeekOp.MDB_GET_BOTH;
 import static org.lmdbjava.SeekOp.MDB_LAST;
 import static org.lmdbjava.SeekOp.MDB_NEXT;
 import static org.lmdbjava.TestUtils.DB_1;
 import static org.lmdbjava.TestUtils.bb;
+import static org.lmdbjava.TestUtils.getEntryCount;
+import static org.lmdbjava.TestUtils.getInt;
 
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
+import java.util.Objects;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import jnr.ffi.byref.PointerByReference;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.lmdbjava.Cursor.ClosedException;
-import org.lmdbjava.Env.AlreadyClosedException;
-import org.lmdbjava.Txn.NotReadyException;
 import org.lmdbjava.Txn.ReadOnlyRequiredException;
+import org.mockito.Mockito;
 
 /** Test {@link Cursor}. */
 public final class CursorTest {
 
   private Env<ByteBuffer> env;
   private TempDir tempDir;
+  private Path envFile;
 
   @BeforeEach
   void beforeEach() {
     tempDir = new TempDir();
-    Path file = tempDir.createTempFile();
+    envFile = tempDir.createTempFile();
+    openEnv();
+  }
+
+  private void openEnv() {
     env =
         create(PROXY_OPTIMAL)
+            .setSafeClose()
             .setMapSize(1, ByteUnit.MEBIBYTES)
-            .setMaxReaders(1)
+            .setMaxReaders(2)
             .setMaxDbs(1)
-            .setEnvFlags(MDB_NOSUBDIR)
-            .open(file);
+            .setEnvFlags(MDB_NOSUBDIR, MDB_NOTLS)
+            .setSafeClose()
+            .open(envFile);
   }
 
   @AfterEach
@@ -100,7 +114,7 @@ public final class CursorTest {
             () -> {
               doEnvClosedTest(null, c -> c.seek(MDB_FIRST));
             })
-        .isInstanceOf(AlreadyClosedException.class);
+        .isInstanceOf(Env.EnvInUseException.class);
   }
 
   @Test
@@ -109,7 +123,7 @@ public final class CursorTest {
             () -> {
               doEnvClosedTest(null, c -> c.seek(MDB_LAST));
             })
-        .isInstanceOf(AlreadyClosedException.class);
+        .isInstanceOf(Env.EnvInUseException.class);
   }
 
   @Test
@@ -118,7 +132,7 @@ public final class CursorTest {
             () -> {
               doEnvClosedTest(null, c -> c.seek(MDB_NEXT));
             })
-        .isInstanceOf(AlreadyClosedException.class);
+        .isInstanceOf(Env.EnvInUseException.class);
   }
 
   @Test
@@ -127,7 +141,7 @@ public final class CursorTest {
             () -> {
               doEnvClosedTest(null, Cursor::close);
             })
-        .isInstanceOf(AlreadyClosedException.class);
+        .isInstanceOf(Env.EnvInUseException.class);
   }
 
   @Test
@@ -136,7 +150,7 @@ public final class CursorTest {
             () -> {
               doEnvClosedTest(null, Cursor::first);
             })
-        .isInstanceOf(AlreadyClosedException.class);
+        .isInstanceOf(Env.EnvInUseException.class);
   }
 
   @Test
@@ -145,7 +159,7 @@ public final class CursorTest {
             () -> {
               doEnvClosedTest(null, Cursor::last);
             })
-        .isInstanceOf(AlreadyClosedException.class);
+        .isInstanceOf(Env.EnvInUseException.class);
   }
 
   @Test
@@ -161,7 +175,7 @@ public final class CursorTest {
                   },
                   Cursor::prev);
             })
-        .isInstanceOf(AlreadyClosedException.class);
+        .isInstanceOf(Env.EnvInUseException.class);
   }
 
   @Test
@@ -176,7 +190,7 @@ public final class CursorTest {
                   },
                   Cursor::delete);
             })
-        .isInstanceOf(AlreadyClosedException.class);
+        .isInstanceOf(Env.EnvInUseException.class);
   }
 
   @Test
@@ -224,27 +238,35 @@ public final class CursorTest {
     }
   }
 
+  @Disabled // Disabled because we have no way to close the env in afterEach() because we
+  // can't close the cursor. This is trying to test something that you shouldn't do and that
+  // leaves
   @Test
   void cursorCannotCloseIfTransactionCommitted() {
-    assertThatThrownBy(
-            () -> {
-              final Dbi<ByteBuffer> db =
-                  env.createDbi()
-                      .setDbName(DB_1)
-                      .withDefaultComparator()
-                      .setDbiFlags(MDB_CREATE, MDB_DUPSORT)
-                      .open();
-              try (Txn<ByteBuffer> txn = env.txnWrite()) {
-                try (Cursor<ByteBuffer> c = db.openCursor(txn); ) {
-                  c.put(bb(1), bb(2), MDB_APPENDDUP);
-                  assertThat(c.count()).isEqualTo(1L);
-                  c.put(bb(1), bb(4), MDB_APPENDDUP);
-                  assertThat(c.count()).isEqualTo(2L);
-                  txn.commit();
-                }
-              }
-            })
-        .isInstanceOf(NotReadyException.class);
+    final Dbi<ByteBuffer> db =
+        env.createDbi()
+            .setDbName(DB_1)
+            .withDefaultComparator()
+            .setDbiFlags(MDB_CREATE, MDB_DUPSORT)
+            .open();
+
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
+      Cursor<ByteBuffer> c = db.openCursor(txn);
+      c.put(bb(1), bb(2), MDB_APPENDDUP);
+      assertThat(c.count()).isEqualTo(1L);
+      c.put(bb(1), bb(4), MDB_APPENDDUP);
+      assertThat(c.count()).isEqualTo(2L);
+
+      assertThat(txn.isReady()).isTrue();
+
+      txn.commit();
+
+      assertThat(txn.isReady()).isFalse();
+
+      // Cursor is not in a ready state to be closed because we have committed
+      // This makes it impossible to close the cursor and thus the env
+      assertThatThrownBy(c::close).isInstanceOf(Txn.NotReadyException.class);
+    }
   }
 
   @Test
@@ -475,23 +497,16 @@ public final class CursorTest {
 
   @Test
   void renewTxRw() {
-    assertThatThrownBy(
-            () -> {
-              final Dbi<ByteBuffer> db =
-                  env.createDbi()
-                      .setDbName(DB_1)
-                      .withDefaultComparator()
-                      .setDbiFlags(MDB_CREATE)
-                      .open();
-              try (Txn<ByteBuffer> txn = env.txnWrite()) {
-                assertThat(txn.isReadOnly()).isFalse();
+    final Dbi<ByteBuffer> db =
+        env.createDbi().setDbName(DB_1).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
 
-                try (Cursor<ByteBuffer> c = db.openCursor(txn)) {
-                  c.renew(txn);
-                }
-              }
-            })
-        .isInstanceOf(ReadOnlyRequiredException.class);
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
+      assertThat(txn.isReadOnly()).isFalse();
+
+      try (Cursor<ByteBuffer> c = db.openCursor(txn)) {
+        assertThatThrownBy(() -> c.renew(txn)).isInstanceOf(ReadOnlyRequiredException.class);
+      }
+    }
   }
 
   @Test
@@ -591,6 +606,156 @@ public final class CursorTest {
     }
   }
 
+  @Test
+  void testCursorConstructorFailure() {
+    final Dbi<ByteBuffer> db =
+        env.createDbi().setDbName(DB_1).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
+    try (Txn<ByteBuffer> txn = env.txnWrite()) {
+
+      // These two lines do what Dbi.openCursor does before calling the Cursor constructor
+      final PointerByReference cursorPtr = new PointerByReference();
+      checkRc(LIB.mdb_cursor_open(txn.pointer(), db.pointer(), cursorPtr));
+
+      //noinspection unchecked,resource
+      final Txn<ByteBuffer> mockTxn = (Txn<ByteBuffer>) Mockito.mock(Txn.class);
+      Mockito.when(mockTxn.newKeyVal()).thenThrow(new RuntimeException("newKeyVal error"));
+      assertThatThrownBy(() -> new Cursor<>(cursorPtr.getValue(), mockTxn, env))
+          .isInstanceOf(RuntimeException.class)
+          .hasMessage("newKeyVal error");
+    }
+  }
+
+  @Test
+  void testMultipleROCursorsOneTxn() {
+    final Dbi<ByteBuffer> db =
+        env.createDbi().setDbName(DB_1).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
+    db.put(bb(1), bb(10));
+    db.put(bb(2), bb(20));
+    db.put(bb(2), bb(30));
+    db.put(bb(4), bb(40));
+
+    try (Txn<ByteBuffer> readTxn1 = env.txnRead()) {
+
+      try (Cursor<ByteBuffer> cursor1 = db.openCursor(readTxn1);
+          Cursor<ByteBuffer> cursor2 = db.openCursor(readTxn1)) {
+
+        // Two independent cursors at different positions
+        cursor1.seek(MDB_FIRST);
+        cursor2.seek(MDB_LAST);
+
+        assertThat(cursor1.key()).isEqualTo(bb(1));
+        assertThat(cursor2.key()).isEqualTo(bb(4));
+
+        cursor1.seek(MDB_LAST);
+        cursor2.seek(MDB_FIRST);
+
+        assertThat(cursor1.key()).isEqualTo(bb(4));
+        assertThat(cursor2.key()).isEqualTo(bb(1));
+      }
+    }
+  }
+
+  @Test
+  void testMultipleRWCursorsOneTxn() {
+    final Dbi<ByteBuffer> db =
+        env.createDbi().setDbName(DB_1).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
+
+    assertThat(getEntryCount(db, env)).isEqualTo(0);
+
+    db.put(bb(1), bb(10));
+    db.put(bb(2), bb(20));
+    db.put(bb(3), bb(30));
+    db.put(bb(4), bb(40));
+
+    assertThat(getEntryCount(db, env)).isEqualTo(4);
+
+    try (final Txn<ByteBuffer> writeTxn = env.txnWrite()) {
+
+      assertThat(getEntryCount(db, writeTxn)).isEqualTo(4);
+
+      try (final Cursor<ByteBuffer> cursor1 = db.openCursor(writeTxn);
+          final Cursor<ByteBuffer> cursor2 = db.openCursor(writeTxn)) {
+
+        // Two independent cursors at different positions
+        cursor1.seek(MDB_FIRST);
+        cursor2.seek(MDB_LAST);
+
+        assertThat(getInt(cursor1.key())).isEqualTo(1);
+        assertThat(getInt(cursor2.key())).isEqualTo(4);
+
+        cursor1.delete();
+        cursor1.seek(MDB_FIRST);
+        assertThat(getInt(cursor1.key())).isEqualTo(2);
+        assertThat(getInt(cursor2.key())).isEqualTo(4);
+
+        cursor2.delete();
+        cursor2.seek(MDB_LAST);
+        assertThat(getInt(cursor2.key())).isEqualTo(3);
+
+        assertThat(getEntryCount(db, writeTxn)).isEqualTo(2);
+
+        // This uses a separate read txn so can't sse the deletes
+        assertThat(getEntryCount(db, env)).isEqualTo(4);
+      }
+    }
+  }
+
+  @Test
+  void testNonReadyTxnRejectsLast() {
+    doNonReadyTxnTest(Cursor::last);
+  }
+
+  @Test
+  void testNonReadyTxnRejectsNext() {
+    doNonReadyTxnTest(Cursor::next);
+  }
+
+  @Test
+  void testNonReadyTxnRejectsPrev() {
+    doNonReadyTxnTest(Cursor::prev);
+  }
+
+  @Test
+  void testNonReadyTxnRejectsPut() {
+    doNonReadyTxnTest(c -> c.put(bb(5), bb(6)));
+  }
+
+  @Test
+  void testNonReadyTxnRejectsPutMultiple() {
+    doNonReadyTxnTest(c -> c.putMultiple(bb(5), bb(6), 1, MDB_MULTIPLE));
+  }
+
+  @Test
+  void testNonReadyTxnRejectsSeek() {
+    doNonReadyTxnTest(c -> c.seek(MDB_FIRST));
+  }
+
+  private void doNonReadyTxnTest(final Consumer<Cursor<ByteBuffer>> work) {
+    doCursorTest(
+        true,
+        (txn, c) -> {
+          txn.abort();
+          assertThatThrownBy(() -> work.accept(c)).isInstanceOf(Txn.NotReadyException.class);
+          c.close();
+        });
+    openEnv();
+    doCursorTest(
+        true,
+        (txn, c) -> {
+          txn.close();
+          assertThatThrownBy(() -> work.accept(c)).isInstanceOf(Txn.NotReadyException.class);
+          c.close();
+        });
+    openEnv();
+    doCursorTest(
+        true,
+        (txn, c) -> {
+          txn.abort();
+          assertThatThrownBy(() -> work.accept(c)).isInstanceOf(Txn.NotReadyException.class);
+          c.close();
+        });
+  }
+
   private void doEnvClosedTest(
       final Consumer<Cursor<ByteBuffer>> workBeforeEnvClosed,
       final Consumer<Cursor<ByteBuffer>> workAfterEnvClose) {
@@ -599,7 +764,7 @@ public final class CursorTest {
 
     db.put(bb(1), bb(10));
     db.put(bb(2), bb(20));
-    db.put(bb(2), bb(30));
+    db.put(bb(3), bb(30));
     db.put(bb(4), bb(40));
 
     try (Txn<ByteBuffer> txn = env.txnWrite()) {
@@ -613,6 +778,31 @@ public final class CursorTest {
 
         if (workAfterEnvClose != null) {
           workAfterEnvClose.accept(c);
+        }
+      }
+    }
+  }
+
+  private void doCursorTest(
+      final boolean readOnly, final BiConsumer<Txn<ByteBuffer>, Cursor<ByteBuffer>> work) {
+    Objects.requireNonNull(work);
+    final Dbi<ByteBuffer> db =
+        env.createDbi().setDbName(DB_1).withDefaultComparator().setDbiFlags(MDB_CREATE).open();
+
+    db.put(bb(1), bb(10));
+    db.put(bb(2), bb(20));
+    db.put(bb(3), bb(30));
+    db.put(bb(4), bb(40));
+
+    final TxnFlagSet txnFlagSet = readOnly ? TxnFlags.MDB_RDONLY_TXN : TxnFlagSet.EMPTY;
+
+    try (Txn<ByteBuffer> txn = env.txn(null, txnFlagSet)) {
+      Cursor<ByteBuffer> c = db.openCursor(txn);
+      try {
+        work.accept(txn, c);
+      } finally {
+        if (txn.isReadOnly() || txn.isReady()) {
+          c.close();
         }
       }
     }

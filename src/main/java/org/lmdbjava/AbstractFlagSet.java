@@ -1,5 +1,5 @@
 /*
- * Copyright © 2016-2025 The LmdbJava Open Source Project
+ * Copyright © 2016-2026 The LmdbJava Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -83,6 +83,18 @@ abstract class AbstractFlagSet<T extends Enum<T> & MaskedFlag> implements FlagSe
   @Override
   public String toString() {
     return FlagSet.asString(this);
+  }
+
+  @Override
+  public boolean equals(Object object) {
+    if (object == null || getClass() != object.getClass()) return false;
+    AbstractFlagSet<?> that = (AbstractFlagSet<?>) object;
+    return mask == that.mask && Objects.equals(flags, that.flags);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(flags, mask);
   }
 
   static class AbstractEmptyFlagSet<T extends MaskedFlag> implements FlagSet<T> {

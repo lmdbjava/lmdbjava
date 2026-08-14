@@ -1,5 +1,5 @@
 /*
- * Copyright © 2016-2025 The LmdbJava Open Source Project
+ * Copyright © 2016-2026 The LmdbJava Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -45,7 +45,26 @@ import org.lmdbjava.Library.MDB_envinfo;
 import org.lmdbjava.Library.MDB_stat;
 
 /**
- * LMDB environment.
+ * An LMDB environment that includes one or more databases ({@link Dbi}s). The {@link Env} manages
+ * the transactions and databases. An {@link Env} can only have one concurrent write transaction but
+ * supports multiple concurrent read transactions.
+ *
+ * <p><strong>WARNING</strong>: LMDBJava's and LMDB's performance comes from their low-level memory
+ * access, but this requires that you strictly adhere to the various contracts set out when using
+ * environments, databases, transactions, and cursors. Incorrect use of LMDBJava can lead to
+ * segmentation faults that can crash your application.
+ *
+ * <p>By default, LMDBJava performs some checks, for example, checking that the {@link Env} is not
+ * closed when opening a transaction. It is possible, however, for race conditions to occur if you
+ * close the {@link Env} after one of these checks has been performed and before the transaction is
+ * opened. Note, these checks can be disabled by setting the {@link #DISABLE_CHECKS_PROP} system
+ * property to {@code true}. This may be beneficial in performance-critical applications.
+ *
+ * <p>{@link Builder#setSafeClose()} can also be used to add additional checks that ensure the
+ * {@link Env} is not closed while transactions/cursors are in use.
+ *
+ * <p>It is the responsibility of the user to ensure that the {@link Env} is not closed while
+ * transactions or cursors are in use.
  *
  * @param <T> buffer type
  */
@@ -67,7 +86,7 @@ public final class Env<T> implements AutoCloseable {
    */
   public static final boolean SHOULD_CHECK = !getBoolean(DISABLE_CHECKS_PROP);
 
-  private boolean closed;
+  private final RefCounter refCounter;
   private final int maxKeySize;
   private final boolean noSubDir;
   private final BufferProxy<T> proxy;
@@ -76,13 +95,21 @@ public final class Env<T> implements AutoCloseable {
   private final Path path;
   private final EnvFlagSet envFlagSet;
 
+  /** True if this Env has been created on the basis of only ever being used by a single thread. */
+  private final boolean isSingleThreaded;
+
+  /** If true, close will be prevented if there are open txns/cursors. */
+  private final boolean safeClose;
+
   private Env(
       final BufferProxy<T> proxy,
       final Pointer ptr,
       final boolean readOnly,
       final boolean noSubDir,
       final Path path,
-      final EnvFlagSet envFlagSet) {
+      final EnvFlagSet envFlagSet,
+      final boolean isSingleThreaded,
+      final boolean safeClose) {
     this.proxy = proxy;
     this.readOnly = readOnly;
     this.noSubDir = noSubDir;
@@ -91,23 +118,40 @@ public final class Env<T> implements AutoCloseable {
     this.maxKeySize = LIB.mdb_env_get_maxkeysize(ptr);
     this.path = path;
     this.envFlagSet = envFlagSet;
+    this.isSingleThreaded = isSingleThreaded;
+    this.safeClose = safeClose;
+    this.refCounter = initRefCounter(isSingleThreaded);
+  }
+
+  private RefCounter initRefCounter(boolean isSingleThreaded) {
+    final RefCounter refCounter;
+    if (safeClose) {
+      if (isSingleThreaded) {
+        refCounter = new SingleThreadedRefCounter();
+      } else {
+        refCounter = new StripedRefCounter();
+      }
+    } else {
+      refCounter = new NoOpRefCounter();
+    }
+    return refCounter;
   }
 
   /**
-   * Create an {@link Env} using the {@link ByteBufferProxy#PROXY_OPTIMAL}.
+   * Create an {@link Env.Builder} using the {@link ByteBufferProxy#PROXY_OPTIMAL}.
    *
-   * @return the environment (never null)
+   * @return the builder for creating an environment.
    */
   public static Builder<ByteBuffer> create() {
     return new Builder<>(PROXY_OPTIMAL);
   }
 
   /**
-   * Create an {@link Env} using the passed {@link BufferProxy}.
+   * Create an {@link Env.Builder} using the passed {@link BufferProxy}.
    *
    * @param <T> buffer type
    * @param proxy the proxy to use (required)
-   * @return the environment (never null)
+   * @return the builder for creating an environment.
    */
   public static <T> Builder<T> create(final BufferProxy<T> proxy) {
     return new Builder<>(proxy);
@@ -124,20 +168,97 @@ public final class Env<T> implements AutoCloseable {
    */
   @Deprecated
   public static Env<ByteBuffer> open(final File path, final int size, final EnvFlags... flags) {
-    return new Builder<>(PROXY_OPTIMAL).setMapSize(size, ByteUnit.MEBIBYTES).open(path, flags);
+    return new Builder<>(PROXY_OPTIMAL)
+        .setMapSize(size, ByteUnit.MEBIBYTES)
+        .setEnvFlags(flags)
+        .open(path, flags);
   }
 
   /**
    * Close the handle.
    *
-   * <p>Will silently return if already closed or never opened.
+   * <p>Will silently return if already closed.
+   *
+   * <p>Before and during this call, the caller <strong>MUST</strong> ensure that:
+   *
+   * <ul>
+   *   <li>every {@link Txn} obtained from this environment has already been closed.
+   *   <li>every {@link Cursor} associated with a read-write {@link Txn} obtained from this
+   *       environment has already been closed.
+   *   <li>no other thread is executing <em>any</em> operation on this environment or on a handle
+   *       derived from it — including {@link #txnRead()} / {@link #txnWrite()} and reads such as
+   *       {@code Dbi.get}.
+   * </ul>
+   *
+   * <p>Violating this contract is <strong>undefined behaviour that can crash the whole JVM</strong>
+   * ({@code SIGSEGV} on Linux/macOS, {@code EXCEPTION_ACCESS_VIOLATION 0xC0000005} on Windows); it
+   * does <em>not</em> raise a Java exception. The underlying {@code mdb_env_close} unmaps the
+   * memory map, so a transaction still being started or used on another thread then dereferences
+   * freed memory — typically observed as a native crash in {@code mdb_txn_renew0} / {@code
+   * mdb_txn_begin}.
+   *
+   * <p>If you must close an environment while reader threads may still be active, serialise the
+   * close against those readers in application code: e.g. a read/write lock where each reader holds
+   * the read lock for the entire duration of its transaction and {@code close()} holds the write
+   * lock, so the map is never unmapped while a read is in flight.
+   *
+   * <p>If safeClose has been enabled on the {@link Env}, then this method will throw a {@link
+   * EnvInUseException} if transactions or RW cursors are still active.
+   *
+   * <p>If safeClose has not been enabled then this method will perform the close regardless of
+   * whether it is in use or not with the implications detailed above.
+   *
+   * @throws EnvInUseException If safeClose has been set and a {@link Txn} or {@link Cursor} is
+   *     still open on this {@link Env}
    */
   @Override
   public void close() {
-    if (closed) {
-      return;
-    }
-    closed = true;
+    refCounter.close(this::doClose);
+  }
+
+  /**
+   * Try to close the handle.
+   *
+   * <p>Will silently return if already closed.
+   *
+   * <p>Before and during this call, the caller <strong>MUST</strong> ensure that:
+   *
+   * <ul>
+   *   <li>every {@link Txn} obtained from this environment has already been closed.
+   *   <li>every {@link Cursor} associated with a read-write {@link Txn} obtained from this
+   *       environment has already been closed.
+   *   <li>no other thread is executing <em>any</em> operation on this environment or on a handle
+   *       derived from it — including {@link #txnRead()} / {@link #txnWrite()} and reads such as
+   *       {@code Dbi.get}.
+   * </ul>
+   *
+   * <p>Violating this contract is <strong>undefined behaviour that can crash the whole JVM</strong>
+   * ({@code SIGSEGV} on Linux/macOS, {@code EXCEPTION_ACCESS_VIOLATION 0xC0000005} on Windows); it
+   * does <em>not</em> raise a Java exception. The underlying {@code mdb_env_close} unmaps the
+   * memory map, so a transaction still being started or used on another thread then dereferences
+   * freed memory — typically observed as a native crash in {@code mdb_txn_renew0} / {@code
+   * mdb_txn_begin}.
+   *
+   * <p>If you must close an environment while reader threads may still be active, serialise the
+   * close against those readers in application code: e.g. a read/write lock where each reader holds
+   * the read lock for the entire duration of its transaction and {@code close()} holds the write
+   * lock, so the map is never unmapped while a read is in flight.
+   *
+   * <p>If safeClose has been enabled on the {@link Env}, then this method will return false if
+   * transactions or RW cursors are still active.
+   *
+   * <p>If safeClose has not been enabled then this method will perform the close regardless of
+   * whether it is in use or not with the implications detailed above, i.e. it has the same
+   * behaviour as {@link #close()} with safeClose disabled.
+   *
+   * @return {@code true} if the environment was closed or {@code false} if it was already closed or
+   *     safeClose prevented its closure due to being in use.
+   */
+  public boolean tryClose() {
+    return refCounter.tryClose(this::doClose);
+  }
+
+  private void doClose() {
     LIB.mdb_env_close(ptr);
   }
 
@@ -250,6 +371,7 @@ public final class Env<T> implements AutoCloseable {
    *
    * <p>This method must not be called from concurrent threads.
    *
+   * @param charset the charset to use when converting byte arrays to strings
    * @return a list of DBI names (never null)
    */
   public List<String> getDbiNames(final Charset charset) {
@@ -297,9 +419,7 @@ public final class Env<T> implements AutoCloseable {
    * @return an immutable information object.
    */
   public EnvInfo info() {
-    if (closed) {
-      throw new AlreadyClosedException();
-    }
+    checkNotClosed();
     final MDB_envinfo info = new MDB_envinfo(RUNTIME);
     checkRc(LIB.mdb_env_info(ptr, info));
 
@@ -325,7 +445,8 @@ public final class Env<T> implements AutoCloseable {
    * @return true if closed
    */
   public boolean isClosed() {
-    return closed;
+    // TODO should this return true if state == CLOSING, or state != OPEN ?
+    return refCounter.isClosed();
   }
 
   /**
@@ -338,10 +459,24 @@ public final class Env<T> implements AutoCloseable {
   }
 
   /**
-   * Returns a builder for creating and opening a {@link Dbi} instance in this {@link Env}.
+   * Indicates if this environment is intended for use by a single thread for its entire life.
    *
-   * <p>The flag {@link DbiFlags#MDB_CREATE} needs to be set on the builder if you need to create a
-   * new database before opening it.
+   * @return True if single-threaded
+   */
+  public boolean isSingleThreaded() {
+    return isSingleThreaded;
+  }
+
+  boolean isSafeClose() {
+    return safeClose;
+  }
+
+  /**
+   * Returns a builder for creating and opening a {@link Dbi} instance in this {@link Env}. This
+   * method is used for both opening an existing database or creating a new one.
+   *
+   * <p>The flag {@link DbiFlags#MDB_CREATE} needs to be set on the builder if the database does not
+   * already exist, and you need to create it before opening it.
    *
    * @return A new builder instance for creating/opening a {@link Dbi}.
    */
@@ -499,9 +634,7 @@ public final class Env<T> implements AutoCloseable {
    * @return an immutable statistics object.
    */
   public Stat stat() {
-    if (closed) {
-      throw new AlreadyClosedException();
-    }
+    checkNotClosed();
     final MDB_stat stat = new MDB_stat(RUNTIME);
     checkRc(LIB.mdb_env_stat(ptr, stat));
     return new Stat(
@@ -520,9 +653,7 @@ public final class Env<T> implements AutoCloseable {
    *     set the flushes will be omitted, and with MDB_MAPASYNC they will be asynchronous)
    */
   public void sync(final boolean force) {
-    if (closed) {
-      throw new AlreadyClosedException();
-    }
+    checkNotClosed();
     final int f = force ? 1 : 0;
     checkRc(LIB.mdb_env_sync(ptr, f));
   }
@@ -533,6 +664,9 @@ public final class Env<T> implements AutoCloseable {
    * @return a transaction (never null)
    * @deprecated Instead use {@link Env#txn(Txn, TxnFlagSet)}
    *     <p>Obtain a transaction with the requested parent and flags.
+   *     <p>Must not race a concurrent {@link #close()} on another thread: the closed-check and the
+   *     native transaction start are not atomic, so a close occurring between them can crash the
+   *     JVM (see {@link #close()}).
    */
   @Deprecated
   public Txn<T> txn(final Txn<T> parent, final TxnFlags... flags) {
@@ -541,9 +675,18 @@ public final class Env<T> implements AutoCloseable {
   }
 
   /**
-   * Obtain a transaction with the requested parent and flags.
+   * Obtain a read-write transaction with the requested parent and flags.
    *
-   * @param parent parent transaction (may be null if no parent)
+   * <p>Must not race a concurrent {@link #close()} on another thread: the closed-check and the
+   * native transaction start are not atomic, so a close occurring between them can crash the JVM
+   * (see {@link #close()}).
+   *
+   * <p>When using a parent transaction, any committed changes will only be visible to the parent
+   * transaction and will only be fully committed to the {@link Dbi} if the root transaction is
+   * committed. Aborting this transaction will not roll back changes already made by the parent
+   * transaction.
+   *
+   * @param parent parent transaction (maybe null if no parent)
    * @return a transaction (never null)
    */
   public Txn<T> txn(final Txn<T> parent) {
@@ -554,11 +697,25 @@ public final class Env<T> implements AutoCloseable {
   /**
    * Obtain a transaction with the requested parent and flags.
    *
-   * @param parent parent transaction (may be null if no parent)
+   * <p>If you want a read-write transaction, you can instead call {@link #txn(Txn)}. To obtain a
+   * read-only transaction, ensure {@link TxnFlags#MDB_RDONLY_TXN} is present in the {@link
+   * TxnFlagSet}.
+   *
+   * <p>Must not race a concurrent {@link #close()} on another thread: the closed-check and the
+   * native transaction start are not atomic, so a close occurring between them can crash the JVM
+   * (see {@link #close()}).
+   *
+   * <p>When using a parent transaction, any committed changes will only be visible to the parent
+   * transaction and will only be fully committed to the {@link Dbi} if the root transaction is
+   * committed. Aborting this transaction will not roll back changes already made by the parent
+   * transaction.
+   *
+   * @param parent parent transaction (maybe null if no parent)
    * @param flags applicable flags (e.g. for a reusable, read-only transaction). If the set of flags
-   *     is used frequently it is recommended to hold a static instance of the {@link TxnFlagSet}
+   *     is used frequently, it is recommended to hold a static instance of the {@link TxnFlagSet}
    *     for re-use.
    * @return a transaction (never null)
+   * @throws Env.AlreadyClosedException if this environment has already been closed.
    */
   public Txn<T> txn(final Txn<T> parent, final TxnFlagSet flags) {
     checkNotClosed();
@@ -568,7 +725,12 @@ public final class Env<T> implements AutoCloseable {
   /**
    * Obtain a read-only transaction.
    *
+   * <p>Must not race a concurrent {@link #close()} on another thread: the closed-check and the
+   * native transaction start are not atomic, so a close occurring between them can crash the JVM
+   * (see {@link #close()}).
+   *
    * @return a read-only transaction
+   * @throws Env.AlreadyClosedException if this environment has already been closed.
    */
   public Txn<T> txnRead() {
     checkNotClosed();
@@ -578,7 +740,12 @@ public final class Env<T> implements AutoCloseable {
   /**
    * Obtain a read-write transaction.
    *
+   * <p>Must not race a concurrent {@link #close()} on another thread: the closed-check and the
+   * native transaction start are not atomic, so a close occurring between them can crash the JVM
+   * (see {@link #close()}).
+   *
    * @return a read-write transaction
+   * @throws Env.AlreadyClosedException if this environment has already been closed
    */
   public Txn<T> txnWrite() {
     checkNotClosed();
@@ -590,9 +757,7 @@ public final class Env<T> implements AutoCloseable {
   }
 
   void checkNotClosed() {
-    if (closed) {
-      throw new AlreadyClosedException();
-    }
+    refCounter.checkNotClosed();
   }
 
   private void validateDirectoryEmpty(final Path path) {
@@ -629,6 +794,18 @@ public final class Env<T> implements AutoCloseable {
     return resultPtr.intValue();
   }
 
+  /**
+   * Acquire a permit to use this {@link Env}. Holding the permit will prevent the {@link Env} from
+   * being closed before it is released.
+   *
+   * @return A {@link org.lmdbjava.RefCounter.RefCounterReleaser} for releasing the permit once the
+   *     use of this {@link Env} is complete.
+   * @throws AlreadyClosedException if this Env is already closed.
+   */
+  RefCounter.RefCounterReleaser acquire() {
+    return refCounter.acquire();
+  }
+
   /** For testing use. */
   EnvFlagSet getEnvFlagSet() {
     return envFlagSet;
@@ -638,7 +815,7 @@ public final class Env<T> implements AutoCloseable {
   public String toString() {
     return "Env{"
         + "closed="
-        + closed
+        + refCounter.isClosed()
         + ", maxKeySize="
         + maxKeySize
         + ", noSubDir="
@@ -649,7 +826,28 @@ public final class Env<T> implements AutoCloseable {
         + path
         + ", envFlagSet="
         + envFlagSet
+        + ", singleThreaded="
+        + isSingleThreaded
         + '}';
+  }
+
+  /** Indicates that one or more transactions or cursors are in use on the {@link Env}. */
+  public static final class EnvInUseException extends LmdbException {
+
+    private static final long serialVersionUID = 1L;
+
+    /**
+     * Creates a new instance.
+     *
+     * @param count The number of open transactions/cursors.
+     */
+    public EnvInUseException(final long count) {
+      super(
+          "Environment has "
+              + count
+              + " open transactions/cursors so cannot be closed. "
+              + "Close them then retry.");
+    }
   }
 
   /** Object has already been closed and the operation is therefore prohibited. */
@@ -688,15 +886,23 @@ public final class Env<T> implements AutoCloseable {
     private long mapSize = MAP_SIZE_DEFAULT;
     private int maxDbs = 1;
     private int maxReaders = MAX_READERS_DEFAULT;
-    private boolean opened;
+    private boolean opened = false;
     private final BufferProxy<T> proxy;
     private int mode = POSIX_MODE_DEFAULT;
+    private boolean singleThreaded = false;
+    private boolean safeClose = false;
     private final AbstractFlagSet.Builder<EnvFlags, EnvFlagSet> flagSetBuilder =
         EnvFlagSet.builder();
 
     Builder(final BufferProxy<T> proxy) {
       requireNonNull(proxy);
       this.proxy = proxy;
+    }
+
+    private void checkEnvNotOpened() {
+      if (opened) {
+        throw new AlreadyOpenException();
+      }
     }
 
     /**
@@ -766,7 +972,7 @@ public final class Env<T> implements AutoCloseable {
         final boolean readOnly = flags.isSet(MDB_RDONLY_ENV);
         final boolean noSubDir = flags.isSet(MDB_NOSUBDIR);
         checkRc(LIB.mdb_env_open(ptr, path.toAbsolutePath().toString(), flags.getMask(), mode));
-        return new Env<>(proxy, ptr, readOnly, noSubDir, path, flags);
+        return new Env<>(proxy, ptr, readOnly, noSubDir, path, flags, singleThreaded, safeClose);
       } catch (final LmdbNativeException e) {
         LIB.mdb_env_close(ptr);
         throw e;
@@ -780,9 +986,7 @@ public final class Env<T> implements AutoCloseable {
      * @return the builder
      */
     public Builder<T> setMapSize(final long mapSize) {
-      if (opened) {
-        throw new AlreadyOpenException();
-      }
+      checkEnvNotOpened();
       if (mapSize < 0) {
         throw new IllegalArgumentException("Negative value; overflow?");
       }
@@ -812,9 +1016,7 @@ public final class Env<T> implements AutoCloseable {
      * @return the builder
      */
     public Builder<T> setMaxDbs(final int dbs) {
-      if (opened) {
-        throw new AlreadyOpenException();
-      }
+      checkEnvNotOpened();
       this.maxDbs = dbs;
       return this;
     }
@@ -826,9 +1028,7 @@ public final class Env<T> implements AutoCloseable {
      * @return the builder
      */
     public Builder<T> setMaxReaders(final int readers) {
-      if (opened) {
-        throw new AlreadyOpenException();
-      }
+      checkEnvNotOpened();
       this.maxReaders = readers;
       return this;
     }
@@ -841,9 +1041,7 @@ public final class Env<T> implements AutoCloseable {
      * @return the builder
      */
     public Builder<T> setFilePermissions(final int mode) {
-      if (opened) {
-        throw new AlreadyOpenException();
-      }
+      checkEnvNotOpened();
       this.mode = mode;
       return this;
     }
@@ -856,6 +1054,7 @@ public final class Env<T> implements AutoCloseable {
      * @return this builder instance.
      */
     public Builder<T> setEnvFlags(final Collection<EnvFlags> envFlags) {
+      checkEnvNotOpened();
       flagSetBuilder.clear();
       if (envFlags != null) {
         envFlags.stream().filter(Objects::nonNull).forEach(flagSetBuilder::addFlag);
@@ -871,6 +1070,7 @@ public final class Env<T> implements AutoCloseable {
      * @return this builder instance.
      */
     public Builder<T> setEnvFlags(final EnvFlags... envFlags) {
+      checkEnvNotOpened();
       flagSetBuilder.clear();
       if (envFlags != null) {
         Arrays.stream(envFlags).filter(Objects::nonNull).forEach(this.flagSetBuilder::addFlag);
@@ -886,6 +1086,7 @@ public final class Env<T> implements AutoCloseable {
      * @return this builder instance.
      */
     public Builder<T> setEnvFlags(final EnvFlagSet envFlagSet) {
+      checkEnvNotOpened();
       flagSetBuilder.clear();
       if (envFlagSet != null) {
         this.flagSetBuilder.setFlags(envFlagSet.getFlags());
@@ -900,6 +1101,7 @@ public final class Env<T> implements AutoCloseable {
      * @return this builder instance.
      */
     public Builder<T> addEnvFlag(final EnvFlags envFlag) {
+      checkEnvNotOpened();
       this.flagSetBuilder.addFlag(envFlag);
       return this;
     }
@@ -911,6 +1113,7 @@ public final class Env<T> implements AutoCloseable {
      * @return this builder instance.
      */
     public Builder<T> addEnvFlags(final EnvFlagSet envFlagSet) {
+      checkEnvNotOpened();
       if (envFlagSet != null) {
         flagSetBuilder.addFlags(envFlagSet.getFlags());
       }
@@ -925,9 +1128,75 @@ public final class Env<T> implements AutoCloseable {
      * @return this builder instance.
      */
     public Builder<T> addEnvFlags(final Collection<EnvFlags> envFlags) {
+      checkEnvNotOpened();
       if (envFlags != null) {
         flagSetBuilder.addFlags(envFlags);
       }
+      return this;
+    }
+
+    /**
+     * If set, the caller is asserting that the Env will only be used by a single thread throughout
+     * its entire life. This allows the {@link Env} to make minor optimisations that are not
+     * thread-safe, e.g. using primitives rather than thread-safe objects. By default, an Env is
+     * assumed to be used by multiple threads.
+     *
+     * @return this builder instance.
+     */
+    public Builder<T> setSingleThreaded() {
+      checkEnvNotOpened();
+      singleThreaded = true;
+      return this;
+    }
+
+    /**
+     * If set to true, the caller is asserting that the Env will only be used by a single thread
+     * throughout its entire life. This allows the {@link Env} to make minor optimisations that are
+     * not thread-safe, e.g. using primitives rather than thread-safe objects. By default, an Env is
+     * assumed to be used by multiple threads.
+     *
+     * @param singleThreaded Set to true if the Env will only ever be used by a single thread.
+     * @return this builder instance.
+     */
+    public Builder<T> setSingleThreaded(final boolean singleThreaded) {
+      checkEnvNotOpened();
+      this.singleThreaded = singleThreaded;
+      return this;
+    }
+
+    /**
+     * Enables the opt-in "safe close" for the resulting {@link Env}.
+     *
+     * <p>When enabled, the environment tracks its live transactions and read-write cursors so that
+     * closure of the {@link Env} is prevented if transactions or cursors are active. This adds a
+     * small amount of bookkeeping on transaction start/close; it is <strong>disabled by
+     * default</strong> so applications that already manage their own threading (the common
+     * low-latency case) pay nothing. When enabled, {@link Env#close()} will throw a {@link
+     * EnvInUseException} if transactions or cursors are active.
+     *
+     * @return the builder
+     */
+    public Builder<T> setSafeClose() {
+      checkEnvNotOpened();
+      return setSafeClose(true);
+    }
+
+    /**
+     * Enables the opt-in "safe close" for the resulting {@link Env}.
+     *
+     * <p>When enabled, the environment tracks its live transactions and read-write cursors so that
+     * closure of the {@link Env} is prevented if transactions or cursors are active. This adds a
+     * small amount of bookkeeping on transaction start/close; it is <strong>disabled by
+     * default</strong> so applications that already manage their own threading (the common
+     * low-latency case) pay nothing. When enabled, {@link Env#close()} will throw a {@link
+     * EnvInUseException} if transactions or cursors are active.
+     *
+     * @param safeClose true to enable cursor/transaction tracking.
+     * @return the builder
+     */
+    public Builder<T> setSafeClose(final boolean safeClose) {
+      checkEnvNotOpened();
+      this.safeClose = safeClose;
       return this;
     }
   }

@@ -1,5 +1,5 @@
 /*
- * Copyright © 2016-2025 The LmdbJava Open Source Project
+ * Copyright © 2016-2026 The LmdbJava Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -69,6 +69,7 @@ public class EnvDeprecatedTest {
     final Path file = tempDir.createTempFile();
     try (Env<ByteBuffer> env =
         Env.create()
+            .setSafeClose()
             .setMaxReaders(1)
             .setMapSize(MEBIBYTES.toBytes(1))
             .open(file.toFile(), MDB_NOSUBDIR)) {
@@ -82,7 +83,7 @@ public class EnvDeprecatedTest {
     assertThatThrownBy(
             () -> {
               final Path file = tempDir.createTempFile();
-              final Builder<ByteBuffer> builder = Env.create().setMaxReaders(1);
+              final Builder<ByteBuffer> builder = Env.create().setSafeClose().setMaxReaders(1);
               try (Env<ByteBuffer> env = builder.open(file.toFile(), MDB_NOSUBDIR)) {
                 builder.setMapSize(1);
               }
@@ -95,7 +96,7 @@ public class EnvDeprecatedTest {
     assertThatThrownBy(
             () -> {
               final Path file = tempDir.createTempFile();
-              final Builder<ByteBuffer> builder = Env.create().setMaxReaders(1);
+              final Builder<ByteBuffer> builder = Env.create().setSafeClose().setMaxReaders(1);
               try (Env<ByteBuffer> env = builder.open(file.toFile(), MDB_NOSUBDIR)) {
                 builder.setMaxDbs(1);
               }
@@ -108,7 +109,7 @@ public class EnvDeprecatedTest {
     assertThatThrownBy(
             () -> {
               final Path file = tempDir.createTempFile();
-              final Builder<ByteBuffer> builder = Env.create().setMaxReaders(1);
+              final Builder<ByteBuffer> builder = Env.create().setSafeClose().setMaxReaders(1);
               try (Env<ByteBuffer> env = builder.open(file.toFile(), MDB_NOSUBDIR)) {
                 builder.setMaxReaders(1);
               }
@@ -122,7 +123,7 @@ public class EnvDeprecatedTest {
             () -> {
               final Path file = tempDir.createTempFile();
               final Env<ByteBuffer> env =
-                  Env.create().setMaxReaders(1).open(file.toFile(), MDB_NOSUBDIR);
+                  Env.create().setSafeClose().setMaxReaders(1).open(file.toFile(), MDB_NOSUBDIR);
               env.close();
               env.info();
             })
@@ -134,7 +135,7 @@ public class EnvDeprecatedTest {
     assertThatThrownBy(
             () -> {
               final Path file = tempDir.createTempFile();
-              final Builder<ByteBuffer> builder = Env.create().setMaxReaders(1);
+              final Builder<ByteBuffer> builder = Env.create().setSafeClose().setMaxReaders(1);
               builder.open(file.toFile(), MDB_NOSUBDIR).close();
               builder.open(file.toFile(), MDB_NOSUBDIR);
             })
@@ -147,7 +148,7 @@ public class EnvDeprecatedTest {
             () -> {
               final Path file = tempDir.createTempFile();
               final Env<ByteBuffer> env =
-                  Env.create().setMaxReaders(1).open(file.toFile(), MDB_NOSUBDIR);
+                  Env.create().setSafeClose().setMaxReaders(1).open(file.toFile(), MDB_NOSUBDIR);
               env.close();
               env.stat();
             })
@@ -160,7 +161,7 @@ public class EnvDeprecatedTest {
             () -> {
               final Path file = tempDir.createTempFile();
               final Env<ByteBuffer> env =
-                  Env.create().setMaxReaders(1).open(file.toFile(), MDB_NOSUBDIR);
+                  Env.create().setSafeClose().setMaxReaders(1).open(file.toFile(), MDB_NOSUBDIR);
               env.close();
               env.sync(false);
             })
@@ -174,7 +175,7 @@ public class EnvDeprecatedTest {
     assertThat(Files.exists(dest)).isTrue();
     assertThat(Files.isDirectory(dest)).isTrue();
     assertThat(FileUtil.count(dest)).isEqualTo(0);
-    try (Env<ByteBuffer> env = Env.create().setMaxReaders(1).open(src.toFile())) {
+    try (Env<ByteBuffer> env = Env.create().setSafeClose().setMaxReaders(1).open(src.toFile())) {
       env.copy(dest.toFile(), MDB_CP_COMPACT);
       assertThat(FileUtil.count(dest)).isEqualTo(1);
     }
@@ -187,7 +188,8 @@ public class EnvDeprecatedTest {
               final Path dest = tempDir.createTempDir();
               final Path src = tempDir.createTempDir();
               FileUtil.deleteDir(dest);
-              try (Env<ByteBuffer> env = Env.create().setMaxReaders(1).open(src.toFile())) {
+              try (Env<ByteBuffer> env =
+                  Env.create().setSafeClose().setMaxReaders(1).open(src.toFile())) {
                 env.copy(dest.toFile(), MDB_CP_COMPACT);
               }
             })
@@ -202,7 +204,8 @@ public class EnvDeprecatedTest {
             () -> {
               try {
                 Files.delete(dest);
-                try (Env<ByteBuffer> env = Env.create().setMaxReaders(1).open(src.toFile())) {
+                try (Env<ByteBuffer> env =
+                    Env.create().setSafeClose().setMaxReaders(1).open(src.toFile())) {
                   env.copy(dest.toFile(), MDB_CP_COMPACT);
                 }
               } catch (final IOException e) {
@@ -222,7 +225,8 @@ public class EnvDeprecatedTest {
                 final Path subDir = dest.resolve("hello");
                 Files.createDirectory(subDir);
                 assertThat(Files.isDirectory(subDir)).isTrue();
-                try (Env<ByteBuffer> env = Env.create().setMaxReaders(1).open(src.toFile())) {
+                try (Env<ByteBuffer> env =
+                    Env.create().setSafeClose().setMaxReaders(1).open(src.toFile())) {
                   env.copy(dest.toFile(), MDB_CP_COMPACT);
                 }
               } catch (final IOException e) {
@@ -237,7 +241,8 @@ public class EnvDeprecatedTest {
     final Path dest = tempDir.createTempFile();
     final Path src = tempDir.createTempFile();
     assertThat(Files.exists(dest)).isFalse();
-    try (Env<ByteBuffer> env = Env.create().setMaxReaders(1).open(src.toFile(), MDB_NOSUBDIR)) {
+    try (Env<ByteBuffer> env =
+        Env.create().setSafeClose().setMaxReaders(1).open(src.toFile(), MDB_NOSUBDIR)) {
       env.copy(dest.toFile(), MDB_CP_COMPACT);
     }
     assertThat(FileUtil.size(dest)).isGreaterThan(0L);
@@ -252,7 +257,7 @@ public class EnvDeprecatedTest {
               Files.createFile(dest);
               assertThat(Files.exists(dest)).isTrue();
               try (Env<ByteBuffer> env =
-                  Env.create().setMaxReaders(1).open(src.toFile(), MDB_NOSUBDIR)) {
+                  Env.create().setSafeClose().setMaxReaders(1).open(src.toFile(), MDB_NOSUBDIR)) {
                 env.copy(dest.toFile(), MDB_CP_COMPACT);
               }
             })
@@ -264,6 +269,7 @@ public class EnvDeprecatedTest {
     final Path file = tempDir.createTempFile();
     try (Env<ByteBuffer> env =
         Env.create()
+            .setSafeClose()
             .setMapSize(MEBIBYTES.toBytes(1))
             .setMaxDbs(1)
             .setMaxReaders(1)
@@ -284,6 +290,7 @@ public class EnvDeprecatedTest {
               final Random rnd = new Random();
               try (Env<ByteBuffer> env =
                   Env.create()
+                      .setSafeClose()
                       .setMaxReaders(1)
                       .setMapSize(MEBIBYTES.toBytes(8))
                       .setMaxDbs(1)
@@ -304,11 +311,12 @@ public class EnvDeprecatedTest {
   @Test
   void readOnlySupported() {
     final Path dir = tempDir.createTempDir();
-    try (Env<ByteBuffer> rwEnv = Env.create().setMaxReaders(1).open(dir.toFile())) {
+    try (Env<ByteBuffer> rwEnv = Env.create().setSafeClose().setMaxReaders(1).open(dir.toFile())) {
       final Dbi<ByteBuffer> rwDb = rwEnv.openDbi(DB_1, MDB_CREATE);
       rwDb.put(bb(1), bb(42));
     }
-    try (Env<ByteBuffer> roEnv = Env.create().setMaxReaders(1).open(dir.toFile(), MDB_RDONLY_ENV)) {
+    try (Env<ByteBuffer> roEnv =
+        Env.create().setSafeClose().setMaxReaders(1).open(dir.toFile(), MDB_RDONLY_ENV)) {
       final Dbi<ByteBuffer> roDb = roEnv.openDbi(DB_1);
       try (Txn<ByteBuffer> roTxn = roEnv.txnRead()) {
         assertThat(roDb.get(roTxn, bb(1))).isNotNull();
@@ -325,6 +333,7 @@ public class EnvDeprecatedTest {
     final Random rnd = new Random();
     try (Env<ByteBuffer> env =
         Env.create()
+            .setSafeClose()
             .setMaxReaders(1)
             .setMapSize(KIBIBYTES.toBytes(256))
             .setMaxDbs(1)

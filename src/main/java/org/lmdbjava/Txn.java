@@ -1,5 +1,5 @@
 /*
- * Copyright © 2016-2025 The LmdbJava Open Source Project
+ * Copyright © 2016-2026 The LmdbJava Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,7 +31,21 @@ import java.util.Objects;
 import jnr.ffi.Pointer;
 
 /**
- * LMDB transaction.
+ * An LMDB ACID transaction.
+ *
+ * <p>A transaction belongs to an {@link Env} and must be closed before the {@link Env} is closed.
+ * Only one concurrent write transaction is supported. Attempts to open another write transaction
+ * will block until the open write transaction is closed.
+ *
+ * <p>{@link Txn#commit()} must be called to commit any changes made within the transaction.
+ *
+ * <p>Uncommitted changes can be rolled back by either calling {@link Txn#close()} or calling {@link
+ * Txn#abort()}.
+ *
+ * <p>Closing a transaction without first calling {@link Txn#commit()} will perform an implicit
+ * rollback of any uncommitted changes made within the transaction.
+ *
+ * <p>Transactions can be nested
  *
  * @param <T> buffer type
  */
@@ -43,9 +57,11 @@ public final class Txn<T> implements AutoCloseable {
   private final Pointer ptr;
   private final boolean readOnly;
   private final Env<T> env;
-  private State state;
+  private final RefCounter.RefCounterReleaser refCounterReleaser;
+  private volatile State state;
 
   Txn(final Env<T> env, final Txn<T> parent, final BufferProxy<T> proxy, final TxnFlagSet flags) {
+
     if (SHOULD_CHECK) {
       Objects.requireNonNull(flags);
     }
@@ -60,15 +76,28 @@ public final class Txn<T> implements AutoCloseable {
     if (parent != null && parent.isReadOnly() != this.readOnly) {
       throw new IncompatibleParent();
     }
-    final Pointer txnPtr = allocateDirect(RUNTIME, ADDRESS);
-    final Pointer txnParentPtr = parent == null ? null : parent.ptr;
-    checkRc(LIB.mdb_txn_begin(env.pointer(), txnParentPtr, flags.getMask(), txnPtr));
-    ptr = txnPtr.getPointer(0);
 
-    state = READY;
+    this.refCounterReleaser = env.acquire();
+    try {
+      final Pointer txnPtr = allocateDirect(RUNTIME, ADDRESS);
+      final Pointer txnParentPtr = parent == null ? null : parent.ptr;
+      checkRc(LIB.mdb_txn_begin(env.pointer(), txnParentPtr, flags.getMask(), txnPtr));
+      ptr = txnPtr.getPointer(0);
+
+      state = READY;
+    } catch (final Exception e) {
+      this.refCounterReleaser.release();
+      throw e;
+    }
   }
 
-  /** Aborts this transaction. */
+  /**
+   * Aborts this transaction.
+   *
+   * <p>If this is a read-write transaction, and you have any open {@link Cursor}s against this
+   * transaction, they <strong>MUST</strong> be closed first, else you will not be able to close the
+   * cursor after this transaction has been committed.
+   */
   public void abort() {
     if (SHOULD_CHECK) {
       env.checkNotClosed();
@@ -76,13 +105,24 @@ public final class Txn<T> implements AutoCloseable {
     checkReady();
     state = DONE;
     LIB.mdb_txn_abort(ptr);
+
+    // No call to refCounterReleaser.release() here because the keyVal is still open
+    // and the txn can still be reset.
   }
 
   /**
-   * Closes this transaction by aborting if not already committed.
+   * Closes this transaction. Any uncommitted work will be aborted first.
+   *
+   * <p>If any {@link Cursor}s have been opened on this transaction, they <strong>MUST</strong> be
+   * closed first, else you will not be able to close the cursor after its transaction has been
+   * closed.
    *
    * <p>Closing the transaction will invoke {@link BufferProxy#deallocate(java.lang.Object)} for
    * each read-only buffer (ie the key and value).
+   *
+   * <p>If this is a read-write transaction, and you have any open {@link Cursor}s against this
+   * transaction, they <strong>MUST</strong> be closed first, else you will not be able to close the
+   * cursor after this transaction has been closed.
    */
   @Override
   public void close() {
@@ -97,9 +137,20 @@ public final class Txn<T> implements AutoCloseable {
     }
     keyVal.close();
     state = RELEASED;
+
+    refCounterReleaser.release();
   }
 
-  /** Commits this transaction. */
+  /**
+   * Commits this transaction.
+   *
+   * <p>If you have an open cursor using this transaction, you must close the cursor before
+   * committing.
+   *
+   * <p>If this is a read-write transaction, and you have any open {@link Cursor}s against this
+   * transaction, they <strong>MUST</strong> be closed first, else you will not be able to close the
+   * cursor after this transaction has been committed.
+   */
   public void commit() {
     if (SHOULD_CHECK) {
       env.checkNotClosed();
@@ -124,7 +175,7 @@ public final class Txn<T> implements AutoCloseable {
   /**
    * Obtains this transaction's parent.
    *
-   * @return the parent transaction (may be null)
+   * @return the parent transaction (if present, i.e. may be null)
    */
   public Txn<T> getParent() {
     return parent;
@@ -137,6 +188,15 @@ public final class Txn<T> implements AutoCloseable {
    */
   public boolean isReadOnly() {
     return readOnly;
+  }
+
+  /**
+   * Whether this transaction is writable (i.e. not read-only).
+   *
+   * @return if writable
+   */
+  public boolean isWritable() {
+    return !readOnly;
   }
 
   /**
@@ -167,6 +227,8 @@ public final class Txn<T> implements AutoCloseable {
   /**
    * Aborts this read-only transaction and resets the transaction handle, so it can be reused upon
    * calling {@link #renew()}.
+   *
+   * <p>Not applicable to write transactions.
    */
   public void reset() {
     if (SHOULD_CHECK) {
@@ -202,6 +264,10 @@ public final class Txn<T> implements AutoCloseable {
     if (state != READY) {
       throw new NotReadyException();
     }
+  }
+
+  boolean isReady() {
+    return state == READY;
   }
 
   void checkWritesAllowed() {
@@ -282,7 +348,10 @@ public final class Txn<T> implements AutoCloseable {
 
     /** Creates a new instance. */
     public NotReadyException() {
-      super("Transaction is not in ready state");
+      super(
+          "Transaction is not in ready state, i.e. it has been closed/committed/aborted/reset. "
+              + "You may see this if have you tried to close a cursor after committing the transaction, "
+              + "or if you have tried to use a cursor after closing its transaction.");
     }
   }
 
