@@ -17,6 +17,7 @@ package org.lmdbjava;
 
 import static io.netty.buffer.PooledByteBufAllocator.DEFAULT;
 import static java.lang.Class.forName;
+import static java.lang.ThreadLocal.withInitial;
 import static java.util.Objects.requireNonNull;
 import static org.lmdbjava.UnsafeAccess.UNSAFE;
 
@@ -26,6 +27,7 @@ import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Comparator;
+import java.util.function.IntFunction;
 import jnr.ffi.Pointer;
 
 /**
@@ -41,6 +43,15 @@ public final class ByteBufProxy extends BufferProxy<ByteBuf> {
    * unavailable.
    */
   public static final BufferProxy<ByteBuf> PROXY_NETTY = new ByteBufProxy();
+
+  /**
+   * Per-thread base buffer for {@link #nioBufferView(ByteBuf)}, so each call need not allocate a
+   * new zero-length direct buffer (consistent with the thread-local pool in {@link
+   * ByteBufferProxy}). The base never escapes: {@link ByteBuffer#asReadOnlyBuffer()} snapshots its
+   * address and capacity, so repointing it on a later call does not affect earlier views.
+   */
+  private static final ThreadLocal<ByteBuffer> VIEW_BASES =
+      withInitial(() -> ByteBuffer.allocateDirect(0));
 
   private static final int BUFFER_RETRIES = 10;
   private static final String FIELD_NAME_ADDRESS = "memoryAddress";
@@ -249,16 +260,17 @@ public final class ByteBufProxy extends BufferProxy<ByteBuf> {
    */
   public static ByteBuffer nioBufferView(final ByteBuf buffer) {
     requireNonNull(buffer);
-    // Start from a real direct buffer, then repoint its single java.nio.Buffer address/capacity at
-    // the LMDB region — the same technique ByteBufferProxy uses for its own zero-copy NIO buffers.
-    // The original (zero-length) allocation stays referenced by the read-only view's attachment, so
-    // its Cleaner frees only that original base, never the LMDB memory we aliased.
-    final ByteBuffer view = ByteBuffer.allocateDirect(0);
+    // Repoint this thread's base direct buffer's single java.nio.Buffer address/capacity at the
+    // LMDB region — the same technique ByteBufferProxy uses for its own zero-copy NIO buffers —
+    // then hand out a read-only view, which copies that address/capacity. The base stays
+    // referenced by the view's attachment, so its Cleaner frees only the original (zero-length)
+    // allocation, never the LMDB memory we aliased.
+    final ByteBuffer base = VIEW_BASES.get();
     UNSAFE.putLong(
-        view, NioBufferField.ADDRESS_OFFSET, buffer.memoryAddress() + buffer.readerIndex());
-    UNSAFE.putInt(view, NioBufferField.CAPACITY_OFFSET, buffer.readableBytes());
-    view.clear();
-    return view.asReadOnlyBuffer();
+        base, NioBufferField.ADDRESS_OFFSET, buffer.memoryAddress() + buffer.readerIndex());
+    UNSAFE.putInt(base, NioBufferField.CAPACITY_OFFSET, buffer.readableBytes());
+    base.clear();
+    return base.asReadOnlyBuffer();
   }
 
   /**
@@ -275,19 +287,54 @@ public final class ByteBufProxy extends BufferProxy<ByteBuf> {
    * returned buffer is consumed before the owning transaction closes.
    *
    * <p>The returned buffer is a freshly allocated direct buffer, flipped and ready to read ({@code
-   * position=0}, {@code limit=size}). The caller owns it.
+   * position=0}, {@code limit=size}). The caller owns it. To copy into a buffer you already have or
+   * obtain from your own pool, use {@link #nioBufferCopy(ByteBuf, IntFunction)}.
    *
    * @param buffer a {@link ByteBuf} whose readable region holds the bytes to copy (required)
    * @return a new direct NIO buffer containing a copy of those bytes (never null)
    */
   public static ByteBuffer nioBufferCopy(final ByteBuf buffer) {
+    return nioBufferCopy(buffer, ByteBuffer::allocateDirect);
+  }
+
+  /**
+   * Copies the readable region of {@code buffer} into a NIO {@link ByteBuffer} obtained from {@code
+   * destinationBufferSupplier} — e.g. a buffer the caller already has, or one taken from a pool
+   * under the caller's control. Otherwise identical to {@link #nioBufferCopy(ByteBuf)}: the copy is
+   * independent of LMDB memory and remains valid after the transaction (or {@link Env}) is closed.
+   *
+   * <p>The supplier is called once with the number of bytes to copy ({@code
+   * buffer.readableBytes()}) and must return a writable buffer, heap or direct, with at least that
+   * many bytes {@linkplain ByteBuffer#remaining() remaining}. The bytes are written starting at its
+   * current position, then the buffer is {@linkplain ByteBuffer#flip() flipped} and returned, so a
+   * buffer supplied with {@code position=0} comes back with {@code position=0} and {@code
+   * limit=size}. Bytes beyond the copied region are left untouched.
+   *
+   * @param buffer a {@link ByteBuf} whose readable region holds the bytes to copy (required)
+   * @param destinationBufferSupplier given the number of bytes to copy, returns the buffer to copy
+   *     them into (required; must not return null)
+   * @return the supplied buffer, flipped, now holding a copy of those bytes (never null)
+   * @throws IllegalArgumentException if the supplied buffer has fewer bytes remaining than needed
+   */
+  public static ByteBuffer nioBufferCopy(
+      final ByteBuf buffer, final IntFunction<ByteBuffer> destinationBufferSupplier) {
     requireNonNull(buffer);
-    final ByteBuffer copy = ByteBuffer.allocateDirect(buffer.readableBytes());
-    // getBytes reads through the ByteBuf's (LMDB-repointed) memoryAddress, so it copies the real
-    // stored bytes — not the zeros seen via ByteBuf.nioBuffer().
-    buffer.getBytes(buffer.readerIndex(), copy);
-    copy.flip();
-    return copy;
+    requireNonNull(destinationBufferSupplier);
+    final int size = buffer.readableBytes();
+    final ByteBuffer dest =
+        requireNonNull(
+            destinationBufferSupplier.apply(size), "destinationBufferSupplier returned null");
+    if (dest.remaining() < size) {
+      throw new IllegalArgumentException(
+          "Destination buffer too small, remaining: " + dest.remaining() + ", required: " + size);
+    }
+    // ByteBuf.getBytes(int, ByteBuffer) copies until dest's limit, so cap it to exactly size bytes.
+    // It reads through the ByteBuf's (LMDB-repointed) memoryAddress, so it copies the real stored
+    // bytes — not the zeros seen via ByteBuf.nioBuffer().
+    dest.limit(dest.position() + size);
+    buffer.getBytes(buffer.readerIndex(), dest);
+    dest.flip();
+    return dest;
   }
 
   /**
