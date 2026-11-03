@@ -32,7 +32,7 @@
     <central-publishing-maven-plugin.version>0.9.0</central-publishing-maven-plugin.version>
     <fmt-maven-plugin.version>2.29</fmt-maven-plugin.version>
     <google-java-format.version>1.28.0</google-java-format.version>
-    <guava.version>33.5.0-jre</guava.version>
+    <guava.version>33.7.1-jre</guava.version>
     <jacoco-maven-plugin.version>0.8.14</jacoco-maven-plugin.version>
     <jnr-constants.version>0.10.4</jnr-constants.version>
     <jnr-ffi.version>2.2.18</jnr-ffi.version>
