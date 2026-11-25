@@ -5,7 +5,7 @@
 
 # Fork
 
-Forked from [lmdbjava/lmdbjava](https://github.com/lmdbjava/lmdbjava) for easy version bump and native lib build control
+Forked from [lmdbjava/lmdbjava](https://github.com/lmdbjava/lmdbjava) to publish builds to GitHub Packages (`bdsystems/lmdbjava`)
 
 # LMDB for Java
 
