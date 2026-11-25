@@ -13,39 +13,50 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.lmdbjava;
 
-import static com.jakewharton.byteunits.BinaryByteUnit.MEBIBYTES;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.greaterThan;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.lmdbjava.Env.create;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 
-import java.io.File;
-import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.file.Path;
 import java.util.concurrent.TimeUnit;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 /** Test {@link Verifier}. */
 public final class VerifierTest {
 
-  @Rule public final TemporaryFolder tmp = new TemporaryFolder();
-
   @Test
-  public void verification() throws IOException {
-    final File path = tmp.newFile();
-    try (Env<ByteBuffer> env =
-        create()
-            .setMaxReaders(1)
-            .setMaxDbs(Verifier.DBI_COUNT)
-            .setMapSize(MEBIBYTES.toBytes(10))
-            .open(path, MDB_NOSUBDIR)) {
-      final Verifier v = new Verifier(env);
-      final int seconds = Integer.getInteger("verificationSeconds", 2);
-      assertThat(v.runFor(seconds, TimeUnit.SECONDS), greaterThan(1L));
+  void verification() {
+    try (final TempDir tempDir = new TempDir()) {
+      final Path file = tempDir.createTempFile();
+      try (Env<ByteBuffer> env =
+          create()
+              .setMaxReaders(1)
+              .setMaxDbs(Verifier.DBI_COUNT)
+              .setMapSize(10, ByteUnit.MEBIBYTES)
+              .setEnvFlags(MDB_NOSUBDIR)
+              .open(file)) {
+
+        // Create a DB to ensure that the verifier can c
+        env.createDbi()
+            .setDbName("db1")
+            .withDefaultComparator()
+            .setDbiFlags(DbiFlags.MDB_CREATE)
+            .open();
+
+        Assertions.assertThat(env.getDbiNames(Env.DEFAULT_NAME_CHARSET)).containsExactly("db1");
+
+        final Verifier v = new Verifier(env);
+
+        Assertions.assertThat(env.getDbiNames(Env.DEFAULT_NAME_CHARSET)).doesNotContain("db1");
+
+        final int seconds = Integer.getInteger("verificationSeconds", 2);
+        assertThat(v.runFor(seconds, TimeUnit.SECONDS)).isGreaterThan(1L);
+      }
     }
   }
 }

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright © 2016-2025 The LmdbJava Open Source Project
+    Copyright © 2016-2026 The LmdbJava Open Source Project
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -20,25 +20,25 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.lmdbjava</groupId>
   <artifactId>lmdbjava</artifactId>
-  <version>0.9.3-bugfix-SNAPSHOT</version>
+  <version>1.0.0-SNAPSHOT</version>
   <packaging>jar</packaging>
   <name>LmdbJava</name>
   <description>Low latency Java API for the ultra-fast, embedded Symas Lightning Database (LMDB)</description>
   <properties>
     <!-- Agrona 1.23+ requires Java 17+ -->
     <agrona.version>1.22.0</agrona.version>
+    <assertj.version>3.27.7</assertj.version>
     <buildnumber-maven-plugin.version>3.2.1</buildnumber-maven-plugin.version>
-    <byteunits.version>0.9.1</byteunits.version>
     <central-publishing-maven-plugin.version>0.9.0</central-publishing-maven-plugin.version>
     <fmt-maven-plugin.version>2.29</fmt-maven-plugin.version>
     <google-java-format.version>1.28.0</google-java-format.version>
     <guava.version>33.5.0-jre</guava.version>
-    <hamcrest.version>2.2</hamcrest.version>
     <jacoco-maven-plugin.version>0.8.14</jacoco-maven-plugin.version>
     <jnr-constants.version>0.10.4</jnr-constants.version>
     <jnr-ffi.version>2.2.18</jnr-ffi.version>
-    <junit.version>4.13.2</junit.version>
+    <junit.version>5.14.1</junit.version>
     <license-maven-plugin.version>4.6</license-maven-plugin.version>
+    <lmdbjava-native.version>0.9.33-5</lmdbjava-native.version>
     <maven-clean-plugin.version>3.5.0</maven-clean-plugin.version>
     <maven-compiler-plugin.version>3.14.1</maven-compiler-plugin.version>
     <maven-dependency-plugin.version>3.9.0</maven-dependency-plugin.version>
@@ -48,7 +48,7 @@
     <maven-install-plugin.version>3.1.4</maven-install-plugin.version>
     <maven-jar-plugin.version>3.4.2</maven-jar-plugin.version>
     <maven-javadoc-plugin.version>3.12.0</maven-javadoc-plugin.version>
-    <maven-release-plugin.version>3.1.1</maven-release-plugin.version>
+    <maven-release-plugin.version>3.2.0</maven-release-plugin.version>
     <maven-resources-plugin.version>3.3.1</maven-resources-plugin.version>
     <maven-scm-provider-jgit.version>2.2.1</maven-scm-provider-jgit.version>
     <maven-site-plugin.version>3.21.0</maven-site-plugin.version>
@@ -85,28 +85,10 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>com.jakewharton.byteunits</groupId>
-      <artifactId>byteunits</artifactId>
-      <version>${byteunits.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>io.netty</groupId>
       <artifactId>netty-buffer</artifactId>
       <version>${netty-buffer.version}</version>
       <optional>true</optional>
-    </dependency>
-    <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>${junit.version}</version>
-      <scope>test</scope>
-      <exclusions>
-        <exclusion>
-          <groupId>org.hamcrest</groupId>
-          <artifactId>hamcrest-core</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.agrona</groupId>
@@ -115,10 +97,27 @@
       <optional>true</optional>
     </dependency>
     <dependency>
-      <groupId>org.hamcrest</groupId>
-      <artifactId>hamcrest</artifactId>
-      <version>${hamcrest.version}</version>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <version>${assertj.version}</version>
       <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-api</artifactId>
+      <version>${junit.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-params</artifactId>
+      <version>${junit.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.lmdbjava</groupId>
+      <artifactId>native</artifactId>
+      <version>${lmdbjava-native.version}</version>
     </dependency>
     <dependency>
       <groupId>org.mockito</groupId>
@@ -140,6 +139,7 @@
               <excludes>
                 <exclude>LICENSE.txt</exclude>
                 <exclude>**/*.md</exclude>
+                <exclude>**/*.csv</exclude>
                 <exclude>lmdb/**</exclude>
                 <exclude>licenses/**</exclude>
               </excludes>
@@ -407,20 +407,9 @@
   </licenses>
   <developers>
     <developer>
-      <id>krisskross</id>
-      <name>Kristoffer Sjogren</name>
-      <email>stoffe -at- gmail.com</email>
-      <url>http://stoffe.deephacks.org/</url>
-      <organization/>
-      <timezone>+1</timezone>
-    </developer>
-    <developer>
-      <id>benalexau</id>
-      <name>Ben Alex</name>
-      <email>ben.alex@acegi.com.au</email>
-      <url>https://github.com/benalexau/</url>
-      <organization>Acegi Technology Pty Limited</organization>
-      <timezone>+10</timezone>
+      <id>lmdbjava</id>
+      <name>The LmdbJava Open Source Project</name>
+      <url>https://github.com/lmdbjava</url>
     </developer>
   </developers>
   <scm>

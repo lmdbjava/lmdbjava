@@ -3,6 +3,7 @@ name: Maven Build and Deployment
 on:
   push:
     branches: [ master ]
+    tags: [ 'lmdbjava-*' ]
   pull_request:
     branches: [ master ]
 
@@ -22,22 +23,8 @@ jobs:
         java-version: 25
         cache: maven
 
-    - name: Install Zig
-      uses: mlugg/setup-zig@v2
-
-    - name: Cross compile using Zig
-      run: ./cross-compile.sh
-
     - name: Build with Maven
       run: mvn -B verify -DgcRecordWrites=1000
-
-    - name: Store built native libraries for later jobs
-      uses: actions/upload-artifact@v4
-      with:
-        name: native-libraries
-        path: |
-          src/main/resources/org/lmdbjava/*.so
-          src/main/resources/org/lmdbjava/*.dll
 
     - name: Upload code coverage to Codecov
       uses: codecov/codecov-action@v5
@@ -64,12 +51,6 @@ jobs:
           distribution: zulu
           java-version: ${{ matrix.java }}
           cache: maven
-
-      - name: Fetch built native libraries
-        uses: actions/download-artifact@v4
-        with:
-          name: native-libraries
-          path: src/main/resources/org/lmdbjava
 
       - name: Execute verifier
         run: mvn -B test -Dtest=VerifierTest -DverificationSeconds=10
@@ -98,13 +79,14 @@ jobs:
         # Java version 8 required due to https://github.com/lmdbjava/lmdbjava/issues/116
         java-version: 8
 
-    - name: Install Zig
-      uses: mlugg/setup-zig@v2
-
-    - name: Cross compile using Zig
-      run: ./cross-compile.sh
+    - name: Get project version
+      id: version
+      run: echo "version=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)" >> $GITHUB_OUTPUT
 
     - name: Publish Maven package
+      if: |
+        (github.ref_type == 'branch' && contains(steps.version.outputs.version, '-SNAPSHOT')) ||
+        (github.ref_type == 'tag' && !contains(steps.version.outputs.version, '-SNAPSHOT'))
       run: mvn -B deploy -DskipTests
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

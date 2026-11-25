@@ -18,6 +18,11 @@ package org.lmdbjava;
 import static java.lang.System.getProperty;
 import static java.util.Locale.ENGLISH;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.stream.Stream;
+
 /**
  * Determines the name of the target LMDB native library.
  *
@@ -43,7 +48,7 @@ public final class TargetName {
    * Java system property name that can be set to override the embedded library that will be used.
    * This is likely to be required if automatic resolution fails but the user still prefers to use
    * an LmdbJava-bundled library. This path must include the classpath prefix (usually <code>
-   * org/lmdbjava</code>).
+   * org/lmdbjava/native</code>).
    */
   public static final String LMDB_EMBEDDED_LIB_PROP = "lmdbjava.embedded.lib";
 
@@ -94,7 +99,7 @@ public final class TargetName {
 
     final String pkg = TargetName.class.getPackage().getName().replace('.', '/');
     return pkg
-        + "/"
+        + "/native/"
         + resolveArch(arch)
         + "-"
         + resolveOs(os)
@@ -129,10 +134,12 @@ public final class TargetName {
     return reason
         + " (please set system property "
         + LMDB_NATIVE_LIB_PROP
-        + " to the path of an external LMDB native library or property "
+        + " to the path of an external LMDB native library,"
+        + " or simply 'lmdb' if LMDB is installed in standard system paths;"
+        + " alternatively set property "
         + LMDB_EMBEDDED_LIB_PROP
-        + " to the name of an LmdbJava embedded"
-        + " library; os.arch='"
+        + " to the name of an LmdbJava embedded library;"
+        + " os.arch='"
         + ARCH
         + "' os.name='"
         + OS
@@ -160,6 +167,17 @@ public final class TargetName {
   }
 
   private static String resolveToolchain(final String os) {
-    return check(os, "Mac OS") ? "none" : "gnu";
+    if (check(os, "Mac OS")) {
+      return "none";
+    }
+    return isMuslLibc() ? "musl" : "gnu";
+  }
+
+  private static boolean isMuslLibc() {
+    try (Stream<String> lines = Files.lines(Paths.get("/proc/self/maps"))) {
+      return lines.anyMatch(line -> line.contains("/ld-musl"));
+    } catch (final IOException e) {
+      return false;
+    }
   }
 }

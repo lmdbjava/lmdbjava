@@ -15,8 +15,12 @@
  */
 package org.lmdbjava;
 
+import java.util.EnumSet;
+import java.util.Set;
+
 /** Flags for use when creating a {@link Txn}. */
-public enum TxnFlags implements MaskedFlag {
+public enum TxnFlags implements MaskedFlag, TxnFlagSet {
+
   /** Read only. */
   MDB_RDONLY_TXN(0x2_0000);
 
@@ -29,5 +33,30 @@ public enum TxnFlags implements MaskedFlag {
   @Override
   public int getMask() {
     return mask;
+  }
+
+  @Override
+  public Set<TxnFlags> getFlags() {
+    return EnumSet.of(this);
+  }
+
+  @Override
+  public boolean isSet(final TxnFlags flag) {
+    return this == flag;
+  }
+
+  @Override
+  public int size() {
+    return 1;
+  }
+
+  @Override
+  public boolean isEmpty() {
+    return false;
+  }
+
+  @Override
+  public String toString() {
+    return FlagSet.asString(this);
   }
 }

@@ -16,24 +16,28 @@
 package org.lmdbjava;
 
 import static java.lang.Boolean.getBoolean;
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 import static org.lmdbjava.ByteBufferProxy.PROXY_OPTIMAL;
 import static org.lmdbjava.EnvFlags.MDB_NOSUBDIR;
 import static org.lmdbjava.EnvFlags.MDB_RDONLY_ENV;
 import static org.lmdbjava.Library.LIB;
 import static org.lmdbjava.Library.RUNTIME;
-import static org.lmdbjava.MaskedFlag.isSet;
-import static org.lmdbjava.MaskedFlag.mask;
 import static org.lmdbjava.ResultCodeMapper.checkRc;
-import static org.lmdbjava.TxnFlags.MDB_RDONLY_TXN;
 
 import java.io.File;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 import jnr.ffi.Pointer;
 import jnr.ffi.byref.IntByReference;
 import jnr.ffi.byref.PointerByReference;
@@ -51,6 +55,12 @@ public final class Env<T> implements AutoCloseable {
   public static final String DISABLE_CHECKS_PROP = "lmdbjava.disable.checks";
 
   /**
+   * The default {@link Charset} used to convert DB names from a byte[] to a String or to encode a
+   * String as a byte[]. Only used if not explicit {@link Charset} is provided.
+   */
+  public static final Charset DEFAULT_NAME_CHARSET = StandardCharsets.UTF_8;
+
+  /**
    * Indicates whether optional checks should be applied in LmdbJava. Optional checks are only
    * disabled in critical paths (see package-level JavaDocs). Non-critical paths have optional
    * checks performed at all times, regardless of this property.
@@ -63,18 +73,24 @@ public final class Env<T> implements AutoCloseable {
   private final BufferProxy<T> proxy;
   private final Pointer ptr;
   private final boolean readOnly;
+  private final Path path;
+  private final EnvFlagSet envFlagSet;
 
   private Env(
       final BufferProxy<T> proxy,
       final Pointer ptr,
       final boolean readOnly,
-      final boolean noSubDir) {
+      final boolean noSubDir,
+      final Path path,
+      final EnvFlagSet envFlagSet) {
     this.proxy = proxy;
     this.readOnly = readOnly;
     this.noSubDir = noSubDir;
     this.ptr = ptr;
     // cache max key size to avoid further JNI calls
     this.maxKeySize = LIB.mdb_env_get_maxkeysize(ptr);
+    this.path = path;
+    this.envFlagSet = envFlagSet;
   }
 
   /**
@@ -98,16 +114,17 @@ public final class Env<T> implements AutoCloseable {
   }
 
   /**
-   * Opens an environment with a single default database in 0664 mode using the {@link
-   * ByteBufferProxy#PROXY_OPTIMAL}.
-   *
    * @param path file system destination
    * @param size size in megabytes
    * @param flags the flags for this new environment
    * @return env the environment (never null)
+   * @deprecated Instead use {@link Env#create()} or {@link Env#create(BufferProxy)}
+   *     <p>Opens an environment with a single default database in 0664 mode using the {@link
+   *     ByteBufferProxy#PROXY_OPTIMAL}.
    */
+  @Deprecated
   public static Env<ByteBuffer> open(final File path, final int size, final EnvFlags... flags) {
-    return new Builder<>(PROXY_OPTIMAL).setMapSize(size * 1_024L * 1_024L).open(path, flags);
+    return new Builder<>(PROXY_OPTIMAL).setMapSize(size, ByteUnit.MEBIBYTES).open(path, flags);
   }
 
   /**
@@ -141,12 +158,58 @@ public final class Env<T> implements AutoCloseable {
    *
    * @param path writable destination path as described above
    * @param flags special options for this copy
+   * @deprecated Use {@link Env#copy(Path, CopyFlagSet)}
    */
+  @Deprecated
   public void copy(final File path, final CopyFlags... flags) {
     requireNonNull(path);
+    copy(path.toPath(), CopyFlagSet.of(flags));
+  }
+
+  /**
+   * Copies an LMDB environment to the specified destination path.
+   *
+   * <p>This function may be used to make a backup of an existing environment. No lockfile is
+   * created, since it gets recreated at need.
+   *
+   * <p>If this environment was created using {@link EnvFlags#MDB_NOSUBDIR}, the destination path
+   * must be a directory that exists but contains no files. If {@link EnvFlags#MDB_NOSUBDIR} was
+   * used, the destination path must not exist, but it must be possible to create a file at the
+   * provided path.
+   *
+   * <p>Note: This call can trigger significant file size growth if run in parallel with write
+   * transactions, because it employs a read-only transaction. See long-lived transactions under
+   * "Caveats" in the LMDB native documentation.
+   *
+   * @param path writable destination path as described above
+   */
+  public void copy(final Path path) {
+    copy(path, CopyFlagSet.EMPTY);
+  }
+
+  /**
+   * Copies an LMDB environment to the specified destination path.
+   *
+   * <p>This function may be used to make a backup of an existing environment. No lockfile is
+   * created, since it gets recreated at need.
+   *
+   * <p>If this environment was created using {@link EnvFlags#MDB_NOSUBDIR}, the destination path
+   * must be a directory that exists but contains no files. If {@link EnvFlags#MDB_NOSUBDIR} was
+   * used, the destination path must not exist, but it must be possible to create a file at the
+   * provided path.
+   *
+   * <p>Note: This call can trigger significant file size growth if run in parallel with write
+   * transactions, because it employs a read-only transaction. See long-lived transactions under
+   * "Caveats" in the LMDB native documentation.
+   *
+   * @param path writable destination path as described above
+   * @param flags special options for this copy
+   */
+  public void copy(final Path path, final CopyFlagSet flags) {
+    requireNonNull(path);
+    requireNonNull(flags);
     validatePath(path);
-    final int flagsMask = mask(true, flags);
-    checkRc(LIB.mdb_env_copy2(ptr, path.getAbsolutePath(), flagsMask));
+    checkRc(LIB.mdb_env_copy2(ptr, path.toAbsolutePath().toString(), flags.getMask()));
   }
 
   /**
@@ -162,19 +225,38 @@ public final class Env<T> implements AutoCloseable {
    */
   public List<byte[]> getDbiNames() {
     final List<byte[]> result = new ArrayList<>();
-    final Dbi<T> names = openDbi((byte[]) null);
-    try (Txn<T> txn = txnRead();
-        Cursor<T> cursor = names.openCursor(txn)) {
-      if (!cursor.first()) {
-        return Collections.emptyList();
+    // The unnamed DB is special so the names of the named DBs are held as keys in it.
+    try (final Txn<T> readTxn = txnRead()) {
+      final Dbi<T> unnamedDb = new Dbi<>(this, readTxn, null, proxy, DbiFlagSet.EMPTY);
+      try (final Cursor<T> cursor = unnamedDb.openCursor(readTxn)) {
+        if (!cursor.first()) {
+          return Collections.emptyList();
+        }
+        do {
+          final byte[] name = proxy.getBytes(cursor.key());
+          result.add(name);
+        } while (cursor.next());
       }
-      do {
-        final byte[] name = proxy.getBytes(cursor.key());
-        result.add(name);
-      } while (cursor.next());
     }
+    return Collections.unmodifiableList(result);
+  }
 
-    return result;
+  /**
+   * Obtain the DBI names.
+   *
+   * <p>This method is only compatible with {@link Env}s that use named databases. If an unnamed
+   * {@link Dbi} is being used to store data, this method will attempt to return all such keys from
+   * the unnamed database.
+   *
+   * <p>This method must not be called from concurrent threads.
+   *
+   * @return a list of DBI names (never null)
+   */
+  public List<String> getDbiNames(final Charset charset) {
+    final List<byte[]> dbiNames = getDbiNames();
+    return dbiNames.stream()
+        .map(nameBytes -> Dbi.getNameAsString(nameBytes, charset))
+        .collect(Collectors.toList());
   }
 
   /**
@@ -183,7 +265,21 @@ public final class Env<T> implements AutoCloseable {
    * @param mapSize the new size, in bytes
    */
   public void setMapSize(final long mapSize) {
+    if (mapSize < 0) {
+      throw new IllegalArgumentException("Negative value; overflow?");
+    }
     checkRc(LIB.mdb_env_set_mapsize(ptr, mapSize));
+  }
+
+  /**
+   * Set the size of the data memory map.
+   *
+   * @param mapSize new map size in the units of byteUnit.
+   * @param byteUnit The unit that mapSize is in.
+   */
+  public void setMapSize(final long mapSize, final ByteUnit byteUnit) {
+    requireNonNull(byteUnit);
+    setMapSize(byteUnit.toBytes(mapSize));
   }
 
   /**
@@ -242,137 +338,159 @@ public final class Env<T> implements AutoCloseable {
   }
 
   /**
-   * Convenience method that opens a {@link Dbi} with a UTF-8 database name and default {@link
-   * Comparator} that is not invoked from native code.
+   * Returns a builder for creating and opening a {@link Dbi} instance in this {@link Env}.
    *
-   * @param name name of the database (or null if no name is required)
-   * @param flags to open the database with
-   * @return a database that is ready to use
+   * <p>The flag {@link DbiFlags#MDB_CREATE} needs to be set on the builder if you need to create a
+   * new database before opening it.
+   *
+   * @return A new builder instance for creating/opening a {@link Dbi}.
    */
-  public Dbi<T> openDbi(final String name, final DbiFlags... flags) {
-    final byte[] nameBytes = name == null ? null : name.getBytes(UTF_8);
-    return openDbi(nameBytes, null, false, flags);
+  public DbiBuilder<T> createDbi() {
+    return new DbiBuilder<>(this, proxy, readOnly);
   }
 
   /**
-   * Convenience method that opens a {@link Dbi} with a UTF-8 database name and associated {@link
-   * Comparator} that is not invoked from native code.
-   *
    * @param name name of the database (or null if no name is required)
-   * @param comparator custom comparator callback (or null to use default)
    * @param flags to open the database with
    * @return a database that is ready to use
+   * @deprecated Instead use {@link Env#createDbi()}
+   *     <p>Convenience method that opens a {@link Dbi} with a UTF-8 database name and default
+   *     {@link Comparator} that is not invoked from native code.
    */
+  @Deprecated()
+  public Dbi<T> openDbi(final String name, final DbiFlags... flags) {
+    return openDbi(Dbi.getNameBytes(name), null, false, flags);
+  }
+
+  /**
+   * @param name name of the database (or null if no name is required)
+   * @param comparator custom comparator for cursor start/stop key comparisons. If null, LMDB's
+   *     comparator will be used.
+   * @param flags to open the database with
+   * @return a database that is ready to use
+   * @deprecated Instead use {@link Env#createDbi()}
+   *     <p>Convenience method that opens a {@link Dbi} with a UTF-8 database name and associated
+   *     {@link Comparator} for use by {@link CursorIterable} when comparing start/stop keys.
+   *     <p>It is very important that the passed comparator behaves in the same way as the
+   *     comparator LMDB uses for its insertion order (for the type of data that will be stored in
+   *     the database), or you fully understand the implications of them behaving differently.
+   *     LMDB's comparator is unsigned lexicographical, unless {@link DbiFlags#MDB_INTEGERKEY} is
+   *     used.
+   */
+  @Deprecated()
   public Dbi<T> openDbi(
       final String name, final Comparator<T> comparator, final DbiFlags... flags) {
-    final byte[] nameBytes = name == null ? null : name.getBytes(UTF_8);
-    return openDbi(nameBytes, comparator, false, flags);
+    return openDbi(Dbi.getNameBytes(name), comparator, false, flags);
   }
 
   /**
-   * Convenience method that opens a {@link Dbi} with a UTF-8 database name and associated {@link
-   * Comparator} that may be invoked from native code if specified.
-   *
    * @param name name of the database (or null if no name is required)
-   * @param comparator custom comparator callback (or null to use default)
-   * @param nativeCb whether native code calls back to the Java comparator
+   * @param comparator custom comparator for cursor start/stop key comparisons and optionally for
+   *     LMDB to call back to. If null, LMDB's comparator will be used.
+   * @param nativeCb whether LMDB native code calls back to the Java comparator
    * @param flags to open the database with
    * @return a database that is ready to use
+   * @deprecated Instead use {@link Env#createDbi()}
+   *     <p>Convenience method that opens a {@link Dbi} with a UTF-8 database name and associated
+   *     {@link Comparator}. The comparator will be used by {@link CursorIterable} when comparing
+   *     start/stop keys as a minimum. If nativeCb is {@code true}, this comparator will also be
+   *     called by LMDB to determine insertion/iteration order. Calling back to a java comparator
+   *     may significantly impact performance.
    */
+  @Deprecated()
   public Dbi<T> openDbi(
       final String name,
       final Comparator<T> comparator,
       final boolean nativeCb,
       final DbiFlags... flags) {
-    final byte[] nameBytes = name == null ? null : name.getBytes(UTF_8);
-    return openDbi(nameBytes, comparator, nativeCb, flags);
+    return openDbi(Dbi.getNameBytes(name), comparator, nativeCb, flags);
   }
 
   /**
-   * Convenience method that opens a {@link Dbi} with a default {@link Comparator} that is not
-   * invoked from native code.
-   *
    * @param name name of the database (or null if no name is required)
    * @param flags to open the database with
    * @return a database that is ready to use
+   * @deprecated Instead use {@link Env#createDbi()}
+   *     <p>Convenience method that opens a {@link Dbi} with a default {@link Comparator} that is
+   *     not invoked from native code.
    */
+  @Deprecated()
   public Dbi<T> openDbi(final byte[] name, final DbiFlags... flags) {
     return openDbi(name, null, false, flags);
   }
 
   /**
-   * Convenience method that opens a {@link Dbi} with an associated {@link Comparator} that is not
-   * invoked from native code.
-   *
    * @param name name of the database (or null if no name is required)
-   * @param comparator custom comparator callback (or null to use LMDB default)
+   * @param comparator custom iterator comparator (or null to use LMDB default)
    * @param flags to open the database with
    * @return a database that is ready to use
+   * @deprecated Instead use {@link Env#createDbi()}
+   *     <p>Convenience method that opens a {@link Dbi} with an associated {@link Comparator} that
+   *     is not invoked from native code.
    */
+  @Deprecated()
   public Dbi<T> openDbi(
       final byte[] name, final Comparator<T> comparator, final DbiFlags... flags) {
     return openDbi(name, comparator, false, flags);
   }
 
   /**
-   * Convenience method that opens a {@link Dbi} with an associated {@link Comparator} that may be
-   * invoked from native code if specified.
-   *
-   * <p>This method will automatically commit the private transaction before returning. This ensures
-   * the <code>Dbi</code> is available in the <code>Env</code>.
-   *
    * @param name name of the database (or null if no name is required)
    * @param comparator custom comparator callback (or null to use LMDB default)
    * @param nativeCb whether native code calls back to the Java comparator
    * @param flags to open the database with
    * @return a database that is ready to use
+   * @deprecated Instead use {@link Env#createDbi()}
+   *     <p>Convenience method that opens a {@link Dbi} with an associated {@link Comparator} that
+   *     may be invoked from native code if specified.
+   *     <p>This method will automatically commit the private transaction before returning. This
+   *     ensures the <code>Dbi</code> is available in the <code>Env</code>.
    */
+  @Deprecated()
   public Dbi<T> openDbi(
       final byte[] name,
       final Comparator<T> comparator,
       final boolean nativeCb,
       final DbiFlags... flags) {
     try (Txn<T> txn = readOnly ? txnRead() : txnWrite()) {
-      final Dbi<T> dbi = openDbi(txn, name, comparator, nativeCb, flags);
+      final Dbi<T> dbi =
+          new Dbi<>(this, txn, name, comparator, nativeCb, proxy, DbiFlagSet.of(flags));
       txn.commit(); // even RO Txns require a commit to retain Dbi in Env
       return dbi;
     }
   }
 
   /**
-   * Open the {@link Dbi} using the passed {@link Txn}.
-   *
-   * <p>The caller must commit the transaction after this method returns in order to retain the
-   * <code>Dbi</code> in the <code>Env</code>.
-   *
-   * <p>A {@link Comparator} may be provided when calling this method. Such comparator is primarily
-   * used by {@link CursorIterable} instances. A secondary (but uncommon) use of the comparator is
-   * to act as a callback from the native library if <code>nativeCb</code> is <code>true</code>.
-   * This is usually avoided due to the overhead of native code calling back into Java. It is
-   * instead highly recommended to set the correct {@link DbiFlags} to allow the native library to
-   * correctly order the intended keys.
-   *
-   * <p>A default comparator will be provided if <code>null</code> is passed as the comparator. If a
-   * custom comparator is provided, it must strictly match the lexicographical order of keys in the
-   * native LMDB database.
-   *
-   * <p>This method (and its overloaded convenience variants) must not be called from concurrent
-   * threads.
-   *
    * @param txn transaction to use (required; not closed)
    * @param name name of the database (or null if no name is required)
    * @param comparator custom comparator callback (or null to use LMDB default)
-   * @param nativeCb whether native code should call back to the comparator
+   * @param nativeCb whether native LMDB code should call back to the Java comparator
    * @param flags to open the database with
    * @return a database that is ready to use
+   * @deprecated Instead use {@link Env#createDbi()}
+   *     <p>Open the {@link Dbi} using the passed {@link Txn}.
+   *     <p>The caller must commit the transaction after this method returns in order to retain the
+   *     <code>Dbi</code> in the <code>Env</code>.
+   *     <p>A {@link Comparator} may be provided when calling this method. Such comparator is
+   *     primarily used by {@link CursorIterable} instances. A secondary (but uncommon) use of the
+   *     comparator is to act as a callback from the native library if <code>nativeCb</code> is
+   *     <code>true</code>. This is usually avoided due to the overhead of native code calling back
+   *     into Java. It is instead highly recommended to set the correct {@link DbiFlags} to allow
+   *     the native library to correctly order the intended keys.
+   *     <p>A default comparator will be provided if <code>null</code> is passed as the comparator.
+   *     If a custom comparator is provided, it must strictly match the lexicographical order of
+   *     keys in the native LMDB database.
+   *     <p>This method (and its overloaded convenience variants) must not be called from concurrent
+   *     threads.
    */
+  @Deprecated()
   public Dbi<T> openDbi(
       final Txn<T> txn,
       final byte[] name,
       final Comparator<T> comparator,
       final boolean nativeCb,
       final DbiFlags... flags) {
-    return new Dbi<>(this, txn, name, comparator, nativeCb, proxy, flags);
+    return new Dbi<>(this, txn, name, comparator, nativeCb, proxy, DbiFlagSet.of(flags));
   }
 
   /**
@@ -410,16 +528,40 @@ public final class Env<T> implements AutoCloseable {
   }
 
   /**
-   * Obtain a transaction with the requested parent and flags.
-   *
    * @param parent parent transaction (may be null if no parent)
    * @param flags applicable flags (eg for a reusable, read-only transaction)
    * @return a transaction (never null)
+   * @deprecated Instead use {@link Env#txn(Txn, TxnFlagSet)}
+   *     <p>Obtain a transaction with the requested parent and flags.
    */
+  @Deprecated
   public Txn<T> txn(final Txn<T> parent, final TxnFlags... flags) {
-    if (closed) {
-      throw new AlreadyClosedException();
-    }
+    checkNotClosed();
+    return new Txn<>(this, parent, proxy, TxnFlagSet.of(flags));
+  }
+
+  /**
+   * Obtain a transaction with the requested parent and flags.
+   *
+   * @param parent parent transaction (may be null if no parent)
+   * @return a transaction (never null)
+   */
+  public Txn<T> txn(final Txn<T> parent) {
+    checkNotClosed();
+    return new Txn<>(this, parent, proxy, TxnFlagSet.EMPTY);
+  }
+
+  /**
+   * Obtain a transaction with the requested parent and flags.
+   *
+   * @param parent parent transaction (may be null if no parent)
+   * @param flags applicable flags (e.g. for a reusable, read-only transaction). If the set of flags
+   *     is used frequently it is recommended to hold a static instance of the {@link TxnFlagSet}
+   *     for re-use.
+   * @return a transaction (never null)
+   */
+  public Txn<T> txn(final Txn<T> parent, final TxnFlagSet flags) {
+    checkNotClosed();
     return new Txn<>(this, parent, proxy, flags);
   }
 
@@ -429,7 +571,8 @@ public final class Env<T> implements AutoCloseable {
    * @return a read-only transaction
    */
   public Txn<T> txnRead() {
-    return txn(null, MDB_RDONLY_TXN);
+    checkNotClosed();
+    return new Txn<>(this, null, proxy, TxnFlags.MDB_RDONLY_TXN);
   }
 
   /**
@@ -438,7 +581,8 @@ public final class Env<T> implements AutoCloseable {
    * @return a read-write transaction
    */
   public Txn<T> txnWrite() {
-    return txn(null);
+    checkNotClosed();
+    return new Txn<>(this, null, proxy, TxnFlagSet.EMPTY);
   }
 
   Pointer pointer() {
@@ -451,22 +595,22 @@ public final class Env<T> implements AutoCloseable {
     }
   }
 
-  private void validateDirectoryEmpty(final File path) {
-    if (!path.exists()) {
+  private void validateDirectoryEmpty(final Path path) {
+    if (!Files.exists(path)) {
       throw new InvalidCopyDestination("Path does not exist");
     }
-    if (!path.isDirectory()) {
+    if (!Files.isDirectory(path)) {
       throw new InvalidCopyDestination("Path must be a directory");
     }
-    final String[] files = path.list();
-    if (files != null && files.length > 0) {
+    final long fileCount = FileUtil.count(path);
+    if (fileCount > 0) {
       throw new InvalidCopyDestination("Path must contain no files");
     }
   }
 
-  private void validatePath(final File path) {
+  private void validatePath(final Path path) {
     if (noSubDir) {
-      if (path.exists()) {
+      if (Files.exists(path)) {
         throw new InvalidCopyDestination("Path must not exist for MDB_NOSUBDIR");
       }
       return;
@@ -483,6 +627,29 @@ public final class Env<T> implements AutoCloseable {
     final IntByReference resultPtr = new IntByReference();
     checkRc(LIB.mdb_reader_check(ptr, resultPtr));
     return resultPtr.intValue();
+  }
+
+  /** For testing use. */
+  EnvFlagSet getEnvFlagSet() {
+    return envFlagSet;
+  }
+
+  @Override
+  public String toString() {
+    return "Env{"
+        + "closed="
+        + closed
+        + ", maxKeySize="
+        + maxKeySize
+        + ", noSubDir="
+        + noSubDir
+        + ", readOnly="
+        + readOnly
+        + ", path="
+        + path
+        + ", envFlagSet="
+        + envFlagSet
+        + '}';
   }
 
   /** Object has already been closed and the operation is therefore prohibited. */
@@ -515,11 +682,17 @@ public final class Env<T> implements AutoCloseable {
   public static final class Builder<T> {
 
     static final int MAX_READERS_DEFAULT = 126;
-    private long mapSize = 1_024 * 1_024;
+    static final long MAP_SIZE_DEFAULT = ByteUnit.MEBIBYTES.toBytes(1);
+    static final int POSIX_MODE_DEFAULT = 0664;
+
+    private long mapSize = MAP_SIZE_DEFAULT;
     private int maxDbs = 1;
     private int maxReaders = MAX_READERS_DEFAULT;
     private boolean opened;
     private final BufferProxy<T> proxy;
+    private int mode = POSIX_MODE_DEFAULT;
+    private final AbstractFlagSet.Builder<EnvFlags, EnvFlagSet> flagSetBuilder =
+        EnvFlagSet.builder();
 
     Builder(final BufferProxy<T> proxy) {
       requireNonNull(proxy);
@@ -533,8 +706,50 @@ public final class Env<T> implements AutoCloseable {
      * @param mode Unix permissions to set on created files and semaphores
      * @param flags the flags for this new environment
      * @return an environment ready for use
+     * @deprecated Instead use {@link Builder#open(Path)}, {@link Builder#setFilePermissions(int)}
+     *     and {@link Builder#setEnvFlags(EnvFlags...)}.
      */
+    @Deprecated
     public Env<T> open(final File path, final int mode, final EnvFlags... flags) {
+      setFilePermissions(mode);
+      setEnvFlags(flags);
+      return open(requireNonNull(path).toPath());
+    }
+
+    /**
+     * Opens the environment.
+     *
+     * @param path file system destination
+     * @return an environment ready for use
+     * @deprecated Instead use {@link Builder#open(Path)}
+     */
+    @Deprecated
+    public Env<T> open(final File path) {
+      return open(requireNonNull(path).toPath());
+    }
+
+    /**
+     * Opens the environment with 0664 mode.
+     *
+     * @param path file system destination
+     * @param flags the flags for this new environment
+     * @return an environment ready for use
+     * @deprecated Instead use {@link Builder#open(Path)} and {@link
+     *     Builder#setEnvFlags(EnvFlags...)}.
+     */
+    @Deprecated
+    public Env<T> open(final File path, final EnvFlags... flags) {
+      setEnvFlags(flags);
+      return open(requireNonNull(path).toPath());
+    }
+
+    /**
+     * Opens the environment.
+     *
+     * @param path file system destination
+     * @return an environment ready for use
+     */
+    public Env<T> open(final Path path) {
       requireNonNull(path);
       if (opened) {
         throw new AlreadyOpenException();
@@ -547,11 +762,11 @@ public final class Env<T> implements AutoCloseable {
         checkRc(LIB.mdb_env_set_mapsize(ptr, mapSize));
         checkRc(LIB.mdb_env_set_maxdbs(ptr, maxDbs));
         checkRc(LIB.mdb_env_set_maxreaders(ptr, maxReaders));
-        final int flagsMask = mask(true, flags);
-        final boolean readOnly = isSet(flagsMask, MDB_RDONLY_ENV);
-        final boolean noSubDir = isSet(flagsMask, MDB_NOSUBDIR);
-        checkRc(LIB.mdb_env_open(ptr, path.getAbsolutePath(), flagsMask, mode));
-        return new Env<>(proxy, ptr, readOnly, noSubDir);
+        final EnvFlagSet flags = flagSetBuilder.build();
+        final boolean readOnly = flags.isSet(MDB_RDONLY_ENV);
+        final boolean noSubDir = flags.isSet(MDB_NOSUBDIR);
+        checkRc(LIB.mdb_env_open(ptr, path.toAbsolutePath().toString(), flags.getMask(), mode));
+        return new Env<>(proxy, ptr, readOnly, noSubDir, path, flags);
       } catch (final LmdbNativeException e) {
         LIB.mdb_env_close(ptr);
         throw e;
@@ -559,18 +774,7 @@ public final class Env<T> implements AutoCloseable {
     }
 
     /**
-     * Opens the environment with 0664 mode.
-     *
-     * @param path file system destination
-     * @param flags the flags for this new environment
-     * @return an environment ready for use
-     */
-    public Env<T> open(final File path, final EnvFlags... flags) {
-      return open(path, 0664, flags);
-    }
-
-    /**
-     * Sets the map size.
+     * Sets the map size in bytes.
      *
      * @param mapSize new limit in bytes
      * @return the builder
@@ -584,6 +788,21 @@ public final class Env<T> implements AutoCloseable {
       }
       this.mapSize = mapSize;
       return this;
+    }
+
+    /**
+     * Sets the map size in the supplied unit.
+     *
+     * @param mapSize new map size in the units of byteUnit.
+     * @param byteUnit The unit that mapSize is in.
+     * @return the builder
+     */
+    public Builder<T> setMapSize(final long mapSize, final ByteUnit byteUnit) {
+      requireNonNull(byteUnit);
+      if (mapSize < 0) {
+        throw new IllegalArgumentException("Negative value; overflow?");
+      }
+      return setMapSize(byteUnit.toBytes(mapSize));
     }
 
     /**
@@ -611,6 +830,104 @@ public final class Env<T> implements AutoCloseable {
         throw new AlreadyOpenException();
       }
       this.maxReaders = readers;
+      return this;
+    }
+
+    /**
+     * Sets the Unix file permissions to use on created files and semaphores, e.g. {@code 0664}. If
+     * this method is not called, the default of {@code 0664} will be used.
+     *
+     * @param mode Unix permissions to set on created files and semaphores
+     * @return the builder
+     */
+    public Builder<T> setFilePermissions(final int mode) {
+      if (opened) {
+        throw new AlreadyOpenException();
+      }
+      this.mode = mode;
+      return this;
+    }
+
+    /**
+     * Sets all the flags used to open this {@link Env}.
+     *
+     * @param envFlags The flags to use. Clears any existing flags. A null value results in no flags
+     *     being set.
+     * @return this builder instance.
+     */
+    public Builder<T> setEnvFlags(final Collection<EnvFlags> envFlags) {
+      flagSetBuilder.clear();
+      if (envFlags != null) {
+        envFlags.stream().filter(Objects::nonNull).forEach(flagSetBuilder::addFlag);
+      }
+      return this;
+    }
+
+    /**
+     * Sets all the flags used to open this {@link Env}.
+     *
+     * @param envFlags The flags to use. Clears any existing flags. A null value results in no flags
+     *     being set.
+     * @return this builder instance.
+     */
+    public Builder<T> setEnvFlags(final EnvFlags... envFlags) {
+      flagSetBuilder.clear();
+      if (envFlags != null) {
+        Arrays.stream(envFlags).filter(Objects::nonNull).forEach(this.flagSetBuilder::addFlag);
+      }
+      return this;
+    }
+
+    /**
+     * Sets all the flags used to open this {@link Env}.
+     *
+     * @param envFlagSet The flags to use. Clears any existing flags. A null value results in no
+     *     flags being set.
+     * @return this builder instance.
+     */
+    public Builder<T> setEnvFlags(final EnvFlagSet envFlagSet) {
+      flagSetBuilder.clear();
+      if (envFlagSet != null) {
+        this.flagSetBuilder.setFlags(envFlagSet.getFlags());
+      }
+      return this;
+    }
+
+    /**
+     * Adds a single {@link EnvFlags} to any existing flags.
+     *
+     * @param envFlag The flag to add to any existing flags. A null value is a no-op.
+     * @return this builder instance.
+     */
+    public Builder<T> addEnvFlag(final EnvFlags envFlag) {
+      this.flagSetBuilder.addFlag(envFlag);
+      return this;
+    }
+
+    /**
+     * Adds the contents of an {@link EnvFlagSet} to any existing flags.
+     *
+     * @param envFlagSet The set of flags to add to any existing flags. A null value is a no-op.
+     * @return this builder instance.
+     */
+    public Builder<T> addEnvFlags(final EnvFlagSet envFlagSet) {
+      if (envFlagSet != null) {
+        flagSetBuilder.addFlags(envFlagSet.getFlags());
+      }
+      return this;
+    }
+
+    /**
+     * Adds a {@link Collection} of {@link EnvFlags} to any existing flags.
+     *
+     * @param envFlags The {@link Collection} of flags to add to any existing flags. A null value is
+     *     a no-op.
+     * @return this builder instance.
+     */
+    public Builder<T> addEnvFlags(final Collection<EnvFlags> envFlags) {
+      if (envFlags != null) {
+        flagSetBuilder.addFlags(envFlags);
+      }
       return this;
     }
   }

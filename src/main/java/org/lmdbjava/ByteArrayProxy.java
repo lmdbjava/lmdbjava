@@ -36,9 +36,6 @@ public final class ByteArrayProxy extends BufferProxy<byte[]> {
 
   private static final MemoryManager MEM_MGR = RUNTIME.getMemoryManager();
 
-  private static final Comparator<byte[]> signedComparator = ByteArrayProxy::compareArraysSigned;
-  private static final Comparator<byte[]> unsignedComparator = ByteArrayProxy::compareArrays;
-
   private ByteArrayProxy() {}
 
   /**
@@ -48,7 +45,7 @@ public final class ByteArrayProxy extends BufferProxy<byte[]> {
    * @param o2 right operand (required)
    * @return as specified by {@link Comparable} interface
    */
-  public static int compareArrays(final byte[] o1, final byte[] o2) {
+  public static int compareLexicographically(final byte[] o1, final byte[] o2) {
     requireNonNull(o1);
     requireNonNull(o2);
     if (o1 == o2) {
@@ -68,26 +65,6 @@ public final class ByteArrayProxy extends BufferProxy<byte[]> {
     return o1.length - o2.length;
   }
 
-  /**
-   * Compare two byte arrays.
-   *
-   * @param b1 left operand (required)
-   * @param b2 right operand (required)
-   * @return as specified by {@link Comparable} interface
-   */
-  public static int compareArraysSigned(final byte[] b1, final byte[] b2) {
-    requireNonNull(b1);
-    requireNonNull(b2);
-
-    if (b1 == b2) return 0;
-
-    for (int i = 0; i < min(b1.length, b2.length); ++i) {
-      if (b1[i] != b2[i]) return b1[i] - b2[i];
-    }
-
-    return b1.length - b2.length;
-  }
-
   @Override
   protected byte[] allocate() {
     return new byte[0];
@@ -104,13 +81,8 @@ public final class ByteArrayProxy extends BufferProxy<byte[]> {
   }
 
   @Override
-  protected Comparator<byte[]> getSignedComparator() {
-    return signedComparator;
-  }
-
-  @Override
-  protected Comparator<byte[]> getUnsignedComparator() {
-    return unsignedComparator;
+  public Comparator<byte[]> getComparator(final DbiFlagSet dbiFlagSet) {
+    return ByteArrayProxy::compareLexicographically;
   }
 
   @Override
